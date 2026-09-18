@@ -26,15 +26,23 @@
       if (d < 7.2 * NM && !inp.gearDown && !o.noGear && st.ias < 190 && !P.did.gear) { P.did.gear = 1; tap('KeyG'); note('gear down'); }
       if (d < 6.2 * NM && inp.flapIndex < 4 && st.ias < 170 && !P.did.f30) { P.did.f30 = 1; tap('KeyF'); note('flaps 30'); }
       if (d < 5.5 * NM && !inp.speedbrakeArmed && st.speedbrake < 0.1 && !P.did.arm) { P.did.arm = 1; tap('KeyX'); note('speedbrake armed'); }
+      // fast on the way down with little flap: use the speedbrakes in flight, stow them once the speed is back
+      if (d > 6 * NM && st.agl > 1500 * 0.3048) {
+        const tgt = (inp.flapIndex >= 3 ? 165 : inp.flapIndex >= 2 ? 175 : 210) + o.targetOffset;
+        if (st.ias > tgt + 15 && inp.speedbrake < 0.5 && !P.sbOut) { P.sbOut = 1; tap('Space'); note('speedbrakes out (fast)'); }
+        if (st.ias < tgt + 4 && P.sbOut) { P.sbOut = 0; tap('Space'); note('speedbrakes in'); }
+      } else if (P.sbOut) { P.sbOut = 0; tap('Space'); note('speedbrakes in'); }
       if (d < 5.5 * NM && inp.autobrake === 0 && !P.did.ab) { P.did.ab = 1; for (let i = 0; i < o.autobrake; i++) setTimeout(() => tap('KeyN'), i * 250); note('autobrake ' + o.autobrake); }
     };
     function tick() {
       const now = performance.now(); const dt = Math.min(0.25, (now - P.last) / 1000); P.last = now;
       const g = window.__sim.game; const st = window.__sim.state(); const inp = window.__sim.input();
       if (g.state !== 'flying') { for (const c of [...held]) key(c, false); if (g.state === 'finished') { P.stopped = true; return; } requestAnimationFrame(tick); return; }
+      // a person who sees "click to engage" on the HUD clicks the window again
+      if (!window.__sim.inputManager.mouseEngaged) { const cv = document.querySelector('canvas'); cv.dispatchEvent(new MouseEvent('mousedown', { button: 0, clientX: W() / 2, clientY: H() / 2, bubbles: true })); cv.dispatchEvent(new MouseEvent('mouseup', { button: 0, clientX: W() / 2, clientY: H() / 2, bubbles: true })); note('yoke re-engaged'); }
       let pitchIn = 0, rollIn = 0;
       const drift = P.prevLat === null ? 0 : (st.lateralOffset - P.prevLat) / Math.max(dt, 0.001); P.prevLat = st.lateralOffset;
-      const targetIas = () => { const fi = inp.flapIndex; return (fi >= 4 ? st.vref + 5 : fi >= 3 ? 170 : fi >= 2 ? 185 : 210) + o.targetOffset; };
+      const targetIas = () => { const fi = inp.flapIndex; return (fi >= 4 ? st.vref + 5 : fi >= 3 ? 165 : fi >= 2 ? 175 : 210) + o.targetOffset; };
       const speedHold = (target) => {
         P.iSpd = clamp(P.iSpd + (target - st.ias) * dt * 0.004, -0.2, 0.2);
         const accel = P.prevIas === undefined ? 0 : (st.ias - P.prevIas) / Math.max(dt, 0.001); P.prevIas = st.ias;

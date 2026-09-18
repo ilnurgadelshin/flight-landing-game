@@ -129,6 +129,7 @@ for (const name of list) {
     const s = await checkpoint(finishedEarly ? `flight-ended-before-${label}` : label);
     if (['500ft', 'flare', 'stopped'].includes(label) || finishedEarly) await dumpPfd(finishedEarly ? 'ended' : label);
     if (label === '500ft' || label === 'gear-down') { await page.evaluate(() => { window.__sim.inputManager.look.down = true; }); await shot(label + '-pedestal'); await page.evaluate(() => { window.__sim.inputManager.look.down = false; }); }
+    if (label === '1000ft' || label === '200ft-minimums') { await page.evaluate(() => { window.__sim.inputManager.look.yaw = 1.2; }); await shot(label + '-left-window'); await page.evaluate(() => { window.__sim.inputManager.look.yaw = 0; }); }
     if (s.gameState === 'finished') break;
   }
   const res = await page.evaluate(() => window.__sim.result());
