@@ -231,15 +231,16 @@ export function makeCloudTexture() {
 }
 
 /** Overcast layer seen from below: noisy grey alpha. */
-export function makeOvercastTexture() {
+export function makeOvercastTexture(top = false) {
   const S = 512;
   const c = canvas(S, S); const g = c.getContext('2d');
   const rng = makeRng(8);
-  g.fillStyle = 'rgba(120,124,130,1)'; g.fillRect(0, 0, S, S);
+  // underside: mid grey with darker bases; top: sunlit white with soft grey shading
+  g.fillStyle = top ? 'rgba(232,236,240,1)' : 'rgba(120,124,130,1)'; g.fillRect(0, 0, S, S);
   // seamless: every blob is also drawn at the wrapped offsets
   for (let i = 0; i < 900; i++) {
     const x = rng() * S, y = rng() * S, r = 10 + rng() * 50;
-    const v = 70 + Math.floor(rng() * 90);
+    const v = top ? 190 + Math.floor(rng() * 60) : 70 + Math.floor(rng() * 90);
     for (const ox of [-S, 0, S]) for (const oy of [-S, 0, S]) {
       const cx = x + ox, cy = y + oy;
       if (cx + r < 0 || cx - r > S || cy + r < 0 || cy - r > S) continue;

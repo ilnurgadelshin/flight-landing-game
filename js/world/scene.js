@@ -418,7 +418,8 @@ export class World {
     this.overcast.renderOrder = 2;
     this.scene.add(this.overcast);
     // the top of the deck, seen when flying above it: sunlit, bright
-    this.overcastTop = new THREE.Mesh(new THREE.PlaneGeometry(80000, 80000), new THREE.MeshBasicMaterial({ map: ovTex, side: THREE.DoubleSide, transparent: true, opacity: 0.97, fog: true, depthWrite: false }));
+    const ovTopTex = makeOvercastTexture(true); ovTopTex.repeat.set(30, 30);
+    this.overcastTop = new THREE.Mesh(new THREE.PlaneGeometry(80000, 80000), new THREE.MeshBasicMaterial({ map: ovTopTex, side: THREE.DoubleSide, fog: true }));
     this.overcastTop.rotation.x = Math.PI / 2;
     this.overcastTop.visible = false;
     this.overcastTop.renderOrder = 2;
@@ -506,8 +507,7 @@ export class World {
     this.overcast.material.color.set(storm ? (tod === 'night' ? 0x101216 : 0x55595f) : (tod === 'night' ? 0x1a1e26 : 0x9aa0a8));
     this.overcastTop.visible = this.hasDeck && this.cloudTop < 6000;
     this.overcastTop.position.y = this.cloudTop;
-    this.overcastTop.material.opacity = 0.97;
-    this.overcastTop.material.color.set(tod === 'night' ? 0x262a33 : (tod === 'dusk' ? 0xc9a58a : 0xeef1f4));
+    this.overcastTop.material.color.set(tod === 'night' ? 0x262a33 : (tod === 'dusk' ? 0xd8b090 : 0xffffff));
     const cumulus = scenario.id !== 'storm' && scenario.id !== 'clear';
     this.cloudGroup.visible = cumulus || scenario.id === 'clear';
     this.cloudGroup.children.forEach((sp) => {
@@ -547,8 +547,9 @@ export class World {
     if (this.hasDeck) {
       inCloudF = Math.max(0, Math.min(1, (alt - this.cloudBase) / 60, (this.cloudTop - alt) / 60));
       vis = vis * (1 - inCloudF) + 120 * inCloudF;
-      this.overcast.visible = alt < this.cloudTop - 20;
-      this.overcastTop.visible = this.cloudTop < 6000 && alt > this.cloudBase + 20;
+      // inside the deck neither sheet is drawn (a sheet seen edge-on would leave a false horizon line)
+      this.overcast.visible = alt < this.cloudTop - 20 && inCloudF < 0.97;
+      this.overcastTop.visible = this.cloudTop < 6000 && alt > this.cloudBase + 20 && inCloudF < 0.97;
     }
     const density = 1.73 / Math.max(vis, 50);
     this.scene.fog.density = density;
