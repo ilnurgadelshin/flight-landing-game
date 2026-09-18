@@ -201,6 +201,7 @@ export class Aircraft {
     this.resetDamage();
     for (const g of Object.values(this.gear)) { g.collapsed = false; g.compression = 0; g.onGround = false; g.wasOnGround = false; g.load = 0; }
     this.events.length = 0;
+    this.landingTouches = [];   // gear contacts of the landing, kept for the debrief (events are consumed by the game)
     this.touchdown = null;
     this.landingRollDistance = 0;
     this.airborne = !onGround;
@@ -632,6 +633,9 @@ export class Aircraft {
     this.events.push({ t: this.time, type: 'geartouch', gear: g.name, sink, ias: st.ias, surface: g.surface,
       crabDeg: st.crabDeg, bank: st.roll, pitch: st.pitch, lateralOffset: st.lateralOffset, distFromThreshold: st.distFromThreshold,
       groundSpeed: st.groundSpeed, onRunway: st.anyOnRunway });
+    (this.landingTouches = this.landingTouches || []).push({ t: this.time, type: 'geartouch', gear: g.name, sink, ias: st.ias, surface: g.surface,
+      crabDeg: st.crabDeg, bank: st.roll, pitch: st.pitch, lateralOffset: st.lateralOffset, distFromThreshold: st.distFromThreshold,
+      groundSpeed: st.groundSpeed, onRunway: st.anyOnRunway });
     const mainsWereUp = !this.gear.left.wasOnGround && !this.gear.right.wasOnGround && !this.gear.left.onGround && !this.gear.right.onGround;
     if (g.name === 'nose' && mainsWereUp && this.airborne) {
       this.events.push({ t: this.time, type: 'nosefirst', sink });
@@ -707,7 +711,7 @@ export class Aircraft {
   onTouchdownConfirmed() {
     if (this.touchdown) return;
     const st = this.state;
-    const touches = this.events.filter((e) => e.type === 'geartouch');
+    const touches = this.landingTouches || [];
     const mains = touches.filter((e) => e.gear !== 'nose');
     // the debrief describes the first contact: the first main gear, unless the nose wheel hit
     // first (then that impact is the landing); the sink rate is the hardest contact of the
