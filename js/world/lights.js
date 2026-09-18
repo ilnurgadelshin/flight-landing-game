@@ -133,7 +133,8 @@ export class AirfieldLights {
       for (let z = halfW + 10; z < 118; z += 20) { this.add(cx - 13, y, z, 'blue', 0.7); this.add(cx + 13, y, z, 'blue', 0.7); this.add(cx, y - 0.1, z + 10, 'green', 0.5); }
     }
     // ---- apron floodlights and the tower beacon
-    for (let x = -600; x <= 600; x += 200) this.add(x, 18, 400, 'white', 3.0);
+    // warm apron floodlights: bright up close, not a solid white block from miles away
+    for (let x = -600; x <= 600; x += 200) this.add(x, 18, 400, [1, 0.86, 0.62], 1.8);
     this.beacon = this.add(-250, 62, 330, 'white', 4.0, 'beacon');
     // ---- obstruction lights (red) on the tower and buildings
     this.add(-250, 66, 330, 'red', 1.5, 'obst');
