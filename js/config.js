@@ -174,7 +174,7 @@ export const RUNWAY = {
   thresholdCrossingHeight: 15, // m (50 ft)
   approachLightLength: 900,
   tdzLightsLength: 900,
-  name: 'Fable International (FBL)',
+  name: 'Westhaven International (WHV)',
 };
 
 // ---------------------------------------------------------------------------

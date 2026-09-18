@@ -28,11 +28,11 @@ export class Simulation {
     const dist = s.distanceNm * NM;
     const x = RUNWAY.thresholdX + dist;                 // east of the threshold, flying west
     const alt = s.altFt * FT;
-    // put the aircraft slightly below the glideslope for the standard/full starts
-    const throttle = s.gear ? 0.52 : 0.45;
+    // the standard/full starts are level slightly below the glideslope; the short final is on it.
+    // place() sets the thrust and stabiliser trim for equilibrium so the aircraft starts stable.
     this.aircraft.place({
       x, y: alt, z: 0, headingDeg: RUNWAY.headingDeg, iasKts: s.iasKts,
-      flapIndex: s.flaps, gearDown: s.gear, throttle, gammaDeg: s.id === 'short' ? -3 : 0,
+      flapIndex: s.flaps, gearDown: s.gear, gammaDeg: s.id === 'short' ? -3 : 0,
     });
     this.accumulator = 0;
     this.stepCount = 0;

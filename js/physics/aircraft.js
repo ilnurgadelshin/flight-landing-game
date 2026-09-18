@@ -177,7 +177,7 @@ export class Aircraft {
 
   // ----- placement -----------------------------------------------------------
   /** Place the aircraft at a position with heading (deg), speed (kts), config. */
-  place({ x, y, z, headingDeg, iasKts, flapIndex = 4, gearDown = true, throttle = 0.5, gammaDeg = 0, onGround = false }) {
+  place({ x, y, z, headingDeg, iasKts, flapIndex = 4, gearDown = true, throttle = 'trim', gammaDeg = 0, onGround = false }) {
     const b = this.body;
     b.position.set(x, y, z);
     b.velocity.set(0, 0, 0);
@@ -233,6 +233,16 @@ export class Aircraft {
     const dirX = Math.sin(psi) * cg, dirZ = -Math.cos(psi) * cg, dirY = Math.sin(gammaDeg * DEG);
     if (onGround) b.velocity.set(0, 0, 0);
     else b.velocity.set(dirX * tas + wind[0], dirY * tas + wind[1], dirZ * tas + wind[2]);
+    // thrust for equilibrium on this flight path: T = D + W sin(gamma)
+    if (throttle === 'trim') {
+      const CLt = CL0 + AC.aero.CLa * alpha;
+      const CDt = AC.aero.CD0 + AC.flaps.dCD0[flapIndex] + AC.aero.dCD_gear * (gearDown ? 1 : 0) + AC.aero.K * CLt * CLt;
+      const Treq = onGround ? 0 : qbar * AC.wingArea * CDt + AC.mass * G * Math.sin(gammaDeg * DEG);
+      const fracT = Math.pow(clamp(Treq / (AC.engines.count * AC.engines.maxThrust * (rho / 1.225)), 0, 1), 1 / 2.2);
+      const n1t = 0.2 + 0.8 * fracT;
+      throttle = clamp((n1t - AC.engines.idleN1) / (1 - AC.engines.idleN1), 0, 1);
+      this.input.throttle = throttle;
+    }
     // trim the stabiliser for pitch equilibrium at this alpha
     const Cm0 = AC.aero.Cm0 + AC.flaps.dCm0[flapIndex];
     // thrust below the CG produces a nose-up moment that the trim must hold too
@@ -321,9 +331,13 @@ export class Aircraft {
     this.surfaces.rudder += (rudderCmd - this.surfaces.rudder) * kS;
     // trim follow-up: like the 737 speed-trim system, a sustained column input slowly
     // runs the stabiliser so the pilot can relax the input (can be disabled)
+    // It only runs when the same input has been held for a while AND the aircraft is not
+    // pitching (a pilot trims once the attitude is steady); a fast follow-up chasing a
+    // moving input turns every correction into a slow pitch oscillation.
     if (this.autoTrim && this.airborne && this.state.ias > 60) {
-      if (Math.abs(inp.pitch) > 0.08) this._holdT += dt; else this._holdT = 0;
-      if (this._holdT > 1.2) inp.trim = clamp(inp.trim + sign(inp.pitch) * 0.7 * dt, -AC.controls.maxTrimDeg, AC.controls.maxTrimDeg);
+      const s = Math.abs(inp.pitch) > 0.08 ? sign(inp.pitch) : 0;
+      if (s !== 0 && s === this._holdSign) this._holdT += dt; else { this._holdT = 0; this._holdSign = s; }
+      if (this._holdT > 2.0 && Math.abs(this.state.q) < 1.5 * DEG) inp.trim = clamp(inp.trim + s * 0.3 * dt, -AC.controls.maxTrimDeg, AC.controls.maxTrimDeg);
     }
     const trimRad = clamp(inp.trim, -AC.controls.maxTrimDeg, AC.controls.maxTrimDeg) * DEG;
 
@@ -424,7 +438,8 @@ export class Aircraft {
       const symLen = Math.hypot(vRelBody.y, vRelBody.z) || 1;
       // lift direction = right × vSym, perpendicular to the symmetry-plane velocity (up for level flight)
       const liftDir = _v5.set(0, -vRelBody.z / symLen, vRelBody.y / symLen);
-      const L = qbar * S * CL, D = qbar * S * CD, Y = qbar * S * CY;
+      const wreck = this.damage.destroyed ? 0.15 : 1;   // a wreck sliding on its belly makes no useful lift
+      const L = qbar * S * CL * wreck, D = qbar * S * CD, Y = qbar * S * CY;
       const fBody = _v1.set(
         dragDir.x * D + liftDir.x * L + Y,
         dragDir.y * D + liftDir.y * L,
@@ -765,7 +780,7 @@ export class Aircraft {
     st.aStallDeg = extra.aStallDeg || 13;
     st.CL = extra.CL || 0; st.CD = extra.CD || 0; st.qbar = extra.qbar || 0;
     st.vref = this.currentVref();
-    st.gearCollapsed = this.damage.gearCollapsed; st.destroyed = this.damage.destroyed;
+    st.gearCollapsed = this.damage.gearCollapsed; st.collapsedGear = this.damage.collapsedGear; st.destroyed = this.damage.destroyed;
     st.time = this.time;
 
     // wind (FROM direction)

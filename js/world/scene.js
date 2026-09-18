@@ -154,9 +154,9 @@ export class World {
     // The flight deck is rendered in a second pass with its own lights, so the
     // sun never shines through the fuselage onto the seats and consoles.
     this.cockpitScene = new THREE.Scene();
-    this.cockpitHemi = new THREE.HemisphereLight(0xb8c8d8, 0x30333a, 0.6);
+    this.cockpitHemi = new THREE.HemisphereLight(0xb8c8d8, 0x30333a, 1.0);
     this.cockpitScene.add(this.cockpitHemi);
-    this.cockpitAmbient = new THREE.AmbientLight(0xffffff, 0.12);
+    this.cockpitAmbient = new THREE.AmbientLight(0xffffff, 0.2);
     this.cockpitScene.add(this.cockpitAmbient);
     this.time = 0;
     this.night = false;
@@ -282,7 +282,7 @@ export class World {
     this.buildingTex.repeat.set(4, 1);
     box(420, 22, 60, 0, 460);                    // terminal
     box(120, 16, 60, -400, 470); box(120, 16, 60, 420, 470);
-    for (let i = 0; i < 3; i++) box(90, 24, 70, 700 + i * 110, 300, new THREE.MeshLambertMaterial({ color: 0x8a8f96 })); // hangars
+    for (let i = 0; i < 3; i++) box(90, 24, 70, 700 + i * 110, 300, new THREE.MeshLambertMaterial({ color: 0xaeb2b8 })); // hangars
     // control tower
     const towerMat = new THREE.MeshLambertMaterial({ color: 0xb8bcc4 });
     const shaft = new THREE.Mesh(new THREE.CylinderGeometry(5, 7, 52, 12), towerMat); shaft.position.set(-250, 26, 330); this.scene.add(shaft);
@@ -454,7 +454,7 @@ export class World {
     this.tod = tod;
     // sky + lighting presets
     const presets = {
-      day: { zenith: 0x1e56c0, horizon: 0x9cbfe4, ground: 0x7b8a6a, sun: [-0.45, 0.62, 0.35], sunColor: 0xfff2d0, sunI: 1.7, hemiI: 0.9, hemiSky: 0xcfe3ff, ambient: 0x556677, fogColor: 0xc4d5e6, stars: 0, daylight: 1 },
+      day: { zenith: 0x1e56c0, horizon: 0x9cbfe4, ground: 0x7b8a6a, sun: [-0.45, 0.62, 0.35], sunColor: 0xfff2d0, sunI: 1.7, hemiI: 1.3, hemiSky: 0xe2e9f2, ambient: 0x556677, fogColor: 0xc4d5e6, stars: 0, daylight: 1 },
       dusk: { zenith: 0x1b2a4a, horizon: 0x8a6a5a, ground: 0x2a2a2a, sun: [-0.85, 0.08, 0.5], sunColor: 0xff9a55, sunI: 0.5, hemiI: 0.45, hemiSky: 0x8090b0, ambient: 0x303848, fogColor: 0x6a6a72, stars: 0.3, daylight: 0.35 },
       night: { zenith: 0x03060f, horizon: 0x101828, ground: 0x050608, sun: [0.3, -0.4, 0.5], sunColor: 0x000000, sunI: 0.0, hemiI: 0.12, hemiSky: 0x223355, ambient: 0x0c1018, fogColor: 0x0a0d14, stars: 1, daylight: 0 },
     };
@@ -488,9 +488,9 @@ export class World {
     this.visibility = scenario.visibility;
     this.cloudBase = scenario.cloudBase * 0.3048;
     this.daylight = p.daylight * (storm ? 0.5 : 1);
-    this.cockpitHemi.intensity = tod === 'night' ? 0.05 : (storm ? 0.3 : (tod === 'dusk' ? 0.25 : 0.6));
+    this.cockpitHemi.intensity = tod === 'night' ? 0.05 : (storm ? 0.5 : (tod === 'dusk' ? 0.4 : 1.0));
     this.cockpitHemi.color.set(tod === 'dusk' ? 0xd0a080 : 0xb8c8d8);
-    this.cockpitAmbient.intensity = tod === 'night' ? 0.03 : 0.12;
+    this.cockpitAmbient.intensity = tod === 'night' ? 0.03 : 0.2;
     // clouds
     this.overcast.visible = scenario.cloudBase < 5000;
     this.overcast.position.y = this.cloudBase;

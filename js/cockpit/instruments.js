@@ -320,6 +320,7 @@ export class UpperDU {
     const gearLight = (x, y, lbl) => {
       let col = '#222', txt = '';
       if (st.gearDown) { col = GREEN; txt = lbl; } else if (st.gearInTransit) { col = RED; txt = lbl; }
+      if (st.collapsedGear && st.collapsedGear.includes(lbl.toLowerCase())) { col = RED; txt = 'FAIL'; }
       g.fillStyle = col; g.beginPath(); g.roundRect(x - 22, y - 12, 44, 24, 4); g.fill();
       g.fillStyle = col === '#222' ? '#444' : '#000'; g.font = FONT_S; g.textAlign = 'center'; g.fillText(txt || lbl, x, y + 1);
     };
@@ -375,11 +376,18 @@ export class LowerDU {
 export function makeMCPTexture() {
   const c = document.createElement('canvas'); c.width = 1024; c.height = 96;
   const g = c.getContext('2d');
-  g.fillStyle = '#3b3d42'; g.fillRect(0, 0, 1024, 96);
-  const win = (x, label, val) => { g.fillStyle = '#111'; g.fillRect(x, 18, 90, 34); g.fillStyle = '#ffa33a'; g.font = 'bold 22px monospace'; g.textAlign = 'center'; g.fillText(val, x + 45, 43); g.fillStyle = '#ddd'; g.font = '11px sans-serif'; g.fillText(label, x + 45, 70); };
-  win(80, 'IAS/MACH', '145'); win(260, 'HEADING', '270'); win(440, 'ALTITUDE', '3000'); win(620, 'VERT SPEED', '-700');
-  for (const [x, l] of [[190, 'N1'], [230, 'SPD'], [380, 'LNAV'], [560, 'VNAV'], [780, 'APP'], [830, 'CMD A'], [880, 'CMD B'], [940, 'A/T']]) { g.fillStyle = '#2a2c30'; g.fillRect(x, 26, 34, 22); g.fillStyle = '#bbb'; g.font = '9px sans-serif'; g.textAlign = 'center'; g.fillText(l, x + 17, 40); }
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.needsUpdate = true; return t;
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+  // the windows are redrawn by the cockpit when the selected values change (texture.userData.draw)
+  const draw = (v) => {
+    g.fillStyle = '#3b3d42'; g.fillRect(0, 0, 1024, 96);
+    const win = (x, label, val) => { g.fillStyle = '#111'; g.fillRect(x, 18, 90, 34); g.fillStyle = '#ffa33a'; g.font = 'bold 22px monospace'; g.textAlign = 'center'; g.fillText(val || '', x + 45, 43); g.fillStyle = '#ddd'; g.font = '11px sans-serif'; g.fillText(label, x + 45, 70); };
+    win(80, 'IAS/MACH', v.ias); win(260, 'HEADING', v.hdg); win(440, 'ALTITUDE', v.alt); win(620, 'VERT SPEED', v.vs);
+    for (const [x, l] of [[190, 'N1'], [230, 'SPD'], [380, 'LNAV'], [560, 'VNAV'], [780, 'APP'], [830, 'CMD A'], [880, 'CMD B'], [940, 'A/T']]) { g.fillStyle = '#2a2c30'; g.fillRect(x, 26, 34, 22); g.fillStyle = '#bbb'; g.font = '9px sans-serif'; g.textAlign = 'center'; g.fillText(l, x + 17, 40); }
+    t.needsUpdate = true;
+  };
+  draw({ ias: '147', hdg: '270', alt: '3000', vs: '' });
+  t.userData.draw = draw;
+  return t;
 }
 
 /** Panel background with labels for the main instrument panel. */

@@ -47,6 +47,10 @@ export class GPWS {
     if (this.captionTimer <= 0) { this.caption = ''; this.captionKind = ''; }
     const aglFt = st.agl / FT;
     const vsFpm = st.vs / 0.00508;
+    // the descent-rate modes use a filtered vertical speed (like the real barometric input) so a
+    // one-second pitch transient does not trigger "sink rate"
+    this.vsF = this.vsF === undefined ? vsFpm : this.vsF + (vsFpm - this.vsF) * (1 - Math.exp(-dt / 0.9));
+    if (st.onGround && this.captionTimer > 0) { this.caption = ''; this.captionKind = ''; this.captionTimer = 0; }
     if (aglFt > 60) this.armed = true;
     if (!this.armed) { this.prevAgl = aglFt; return; }
 
@@ -71,8 +75,8 @@ export class GPWS {
     if (!st.onGround && !st.destroyed) {
       // ---- Mode 1: excessive descent rate
       if (aglFt < 2450 && aglFt > 10) {
-        const pullUp = vsFpm < -(1500 + aglFt * 2.6);
-        const sinkRate = vsFpm < -(950 + aglFt * 1.35);
+        const pullUp = this.vsF < -(1500 + aglFt * 2.6);
+        const sinkRate = this.vsF < -(950 + aglFt * 1.35);
         if (pullUp) this.announce('Pull up', 'warning', 3, 1.4);
         else if (sinkRate) this.announce('Sink rate', 'caution', 2, 2.2);
       }

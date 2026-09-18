@@ -28,7 +28,7 @@ export class Cockpit {
     this.camRig.add(camera);
     camera.position.set(0, 0, 0);
     camera.fov = 70; camera.updateProjectionMatrix();
-    this.basePitch = -17 * DEG;
+    this.basePitch = -15 * DEG;
     camera.rotation.set(this.basePitch, 0, 0);
     this.lookDown = 0; this.lookYaw = 0; this.lookPitch = 0;
     this.shake = new THREE.Vector3();
@@ -106,12 +106,12 @@ export class Cockpit {
       this.box(0.25, 0.08, 1.0, s * 1.22, -0.55, 0.2, M.dark);
     }
     // front glass panes
-    for (const s of [-1, 1]) { const gl = this.box(0.9, 0.7, 0.005, s * 0.5, 0.25, -0.93, M.glass); gl.rotation.x = -rake; }
+    for (const s of [-1, 1]) { const gl = this.box(0.9, 0.82, 0.005, s * 0.5, 0.19, -0.93, M.glass); gl.rotation.x = -rake; }
     // nose structure below the windshield (what you see over the glareshield edge): none — the view is outside
     // wipers: pivot at the bottom rail
     this.wipers = [];
     for (const s of [-1, 1]) {
-      const piv = new THREE.Group(); piv.position.set(s * 0.55, -0.06, -1.09); piv.rotation.x = -rake; this.root.add(piv);
+      const piv = new THREE.Group(); piv.position.set(s * 0.55, -0.12, -1.09); piv.rotation.x = -rake; this.root.add(piv);
       const arm = this.box(0.014, 0.55, 0.012, 0, 0.27, 0, M.black, piv);
       void arm;
       this.wipers.push(piv);
@@ -122,13 +122,15 @@ export class Cockpit {
       this.box(0.55, 0.85, 0.16, s * 0.52, -0.25, 0.98, M.seat);
     }
     // glareshield: shelf + lip + MCP face
-    this.box(2.3, 0.05, 0.42, 0, -0.10, -0.90, M.dark);           // shelf
-    this.box(2.3, 0.09, 0.05, 0, -0.145, -0.70, M.dark);          // lip (MCP housing)
-    this.box(2.3, 0.16, 0.36, 0, -0.20, -0.86, M.dark);           // underside filler down to the panel
-    const mcpTex = makeMCPTexture();
-    const mcp = new THREE.Mesh(new THREE.PlaneGeometry(0.95, 0.07), new THREE.MeshStandardMaterial({ map: mcpTex, roughness: 0.8, emissive: 0xffffff, emissiveMap: mcpTex, emissiveIntensity: 0.25 }));
-    mcp.position.set(0, -0.145, -0.674); this.root.add(mcp);
-    this.anchors.mcp = new THREE.Vector3(0, -0.145, -0.68);
+    // The shelf sits ~0.29 m below the eye with its far edge ~1 m ahead: a ~15° cut-off angle over
+    // the nose, so the runway stays in view through the flare (the real 737 is about 17°).
+    this.box(2.3, 0.05, 0.30, 0, -0.15, -0.84, M.dark);           // shelf
+    this.box(2.3, 0.05, 0.05, 0, -0.175, -0.70, M.dark);          // lip (MCP housing)
+    this.box(2.3, 0.16, 0.30, 0, -0.25, -0.83, M.dark);           // underside filler down to the panel
+    const mcpTex = makeMCPTexture(); this.mcpTex = mcpTex;
+    const mcp = new THREE.Mesh(new THREE.PlaneGeometry(0.95, 0.05), new THREE.MeshStandardMaterial({ map: mcpTex, roughness: 0.8, emissive: 0xffffff, emissiveMap: mcpTex, emissiveIntensity: 0.25 }));
+    mcp.position.set(0, -0.175, -0.674); this.root.add(mcp);
+    this.anchors.mcp = new THREE.Vector3(0, -0.175, -0.68);
     this.anchors.windshield = new THREE.Vector3(-0.45, 0.02, -0.95);
   }
 
@@ -137,18 +139,18 @@ export class Cockpit {
     // the panel plane: top edge y=-0.19 z=-0.72, bottom y=-0.70 z=-0.58 (tilted back ~15°)
     const tilt = Math.atan2(0.14, 0.51);
     this.panelGroup = new THREE.Group();
-    this.panelGroup.position.set(0, -0.44, -0.62);
+    this.panelGroup.position.set(0, -0.46, -0.62);
     this.panelGroup.rotation.x = -tilt;   // top edge away from the pilot so the face looks up at the eye
     this.root.add(this.panelGroup);
     const panelTex = makePanelTexture();
     const panel = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.53, 0.04), new THREE.MeshStandardMaterial({ map: panelTex, roughness: 0.9, emissive: 0xffffff, emissiveMap: panelTex, emissiveIntensity: 0.12 }));
     this.panelGroup.add(panel);
     // kick panel below the main panel down to the floor (closes the view to the outside)
-    this.box(2.3, 0.80, 0.06, 0, -0.98, -0.52, this.mat.dark);
-    this.box(2.3, 0.10, 0.08, 0, -0.62, -0.56, this.mat.dark);     // panel bottom ledge
+    this.box(2.3, 0.80, 0.06, 0, -1.03, -0.52, this.mat.dark);
+    this.box(2.3, 0.10, 0.08, 0, -0.72, -0.56, this.mat.dark);     // panel bottom ledge
     // display units
     this.pfd = new PFD(); this.nd = new ND(); this.upper = new UpperDU(); this.lower = new LowerDU();
-    const du = (tex, x, y, size = 0.215) => {
+    const du = (tex, x, y, size = 0.20) => {
       const bezel = new THREE.Mesh(new THREE.BoxGeometry(size + 0.03, size + 0.03, 0.02), this.mat.black);
       bezel.position.set(x, y, 0.025); this.panelGroup.add(bezel);
       const screen = new THREE.Mesh(new THREE.PlaneGeometry(size, size), new THREE.MeshBasicMaterial({ map: tex, toneMapped: false }));
@@ -159,11 +161,12 @@ export class Cockpit {
     du(this.pfd.tex, -0.70, 0.14); du(this.nd.tex, -0.46, 0.14);
     du(this.upper.tex, 0.0, 0.14); du(this.lower.tex, 0.0, -0.10);
     du(this.nd.tex, 0.46, 0.14); du(this.pfd.tex, 0.70, 0.14);
-    // standby attitude/airspeed instruments (small round bezels) between ND and centre
-    for (const [x, y] of [[-0.30, 0.18], [-0.30, 0.06], [-0.30, -0.06]]) {
+    // standby instruments between ND and centre: attitude (ISFD-style), altimeter, clock
+    this.standby = new StandbyInstruments();
+    [[-0.30, 0.18], [-0.30, 0.06], [-0.30, -0.06]].forEach(([x, y], i) => {
       const b = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, 0.02, 20), this.mat.black); b.rotation.x = Math.PI / 2; b.position.set(x, y, 0.03); this.panelGroup.add(b);
-      const face = new THREE.Mesh(new THREE.CircleGeometry(0.038, 20), new THREE.MeshStandardMaterial({ color: 0x1a2a44 })); face.position.set(x, y, 0.041); this.panelGroup.add(face);
-    }
+      const face = new THREE.Mesh(new THREE.CircleGeometry(0.038, 24), new THREE.MeshBasicMaterial({ map: this.standby.tex[i], toneMapped: false })); face.position.set(x, y, 0.041); this.panelGroup.add(face);
+    });
     // gear lever (right of the lower DU): a vertical slot with a wheel-shaped handle
     this.gearLever = new THREE.Group(); this.gearLever.position.set(0.30, -0.08, 0.03); this.panelGroup.add(this.gearLever);
     const slot = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.16, 0.01), this.mat.black); this.gearLever.add(slot);
@@ -265,7 +268,7 @@ export class Cockpit {
     this.root.add(this.dome);
     // panel flood
     this.flood = new THREE.PointLight(0xffe7c0, 0.5, 1.8, 2);
-    this.flood.position.set(0, -0.17, -0.42);     // under the glareshield lip, lights the panel and pedestal
+    this.flood.position.set(0, -0.22, -0.42);     // under the glareshield lip, lights the panel and pedestal
     this.root.add(this.flood);
   }
 
@@ -322,6 +325,10 @@ export class Cockpit {
     if (extra.fd) this.pfd.fd = extra.fd;
     this.pfd.draw(st, extra);
     this.frame = (this.frame || 0) + 1;
+    if (this.frame % 3 === 0) this.standby.draw(st);
+    // MCP windows follow the approach: selected speed for the flap setting, runway heading, missed-approach altitude
+    const selIas = Math.round(input.flapIndex >= 4 ? st.vref + 5 : (input.flapIndex >= 3 ? 165 : (input.flapIndex >= 2 ? 175 : 210)));
+    if (selIas !== this._mcpIas) { this._mcpIas = selIas; this.mcpTex.userData.draw({ ias: String(selIas), hdg: '270', alt: '3000', vs: '' }); }
     if (this.frame % 2 === 0) this.nd.draw(st);
     if (this.frame % 2 === 1) this.upper.draw(st, extra);
     if (this.frame % 4 === 2) this.lower.draw(st, extra);
@@ -338,5 +345,48 @@ export class Cockpit {
     const v = a.clone(); this.root.localToWorld(v); v.project(this.camera);
     const w = renderer.domElement.clientWidth, h = renderer.domElement.clientHeight;
     return { x: (v.x + 1) / 2 * w, y: (1 - v.y) / 2 * h, visible: v.z < 1 && Math.abs(v.x) < 1.2 && Math.abs(v.y) < 1.2 };
+  }
+}
+
+/** Three small round standby instruments drawn on canvases: attitude with speed/altitude, altimeter, clock. */
+class StandbyInstruments {
+  constructor() {
+    this.canvas = []; this.ctx = []; this.tex = [];
+    for (let i = 0; i < 3; i++) {
+      const c = document.createElement('canvas'); c.width = c.height = 96;
+      const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace;
+      this.canvas.push(c); this.ctx.push(c.getContext('2d')); this.tex.push(t);
+    }
+    this.draw({ pitch: 0, roll: 0, ias: 0, alt: 0, time: 0 });
+  }
+  draw(st) {
+    const DEG = Math.PI / 180;
+    // attitude
+    let g = this.ctx[0]; g.save(); g.clearRect(0, 0, 96, 96);
+    g.translate(48, 48); g.rotate(-st.roll); const py = clamp(st.pitch / DEG, -30, 30) * 1.6;
+    g.fillStyle = '#2f7fe0'; g.fillRect(-70, -70 + py, 140, 70); g.fillStyle = '#8a5a2a'; g.fillRect(-70, py, 140, 70);
+    g.strokeStyle = '#fff'; g.lineWidth = 1.5; g.beginPath(); g.moveTo(-40, py); g.lineTo(40, py); g.stroke();
+    for (const d of [-10, 10, -20, 20]) { const yy = py - d * 1.6; g.beginPath(); g.moveTo(-12, yy); g.lineTo(12, yy); g.stroke(); }
+    g.restore();
+    g.strokeStyle = '#ffd23a'; g.lineWidth = 3; g.beginPath(); g.moveTo(22, 48); g.lineTo(38, 48); g.lineTo(44, 54); g.lineTo(48, 48); g.lineTo(52, 54); g.lineTo(58, 48); g.lineTo(74, 48); g.stroke();
+    g.fillStyle = '#000'; g.fillRect(2, 38, 24, 14); g.fillRect(70, 38, 24, 14);
+    g.fillStyle = '#fff'; g.font = 'bold 11px monospace'; g.textAlign = 'center'; g.fillText(Math.round(st.ias), 14, 49); g.fillText(Math.round(st.alt / 0.3048 / 10) * 10, 82, 49);
+    // altimeter (one turn per 1000 ft)
+    g = this.ctx[1]; g.clearRect(0, 0, 96, 96); g.fillStyle = '#10141c'; g.fillRect(0, 0, 96, 96);
+    g.strokeStyle = '#ddd'; g.lineWidth = 1.5; g.fillStyle = '#ddd'; g.font = '9px monospace'; g.textAlign = 'center';
+    for (let i = 0; i < 10; i++) { const a = i / 10 * Math.PI * 2 - Math.PI / 2; g.beginPath(); g.moveTo(48 + Math.cos(a) * 40, 48 + Math.sin(a) * 40); g.lineTo(48 + Math.cos(a) * 34, 48 + Math.sin(a) * 34); g.stroke(); g.fillText(i, 48 + Math.cos(a) * 27, 48 + Math.sin(a) * 27 + 3); }
+    const altFt = st.alt / 0.3048; const a1 = (altFt % 1000) / 1000 * Math.PI * 2 - Math.PI / 2; const a2 = (altFt % 10000) / 10000 * Math.PI * 2 - Math.PI / 2;
+    g.strokeStyle = '#fff'; g.lineWidth = 2; g.beginPath(); g.moveTo(48, 48); g.lineTo(48 + Math.cos(a1) * 36, 48 + Math.sin(a1) * 36); g.stroke();
+    g.lineWidth = 4; g.beginPath(); g.moveTo(48, 48); g.lineTo(48 + Math.cos(a2) * 22, 48 + Math.sin(a2) * 22); g.stroke();
+    g.fillStyle = '#000'; g.fillRect(30, 58, 36, 13); g.fillStyle = '#fff'; g.font = 'bold 10px monospace'; g.fillText(Math.round(altFt / 20) * 20, 48, 68);
+    // clock (elapsed flight time)
+    g = this.ctx[2]; g.clearRect(0, 0, 96, 96); g.fillStyle = '#10141c'; g.fillRect(0, 0, 96, 96);
+    g.strokeStyle = '#ccc'; g.lineWidth = 1.5;
+    for (let i = 0; i < 12; i++) { const a = i / 12 * Math.PI * 2; g.beginPath(); g.moveTo(48 + Math.cos(a) * 40, 48 + Math.sin(a) * 40); g.lineTo(48 + Math.cos(a) * 35, 48 + Math.sin(a) * 35); g.stroke(); }
+    const t = st.time || 0; const am = (t / 60 / 60) * Math.PI * 2 - Math.PI / 2, as = (t % 60) / 60 * Math.PI * 2 - Math.PI / 2;
+    g.strokeStyle = '#fff'; g.lineWidth = 3; g.beginPath(); g.moveTo(48, 48); g.lineTo(48 + Math.cos(am) * 28, 48 + Math.sin(am) * 28); g.stroke();
+    g.strokeStyle = '#ff5533'; g.lineWidth = 1; g.beginPath(); g.moveTo(48, 48); g.lineTo(48 + Math.cos(as) * 36, 48 + Math.sin(as) * 36); g.stroke();
+    g.fillStyle = '#fff'; g.font = '9px monospace'; g.textAlign = 'center'; g.fillText(`${String(Math.floor(t / 60)).padStart(2, '0')}:${String(Math.floor(t % 60)).padStart(2, '0')}`, 48, 80);
+    for (const tx of this.tex) tx.needsUpdate = true;
   }
 }

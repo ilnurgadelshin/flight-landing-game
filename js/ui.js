@@ -25,7 +25,7 @@ export class UI {
   constructor() {
     this.el = {
       menu: $('menu'), hud: $('hud'), school: $('school'), pause: $('pause'), results: $('results'), loading: $('loading'),
-      modeMsg: $('mode-msg'), instructor: $('instructor'), caption: $('gpws-caption'),
+      modeMsg: $('mode-msg'), instructor: $('instructor'), caption: $('gpws-caption'), checklist: $('checklist'),
       stall: $('alert-stall'), config: $('alert-config'), crashFlash: $('crash-flash'), rain: $('rain-overlay'),
     };
     this.selection = { mode: 'game', scenario: 'clear', start: 'standard' };
@@ -110,7 +110,8 @@ export class UI {
     set('h-thr', Math.round(st.throttle * 100));
     const flapMoving = Math.abs(st.flapDeg - AC.flapDetents[st.flapIndex]) > 0.3;
     set('h-flap', flapMoving ? `${st.flapDeg.toFixed(0)}→${AC.flapDetents[st.flapIndex]}` : AC.flapDetents[st.flapIndex], flapMoving ? 'warn' : '');
-    set('h-gear', st.gearDown ? 'DOWN' : (st.gearInTransit ? 'TRANSIT' : 'UP'), st.gearDown ? 'good' : (st.gearInTransit ? 'warn' : (st.agl / FT < 1500 ? 'bad' : '')));
+    const gearFail = !!st.gearCollapsed;
+    set('h-gear', gearFail ? 'FAIL' : (st.gearDown ? 'DOWN' : (st.gearInTransit ? 'TRANSIT' : 'UP')), gearFail ? 'bad' : (st.gearDown ? 'good' : (st.gearInTransit ? 'warn' : (st.agl / FT < 1500 ? 'bad' : ''))));
     set('h-sb', st.speedbrake > 0.05 ? (st.onGround ? 'UP' : 'FLT') : (st.speedbrakeArmed ? 'ARMED' : 'DOWN'), st.speedbrakeArmed || st.speedbrake > 0.05 ? 'good' : '');
     set('h-brk', st.brake > 0.05 ? `${Math.round(st.brake * 100)}%` : ['OFF', 'AB1', 'AB2', 'AB3', 'MAX'][st.autobrake], st.brake > 0.05 ? 'warn' : '');
     set('h-trim', `${st.trim >= 0 ? 'NU' : 'ND'} ${Math.abs(st.trim).toFixed(1)}`);
@@ -122,8 +123,10 @@ export class UI {
   }
 
   setModeMessage(text, cls = '') { const e = this.el.modeMsg; if (e.textContent !== text) e.textContent = text; e.className = cls; }
+  /** Landing checklist overlay (training mode): [{ text, done }] or null to hide. */
+  setChecklist(items) { const e = this.el.checklist; if (!items) { e.classList.add('hidden'); return; } e.classList.remove('hidden'); const html = items.map((c) => `<div class="${c.done ? 'done' : 'todo'}">${c.done ? '✓' : '□'} ${c.text}</div>`).join(''); if (e.innerHTML !== html) e.innerHTML = html; }
   setInstructor(text) { const e = this.el.instructor; if (!text) { e.classList.add('hidden'); return; } e.classList.remove('hidden'); if (e.innerHTML !== text) e.innerHTML = text; }
-  setCaption(text, kind) { const e = this.el.caption; if (!text) { e.classList.remove('show'); return; } e.textContent = text; e.className = 'show' + (kind === 'warning' ? '' : ' info'); }
+  setCaption(text, kind) { const e = this.el.caption; if (!text) { e.classList.remove('show'); return; } e.textContent = text; e.className = 'show ' + (kind === 'warning' ? 'warning' : (kind === 'caution' ? 'caution' : 'info')); }
   flash(strength = 1) { const e = this.el.crashFlash; e.style.transition = 'none'; e.style.opacity = String(Math.min(1, strength)); requestAnimationFrame(() => { e.style.transition = 'opacity 1.2s'; e.style.opacity = '0'; }); }
   setRain(on) { this.el.rain.style.opacity = '0'; void on; }
 

@@ -25,7 +25,7 @@ const VERT = /* glsl */`
     vDepth = dist;
     // apparent size: lights stay visible at range (like real airfield lights)
     float s = size * uPixelRatio * clamp(1400.0 / max(dist, 1.0), 0.35, 3.0);
-    gl_PointSize = clamp(s, 2.0 * uPixelRatio, 26.0 * uPixelRatio) * (bright > 0.01 ? 1.0 : 0.0);
+    gl_PointSize = clamp(s, 3.0 * uPixelRatio, 26.0 * uPixelRatio) * (bright > 0.01 ? 1.0 : 0.0);
     gl_Position = projectionMatrix * mvPosition;
     #include <logdepthbuf_vertex>
   }
@@ -50,7 +50,7 @@ const FRAG = /* glsl */`
     float fog = exp(-uFogDensity * uFogDensity * vDepth * vDepth * 0.55);
     a *= mix(1.0, fog, 0.9);
     // by day the lights are dimmer relative to the scene
-    a *= mix(1.0, 0.75, uDaylight);
+    a *= mix(1.0, 0.9, uDaylight);
     gl_FragColor = vec4(vColor * (1.0 + 0.6 * core), a);
     #include <colorspace_fragment>
   }
@@ -90,15 +90,15 @@ export class AirfieldLights {
     for (let d = 30; d <= 900; d += 30) {
       const x = thr + d;
       // centreline barrette: 5 lights, 1 m apart
-      for (let i = -2; i <= 2; i++) this.add(x, y + 0.6, i * 1.0, 'white', 1.1, d >= 300 ? 'als' : 'als');
+      for (let i = -2; i <= 2; i++) this.add(x, y + 0.6, i * 1.0, 'white', 1.5, 'als');
       // red side barrettes in the inner 270 m
       if (d <= 270) for (let i = 0; i < 3; i++) { this.add(x, y + 0.4, -(9 + i * 1.5), 'red', 0.9); this.add(x, y + 0.4, 9 + i * 1.5, 'red', 0.9); }
       // sequenced flashers from 300 m outward
       if (d >= 300) this.add(x, y + 1.2, 0, 'white', 1.6, 'flasher');
     }
     // 1000 ft (300 m) crossbar and 500 ft (150 m) crossbar
-    for (let z = -15; z <= 15; z += 1.5) this.add(thr + 300, y + 0.6, z, 'white', 1.0);
-    for (let z = -9; z <= 9; z += 1.5) this.add(thr + 150, y + 0.6, z, 'white', 1.0);
+    for (let z = -15; z <= 15; z += 1.5) this.add(thr + 300, y + 0.6, z, 'white', 1.3);
+    for (let z = -9; z <= 9; z += 1.5) this.add(thr + 150, y + 0.6, z, 'white', 1.3);
     // ---- threshold: green bar across the runway width (+ wing bars), REIL strobes
     for (let z = -halfW; z <= halfW; z += 3) this.add(thr, y, z, 'green', 1.1);
     for (let z = halfW + 3; z <= halfW + 12; z += 3) { this.add(thr, y, z, 'green', 1.0); this.add(thr, y, -z, 'green', 1.0); }
@@ -158,7 +158,7 @@ export class AirfieldLights {
     this.material = new THREE.ShaderMaterial({
       vertexShader: VERT, fragmentShader: FRAG,
       uniforms: { uPixelRatio: { value: 1 }, uFogDensity: { value: 0 }, uFogColor: { value: new THREE.Color(0x000000) }, uDaylight: { value: 1 } },
-      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+      transparent: true, depthWrite: false, blending: THREE.NormalBlending,
     });
     this.points = new THREE.Points(geo, this.material);
     this.points.frustumCulled = false;

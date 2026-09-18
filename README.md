@@ -125,6 +125,15 @@ scenario and time of day (10 nm, 4 nm with left/right/pedestal views, 1.5 nm,
 200 ft, 50 ft, roll-out, stopped, results) into `test/output/visual/` for a
 visual review.
 
+`test/playtest.mjs` plays each scenario the way a new player would (menu
+clicks, mouse yoke, key presses, the Flight School read page by page), pauses
+at every phase of the approach — configuration, 1000 ft, 500 ft, minimums,
+50 ft, flare, touchdown, roll-out, stop — and writes a diary of the state,
+callouts and events plus screenshots and display dumps into
+`test/output/playtest/<scenario>/` for review. It also flies the deliberate
+mistakes (gear up, no flare, no brakes, stall, go-around) with the same
+human-like pilot (`test/human-pilot.browser.js`).
+
 `test/e2e.mjs` loads the real page, drives the menu, presses every mapped key
 and moves the mouse yoke, walks through all Flight School steps, autolands in
 each scenario by day and night while checking that the voice callouts and

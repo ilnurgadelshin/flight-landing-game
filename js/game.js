@@ -89,10 +89,22 @@ export class Game {
   }
 
   setState(s) {
+    const prev = this.state;
+    // remember whether the mouse yoke was engaged when the flight was interrupted (pause, help)
+    if (prev === 'flying' && s !== 'flying') this._yokeWasOn = this.input.mouseEngaged;
     this.state = s;
     this.input.enabled = (s === 'flying');
     if (s !== 'flying') this.input.setMouse(false);
-    if (s === 'flying') this.ui.setModeMessage('');
+    if (s === 'flying') {
+      this.ui.setModeMessage('');
+      if ((prev === 'paused' || prev === 'school') && this._yokeWasOn) {
+        // give the yoke back, blended in over a second so the mouse position cannot jerk the aircraft
+        this.input.setMouse(true, true);
+        this.ui.setModeMessage('MOUSE YOKE ON — you have control', '');
+        setTimeout(() => { if (this.state === 'flying') this.ui.setModeMessage(''); }, 2500);
+      }
+      if (prev === 'menu' || prev === 'finished') this._yokeWasOn = false;
+    }
   }
 
   bindActions() {
@@ -287,14 +299,15 @@ export class Game {
     } else {
       // configuration schedule
       if (dNm > 8 && inp.flapIndex < 2 && st.ias < 220) hints.push('Select <b>flaps 5</b> (<kbd>F</kbd>).');
-      if (dNm <= 8 && dNm > 6 && inp.flapIndex < 3 && st.ias < 195) hints.push('Slow to 170 kts and select <b>flaps 15</b> (<kbd>F</kbd>).');
+      if (dNm <= 8 && dNm > 6 && inp.flapIndex < 3 && st.ias < 195) hints.push('Slow to about 160 kts and select <b>flaps 15</b> (<kbd>F</kbd>).');
       if (dNm <= 7 && !inp.gearDown) hints.push('<b>Gear down</b> (<kbd>G</kbd>) — you are near glideslope intercept.');
       if (dNm <= 6 && inp.flapIndex < 4 && st.ias < 168) hints.push('<b>Flaps 30</b> (<kbd>F</kbd>) — landing flaps. Speed target Vref+5 = ' + target + ' kts.');
       if (dNm <= 5 && !inp.speedbrakeArmed && st.speedbrake < 0.1) hints.push('Arm the speedbrakes (<kbd>X</kbd>) and set autobrake 2 or 3 (<kbd>N</kbd>).');
       // energy
-      const dv = st.ias - (inp.flapIndex >= 4 ? target : (inp.flapIndex >= 3 ? 170 : (inp.flapIndex >= 2 ? 190 : 210)));
+      // target speeds per configuration: flaps 5 ~175, flaps 15 ~162, landing flaps Vref+5
+      const dv = st.ias - (inp.flapIndex >= 4 ? target : (inp.flapIndex >= 3 ? 162 : (inp.flapIndex >= 2 ? 175 : 210)));
       if (dv > 12) hints.push(`Speed high (+${dv.toFixed(0)}): reduce thrust (<kbd>S</kbd>).`);
-      else if (dv < -8) hints.push(`Speed low (${dv.toFixed(0)}): add thrust (<kbd>W</kbd>) — do not raise the nose to hold altitude.`);
+      else if (dv < -10) hints.push(`Speed low (${dv.toFixed(0)}): add thrust (<kbd>W</kbd>) — do not raise the nose to hold altitude.`);
       // glideslope
       if (dNm < 12 && st.gsDev > 0.4) hints.push('Above the glideslope: lower the nose a little, reduce thrust.');
       else if (dNm < 12 && st.gsDev < -0.4) hints.push('Below the glideslope: raise the nose a little and add a touch of thrust.');
@@ -328,6 +341,7 @@ export class Game {
       { text: 'Flaps 30', done: inp.flapIndex >= 4 }, { text: 'Gear down', done: inp.gearDown }, { text: 'Speedbrake armed', done: inp.speedbrakeArmed || st.speedbrake > 0.5 }, { text: 'Autobrake set', done: inp.autobrake > 0 },
     ] : null;
     const look = { yaw: this.input.look.yaw, pitch: this.input.look.pitch, down: this.input.look.down ? 1 : (this.schoolLook || 0) };
+    this.ui.setChecklist(this.state === 'flying' ? checklist : null);
     this.cockpit.update(st, inp, frameDt, {
       look, fd: this.fdCommand(), targetSpeed: !st.onGround ? st.vref + 5 : null, papi, checklist,
       gaMode: this.ctx.gaMode, rain: this.world.rain.visible, autothrottle: !!this.demoAp,

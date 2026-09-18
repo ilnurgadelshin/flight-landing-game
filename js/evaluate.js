@@ -83,7 +83,8 @@ export function evaluateLanding(ac, ctx = {}) {
   const lat = td.lateralOffset;
   let latPts, latNote;
   const alat = Math.abs(lat);
-  if (alat <= 3) { latPts = 15; latNote = 'On the centreline.'; }
+  if (d < 0 || d > RUNWAY.length) { latPts = 0; latNote = 'Not on the runway.'; }
+  else if (alat <= 3) { latPts = 15; latNote = 'On the centreline.'; }
   else if (alat <= 8) { latPts = 12; latNote = 'Slightly off centre.'; }
   else if (alat <= 15) { latPts = 6; latNote = 'Well off the centreline.'; }
   else { latPts = 0; latNote = 'Nearly off the edge of the runway.'; }
@@ -131,7 +132,9 @@ export function evaluateLanding(ac, ctx = {}) {
   add('Stopping', stoppedOnRunway ? `${roll.toFixed(0)} m roll-out` : 'Not stopped on the runway', Math.max(0, decelPts), 5, decelNote, stoppedOnRunway);
 
   score = items.reduce((s, i) => s + i.points, 0);
-  if (outcome !== OUTCOME.SUCCESS) score = Math.min(score, 30);
+  if (dmg.destroyed) score = 0;
+  else if (outcome === OUTCOME.COLLAPSE || outcome === OUTCOME.BELLY) score = Math.min(score, 15);
+  else if (outcome !== OUTCOME.SUCCESS) score = Math.min(score, 30);
   if (dmg.hardLanding && outcome === OUTCOME.SUCCESS) { score = Math.min(score, 55); failures.push('Hard landing'); }
   if (ctx.goArounds) { add('Go-arounds', `${ctx.goArounds}`, 0, 0, 'A go-around is always the right call when the approach is not stable.', true); }
 

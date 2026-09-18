@@ -82,8 +82,9 @@ export class InputManager {
   }
 
   toggleMouse() { this.setMouse(!this.mouseEngaged); }
-  setMouse(on) {
+  setMouse(on, soft = false) {
     this.mouseEngaged = on && this.enabled;
+    this.mouseBlend = this.mouseEngaged && soft ? 0 : 1;   // soft: fade the yoke in over ~1 s
     this.emit('mouse', this.mouseEngaged);
   }
 
@@ -123,8 +124,9 @@ export class InputManager {
       const s = this.opts.mouseSensitivity;
       const dz = (v) => (Math.abs(v) < 0.06 ? 0 : (v - Math.sign(v) * 0.06) / 0.94);
       // mouse up (negative y) = nose up unless inverted (pilot style: forward = push = nose down)
-      pitch = clamp(-dz(this.mouse.y) * s * inv, -1, 1);
-      roll = clamp(dz(this.mouse.x) * s, -1, 1);
+      this.mouseBlend = Math.min(1, (this.mouseBlend ?? 1) + dt);
+      pitch = clamp(-dz(this.mouse.y) * s * inv, -1, 1) * this.mouseBlend;
+      roll = clamp(dz(this.mouse.x) * s, -1, 1) * this.mouseBlend;
       // gentle response curve so small movements are precise
       pitch = Math.sign(pitch) * Math.pow(Math.abs(pitch), 1.4);
       roll = Math.sign(roll) * Math.pow(Math.abs(roll), 1.4);

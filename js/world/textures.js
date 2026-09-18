@@ -34,8 +34,9 @@ export function makeRunwayTexture(anisotropy, maxSize = 8192) {
   const L = RUNWAY.length, RW = RUNWAY.width;
   const sx = W / L;            // px per metre along
   const sy = H / RW;           // px per metre across
-  // asphalt base with subtle noise + tyre rubber in the touchdown zones
-  g.fillStyle = '#3c3d40';
+  // asphalt base with subtle noise + tyre rubber in the touchdown zones (medium grey: a runway
+  // reads as a light strip against grass from miles out)
+  g.fillStyle = '#56575b';
   g.fillRect(0, 0, W, H);
   const rng = makeRng(42);
   const img = g.getImageData(0, 0, W, H);
@@ -117,7 +118,7 @@ export function makeRunwayTexture(anisotropy, maxSize = 8192) {
 export function makeTaxiwayTexture(anisotropy, lengthM, widthM, centreline = true) {
   const W = Math.min(2048, Math.round(lengthM * 2)), H = 64;
   const c = canvas(W, H); const g = c.getContext('2d');
-  g.fillStyle = '#4a4a4c'; g.fillRect(0, 0, W, H);
+  g.fillStyle = '#5e5e60'; g.fillRect(0, 0, W, H);
   const rng = makeRng(9);
   for (let i = 0; i < 400; i++) { g.fillStyle = `rgba(0,0,0,${rng() * 0.15})`; g.fillRect(rng() * W, rng() * H, 2 + rng() * 6, 2 + rng() * 6); }
   if (centreline) { g.fillStyle = '#e0c020'; g.fillRect(0, H / 2 - 1.5, W, 3); }
@@ -254,10 +255,10 @@ export function makeOvercastTexture() {
 export function makeBuildingTexture(night) {
   const c = canvas(128, 128); const g = c.getContext('2d');
   const rng = makeRng(11);
-  g.fillStyle = night ? '#1a1c22' : '#9aa0a8'; g.fillRect(0, 0, 128, 128);
+  g.fillStyle = night ? '#1a1c22' : '#b9b4ab'; g.fillRect(0, 0, 128, 128);
   for (let y = 8; y < 120; y += 14) for (let x = 6; x < 122; x += 12) {
     const lit = night ? rng() < 0.5 : rng() < 0.15;
-    g.fillStyle = lit ? (night ? '#ffe9a8' : '#dfe8f0') : (night ? '#0d0f14' : '#5a6470');
+    g.fillStyle = lit ? (night ? '#ffe9a8' : '#e8eef4') : (night ? '#0d0f14' : '#6f7580');
     g.fillRect(x, y, 7, 9);
   }
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.needsUpdate = true; return t;
