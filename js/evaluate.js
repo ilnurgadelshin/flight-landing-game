@@ -84,20 +84,21 @@ export function evaluateLanding(ac, ctx = {}) {
   let latPts, latNote;
   const alat = Math.abs(lat);
   if (d < 0 || d > RUNWAY.length) { latPts = 0; latNote = 'Not on the runway.'; }
-  else if (alat <= 3) { latPts = 15; latNote = 'On the centreline.'; }
-  else if (alat <= 8) { latPts = 12; latNote = 'Slightly off centre.'; }
-  else if (alat <= 15) { latPts = 6; latNote = 'Well off the centreline.'; }
+  else if (alat <= 4) { latPts = 15; latNote = 'On the centreline.'; }
+  else if (alat <= 10) { latPts = 12; latNote = 'Slightly off centre.'; }
+  else if (alat <= 16) { latPts = 6; latNote = 'Well off the centreline.'; }
   else { latPts = 0; latNote = 'Nearly off the edge of the runway.'; }
   add('Centreline', `${alat.toFixed(1)} m ${lat > 0 ? 'right' : 'left'}`, latPts, 15, latNote, latPts >= 6);
 
   const vref = AC.vref30;
   const dv = td.ias - (td.flapIndex >= 4 ? (td.flapIndex >= 5 ? AC.vref40 : AC.vref30) : AC.vref15);
   let spdPts, spdNote;
-  if (dv >= -5 && dv <= 8) { spdPts = 15; spdNote = 'Speed on target.'; }
+  // the flare bleeds 5-10 kts, so a touchdown a little below Vref is normal
+  if (dv >= -9 && dv <= 8) { spdPts = 15; spdNote = 'Speed on target.'; }
   else if (dv > 8 && dv <= 18) { spdPts = 8; spdNote = 'Fast — extra float and a longer roll-out.'; }
   else if (dv > 18) { spdPts = 0; spdNote = 'Far too fast.'; failures.push('Excess speed'); }
-  else if (dv < -5 && dv >= -12) { spdPts = 7; spdNote = 'Slow — close to the stall.'; }
-  else { spdPts = 0; spdNote = 'Dangerously slow.'; failures.push('Below Vref'); }
+  else if (dv < -9 && dv >= -15) { spdPts = 7; spdNote = 'Slow — a long flare bled too much speed.'; }
+  else { spdPts = 0; spdNote = 'Dangerously slow — close to the stall.'; failures.push('Below Vref'); }
   add('Airspeed at touchdown', `${td.ias.toFixed(0)} kts (Vref ${vref})`, spdPts, 15, spdNote, spdPts >= 7);
 
   const crab = Math.abs(td.crabDeg);
