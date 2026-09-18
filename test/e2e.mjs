@@ -307,64 +307,13 @@ if (!quick && (!only || only === 'keyboard')) {
   await page.mouse.click(400, 225); await frames(2);                             // engage the mouse yoke
   check('mouse yoke engaged for the landing', await page.evaluate(() => window.__sim.inputManager.mouseEngaged));
   // The pilot runs inside the page at frame rate and only produces the events a person would:
-  // mouse moves for pitch/roll, key presses for throttle, rudder, brakes and reversers.
-  await page.evaluate(() => {
-    const W = window.innerWidth, H = window.innerHeight;
-    const held = new Set();
-    const key = (code, on) => { if (on && !held.has(code)) { held.add(code); window.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true })); } if (!on && held.has(code)) { held.delete(code); window.dispatchEvent(new KeyboardEvent('keyup', { code, bubbles: true })); } };
-    const mouse = (rollIn, pitchIn) => { const x = W / 2 + rollIn * W / 2, y = H / 2 - pitchIn * H / 2; window.dispatchEvent(new MouseEvent('mousemove', { clientX: x, clientY: y, bubbles: true })); };
-    const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
-    const P = { phase: 'approach', prevLat: null, flareT: 0, flarePitch0: 0, flareVs0: -3.7, last: performance.now(), iVs: 0 };
-    window.__pilot = P;
-    function tick() {
-      const now = performance.now(); const dt = Math.min(0.2, (now - P.last) / 1000); P.last = now;
-      const g = window.__sim.game; const st = window.__sim.state(); const inp = window.__sim.input();
-      if (g.state !== 'flying') { for (const c of [...held]) key(c, false); return; }
-      const vsFpm = st.vs / 0.00508;
-      let pitchIn = 0, rollIn = 0;
-      const drift = P.prevLat === null ? 0 : (st.lateralOffset - P.prevLat) / Math.max(dt, 0.001); P.prevLat = st.lateralOffset;
-      if (P.phase === 'approach') {
-        const gsVs = -st.groundSpeed * Math.tan(3 * Math.PI / 180);
-        const vsT = gsVs - clamp((st.alt - st.gsAltitude) * 0.12, -3, 3);
-        const err = vsT - st.vs;
-        P.iVs = clamp(P.iVs + err * dt * 0.02, -0.3, 0.3);
-        pitchIn = clamp(err * 0.08 + P.iVs - st.q * 2.5, -0.5, 0.5);
-        const bankCmd = clamp(-(st.lateralOffset * 0.10 + drift * 1.5), -8, 8) * Math.PI / 180;
-        rollIn = clamp((bankCmd - st.roll) * 2.2 - st.p * 0.6, -1, 1);
-        // throttle like a pilot: pick a lever position for the speed error, then move the lever toward it
-        const target = st.vref + 5;
-        P.iSpd = clamp((P.iSpd || 0) + (target - st.ias) * dt * 0.004, -0.2, 0.2);
-        const accel = P.prevIas === undefined ? 0 : (st.ias - P.prevIas) / Math.max(dt, 0.001); P.prevIas = st.ias;
-        const thrDes = clamp(0.55 + (target - st.ias) * 0.025 + P.iSpd - accel * 0.12, 0.1, 0.9);
-        key('KeyW', inp.throttle < thrDes - 0.02); key('KeyS', inp.throttle > thrDes + 0.02);
-        if (st.agl < 9.5) { P.phase = 'flare'; P.flareT = 0; P.flarePitch0 = st.pitch; P.flareVs0 = st.vs; P.bias = clamp(pitchIn, -0.3, 0.3); }
-      } else if (P.phase === 'flare') {
-        P.flareT += dt;
-        key('KeyW', false); key('KeyS', true);
-        const vsT = -Math.min(0.6 + st.agl * 0.42, Math.abs(P.flareVs0));
-        const corr = clamp((vsT - st.vs) * 1.1, -3, 3) * Math.PI / 180;
-        const target = Math.min(P.flarePitch0 + Math.min(P.flareT / 1.5, 1) * 3.0 * Math.PI / 180 + corr, 6 * Math.PI / 180);
-        pitchIn = clamp((target - st.pitch) * 8 - st.q * 1.5 + 0.08 + P.bias, -0.3, 0.7);
-        const bankCmd = clamp((st.crosswind * 0.24 - st.lateralOffset * 0.4 - drift * 1.4) * Math.PI / 180, -5 * Math.PI / 180, 5 * Math.PI / 180);
-        rollIn = clamp((bankCmd - st.roll) * 2.5 - st.p * 1.2, -1, 1);
-        key('KeyD', st.crabDeg < -2); key('KeyA', st.crabDeg > 2);
-        if (st.onGround && st.mainsOnGround) P.phase = 'rollout';
-      } else if (P.phase === 'rollout') {
-        key('KeyS', true);
-        key('KeyR', st.groundSpeed > 30 * 0.5144); key('KeyB', true);
-        pitchIn = st.groundSpeed > 30 ? -0.1 : 0; rollIn = clamp(-st.roll * 3, -1, 1);
-        const steer = -st.lateralOffset * 0.05 - drift * 0.12 - st.crabDeg * 0.15;
-        key('KeyD', steer > 0.08); key('KeyA', steer < -0.08);
-      }
-      mouse(rollIn, pitchIn);
-      P.trace = P.trace || []; if (!P.lastTrace || st.time - P.lastTrace > 0.5) { P.lastTrace = st.time; P.trace.push(`t=${st.time.toFixed(1)} ${P.phase} agl=${st.agl.toFixed(1)} ias=${st.ias.toFixed(0)} vs=${(st.vs / 0.00508).toFixed(0)} pitch=${(st.pitch * 57.3).toFixed(1)} roll=${(st.roll * 57.3).toFixed(1)} lat=${st.lateralOffset.toFixed(1)} in(p=${pitchIn.toFixed(2)} r=${rollIn.toFixed(2)}) act(p=${inp.pitch.toFixed(2)} r=${inp.roll.toFixed(2)} thr=${inp.throttle.toFixed(2)}) dt=${dt.toFixed(2)}`); }
-      requestAnimationFrame(tick);
-    }
-    requestAnimationFrame(tick);
-  });
+  // mouse moves for pitch/roll, key presses for throttle, rudder, brakes and reversers. It is the
+  // same human-like pilot the playtest harness uses (test/human-pilot.browser.js).
+  await page.addScriptTag({ path: path.join(root, 'test', 'human-pilot.browser.js') });
+  await page.evaluate(() => window.installHumanPilot({}));
   const done = await waitFor(() => window.__sim.game.state === 'finished', 600000, 'landing to finish');
   await page.evaluate(() => window.__sim.setTimeScale(1));
-  const r = await page.evaluate(() => ({ result: window.__sim.result(), state: window.__sim.game.state, log: window.__sim.events().filter((e) => e.type === 'input').map((e) => e.text).slice(0, 12), trace: (window.__pilot.trace || []).slice(-24) }));
+  const r = await page.evaluate(() => ({ result: window.__sim.result(), state: window.__sim.game.state, log: window.__sim.events().filter((e) => e.type === 'input').map((e) => e.text).slice(0, 12), trace: (window.__pilot.trace || []).slice(-24).map((x) => JSON.stringify(x)) }));
   if (!(r.result && r.result.success)) console.log('    trace:\n    ' + r.trace.join('\n    '));
   console.log(`  mouse+keyboard landing: ${r.result ? `${r.result.outcome} ${r.result.score} ${r.result.grade} — ${r.result.headline}` : 'not finished'} | inputs: ${r.log.join(', ')}`);
   check('mouse-yoke + keyboard approach ends with the aircraft stopped on the runway', done && r.result && r.result.success, r.result ? r.result.headline : 'no result');
