@@ -50,8 +50,8 @@
         key('KeyW', inp.throttle < thrDes - 0.02); key('KeyS', inp.throttle > thrDes + 0.02);
       };
       const lateral = (limitDeg) => {
-        const bankCmd = clamp(-(st.lateralOffset * 0.10 + drift * 1.5), -limitDeg, limitDeg) * DEG;
-        return clamp((bankCmd - st.roll) * 2.2 - st.p * 0.6, -1, 1);
+        const bankCmd = clamp(-(st.lateralOffset * 0.25 + drift * 2.0), -limitDeg, limitDeg) * DEG;
+        return clamp((bankCmd - st.roll) * 3.0 - st.p * 0.8, -1, 1);
       };
       if (P.phase === 'approach') {
         config(st, inp);
@@ -66,11 +66,12 @@
         // fly pitch attitude (inner loop) and nudge it for the vertical speed (outer loop), like a trained pilot:
         // small, smooth inputs instead of chasing the VS needle
         const err = vsT - st.vs;
+        // a firm attitude loop (the mouse curve squashes small inputs) under a slow path correction
         if (P.thetaRef === undefined) P.thetaRef = st.pitch;
-        P.thetaRef = clamp(P.thetaRef + err * dt * 0.15 * DEG, -5 * DEG, 8 * DEG);
-        const thetaCmd = P.thetaRef + clamp(err * 0.8, -3, 3) * DEG;
-        pitchIn = clamp((thetaCmd - st.pitch) * 4.0 - st.q * 2.0, -0.35, 0.35);
-        rollIn = lateral(st.agl < 150 ? 8 : 15);
+        P.thetaRef = clamp(P.thetaRef + err * dt * 0.08 * DEG, -5 * DEG, 8 * DEG);
+        const thetaCmd = P.thetaRef + clamp(err * 0.6, -2.5, 2.5) * DEG;
+        pitchIn = clamp((thetaCmd - st.pitch) * 12.0 - st.q * 3.0, -0.4, 0.4);
+        rollIn = lateral(st.agl < 60 ? 6 : 12);
         speedHold(targetIas());
         const flareH = 9.5 * clamp(Math.abs(st.vs) / 3.7, 0.9, 1.35);
         if (st.agl < flareH && !o.noFlare) { P.phase = 'flare'; P.flareT = 0; P.flarePitch0 = st.pitch; P.flareVs0 = st.vs; P.bias = clamp(pitchIn, -0.3, 0.3); note('flare'); }

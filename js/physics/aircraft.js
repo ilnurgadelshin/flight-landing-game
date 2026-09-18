@@ -638,6 +638,8 @@ export class Aircraft {
       if (sink > 3.0) this.collapseGear(g, 'Nose gear collapsed — nose-wheel-first touchdown');
       else if (sink > 1.2) this.damage.notes.push('Nose-wheel-first touchdown');
     }
+    // a harder contact within the landing sequence (a bounce and a second arrival) is the one the debrief reports
+    if (this.touchdown && this.time - this.touchdown.t < 3 && sink > this.touchdown.sink) this.touchdown.sink = sink;
     if (g.name !== 'nose') {
       if (sink > AC.gear.collapseSink) this.collapseGear(g, `Main gear collapsed — vertical speed ${(sink / 0.00508).toFixed(0)} fpm`);
       else if (sink > AC.gear.hardSink && !this.damage.hardLanding) {
