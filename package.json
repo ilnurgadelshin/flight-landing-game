@@ -1,0 +1,20 @@
+{
+  "name": "b737-landing-sim",
+  "version": "1.0.0",
+  "description": "Boeing 737-800 final approach and landing simulator (Three.js + cannon-es)",
+  "type": "module",
+  "scripts": {
+    "start": "npx http-server -p 8080 -c-1 .",
+    "test": "node test/physics.test.mjs",
+    "test:e2e": "node test/e2e.mjs",
+    "test:all": "node test/physics.test.mjs && node test/e2e.mjs"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "cannon-es": "^0.20.0",
+    "three": "^0.186.0"
+  },
+  "devDependencies": {
+    "playwright": "1.56.1"
+  }
+}

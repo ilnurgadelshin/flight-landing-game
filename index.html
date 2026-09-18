@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>737-800 Landing Simulator</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "./vendor/three.module.js",
+        "cannon-es": "./vendor/cannon-es.js"
+      }
+    }
+  </script>
+</head>
+<body>
+  <canvas id="gl"></canvas>
+
+  <!-- 2D overlays -->
+  <div id="hud" class="hidden">
+    <div id="hud-top">
+      <div id="mode-msg"></div>
+      <div id="instructor" class="hidden"></div>
+      <div id="gpws-caption"></div>
+    </div>
+    <div id="hud-bottom">
+      <div class="hud-cell"><span class="lbl">IAS</span><span id="h-ias">---</span><span class="unit">kt</span></div>
+      <div class="hud-cell"><span class="lbl">ALT</span><span id="h-alt">---</span><span class="unit">ft</span></div>
+      <div class="hud-cell"><span class="lbl">RA</span><span id="h-ra">---</span><span class="unit">ft</span></div>
+      <div class="hud-cell"><span class="lbl">V/S</span><span id="h-vs">---</span><span class="unit">fpm</span></div>
+      <div class="hud-cell"><span class="lbl">HDG</span><span id="h-hdg">---</span><span class="unit">°</span></div>
+      <div class="hud-cell"><span class="lbl">GS</span><span id="h-gs">---</span><span class="unit">kt</span></div>
+      <div class="hud-cell wide"><span class="lbl">N1</span><span id="h-n1">--/--</span><span class="unit">%</span></div>
+      <div class="hud-cell"><span class="lbl">THR</span><span id="h-thr">--</span><span class="unit">%</span></div>
+      <div class="hud-cell"><span class="lbl">FLAPS</span><span id="h-flap">--</span></div>
+      <div class="hud-cell"><span class="lbl">GEAR</span><span id="h-gear">--</span></div>
+      <div class="hud-cell"><span class="lbl">SPD BRK</span><span id="h-sb">--</span></div>
+      <div class="hud-cell"><span class="lbl">BRAKES</span><span id="h-brk">--</span></div>
+      <div class="hud-cell"><span class="lbl">TRIM</span><span id="h-trim">--</span></div>
+      <div class="hud-cell wide"><span class="lbl">WIND</span><span id="h-wind">--</span></div>
+      <div class="hud-cell wide"><span class="lbl">MOUSE</span><span id="h-mouse">click to engage</span></div>
+      <div class="hud-cell"><button id="btn-help" title="Flight School (H)">?</button></div>
+    </div>
+    <div id="alert-stall" class="alert hidden">STALL</div>
+    <div id="alert-config" class="alert hidden">GEAR</div>
+    <div id="crash-flash"></div>
+    <div id="rain-overlay"></div>
+  </div>
+
+  <!-- Main menu -->
+  <div id="menu" class="overlay">
+    <div class="panel menu-panel">
+      <h1>BOEING 737-800 <span>LANDING SIMULATOR</span></h1>
+      <p class="sub">Final approach into Fable International, runway 27. Fly the ILS, flare, and stop on the runway.</p>
+
+      <div class="menu-section">
+        <h2>Mode</h2>
+        <div class="choice-row" id="mode-row">
+          <button class="choice" data-mode="training">
+            <b>Flight School</b><small>Guided onboarding, instructor hints and a flight director. Clear weather.</small>
+          </button>
+          <button class="choice selected" data-mode="game">
+            <b>Fly the Approach</b><small>Choose the conditions and get graded on the landing.</small>
+          </button>
+        </div>
+      </div>
+
+      <div class="menu-section" id="scenario-section">
+        <h2>Landing conditions</h2>
+        <div class="choice-row" id="scenario-row"></div>
+      </div>
+
+      <div class="menu-section">
+        <h2>Starting point</h2>
+        <div class="choice-row" id="start-row"></div>
+      </div>
+
+      <div class="menu-section options">
+        <label><input type="checkbox" id="opt-invert" /> Pilot-style pitch (push forward = nose down)</label>
+        <label><input type="checkbox" id="opt-night" /> Night</label>
+        <label><input type="checkbox" id="opt-sound" checked /> Sound &amp; voice callouts</label>
+        <label>Mouse sensitivity <input type="range" id="opt-mouse" min="0.4" max="2" step="0.1" value="1" /></label>
+      </div>
+
+      <div class="menu-actions">
+        <button id="btn-start" class="primary">Start approach</button>
+        <button id="btn-demo">Watch an autoland demo</button>
+      </div>
+      <p class="hint">Keyboard: ↑↓ pitch · ←→ roll · A/D rudder · W/S throttle · T TOGA · F/V flaps · G gear · Space speedbrake · X arm · B brakes · N autobrake · R reversers · [ ] trim · L look down · H help</p>
+    </div>
+  </div>
+
+  <!-- Flight School onboarding -->
+  <div id="school" class="overlay hidden">
+    <div id="school-highlight"></div>
+    <div id="school-card" class="panel">
+      <div id="school-step">1 / 12</div>
+      <h2 id="school-title"></h2>
+      <div id="school-body"></div>
+      <div class="school-actions">
+        <button id="school-back">Back</button>
+        <button id="school-next" class="primary">Next</button>
+        <button id="school-skip">Skip onboarding</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pause -->
+  <div id="pause" class="overlay hidden">
+    <div class="panel small">
+      <h2>Paused</h2>
+      <p>Press <b>P</b> to resume.</p>
+      <button id="btn-resume" class="primary">Resume</button>
+      <button id="btn-quit">Back to menu</button>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div id="results" class="overlay hidden">
+    <div class="panel results-panel">
+      <div id="res-outcome"></div>
+      <h2 id="res-headline"></h2>
+      <div id="res-score"></div>
+      <table id="res-table"></table>
+      <div id="res-notes"></div>
+      <div class="menu-actions">
+        <button id="btn-again" class="primary">Fly again</button>
+        <button id="btn-menu">Change conditions</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="loading" class="overlay"><div class="panel small"><h2>Loading…</h2><p id="loading-msg">Building the world</p></div></div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
