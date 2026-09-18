@@ -46,7 +46,7 @@
       const speedHold = (target) => {
         P.iSpd = clamp(P.iSpd + (target - st.ias) * dt * 0.004, -0.2, 0.2);
         const accel = P.prevIas === undefined ? 0 : (st.ias - P.prevIas) / Math.max(dt, 0.001); P.prevIas = st.ias;
-        const thrDes = clamp(0.55 + (target - st.ias) * 0.025 + P.iSpd - accel * 0.12, 0.05, 0.95);
+        const thrDes = clamp(0.55 + (target - st.ias) * 0.018 + P.iSpd - accel * 0.2, 0.05, 0.95);
         key('KeyW', inp.throttle < thrDes - 0.02); key('KeyS', inp.throttle > thrDes + 0.02);
       };
       const lateral = (limitDeg) => {
@@ -62,9 +62,13 @@
         if (gsErr < -40 && st.distToThreshold > 4000) vsT = 0;
         else vsT = -st.groundSpeed * Math.tan(3 * DEG) - clamp(gsErr * 0.12, -3, 3);
         if (o.stallOnFinal && st.agl < 250) { key('KeyS', true); key('KeyW', false); pitchIn = 0.55; rollIn = lateral(8); mouse(rollIn, pitchIn); P.traceStep(st, inp, pitchIn, rollIn, dt); requestAnimationFrame(tick); return; }
+        // fly pitch attitude (inner loop) and nudge it for the vertical speed (outer loop), like a trained pilot:
+        // small, smooth inputs instead of chasing the VS needle
         const err = vsT - st.vs;
-        P.iVs = clamp(P.iVs + err * dt * 0.02, -0.3, 0.3);
-        pitchIn = clamp(err * 0.08 + P.iVs - st.q * 2.5, -0.5, 0.5);
+        if (P.thetaRef === undefined) P.thetaRef = st.pitch;
+        P.thetaRef = clamp(P.thetaRef + err * dt * 0.15 * DEG, -5 * DEG, 8 * DEG);
+        const thetaCmd = P.thetaRef + clamp(err * 0.8, -3, 3) * DEG;
+        pitchIn = clamp((thetaCmd - st.pitch) * 4.0 - st.q * 2.0, -0.35, 0.35);
         rollIn = lateral(st.agl < 150 ? 8 : 15);
         speedHold(targetIas());
         const flareH = o.landLong ? 4 : 9.5 * clamp(Math.abs(st.vs) / 3.7, 0.9, 1.35);
