@@ -326,7 +326,9 @@ export class Aircraft {
     // Aero convention: positive rudder = trailing edge LEFT = nose-left moment
     // (Cndr < 0), so right pedal (yaw input +1) commands a negative deflection.
     // The damper deflects the rudder to oppose the yaw rate.
-    const yawDamper = AC.controls.yawDamperGain * this.state.r * (this.airborne ? 1 : 0);
+    // the yaw damper also works on the ground (it is engaged whenever it is switched on), which
+    // gives the roll-out the directional damping a real aircraft has
+    const yawDamper = AC.controls.yawDamperGain * this.state.r * (this.airborne ? 1 : 0.7);
     const rudderCmd = clamp(-inp.yaw * AC.controls.maxRudderDeg * DEG + yawDamper, -AC.controls.maxRudderDeg * DEG, AC.controls.maxRudderDeg * DEG);
     this.surfaces.rudder += (rudderCmd - this.surfaces.rudder) * kS;
     // trim follow-up: like the 737 speed-trim system, a sustained column input slowly
@@ -641,8 +643,12 @@ export class Aircraft {
         this.events.push({ t: this.time, type: 'hardlanding', sink });
       }
       const crabDeg = Math.abs(Math.atan2(vLat, Math.max(Math.abs(vLong), 1))) / DEG;
+      // side-load collapse belongs to the landing itself (first seconds); a wheel re-contacting
+      // during a swerve on the roll-out scrubs its tyres instead
+      const landingPhase = !this.touchdown || this.time - this.touchdown.t < 3;
       if (crabDeg > AC.gear.maxCrabDeg && Math.hypot(vLong, vLat) > 30) {
-        this.collapseGear(g, `Main gear collapsed — landed with ${crabDeg.toFixed(0)}° of drift (side load)`);
+        if (landingPhase) this.collapseGear(g, `Main gear collapsed — landed with ${crabDeg.toFixed(0)}° of drift (side load)`);
+        else this.events.push({ t: this.time, type: 'scrub', text: `${g.name} tyres scrubbed at ${crabDeg.toFixed(0)}° of drift` });
       }
     }
   }

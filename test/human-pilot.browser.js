@@ -12,7 +12,7 @@
       if (on && !held.has(code)) { held.add(code); window.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true })); }
       if (!on && held.has(code)) { held.delete(code); window.dispatchEvent(new KeyboardEvent('keyup', { code, bubbles: true })); }
     };
-    const tap = (code) => { window.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true })); setTimeout(() => window.dispatchEvent(new KeyboardEvent('keyup', { code, bubbles: true })), 60); };
+    const tap = (code, ms = 60) => { window.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true })); setTimeout(() => window.dispatchEvent(new KeyboardEvent('keyup', { code, bubbles: true })), ms); };
     const mouse = (rollIn, pitchIn) => { const x = W() / 2 + rollIn * W() / 2, y = H() / 2 - pitchIn * H() / 2; window.dispatchEvent(new MouseEvent('mousemove', { clientX: x, clientY: y, bubbles: true })); };
     const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
     const DEG = Math.PI / 180, NM = 1852;
@@ -72,13 +72,15 @@
         pitchIn = clamp((thetaCmd - st.pitch) * 4.0 - st.q * 2.0, -0.35, 0.35);
         rollIn = lateral(st.agl < 150 ? 8 : 15);
         speedHold(targetIas());
-        const flareH = o.landLong ? 4 : 9.5 * clamp(Math.abs(st.vs) / 3.7, 0.9, 1.35);
+        const flareH = 9.5 * clamp(Math.abs(st.vs) / 3.7, 0.9, 1.35);
         if (st.agl < flareH && !o.noFlare) { P.phase = 'flare'; P.flareT = 0; P.flarePitch0 = st.pitch; P.flareVs0 = st.vs; P.bias = clamp(pitchIn, -0.3, 0.3); note('flare'); }
         if (o.noFlare && st.onGround) { P.phase = 'rollout'; note('touchdown (no flare)'); }
       } else if (P.phase === 'flare') {
         P.flareT += dt;
-        key('KeyW', false); key('KeyS', !o.landLong || st.agl < 2);
-        const vsT = -Math.min(0.6 + st.agl * 0.42, Math.abs(P.flareVs0));
+        key('KeyW', false); key('KeyS', true);
+        // a deliberately long landing: hold the aircraft a metre or two off the runway well past the touchdown zone
+        const holdOff = o.landLong && st.distFromThreshold < 1300;
+        const vsT = holdOff ? (st.agl > 1.5 ? -0.3 : 0) : -Math.min(0.6 + st.agl * 0.42, Math.abs(P.flareVs0));
         const corr = clamp((vsT - st.vs) * 1.1, -3, 3) * DEG;
         const ff = 3.0 * clamp(Math.abs(P.flareVs0) / 3.7, 0.9, 1.4);
         const target = Math.min(P.flarePitch0 + Math.min(P.flareT / 1.5, 1) * ff * DEG + corr, 6 * DEG);
@@ -91,9 +93,9 @@
         key('KeyS', true); key('KeyW', false);
         key('KeyR', o.useReversers && st.groundSpeed > 30 * 0.5144); key('KeyB', !o.noBrakes && (inp.autobrake === 0 || st.groundSpeed < 25));
         pitchIn = st.groundSpeed > 30 ? -0.1 : 0; rollIn = clamp(-st.roll * 3, -1, 1);
-        // gentle rudder on the roll-out: a person taps the pedals, and less so at high speed
+        // gentle rudder on the roll-out: short taps sized to the error, never a key held for a whole frame
         const steer = (-st.lateralOffset * 0.025 - drift * 0.10 - st.crabDeg * 0.2) * (st.groundSpeed > 40 ? 0.6 : 1);
-        key('KeyD', steer > 0.12); key('KeyA', steer < -0.12);
+        if (Math.abs(steer) > 0.1 && !held.has('KeyD') && !held.has('KeyA')) tap(steer > 0 ? 'KeyD' : 'KeyA', clamp(Math.abs(steer) * 600, 100, 300));
       } else if (P.phase === 'goaround') {
         P.gaT += dt;
         key('KeyW', false); key('KeyS', false);
