@@ -417,6 +417,12 @@ export class World {
     this.overcast.visible = false;
     this.overcast.renderOrder = 2;
     this.scene.add(this.overcast);
+    // the top of the deck, seen when flying above it: sunlit, bright
+    this.overcastTop = new THREE.Mesh(new THREE.PlaneGeometry(80000, 80000), new THREE.MeshBasicMaterial({ map: ovTex, side: THREE.DoubleSide, transparent: true, opacity: 0.97, fog: true, depthWrite: false }));
+    this.overcastTop.rotation.x = Math.PI / 2;
+    this.overcastTop.visible = false;
+    this.overcastTop.renderOrder = 2;
+    this.scene.add(this.overcastTop);
     // rain: line segments in camera space
     const n = this.lowDetail ? 900 : 2600;
     const pos = new Float32Array(n * 2 * 3), seed = new Float32Array(n * 2);
@@ -487,15 +493,21 @@ export class World {
     this.scene.fog.color.copy(this.baseFogColor);
     this.visibility = scenario.visibility;
     this.cloudBase = scenario.cloudBase * 0.3048;
+    this.cloudTop = this.cloudBase + (scenario.cloudThickness || 99999) * 0.3048;
+    this.hasDeck = scenario.cloudBase < 5000;
     this.daylight = p.daylight * (storm ? 0.5 : 1);
     this.cockpitHemi.intensity = tod === 'night' ? 0.05 : (storm ? 0.5 : (tod === 'dusk' ? 0.4 : 1.0));
     this.cockpitHemi.color.set(tod === 'dusk' ? 0xd0a080 : 0xb8c8d8);
     this.cockpitAmbient.intensity = tod === 'night' ? 0.03 : 0.2;
     // clouds
-    this.overcast.visible = scenario.cloudBase < 5000;
+    this.overcast.visible = this.hasDeck;
     this.overcast.position.y = this.cloudBase;
     this.overcast.material.opacity = storm ? 0.98 : 0.85;
     this.overcast.material.color.set(storm ? (tod === 'night' ? 0x101216 : 0x55595f) : (tod === 'night' ? 0x1a1e26 : 0x9aa0a8));
+    this.overcastTop.visible = this.hasDeck && this.cloudTop < 6000;
+    this.overcastTop.position.y = this.cloudTop;
+    this.overcastTop.material.opacity = 0.97;
+    this.overcastTop.material.color.set(tod === 'night' ? 0x262a33 : (tod === 'dusk' ? 0xc9a58a : 0xeef1f4));
     const cumulus = scenario.id !== 'storm' && scenario.id !== 'clear';
     this.cloudGroup.visible = cumulus || scenario.id === 'clear';
     this.cloudGroup.children.forEach((sp) => {
@@ -529,13 +541,17 @@ export class World {
     // fog density: in cloud above the base, thick; below: visibility
     const alt = state.alt;
     let vis = this.visibility;
-    if (this.overcast.visible && alt > this.cloudBase) {
-      const inCloud = Math.min(1, (alt - this.cloudBase) / 60);
-      vis = vis * (1 - inCloud) + 120 * inCloud;
+    // inside the deck (between its base and its top, with a 60 m transition at each edge) the
+    // visibility collapses; above the top it is clear again with the deck seen from above
+    let inCloudF = 0;
+    if (this.hasDeck) {
+      inCloudF = Math.max(0, Math.min(1, (alt - this.cloudBase) / 60, (this.cloudTop - alt) / 60));
+      vis = vis * (1 - inCloudF) + 120 * inCloudF;
+      this.overcast.visible = alt < this.cloudTop - 20;
+      this.overcastTop.visible = this.cloudTop < 6000 && alt > this.cloudBase + 20;
     }
     const density = 1.73 / Math.max(vis, 50);
     this.scene.fog.density = density;
-    const inCloudF = (this.overcast.visible && alt > this.cloudBase) ? Math.min(1, (alt - this.cloudBase) / 60) : 0;
     this.skyMat.uniforms.uFogMix.value = Math.max(inCloudF, vis < 1500 ? 0.6 : 0);
     this.skyMat.uniforms.uHorizonFog.value = Math.max(0.8, Math.min(25, this.visibility / 1500));
     this.skyMat.uniforms.uFogColor.value.copy(this.scene.fog.color);
@@ -559,6 +575,7 @@ export class World {
     }
     // overcast layer follows the camera horizontally so it never ends
     if (this.overcast.visible) { this.overcast.position.x = eye.x; this.overcast.position.z = eye.z; this.overcast.material.map.offset.set(eye.x / 80000 * 30 + this.time * 0.002, -eye.z / 80000 * 30); }
+    if (this.overcastTop.visible) { this.overcastTop.position.x = eye.x; this.overcastTop.position.z = eye.z; }
     // rain in camera space: relative velocity = fall + aircraft speed (approx along the view axis)
     this.camera.getWorldQuaternion(this.rainRig.quaternion);
     this.rainRig.position.copy(eye);
