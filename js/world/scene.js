@@ -553,7 +553,9 @@ export class World {
     }
     const density = 1.73 / Math.max(vis, 50);
     this.scene.fog.density = density;
-    this.skyMat.uniforms.uFogMix.value = Math.max(inCloudF, vis < 1500 ? 0.6 : 0);
+    // in fog or heavy rain the sky and the ground merge into the same murk: no horizon line
+    const murk = vis < 1500 ? 1 : (vis < 5000 ? (5000 - vis) / 3500 : 0);
+    this.skyMat.uniforms.uFogMix.value = Math.max(inCloudF, murk);
     this.skyMat.uniforms.uHorizonFog.value = Math.max(0.8, Math.min(25, this.visibility / 1500));
     this.skyMat.uniforms.uFogColor.value.copy(this.scene.fog.color);
     // fog colour brightens slightly with a lightning flash

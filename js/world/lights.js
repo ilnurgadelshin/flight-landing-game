@@ -48,7 +48,7 @@ const FRAG = /* glsl */`
     float a = (core + halo) * vBright;
     // lights punch through fog better than terrain (Koschmieder-ish) but still fade
     float fog = exp(-uFogDensity * uFogDensity * vDepth * vDepth * 0.55);
-    a *= mix(1.0, fog, 0.9);
+    a *= mix(1.0, fog, 0.97);
     // by day the lights are dimmer relative to the scene
     a *= mix(1.0, 0.9, uDaylight);
     gl_FragColor = vec4(vColor * (1.0 + 0.6 * core), a);
