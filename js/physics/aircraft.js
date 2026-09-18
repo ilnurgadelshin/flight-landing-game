@@ -716,7 +716,8 @@ export class Aircraft {
       hull: this.hullContacts.size > 0 || this.gearPos < 0.98,
     };
     this.events.push({ t: this.time, type: 'touchdown', ...this.touchdown });
-    if (this.input.speedbrakeArmed && this.input.throttle < 0.1) {
+    // auto speedbrakes need the air/ground logic: main gear on the ground (a belly landing does not trigger them)
+    if (this.input.speedbrakeArmed && this.input.throttle < 0.1 && this.gearPos > 0.98 && (this.gear.left.onGround || this.gear.right.onGround)) {
       this.input.speedbrake = 1; this.input.speedbrakeArmed = false;
       this.events.push({ t: this.time, type: 'spoilers', auto: true });
     }
