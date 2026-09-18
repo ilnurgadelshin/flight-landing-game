@@ -699,11 +699,16 @@ export class Aircraft {
     const st = this.state;
     const touches = this.events.filter((e) => e.type === 'geartouch');
     const mains = touches.filter((e) => e.gear !== 'nose');
-    const first = mains[0] || touches[0] || { sink: -this.body.velocity.y, ias: st.ias, crabDeg: st.crabDeg, bank: st.roll, pitch: st.pitch,
+    // the debrief describes the first contact: the first main gear, unless the nose wheel hit
+    // first (then that impact is the landing); the sink rate is the hardest contact of the
+    // touchdown sequence so a bounce cannot mask a hard arrival
+    const noseFirst = touches.length > 0 && touches[0].gear === 'nose';
+    const first = (noseFirst ? touches[0] : mains[0]) || touches[0] || { sink: -this.body.velocity.y, ias: st.ias, crabDeg: st.crabDeg, bank: st.roll, pitch: st.pitch,
       lateralOffset: st.lateralOffset, distFromThreshold: st.distFromThreshold, groundSpeed: st.groundSpeed, onRunway: st.anyOnRunway };
+    const hardest = touches.reduce((m, e) => Math.max(m, e.sink), first.sink);
     this.touchdown = {
       t: this.time,
-      sink: first.sink,
+      sink: hardest,
       ias: first.ias, groundSpeed: first.groundSpeed,
       alongRunway: first.distFromThreshold, distFromThreshold: first.distFromThreshold,
       lateralOffset: first.lateralOffset,
