@@ -118,7 +118,9 @@ for (const name of list) {
     ['stopped', "g.state === 'finished'"],
   ];
   if (run.pilot && run.pilot.goAroundAt) {
-    cps.splice(6, 0, ['go-around-initiated', "p.did.ga"], ['go-around-climbing', "p.did.ga && s.agl > 800 * 0.3048"], ['repositioned', "p.did.repos"]);
+    // the go-around is called at 300 ft, so its checkpoints sit between 500 ft and minimums; the
+    // later checkpoints then describe the second approach after the reposition
+    cps.splice(5, 0, ['go-around-initiated', "p.did.ga"], ['go-around-climbing', "p.did.ga && s.agl > 800 * 0.3048"], ['repositioned', "p.did.repos"]);
   }
   const startDist = await page.evaluate(() => window.__sim.state().distToThreshold / 1852);
   for (const [label, cond] of cps) {
