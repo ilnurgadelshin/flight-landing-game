@@ -217,8 +217,8 @@ export class Aircraft {
     this.stallWarning = false; this.stalled = false;
 
     const psi = headingDeg * DEG;
-    const tas = iasKts * KTS;
     const rho = this.atmosphere.density(y);
+    const tas = iasKts * KTS / Math.sqrt(rho / 1.225);   // the start speed is an indicated airspeed
     const qbar = 0.5 * rho * tas * tas;
     const CLreq = onGround ? 0 : (AC.mass * G * Math.cos(gammaDeg * DEG)) / Math.max(qbar * AC.wingArea, 1);
     const CL0 = AC.aero.CL0 + AC.flaps.dCL0[flapIndex];
@@ -461,7 +461,8 @@ export class Aircraft {
       b.applyForce(q.vmult(fBody, _v2), CANNON.Vec3.ZERO);
     }
 
-    this.stallWarning = tas > 20 && alpha > (aStallDeg - 2.0) * DEG;
+    // stick shaker ~3.5 deg before the stall (about 1.08 Vs, like the real one), not 2 deg
+    this.stallWarning = tas > 20 && alpha > (aStallDeg - 3.5) * DEG;
     this.stalled = tas > 20 && alpha > aStallDeg * DEG;
 
     // --- landing gear + tyres

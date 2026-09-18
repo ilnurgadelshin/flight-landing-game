@@ -67,7 +67,9 @@ for (const name of list) {
     await page.keyboard.press('KeyP'); await frames(1);
     return s;
   };
-  const waitCond = async (expr, timeout = 480000) => { try { await page.waitForFunction(`(() => { const s = window.__sim.state(), g = window.__sim.game, p = window.__pilot; return g.state === 'finished' || (${expr}); })()`, null, { timeout }); return true; } catch { return false; } };
+  // waits are generous: the full approach needs ~20 min of wall time per checkpoint at 0.3x; a
+  // finished flight always ends a wait early
+  const waitCond = async (expr, timeout = 2400000) => { try { await page.waitForFunction(`(() => { const s = window.__sim.state(), g = window.__sim.game, p = window.__pilot; return g.state === 'finished' || (${expr}); })()`, null, { timeout }); return true; } catch { return false; } };
 
   console.log(`\n=== PLAYTEST ${name}: ${JSON.stringify(run)}`);
   diary.push(`# Playtest: ${name}\n\n${JSON.stringify(run)}\n`);
@@ -134,7 +136,7 @@ for (const name of list) {
     if (label === '1000ft' || label === '200ft-minimums') { await page.evaluate(() => { window.__sim.inputManager.look.yaw = 1.2; }); await shot(label + '-left-window'); await page.evaluate(() => { window.__sim.inputManager.look.yaw = 0; }); }
     if (s.gameState === 'finished') break;
   }
-  const res = await page.evaluate(() => window.__sim.result());
+  const res = await page.evaluate(() => (window.__sim.game.state === 'finished' ? window.__sim.result() : null));
   if (res) {
     say(`\n## RESULT: ${res.outcome.toUpperCase()} — ${res.headline} — ${res.score}/100 grade ${res.grade}`);
     for (const it of res.items) say(`- ${it.label}: ${it.value} — ${it.note} (${it.points}/${it.max})`);

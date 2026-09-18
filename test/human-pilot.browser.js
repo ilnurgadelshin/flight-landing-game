@@ -62,7 +62,7 @@
         if (gsErr < -40 && st.distToThreshold > 4000) vsT = 0;
         else if (st.agl < 60) vsT = -st.groundSpeed * Math.tan(3 * DEG);   // below 200 ft: visual, hold the 3 deg path, do not chase the beam
         else vsT = -st.groundSpeed * Math.tan(3 * DEG) - clamp(gsErr * 0.12, -3, 3);
-        if (o.stallOnFinal && st.agl < 250) { key('KeyS', true); key('KeyW', false); pitchIn = 0.55; rollIn = lateral(8); mouse(rollIn, pitchIn); P.traceStep(st, inp, pitchIn, rollIn, dt); requestAnimationFrame(tick); return; }
+        if (o.stallOnFinal && st.agl < 250) { key('KeyS', true); key('KeyW', false); pitchIn = 0.9; rollIn = lateral(8); mouse(rollIn, pitchIn); P.traceStep(st, inp, pitchIn, rollIn, dt); requestAnimationFrame(tick); return; }
         // fly pitch attitude (inner loop) and nudge it for the vertical speed (outer loop), like a trained pilot:
         // small, smooth inputs instead of chasing the VS needle
         const err = vsT - st.vs;
