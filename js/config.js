@@ -95,7 +95,7 @@ export const AIRCRAFT = {
     maxElevatorDeg: 25,
     maxAileronDeg: 20,
     maxRudderDeg: 25,
-    maxTrimDeg: 16,
+    maxTrimDeg: 20,
     trimRateDegPerSec: 1.2,
     surfaceRate: 3.5,    // how fast the control surfaces follow the input (1/s)
     yawDamperGain: 1.4,  // artificial yaw damping (rudder per rad/s of yaw rate)

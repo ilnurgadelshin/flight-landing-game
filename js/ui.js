@@ -115,7 +115,8 @@ export class UI {
     set('h-sb', st.speedbrake > 0.05 ? (st.onGround ? 'UP' : 'FLT') : (st.speedbrakeArmed ? 'ARMED' : 'DOWN'), st.speedbrakeArmed || st.speedbrake > 0.05 ? 'good' : '');
     set('h-brk', st.brake > 0.05 ? `${Math.round(st.brake * 100)}%` : ['OFF', 'AB1', 'AB2', 'AB3', 'MAX'][st.autobrake], st.brake > 0.05 ? 'warn' : '');
     set('h-trim', `${st.trim >= 0 ? 'NU' : 'ND'} ${Math.abs(st.trim).toFixed(1)}`);
-    set('h-wind', `${String(Math.round(st.windDirDeg)).padStart(3, '0')}°/${Math.round(st.windKts)}kt  x${Math.round(Math.abs(st.crosswind))}`, Math.abs(st.crosswind) > 20 ? 'warn' : '');
+    set('h-wind', `${String(Math.round(st.windDirDeg)).padStart(3, '0')}°/${Math.round(st.windKts)}kt`, '');
+    set('h-xwind', `${Math.round(Math.abs(st.crosswind))}${st.crosswind > 0.5 ? 'R' : (st.crosswind < -0.5 ? 'L' : '')}`, Math.abs(st.crosswind) > 20 ? 'warn' : '');
     set('h-mouse', extra.mouse ? 'YOKE ON (Esc)' : 'click to engage', extra.mouse ? 'good' : '');
     this.el.stall.classList.toggle('hidden', !st.stallWarning);
     this.el.config.classList.toggle('hidden', !extra.configWarning);

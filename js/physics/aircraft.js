@@ -512,7 +512,7 @@ export class Aircraft {
     // brake temperature (display only)
     this.brakeTemp += (this._brakePower / 3.0e6) * dt - this.brakeTemp * 0.004 * dt;
 
-    this.updateState(dt, { alpha, beta, tas, p, q: qr, r, totalThrust, wind, aStallDeg, CL, CD, qbar });
+    this.updateState(dt, { alpha, beta, tas, uFwd: u, p, q: qr, r, totalThrust, wind, aStallDeg, CL, CD, qbar });
   }
 
   // ----- landing gear ------------------------------------------------------------
@@ -754,7 +754,10 @@ export class Aircraft {
     st.p = extra.p || 0; st.q = extra.q || 0; st.r = extra.r || 0;
     st.tas = extra.tas !== undefined ? extra.tas : st.groundSpeed;
     const rho = this.atmosphere.density(st.alt);
-    st.ias = st.tas * Math.sqrt(rho / 1.225) / KTS;
+    // indicated airspeed comes from the pitot: the forward component only (a tailwind on a
+    // parked aircraft reads zero, not the wind speed)
+    const pitot = extra.uFwd !== undefined ? Math.max(0, extra.uFwd) : st.tas;
+    st.ias = pitot * Math.sqrt(rho / 1.225) / KTS;
     st.tasKts = st.tas / KTS;
     st.alpha = extra.alpha || 0; st.beta = extra.beta || 0;
     st.mach = st.tas / 340;
