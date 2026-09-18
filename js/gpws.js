@@ -12,6 +12,7 @@ export class GPWS {
   }
 
   reset() {
+    this.vsF = undefined;
     this.calledOut = new Set();
     this.prevAgl = 0;
     this.caption = '';
@@ -75,8 +76,10 @@ export class GPWS {
     if (!st.onGround && !st.destroyed) {
       // ---- Mode 1: excessive descent rate
       if (aglFt < 2450 && aglFt > 10) {
-        const pullUp = this.vsF < -(1500 + aglFt * 2.6);
-        const sinkRate = this.vsF < -(950 + aglFt * 1.35);
+        // close to the ground a sudden push must warn at once, so the raw rate counts there too
+        const vsMode1 = aglFt < 100 ? Math.min(vsFpm, this.vsF) : this.vsF;
+        const pullUp = vsMode1 < -(1500 + aglFt * 2.6);
+        const sinkRate = vsMode1 < -(950 + aglFt * 1.35);
         if (pullUp) this.announce('Pull up', 'warning', 3, 1.4);
         else if (sinkRate) this.announce('Sink rate', 'caution', 2, 2.2);
       }

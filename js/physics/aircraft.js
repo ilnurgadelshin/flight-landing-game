@@ -215,6 +215,7 @@ export class Aircraft {
     this._hullTouching = false;
     this.brakeTemp = 0;
     this.stallWarning = false; this.stalled = false;
+    this._mainsGroundT = 0; this._abInt = 0; this._lastGs = undefined; this._holdT = 0; this._holdSign = 0;
 
     const psi = headingDeg * DEG;
     const rho = this.atmosphere.density(y);
