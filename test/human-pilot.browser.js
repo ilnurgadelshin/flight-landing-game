@@ -90,8 +90,9 @@
         key('KeyS', true); key('KeyW', false);
         key('KeyR', o.useReversers && st.groundSpeed > 30 * 0.5144); key('KeyB', !o.noBrakes && (inp.autobrake === 0 || st.groundSpeed < 25));
         pitchIn = st.groundSpeed > 30 ? -0.1 : 0; rollIn = clamp(-st.roll * 3, -1, 1);
-        const steer = -st.lateralOffset * 0.05 - drift * 0.12 - st.crabDeg * 0.15;
-        key('KeyD', steer > 0.08); key('KeyA', steer < -0.08);
+        // gentle rudder on the roll-out: a person taps the pedals, and less so at high speed
+        const steer = (-st.lateralOffset * 0.025 - drift * 0.10 - st.crabDeg * 0.2) * (st.groundSpeed > 40 ? 0.6 : 1);
+        key('KeyD', steer > 0.12); key('KeyA', steer < -0.12);
       } else if (P.phase === 'goaround') {
         P.gaT += dt;
         key('KeyW', false); key('KeyS', false);

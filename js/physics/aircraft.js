@@ -525,14 +525,18 @@ export class Aircraft {
     this.skidding = false;
     const gsNow = Math.hypot(b.velocity.x, b.velocity.z);
 
-    // autobrake: target deceleration, engages after touchdown with throttles closed
+    // autobrake: target deceleration. Like the real system it engages only once both main
+    // gears are on the ground (wheel spin-up) with the throttles closed, and ramps the
+    // pressure in over a second, so it can never brake one wheel and slew the aircraft.
     let autoBrakeCmd = 0;
-    if (inp.autobrake > 0 && !this.airborne && this.touchdown && inp.throttle < 0.05 && gsNow > 1) {
+    const bothMains = this.gear.left.wasOnGround && this.gear.right.wasOnGround;
+    this._mainsGroundT = bothMains ? (this._mainsGroundT || 0) + dt : 0;
+    if (inp.autobrake > 0 && this.touchdown && this._mainsGroundT > 0.5 && inp.throttle < 0.05 && gsNow > 1) {
       const targets = [0, 1.1, 1.7, 2.3, 3.2];  // m/s^2
       const target = targets[inp.autobrake];
       const decel = this._lastGs === undefined ? 0 : -(gsNow - this._lastGs) / dt;
       this._abInt = clamp((this._abInt || 0) + (target - decel) * dt * 0.35, 0, 1);
-      autoBrakeCmd = clamp((target - decel) * 0.25 + this._abInt, 0, 1);
+      autoBrakeCmd = clamp((target - decel) * 0.25 + this._abInt, 0, 1) * clamp((this._mainsGroundT - 0.5) / 1.0, 0, 1);
     } else { this._abInt = 0; }
     this._lastGs = gsNow;
     const brakeCmd = clamp(Math.max(inp.brake, autoBrakeCmd), 0, 1);
