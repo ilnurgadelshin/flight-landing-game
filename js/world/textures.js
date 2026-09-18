@@ -27,8 +27,8 @@ function makeTexture(c, opts = {}) {
  * 45 m wide precision runway: threshold stripes, designators, aiming point,
  * touchdown-zone stripes, centreline and edge lines.
  */
-export function makeRunwayTexture(anisotropy) {
-  const W = 4096, H = 256;
+export function makeRunwayTexture(anisotropy, maxSize = 8192) {
+  const W = Math.min(8192, maxSize), H = W / 16;
   const c = canvas(W, H);
   const g = c.getContext('2d');
   const L = RUNWAY.length, RW = RUNWAY.width;
@@ -131,7 +131,7 @@ export function makeGroundTexture(anisotropy, night = false) {
   const rng = makeRng(3);
   const palette = night
     ? ['#0d1a12', '#101d14', '#141f13', '#0c1810', '#171f14', '#121a10']
-    : ['#5d8a3c', '#6d9a44', '#7fa050', '#8f9a4a', '#a8a35a', '#6b7d3a', '#8c7b45', '#5f7f38', '#a3b262'];
+    : ['#557a38', '#63883f', '#728f48', '#868c48', '#9a9457', '#5e6f36', '#7d6c40', '#587337', '#93a05a', '#6f7d44'];
   // base
   g.fillStyle = palette[0]; g.fillRect(0, 0, S, S);
   // irregular fields: random rectangles rotated a little
@@ -155,10 +155,16 @@ export function makeGroundTexture(anisotropy, night = false) {
   for (let i = 0; i < 60; i++) {
     g.beginPath(); const x = rng() * S, y = rng() * S; g.moveTo(x, y); g.lineTo(x + (rng() - 0.5) * 300, y + (rng() - 0.5) * 300); g.stroke();
   }
-  // roads
-  g.strokeStyle = night ? '#1b1b1b' : '#7b7a74'; g.lineWidth = 4;
-  for (let i = 0; i < 6; i++) { g.beginPath(); const x = rng() * S; g.moveTo(x, 0); g.lineTo(x + (rng() - 0.5) * 200, S); g.stroke(); }
-  for (let i = 0; i < 5; i++) { g.beginPath(); const y = rng() * S; g.moveTo(0, y); g.lineTo(S, y + (rng() - 0.5) * 200); g.stroke(); }
+  // roads: a few winding lanes (drawn wrapped so the tile stays seamless)
+  g.strokeStyle = night ? '#1b1b1b' : '#8a877e'; g.lineWidth = 3; g.lineCap = 'round';
+  for (let i = 0; i < 5; i++) {
+    let x = rng() * S, y = rng() * S, a = rng() * Math.PI * 2;
+    for (let k = 0; k < 60; k++) {
+      const nx = x + Math.cos(a) * 40, ny = y + Math.sin(a) * 40;
+      for (const ox of [-S, 0, S]) for (const oy of [-S, 0, S]) { g.beginPath(); g.moveTo(x + ox, y + oy); g.lineTo(nx + ox, ny + oy); g.stroke(); }
+      x = ((nx % S) + S) % S; y = ((ny % S) + S) % S; a += (rng() - 0.5) * 0.5;
+    }
+  }
   // small villages
   for (let v = 0; v < 5; v++) {
     const vx = rng() * S, vy = rng() * S;
@@ -169,6 +175,21 @@ export function makeGroundTexture(anisotropy, night = false) {
   for (let i = 0; i < img.data.length; i += 4) { const n = (rng() - 0.5) * 14; img.data[i] += n; img.data[i + 1] += n; img.data[i + 2] += n; }
   g.putImageData(img, 0, 0);
   return makeTexture(c, { repeat: true, anisotropy });
+}
+
+/** Fine grass / soil noise used as a close-range detail layer. */
+export function makeDetailTexture() {
+  const S = 256;
+  const c = canvas(S, S); const g = c.getContext('2d');
+  const rng = makeRng(31);
+  const img = g.createImageData(S, S);
+  for (let i = 0; i < img.data.length; i += 4) { const v = 96 + Math.floor(rng() * 64); img.data[i] = img.data[i + 1] = img.data[i + 2] = v; img.data[i + 3] = 255; }
+  g.putImageData(img, 0, 0);
+  // blotches
+  for (let i = 0; i < 300; i++) { g.fillStyle = `rgba(${rng() < 0.5 ? 60 : 200},${rng() < 0.5 ? 60 : 200},${rng() < 0.5 ? 60 : 200},0.12)`; g.beginPath(); g.arc(rng() * S, rng() * S, 2 + rng() * 6, 0, 7); g.fill(); }
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping; t.minFilter = THREE.LinearMipmapLinearFilter; t.generateMipmaps = true; t.anisotropy = 4; t.needsUpdate = true;
+  return t;
 }
 
 /** Low-frequency brightness variation to hide the ground tiling (20 km period). */

@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import { RUNWAY, DEG } from '../config.js';
 import { TERRAIN } from '../physics/terrain.js';
 import { makeRng } from '../physics/atmosphere.js';
-import { makeRunwayTexture, makeTaxiwayTexture, makeGroundTexture, makeMacroTexture, makeCloudTexture, makeOvercastTexture, makeBuildingTexture, makeTreeTexture } from './textures.js';
+import { makeRunwayTexture, makeTaxiwayTexture, makeGroundTexture, makeMacroTexture, makeDetailTexture, makeCloudTexture, makeOvercastTexture, makeBuildingTexture, makeTreeTexture } from './textures.js';
 import { AirfieldLights } from './lights.js';
 
 const SKY_VERT = /* glsl */`
@@ -23,6 +23,7 @@ const SKY_FRAG = /* glsl */`
   uniform vec3 uZenith; uniform vec3 uHorizon; uniform vec3 uGround;
   uniform vec3 uSunDir; uniform vec3 uSunColor; uniform float uSunSize;
   uniform float uStars;
+  uniform vec3 uFogColor; uniform float uFogMix; uniform float uHorizonFog;
   #include <logdepthbuf_pars_fragment>
   float hash(vec3 p) { return fract(sin(dot(p, vec3(12.9898, 78.233, 45.164))) * 43758.5453); }
   void main() {
@@ -30,7 +31,8 @@ const SKY_FRAG = /* glsl */`
     float h = vWorldDir.y;
     vec3 col;
     if (h >= 0.0) {
-      float t = pow(clamp(h, 0.0, 1.0), 0.45);
+      // the pilot mostly sees the lowest 20° of sky: keep real blue there, haze only right at the horizon
+      float t = pow(clamp(h, 0.0, 1.0), 0.32);
       col = mix(uHorizon, uZenith, t);
     } else {
       col = mix(uHorizon, uGround, clamp(-h * 6.0, 0.0, 1.0));
@@ -45,7 +47,13 @@ const SKY_FRAG = /* glsl */`
       float star = step(0.995, s) * uStars * smoothstep(0.02, 0.2, h);
       col += vec3(star * (0.6 + 0.4 * hash(p + 1.0)));
     }
+    // the sky blends into the fog colour near the horizon (haze) and completely inside cloud
+    float fb = clamp(uFogMix + (1.0 - uFogMix) * exp(-max(h, 0.0) * uHorizonFog), 0.0, 1.0);
+    fb = max(fb, smoothstep(0.0, -0.04, h));
+    col = mix(col, uFogColor, fb);
     gl_FragColor = vec4(col, 1.0);
+    #include <tonemapping_fragment>
+    #include <colorspace_fragment>
   }
 `;
 
@@ -70,15 +78,19 @@ const GROUND_FRAG = /* glsl */`
   varying vec2 vUv;
   varying vec3 vNormalW;
   varying float vHeight;
-  uniform sampler2D uMap; uniform sampler2D uMacro;
+  uniform sampler2D uMap; uniform sampler2D uMacro; uniform sampler2D uDetail;
   uniform vec3 uSunDir; uniform vec3 uSunColor; uniform vec3 uAmbient;
   uniform float uRepeat; uniform float uWet;
   #include <fog_pars_fragment>
   #include <logdepthbuf_pars_fragment>
   void main() {
     #include <logdepthbuf_fragment>
-    vec3 base = texture2D(uMap, vUv * uRepeat).rgb;
-    float macro = texture2D(uMacro, vUv * 4.0).r * 2.0;
+    vec3 base = texture2D(uMap, vUv).rgb;
+    float macro = texture2D(uMacro, vUv * 0.1).r * 2.0;
+    // close-up grass / soil detail (fades out beyond ~1.5 km so it never sparkles at range)
+    float detail = texture2D(uDetail, vUv * 60.0).r * 2.0;
+    float detailW = 1.0 - smoothstep(300.0, 1500.0, vFogDepth);
+    base *= mix(1.0, mix(0.82, 1.18, detail * 0.5), detailW);
     // rocky/snowy tint on the high ground
     float hi = smoothstep(250.0, 700.0, vHeight);
     base = mix(base, vec3(0.45, 0.42, 0.38), hi * 0.8);
@@ -90,6 +102,8 @@ const GROUND_FRAG = /* glsl */`
     vec3 col = base * (uAmbient + uSunColor * diff);
     gl_FragColor = vec4(col, 1.0);
     #include <fog_fragment>
+    #include <tonemapping_fragment>
+    #include <colorspace_fragment>
   }
 `;
 
@@ -116,7 +130,8 @@ const RAIN_FRAG = /* glsl */`
   #include <logdepthbuf_pars_fragment>
   void main() {
     #include <logdepthbuf_fragment>
-    gl_FragColor = vec4(0.75, 0.8, 0.9, vA * uIntensity);
+    gl_FragColor = vec4(0.72, 0.78, 0.88, vA * uIntensity * 0.45);
+    #include <colorspace_fragment>
   }
 `;
 
@@ -136,6 +151,13 @@ export class World {
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(62, window.innerWidth / window.innerHeight, 0.08, 60000);
     this.scene.fog = new THREE.FogExp2(0xbfd0e0, 0.00005);
+    // The flight deck is rendered in a second pass with its own lights, so the
+    // sun never shines through the fuselage onto the seats and consoles.
+    this.cockpitScene = new THREE.Scene();
+    this.cockpitHemi = new THREE.HemisphereLight(0xb8c8d8, 0x30333a, 0.6);
+    this.cockpitScene.add(this.cockpitHemi);
+    this.cockpitAmbient = new THREE.AmbientLight(0xffffff, 0.12);
+    this.cockpitScene.add(this.cockpitAmbient);
     this.time = 0;
     this.night = false;
     this.rng = makeRng(21);
@@ -143,8 +165,9 @@ export class World {
     this.buildLighting();
     this.buildSky();
     this.buildTerrain();
+    this.townLightEntries = [];
     this.buildAirport();
-    this.lights = new AirfieldLights(this.scene);
+    this.lights = new AirfieldLights(this.scene, this.townLightEntries);
     this.buildWeather();
 
     window.addEventListener('resize', () => this.resize());
@@ -170,13 +193,14 @@ export class World {
   }
 
   buildSky() {
-    const geo = new THREE.SphereGeometry(45000, 32, 16);
+    const geo = new THREE.SphereGeometry(30000, 48, 24);
     this.skyMat = new THREE.ShaderMaterial({
       vertexShader: SKY_VERT, fragmentShader: SKY_FRAG, side: THREE.BackSide, depthWrite: false, fog: false,
       uniforms: {
         uZenith: { value: new THREE.Color(0x2a63c9) }, uHorizon: { value: new THREE.Color(0xc9dcee) }, uGround: { value: new THREE.Color(0x7b8a6a) },
         uSunDir: { value: new THREE.Vector3(-0.5, 0.6, 0.4).normalize() }, uSunColor: { value: new THREE.Color(0xfff2d0) }, uSunSize: { value: 0.0008 },
         uStars: { value: 0 },
+        uFogColor: { value: new THREE.Color(0xc4d5e6) }, uFogMix: { value: 0 }, uHorizonFog: { value: 20 },
       },
     });
     this.sky = new THREE.Mesh(geo, this.skyMat);
@@ -187,9 +211,10 @@ export class World {
 
   // ------------------------------------------------------------------ terrain
   buildTerrain() {
-    const size = 90000, seg = this.lowDetail ? 90 : 180;
-    const geo = new THREE.PlaneGeometry(size, size, seg, seg);
+    const sizeX = 160000, sizeZ = 110000, seg = this.lowDetail ? 100 : 200;
+    const geo = new THREE.PlaneGeometry(sizeX, sizeZ, seg, Math.round(seg * sizeZ / sizeX));
     geo.rotateX(-Math.PI / 2);
+    geo.translate(12000, 0, 0);           // the approach comes from the east: extend that way
     const pos = geo.attributes.position;
     for (let i = 0; i < pos.count; i++) {
       const x = pos.getX(i), z = pos.getZ(i);
@@ -203,11 +228,15 @@ export class World {
       uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, {
         uMap: { value: null }, uMacro: { value: null },
         uSunDir: { value: new THREE.Vector3(-0.5, 0.6, 0.4).normalize() }, uSunColor: { value: new THREE.Color(0xffffff) }, uAmbient: { value: new THREE.Color(0x667788) },
-        uRepeat: { value: size / 2000 }, uWet: { value: 0 },
+        uRepeat: { value: 1 }, uWet: { value: 0 }, uDetail: { value: null },
       }]),
     });
     this.groundMat.uniforms.uMap.value = this.groundTex;
     this.groundMat.uniforms.uMacro.value = makeMacroTexture();
+    this.groundMat.uniforms.uDetail.value = makeDetailTexture();
+    // uv is scaled so one tile = 2 km regardless of the plane size
+    const uvAttr = geo.attributes.uv;
+    for (let i = 0; i < uvAttr.count; i++) uvAttr.setXY(i, pos.getX(i) / 2000, pos.getZ(i) / 2000);
     const ground = new THREE.Mesh(geo, this.groundMat);
     ground.position.y = -0.05;
     ground.frustumCulled = false;
@@ -220,7 +249,7 @@ export class World {
     const L = RUNWAY.length, W = RUNWAY.width, halfL = L / 2;
     const aniso = this.maxAniso;
     // runway surface
-    this.runwayTex = makeRunwayTexture(aniso);
+    this.runwayTex = makeRunwayTexture(aniso, this.renderer.capabilities.maxTextureSize);
     const rwMat = new THREE.MeshStandardMaterial({ map: this.runwayTex, roughness: 0.95, metalness: 0.0, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
     const rw = new THREE.Mesh(new THREE.PlaneGeometry(L, W), rwMat);
     rw.rotation.x = -Math.PI / 2;
@@ -270,7 +299,7 @@ export class World {
     this.sock.position.set(halfL - 500, 8, -90); this.scene.add(this.sock);
     // approach light towers (the ALS is on frangible masts over the grass) — thin posts
     const postMat = new THREE.MeshLambertMaterial({ color: 0x999999 });
-    for (let d = 30; d <= 900; d += 30) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.9, 5), postMat); p.position.set(RUNWAY.thresholdX + d, 0.45, 0); this.scene.add(p); }
+    for (let d = 30; d <= 900; d += 30) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.7, 4.4), postMat); p.position.set(RUNWAY.thresholdX + d, 0.35, 0); this.scene.add(p); }
     // perimeter road
     const road = new THREE.Mesh(new THREE.PlaneGeometry(6000, 8), new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 1 }));
     road.rotation.x = -Math.PI / 2; road.position.set(0, 0.01, 620); this.scene.add(road);
@@ -349,7 +378,16 @@ export class World {
       const w = 12 + rng() * 20, d = 12 + rng() * 20;
       p.set(cx, h / 2, cz); s.set(w, h, d); q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), rng() < 0.5 ? 0 : Math.PI / 2);
       m.compose(p, q, s); mesh.setMatrixAt(i, m);
+      // street light next to every other building, warm white / sodium orange
+      if (i % 2 === 0) this.townLightEntries.push({ x: cx + w * 0.7, y: 6, z: cz + d * 0.7, color: rng() < 0.6 ? [1, 0.75, 0.4] : [0.95, 0.95, 1], size: 1.4, group: 'town' });
     }
+    // scattered farm / village lights across the plain and along the perimeter road
+    for (let i = 0; i < 260; i++) {
+      const x = (rng() - 0.5) * 36000 + 6000, z = (rng() - 0.5) * 22000;
+      if (Math.abs(z) < 700 && Math.abs(x) < 3000) continue;
+      this.townLightEntries.push({ x, y: 4, z, color: rng() < 0.7 ? [1, 0.78, 0.45] : [0.9, 0.95, 1], size: 1.1, group: 'town' });
+    }
+    for (let x = -3000; x <= 3000; x += 120) this.townLightEntries.push({ x, y: 8, z: 640, color: [1, 0.7, 0.35], size: 1.2, group: 'town' });
     mesh.instanceMatrix.needsUpdate = true;
     this.scene.add(mesh);
     this.townMat = mat;
@@ -380,13 +418,13 @@ export class World {
     this.overcast.renderOrder = 2;
     this.scene.add(this.overcast);
     // rain: line segments in camera space
-    const n = this.lowDetail ? 600 : 1800;
+    const n = this.lowDetail ? 900 : 2600;
     const pos = new Float32Array(n * 2 * 3), seed = new Float32Array(n * 2);
-    const box = new THREE.Vector3(40, 30, 40);
+    const box = new THREE.Vector3(44, 30, 40);
     for (let i = 0; i < n; i++) {
       const x = (rng() - 0.5) * box.x, y = (rng() - 0.5) * box.y, z = (rng() - 0.5) * box.z;
       const sd = rng();
-      pos.set([x, y, z, x, y - 0.6, z + 1.2], i * 6);
+      pos.set([x, y, z, x, y - 0.22, z + 0.45], i * 6);   // ~0.5 m streak: what a drop covers in a 60 Hz frame
       seed[i * 2] = sd; seed[i * 2 + 1] = sd;
     }
     const geo = new THREE.BufferGeometry();
@@ -399,9 +437,11 @@ export class World {
     this.rain = new THREE.LineSegments(geo, this.rainMat);
     this.rain.frustumCulled = false;
     this.rain.visible = false;
-    this.rain.position.set(0, 0, -22.5);   // the whole box sits outside the windshield
-    this.camera.add(this.rain);
-    this.scene.add(this.camera);
+    this.rain.position.set(0, 0, -27);     // the whole box sits well outside the windshield (7..47 m)
+    // the rain rig copies the camera transform every frame (the camera itself lives in the cockpit scene)
+    this.rainRig = new THREE.Object3D();
+    this.rainRig.add(this.rain);
+    this.scene.add(this.rainRig);
     this.lightningTimer = 4;
     this.lightningFlash = 0;
   }
@@ -414,7 +454,7 @@ export class World {
     this.tod = tod;
     // sky + lighting presets
     const presets = {
-      day: { zenith: 0x2a63c9, horizon: 0xc9dcee, ground: 0x7b8a6a, sun: [-0.45, 0.62, 0.35], sunColor: 0xfff2d0, sunI: 1.7, hemiI: 0.9, hemiSky: 0xcfe3ff, ambient: 0x556677, fogColor: 0xc4d5e6, stars: 0, daylight: 1 },
+      day: { zenith: 0x1e56c0, horizon: 0x9cbfe4, ground: 0x7b8a6a, sun: [-0.45, 0.62, 0.35], sunColor: 0xfff2d0, sunI: 1.7, hemiI: 0.9, hemiSky: 0xcfe3ff, ambient: 0x556677, fogColor: 0xc4d5e6, stars: 0, daylight: 1 },
       dusk: { zenith: 0x1b2a4a, horizon: 0x8a6a5a, ground: 0x2a2a2a, sun: [-0.85, 0.08, 0.5], sunColor: 0xff9a55, sunI: 0.5, hemiI: 0.45, hemiSky: 0x8090b0, ambient: 0x303848, fogColor: 0x6a6a72, stars: 0.3, daylight: 0.35 },
       night: { zenith: 0x03060f, horizon: 0x101828, ground: 0x050608, sun: [0.3, -0.4, 0.5], sunColor: 0x000000, sunI: 0.0, hemiI: 0.12, hemiSky: 0x223355, ambient: 0x0c1018, fogColor: 0x0a0d14, stars: 1, daylight: 0 },
     };
@@ -436,8 +476,8 @@ export class World {
     this.ambient.color.set(p.ambient); this.ambient.intensity = storm ? 0.25 : 0.15;
     const gu = this.groundMat.uniforms;
     gu.uSunDir.value.copy(u.uSunDir.value);
-    gu.uSunColor.value.copy(this.sun.color).multiplyScalar(this.sun.intensity * 0.55);
-    gu.uAmbient.value.set(p.ambient).multiplyScalar(tod === 'night' ? 0.9 : 1.6);
+    gu.uSunColor.value.copy(this.sun.color).multiplyScalar(this.sun.intensity * 0.42);
+    gu.uAmbient.value.set(p.ambient).multiplyScalar(tod === 'night' ? 0.6 : 1.0);
     if (storm) gu.uAmbient.value.multiplyScalar(0.9);
     gu.uWet.value = scenario.wet ? 1 : 0;
     this.runwayMat.color.set(tod === 'night' ? 0x777777 : 0xffffff);
@@ -448,6 +488,9 @@ export class World {
     this.visibility = scenario.visibility;
     this.cloudBase = scenario.cloudBase * 0.3048;
     this.daylight = p.daylight * (storm ? 0.5 : 1);
+    this.cockpitHemi.intensity = tod === 'night' ? 0.05 : (storm ? 0.3 : (tod === 'dusk' ? 0.25 : 0.6));
+    this.cockpitHemi.color.set(tod === 'dusk' ? 0xd0a080 : 0xb8c8d8);
+    this.cockpitAmbient.intensity = tod === 'night' ? 0.03 : 0.12;
     // clouds
     this.overcast.visible = scenario.cloudBase < 5000;
     this.overcast.position.y = this.cloudBase;
@@ -490,19 +533,25 @@ export class World {
       const inCloud = Math.min(1, (alt - this.cloudBase) / 60);
       vis = vis * (1 - inCloud) + 120 * inCloud;
     }
-    const density = 3 / Math.max(vis, 50);
+    const density = 1.73 / Math.max(vis, 50);
     this.scene.fog.density = density;
+    const inCloudF = (this.overcast.visible && alt > this.cloudBase) ? Math.min(1, (alt - this.cloudBase) / 60) : 0;
+    this.skyMat.uniforms.uFogMix.value = Math.max(inCloudF, vis < 1500 ? 0.6 : 0);
+    this.skyMat.uniforms.uHorizonFog.value = Math.max(0.8, Math.min(25, this.visibility / 1500));
+    this.skyMat.uniforms.uFogColor.value.copy(this.scene.fog.color);
     // fog colour brightens slightly with a lightning flash
     this.scene.fog.color.copy(this.baseFogColor);
     if (this.lightningFlash > 0) {
       this.scene.fog.color.lerp(new THREE.Color(0xffffff), Math.min(1, this.lightningFlash * 0.7));
       this.lightningFlash = Math.max(0, this.lightningFlash - dt * 6);
     }
+    this.skyMat.uniforms.uFogColor.value.copy(this.scene.fog.color);
     if (this.lightningEnabled) {
       this.lightningTimer -= dt;
       if (this.lightningTimer <= 0) { this.lightningTimer = 6 + this.rng() * 14; this.lightningFlash = 1; this.onLightning && this.onLightning(); }
     }
-    this.hemi.intensity = this.hemiBase === undefined ? this.hemi.intensity : this.hemiBase;
+    // the sky dome is centred on the camera so it can never be clipped by the far plane
+    this.sky.position.copy(eye);
     // clouds drift with the wind
     if (this.cloudGroup.visible) {
       const drift = this.time * 2.0;
@@ -511,6 +560,8 @@ export class World {
     // overcast layer follows the camera horizontally so it never ends
     if (this.overcast.visible) { this.overcast.position.x = eye.x; this.overcast.position.z = eye.z; this.overcast.material.map.offset.set(eye.x / 80000 * 30 + this.time * 0.002, -eye.z / 80000 * 30); }
     // rain in camera space: relative velocity = fall + aircraft speed (approx along the view axis)
+    this.camera.getWorldQuaternion(this.rainRig.quaternion);
+    this.rainRig.position.copy(eye);
     if (this.rain.visible) {
       this.rainMat.uniforms.uTime.value = this.time;
       const gs = state.groundSpeed;
@@ -526,6 +577,12 @@ export class World {
   }
 
   render() {
-    this.renderer.render(this.scene, this.camera);
+    this.cockpitScene.updateMatrixWorld(true);   // the camera hangs in here: keep both passes in sync
+    const r = this.renderer;
+    r.autoClear = true;
+    r.render(this.scene, this.camera);
+    r.autoClear = false;
+    r.render(this.cockpitScene, this.camera);
+    r.autoClear = true;
   }
 }

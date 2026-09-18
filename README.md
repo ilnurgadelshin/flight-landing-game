@@ -120,6 +120,11 @@ only the same input channels as a human), and the failure cases (gear up,
 no flare, pushed into the runway, no brakes, beside the runway, no decrab,
 too fast) plus a go-around and reposition.
 
+`test/visual-tour.mjs` captures the view at every stage of an approach in each
+scenario and time of day (10 nm, 4 nm with left/right/pedestal views, 1.5 nm,
+200 ft, 50 ft, roll-out, stopped, results) into `test/output/visual/` for a
+visual review.
+
 `test/e2e.mjs` loads the real page, drives the menu, presses every mapped key
 and moves the mouse yoke, walks through all Flight School steps, autolands in
 each scenario by day and night while checking that the voice callouts and

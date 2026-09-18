@@ -125,7 +125,7 @@ export class UI {
   setInstructor(text) { const e = this.el.instructor; if (!text) { e.classList.add('hidden'); return; } e.classList.remove('hidden'); if (e.innerHTML !== text) e.innerHTML = text; }
   setCaption(text, kind) { const e = this.el.caption; if (!text) { e.classList.remove('show'); return; } e.textContent = text; e.className = 'show' + (kind === 'warning' ? '' : ' info'); }
   flash(strength = 1) { const e = this.el.crashFlash; e.style.transition = 'none'; e.style.opacity = String(Math.min(1, strength)); requestAnimationFrame(() => { e.style.transition = 'opacity 1.2s'; e.style.opacity = '0'; }); }
-  setRain(on) { this.el.rain.style.opacity = on ? '0.6' : '0'; }
+  setRain(on) { this.el.rain.style.opacity = '0'; void on; }
 
   // ---- Flight School ----------------------------------------------------------
   showSchool(getAnchor, onLook) {

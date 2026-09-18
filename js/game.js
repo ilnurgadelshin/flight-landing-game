@@ -18,7 +18,7 @@ export class Game {
     this.mode = 'game';
     this.aircraftGroup = new THREE.Group();
     this.aircraftGroup.add(cockpit.group);
-    world.scene.add(this.aircraftGroup);
+    world.cockpitScene.add(this.aircraftGroup);
     this.eye = new THREE.Vector3();
     this.events = [];           // game-level events for tests: { t, type, text }
     this.ctx = this.newCtx();

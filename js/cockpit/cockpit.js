@@ -28,21 +28,22 @@ export class Cockpit {
     this.camRig.add(camera);
     camera.position.set(0, 0, 0);
     camera.fov = 70; camera.updateProjectionMatrix();
-    this.basePitch = -14 * DEG;
+    this.basePitch = -17 * DEG;
     camera.rotation.set(this.basePitch, 0, 0);
     this.lookDown = 0; this.lookYaw = 0; this.lookPitch = 0;
     this.shake = new THREE.Vector3();
     this.shakeAmt = 0;
 
+    // "Boeing grey" plastics; lit by the hemisphere/sun plus the interior lights below
     this.mat = {
-      dark: new THREE.MeshStandardMaterial({ color: 0x25272c, roughness: 0.85, metalness: 0.1 }),
-      frame: new THREE.MeshStandardMaterial({ color: 0x1b1c20, roughness: 0.7, metalness: 0.2 }),
-      panel: new THREE.MeshStandardMaterial({ color: 0x2b2d33, roughness: 0.9 }),
-      grey: new THREE.MeshStandardMaterial({ color: 0x5a5d64, roughness: 0.7 }),
-      white: new THREE.MeshStandardMaterial({ color: 0xd8d8d0, roughness: 0.6 }),
-      black: new THREE.MeshStandardMaterial({ color: 0x0b0b0d, roughness: 0.5 }),
+      dark: new THREE.MeshStandardMaterial({ color: 0x5d6168, roughness: 0.9, metalness: 0.0 }),
+      frame: new THREE.MeshStandardMaterial({ color: 0x33363b, roughness: 0.8, metalness: 0.1 }),
+      panel: new THREE.MeshStandardMaterial({ color: 0x3a3d44, roughness: 0.9 }),
+      grey: new THREE.MeshStandardMaterial({ color: 0x8a8d94, roughness: 0.7 }),
+      white: new THREE.MeshStandardMaterial({ color: 0xe0e0d8, roughness: 0.6 }),
+      black: new THREE.MeshStandardMaterial({ color: 0x1a1b1e, roughness: 0.6 }),
       red: new THREE.MeshStandardMaterial({ color: 0xaa1010, roughness: 0.5 }),
-      seat: new THREE.MeshStandardMaterial({ color: 0x3a3f5a, roughness: 1 }),
+      seat: new THREE.MeshStandardMaterial({ color: 0x2f3450, roughness: 1 }),
       glass: new THREE.MeshPhysicalMaterial({ color: 0x8fb3d9, transparent: true, opacity: 0.08, roughness: 0.05, metalness: 0, side: THREE.DoubleSide, depthWrite: false }),
     };
     this.anchors = {};   // named 3D anchor points (local to root) for the Flight School highlights
@@ -63,8 +64,14 @@ export class Cockpit {
     const M = this.mat;
     // floor, side walls, ceiling
     this.box(3.0, 0.05, 3.0, 0, -1.35, 0.3, M.dark);
-    this.box(0.06, 2.4, 3.0, -1.42, -0.2, 0.4, M.dark);
-    this.box(0.06, 2.4, 3.0, 1.42, -0.2, 0.4, M.dark);
+    for (const s of [-1, 1]) {
+      // side wall with the #3 window cut out (z -0.25 .. 0.35, y -0.08 .. 0.58)
+      this.box(0.06, 1.32, 3.0, s * 1.42, -0.74, 0.4, M.dark);      // below the windows
+      this.box(0.06, 0.42, 3.0, s * 1.42, 0.79, 0.4, M.dark);       // above
+      this.box(0.06, 0.66, 1.55, s * 1.42, 0.25, 1.125, M.dark);    // aft of the #3 window
+      this.box(0.06, 0.66, 0.13, s * 1.42, 0.25, -0.315, M.dark);   // post between #2 and #3
+      const g3 = this.box(0.004, 0.66, 0.6, s * 1.41, 0.25, 0.05, M.glass); void g3;
+    }
     // aft bulkhead / door
     this.box(3.0, 2.4, 0.06, 0, -0.2, 1.9, M.dark);
     // overhead panel (sloping) + ceiling
@@ -95,8 +102,6 @@ export class Cockpit {
       this.box(0.06, 0.72, 0.06, s * 1.40, 0.25, 0.35, M.frame);
       // glass (very faint)
       const gl = this.box(0.8, 0.66, 0.005, 0, 0, 0, M.glass, g); gl.position.set(0, 0, 0);
-      // wall below the side windows
-      this.box(0.06, 0.9, 2.2, s * 1.40, -0.55, 0.4, M.dark);
       // side console / armrest
       this.box(0.25, 0.08, 1.0, s * 1.22, -0.55, 0.2, M.dark);
     }
@@ -124,7 +129,7 @@ export class Cockpit {
     const mcp = new THREE.Mesh(new THREE.PlaneGeometry(0.95, 0.07), new THREE.MeshStandardMaterial({ map: mcpTex, roughness: 0.8, emissive: 0xffffff, emissiveMap: mcpTex, emissiveIntensity: 0.25 }));
     mcp.position.set(0, -0.145, -0.674); this.root.add(mcp);
     this.anchors.mcp = new THREE.Vector3(0, -0.145, -0.68);
-    this.anchors.windshield = new THREE.Vector3(-0.5, 0.25, -0.93);
+    this.anchors.windshield = new THREE.Vector3(-0.45, 0.02, -0.95);
   }
 
   // ------------------------------------------------------------------ main panel
@@ -132,7 +137,7 @@ export class Cockpit {
     // the panel plane: top edge y=-0.19 z=-0.72, bottom y=-0.70 z=-0.58 (tilted back ~15°)
     const tilt = Math.atan2(0.14, 0.51);
     this.panelGroup = new THREE.Group();
-    this.panelGroup.position.set(0, -0.36, -0.62);
+    this.panelGroup.position.set(0, -0.44, -0.62);
     this.panelGroup.rotation.x = -tilt;   // top edge away from the pilot so the face looks up at the eye
     this.root.add(this.panelGroup);
     const panelTex = makePanelTexture();
@@ -220,7 +225,7 @@ export class Cockpit {
     // trim wheels either side of the pedestal
     this.trimWheels = [];
     for (const s of [-1, 1]) {
-      const w = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.03, 24), M.black);
+      const w = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.03, 24), M.frame);
       w.rotation.z = Math.PI / 2; w.position.set(s * 0.245, -0.10, 0.10); ped.add(w);
       // a white stripe so the rotation is visible
       const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.032, 0.02, 0.05), M.white); stripe.position.set(0, 0.10, 0); w.add(stripe);
@@ -255,18 +260,18 @@ export class Cockpit {
 
   buildLights() {
     // dome light so the flight deck is readable at night; the DUs are emissive anyway
-    this.dome = new THREE.PointLight(0xfff0dd, 0.6, 4, 2);
-    this.dome.position.set(0, 0.7, 0.2);
+    this.dome = new THREE.PointLight(0xfff0dd, 1.2, 5, 2);
+    this.dome.position.set(0, 0.8, 0.3);
     this.root.add(this.dome);
     // panel flood
-    this.flood = new THREE.PointLight(0xffe7c0, 0.4, 2.2, 2);
-    this.flood.position.set(0, 0.35, -0.25);
+    this.flood = new THREE.PointLight(0xffe7c0, 0.5, 1.8, 2);
+    this.flood.position.set(0, -0.17, -0.42);     // under the glareshield lip, lights the panel and pedestal
     this.root.add(this.flood);
   }
 
   setNight(night) {
-    this.dome.intensity = night ? 0.9 : 0.15;
-    this.flood.intensity = night ? 0.9 : 0.1;
+    this.dome.intensity = night ? 1.6 : 1.2;
+    this.flood.intensity = night ? 0.9 : 0.5;
   }
 
   // ------------------------------------------------------------------ per frame

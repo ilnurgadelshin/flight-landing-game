@@ -50,8 +50,9 @@ const FRAG = /* glsl */`
     float fog = exp(-uFogDensity * uFogDensity * vDepth * vDepth * 0.55);
     a *= mix(1.0, fog, 0.9);
     // by day the lights are dimmer relative to the scene
-    a *= mix(1.0, 0.55, uDaylight);
+    a *= mix(1.0, 0.75, uDaylight);
     gl_FragColor = vec4(vColor * (1.0 + 0.6 * core), a);
+    #include <colorspace_fragment>
   }
 `;
 
@@ -65,11 +66,12 @@ const COL = {
 };
 
 export class AirfieldLights {
-  constructor(scene) {
+  constructor(scene, extraEntries = []) {
     this.scene = scene;
     this.entries = [];   // { x, y, z, color, size, group, index }
     this.groups = {};    // name -> [indices]
     this.time = 0;
+    this.extraEntries = extraEntries;
     this.build();
   }
 
@@ -123,7 +125,7 @@ export class AirfieldLights {
     // ---- PAPI: 4 units on the left of 27 (left = +z when flying -x), 320 m from the threshold, 9 m spacing
     this.papi = [];
     const papiX = thr - RUNWAY.papiDistance;
-    for (let i = 0; i < 4; i++) this.papi.push(this.add(papiX, 0.9, RUNWAY.papiOffset + i * 9, 'white', 2.4, 'papi'));
+    for (let i = 0; i < 4; i++) this.papi.push(this.add(papiX, 0.9, RUNWAY.papiOffset + i * 9, 'white', 3.4, 'papi'));
     this.papiAngles = [3.5, 3.1667, 2.8333, 2.5]; // nearest the runway first
     // ---- taxiway: blue edge lights along the parallel taxiway (z = 120..150) and connectors, green centreline
     for (let x = -halfL; x <= halfL; x += 50) { this.add(x, y, 118, 'blue', 0.7); this.add(x, y, 152, 'blue', 0.7); this.add(x + 25, y - 0.1, 135, 'green', 0.5); }
@@ -135,6 +137,8 @@ export class AirfieldLights {
     this.beacon = this.add(-250, 62, 330, 'white', 4.0, 'beacon');
     // ---- obstruction lights (red) on the tower and buildings
     this.add(-250, 66, 330, 'red', 1.5, 'obst');
+    // ---- town / road / farm lights (only lit at dusk and night)
+    for (const e of this.extraEntries) this.add(e.x, e.y, e.z, e.color, e.size, e.group || 'town');
 
     // build the geometry
     const n = this.entries.length;
@@ -190,6 +194,9 @@ export class AirfieldLights {
     const b = (this.time * 0.8) % 1;
     this.setColor(this.beacon, b < 0.5 ? COL.white : COL.green);
     this.brightAttr.setX(this.beacon, (b % 0.5) < 0.12 ? 1.3 : 0);
+    // town lights come on at dusk
+    const townOn = daylight < 0.6 ? 1 : 0;
+    if (this._townOn !== townOn) { this._townOn = townOn; for (const idx of this.groups.town || []) this.brightAttr.setX(idx, townOn); }
     // PAPI from the pilot's eye
     if (eye) {
       for (let i = 0; i < 4; i++) {
