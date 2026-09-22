@@ -111,7 +111,7 @@ export class UI {
     const flapMoving = Math.abs(st.flapDeg - AC.flapDetents[st.flapIndex]) > 0.3;
     set('h-flap', flapMoving ? `${st.flapDeg.toFixed(0)}→${AC.flapDetents[st.flapIndex]}` : AC.flapDetents[st.flapIndex], flapMoving ? 'warn' : '');
     const gearFail = !!st.gearCollapsed;
-    set('h-gear', gearFail ? 'FAIL' : (st.gearDown ? 'DOWN' : (st.gearInTransit ? 'TRANSIT' : 'UP')), gearFail ? 'bad' : (st.gearDown ? 'good' : (st.gearInTransit ? 'warn' : (st.agl / FT < 1500 ? 'bad' : ''))));
+    set('h-gear', gearFail ? 'FAIL' : (st.gearDown ? 'DOWN' : (st.gearInTransit ? 'TRANSIT' : 'UP')), gearFail ? 'bad' : (st.gearDown ? 'good' : (st.gearInTransit ? 'warn' : (st.agl / FT < 1500 && st.vs < -1 ? 'bad' : ''))));   // gear up is only a warning when descending low (not in a go-around climb)
     set('h-sb', st.speedbrake > 0.05 ? (st.onGround ? 'UP' : 'FLT') : (st.speedbrakeArmed ? 'ARMED' : 'DOWN'), st.speedbrakeArmed || st.speedbrake > 0.05 ? 'good' : '');
     set('h-brk', st.brake > 0.05 ? `${Math.round(st.brake * 100)}%` : ['OFF', 'AB1', 'AB2', 'AB3', 'MAX'][st.autobrake], st.brake > 0.05 ? 'warn' : '');
     set('h-trim', `${st.trim >= 0 ? 'NU' : 'ND'} ${Math.abs(st.trim).toFixed(1)}`);
