@@ -201,7 +201,7 @@ were fixed the same way (root cause, not per-scenario) and replayed again.
 | Severe storm | B 78, false horizon in cloud | _re-run in progress_ | V10, V11 |
 | Night | crash (pilot chased the beam) | **Landed, B 81** | V12 |
 | Go-around | B 81, climb not captured | **Landed, B 81 after 1 go-around** | U4 |
-| Gear up | belly, 30/100 | _re-run in progress_ | P8, E1, P12 |
+| Gear up | belly, 30/100, stopped in 270 m at 1.5 g | **Belly landing, 15/100, 1 km slide** | P8, E1, P12 |
 | No flare | collapse graded "greaser" | _re-run in progress_ | E3, E5, G7 |
 | Long landing, no brakes | sideways excursion | **Overrun at 82 kts (as designed)** | P9, E4 |
 | Stall on final | no stick shaker | **Stall warnings, impact short, 0/100** | G5, E1 |
