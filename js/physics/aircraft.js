@@ -620,7 +620,7 @@ export class Aircraft {
       b.applyForce(fWorld, rel);
 
       if (g.onGround && !g.wasOnGround) this.onGearTouch(g, vLong, vLat);
-      if (g.surface === 'grass' && gsNow > 26 && !g.collapsed) {
+      if (g.surface === 'grass' && gsNow > AC.gear.grassCollapseKts * KTS && !g.collapsed) {
         this.collapseGear(g, 'Runway excursion at high speed — gear dug into soft ground');
       }
     }

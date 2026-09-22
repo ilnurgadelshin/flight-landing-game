@@ -17,6 +17,7 @@ export class InputManager {
     this.keys = new Set();
     this.opts = Object.assign({ invertPitch: false, mouseSensitivity: 1.0 }, opts);
     this.mouseEngaged = false;
+    this.tapped = new Set();
     this.mouse = { x: 0, y: 0 };          // -1..1 relative to the canvas centre
     this.look = { yaw: 0, pitch: 0, down: false };
     this.rightDrag = null;
@@ -39,6 +40,7 @@ export class InputManager {
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'Tab', 'Backspace', 'PageUp', 'PageDown'].includes(k)) e.preventDefault();
       if (this.keys.has(k)) return;            // ignore auto-repeat
       this.keys.add(k);
+      this.tapped.add(k);                      // latched until the next update: a tap shorter than a frame still counts
       this.lastHumanInputT = this.time;
       switch (k) {
         case 'KeyG': this.emit('gear'); break;
@@ -100,8 +102,8 @@ export class InputManager {
    */
   update(dt, inp, st) {
     this.time += dt;
-    if (!this.enabled) return;
-    const K = (c) => this.keys.has(c);
+    if (!this.enabled) { this.tapped.clear(); return; }
+    const K = (c) => this.keys.has(c) || this.tapped.has(c);
     const inv = this.opts.invertPitch ? -1 : 1;
     // ---- primary flight controls: keyboard axes ramp in ~0.35 s and spring back in ~0.25 s
     // progressive: a tap gives a small, precise input; the axis only reaches full
@@ -150,6 +152,7 @@ export class InputManager {
     const trimRate = AC.controls.trimRateDegPerSec * dt * 1.6;
     if (K('BracketRight') || K('PageDown')) inp.trim = clamp(inp.trim - trimRate, -AC.controls.maxTrimDeg, AC.controls.maxTrimDeg);
     if (K('BracketLeft') || K('PageUp')) inp.trim = clamp(inp.trim + trimRate, -AC.controls.maxTrimDeg, AC.controls.maxTrimDeg);
+    this.tapped.clear();
     void st;
   }
 

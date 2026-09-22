@@ -40,6 +40,7 @@ export class Game {
   // ------------------------------------------------------------------ setup
   start(opts) {
     this.opts = opts;
+    this._yokeWasOn = false;   // a new flight never inherits the previous flight's yoke engagement
     this.mode = opts.mode;
     this.night = !!opts.night;
     this.input.opts.invertPitch = !!opts.invertPitch;
@@ -180,7 +181,8 @@ export class Game {
     const ac = this.sim.aircraft, st = ac.state, inp = ac.input;
     if (this.state === 'flying') {
       if (this.demoAp) { this.input.time += frameDt; if (this.input.anyFlightKeyHeld() || this.input.mouseEngaged) this.disengageDemo(); }
-      else this.input.update(frameDt, inp, st);
+      // the control axes ramp in simulated time, so a slowed simulation (tests) sees the same inputs as real time
+      else this.input.update(Math.min(frameDt, 1.0) * this.sim.timeScale, inp, st);
     }
     const steps = this.sim.update(frameDt);
     if (steps > 0 && !this.sim.paused) {

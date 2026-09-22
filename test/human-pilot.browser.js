@@ -95,8 +95,11 @@
         key('KeyR', o.useReversers && st.groundSpeed > 30 * 0.5144); key('KeyB', !o.noBrakes && (inp.autobrake === 0 || st.groundSpeed < 25));
         pitchIn = st.groundSpeed > 30 ? -0.1 : 0; rollIn = clamp(-st.roll * 3, -1, 1);
         // gentle rudder on the roll-out: short taps sized to the error, never a key held for a whole frame
-        const steer = (-st.lateralOffset * 0.025 - drift * 0.10 - st.crabDeg * 0.2) * (st.groundSpeed > 40 ? 0.6 : 1);
-        if (Math.abs(steer) > 0.1 && !held.has('KeyD') && !held.has('KeyA')) tap(steer > 0 ? 'KeyD' : 'KeyA', clamp(Math.abs(steer) * 600, 100, 300));
+        let steer = (-st.lateralOffset * 0.025 - drift * 0.10 - st.crabDeg * 0.2) * (st.groundSpeed > 40 ? 0.6 : 1);
+        // at high speed a pilot leaves a small error alone; the rudder is very powerful there
+        if (st.groundSpeed > 80 * 0.5144 && Math.abs(st.crabDeg) < 1.5 && Math.abs(st.lateralOffset) < 5) steer = 0;
+        // tap length scales with the error and never drops below ~1.5 rendered frames
+        if (Math.abs(steer) > 0.1 && !held.has('KeyD') && !held.has('KeyA')) tap(steer > 0 ? 'KeyD' : 'KeyA', Math.max(clamp(Math.abs(steer) * 600, 100, 400), dt * 1500));
       } else if (P.phase === 'goaround') {
         P.gaT += dt;
         key('KeyW', false); key('KeyS', false);

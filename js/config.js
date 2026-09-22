@@ -112,6 +112,7 @@ export const AIRCRAFT = {
     bottomOutK: 2.0e7,
     // vertical touchdown speeds (m/s, positive down)
     firmSink: 1.5,      // ~300 fpm  -> firm
+    grassCollapseKts: 70, // leaving the pavement faster than this digs the gear into soft ground
     hardSink: 3.05,     // ~600 fpm  -> hard landing (structural inspection)
     collapseSink: 4.6,  // ~900 fpm  -> gear collapse
     maxCrabDeg: 11,     // gear side-load limit
