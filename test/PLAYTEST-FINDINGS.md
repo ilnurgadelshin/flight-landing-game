@@ -144,4 +144,70 @@ that was made; round 2 replays the same runs on the fixed build.
 
 ## Round 2 (replay on the fixed build)
 
-_Filled in after the replay._
+Every scenario was replayed with the same harness on the fixed build. The
+replay confirmed the round-1 fixes and turned up nine further issues, which
+were fixed the same way (root cause, not per-scenario) and replayed again.
+
+### Issues found in round 2 and fixed
+
+- **G6 Gameplay.** The "yoke was engaged" flag survived from one flight to the
+  next, so leaving the Flight School of a new flight re-engaged the mouse yoke with
+  the mouse over the school's button and banked the aircraft 21° hands-off. *Fix:*
+  a new flight starts with a fresh yoke state.
+- **I2 Input.** A key pressed and released between two frames was never seen, so
+  short rudder or trim taps were lost at low frame rates. *Fix:* every key-down is
+  latched until the next frame. The control axes also ramp in simulated time, so a
+  slowed simulation sees the same inputs as real time.
+- **V11 / V2 Visual (root cause).** Round 1's fix did not remove the false horizon
+  inside the storm cloud. Hiding one scene object at a time showed the terrain
+  rendering (177,182,185) where the fog colour renders (111,115,120): Three.js
+  passes the fog colour in output (sRGB) space and its built-in materials mix it
+  after tone mapping, but the custom terrain shader mixed it before, so it was
+  encoded twice. The same fault caused the bright haze band at the horizon in
+  clear weather. *Fix:* the terrain and sky shaders mix the fog last, in output
+  space; inside the cloud the sky now measures (109,115,121) and the ground
+  (110,117,122).
+- **P12 Physics.** A gear-up landing stopped from 127 kts in 270 m at 1.5 g. The
+  physics engine limits the friction of every contact point independently of its
+  load, so several touching hull boxes multiplied it. *Fix:* the engine only keeps
+  the hull out of the ground; sliding friction is applied explicitly from the load
+  the hull carries (μ 0.35 on the runway, 0.5 on grass). The slide is now 780 m in
+  20 s at up to 0.45 g.
+- **G7 Systems.** A landing made with thrust still set never got its ground
+  spoilers, because the auto speedbrake was only checked at the moment of
+  touchdown. *Fix:* checked on every ground step like the 737: armed with the
+  levers at idle, or reverse selected.
+- **E5 Evaluation.** The debrief built its touchdown record from the aircraft's event
+  queue, which the game drains every frame, so in the browser it fell back to the
+  current sink rate (the earlier no-flare E2E failure). *Fix:* the landing contacts
+  are kept in their own list; the hardest contact of a bounced arrival is reported.
+- **P11 Physics.** Leaving the pavement above 50 kts always collapsed the gear.
+  *Fix:* 70 kts.
+- **U4 UI.** The HUD showed GEAR UP in red during a go-around climb. *Fix:* red only
+  when descending low.
+- **Ground handling check.** A crosswind roll-out that turned *away* from the wind
+  was traced to the test pilot (a decrab rudder key never released). A new physics
+  test confirms that, hands off, the aircraft weathervanes into the wind and that
+  proportional pedal inputs hold the heading within 1.2°.
+
+### Round-2 results by scenario
+
+| Scenario | Round 1 | Round 2 | Confirmed fixed |
+| --- | --- | --- | --- |
+| Clear, standard | crash (8 km short), crash (nose-first), then B | **Landed, B 81** | G1, P1, P4, P6 |
+| Flight School | B 80, false "speed low" hint | **Landed, B 81** | T1, T2, G6 |
+| Strong tailwind | B 88, IAS 13 kts at a standstill | **Landed, B 81** | I1, G4, U3 |
+| Heavy crosswind | D 55 (hard landing) | _re-run in progress_ | V9, P9 |
+| Severe storm | B 78, false horizon in cloud | _re-run in progress_ | V10, V11 |
+| Night | crash (pilot chased the beam) | **Landed, B 81** | V12 |
+| Go-around | B 81, climb not captured | **Landed, B 81 after 1 go-around** | U4 |
+| Gear up | belly, 30/100 | _re-run in progress_ | P8, E1, P12 |
+| No flare | collapse graded "greaser" | _re-run in progress_ | E3, E5, G7 |
+| Long landing, no brakes | sideways excursion | **Overrun at 82 kts (as designed)** | P9, E4 |
+| Stall on final | no stick shaker | **Stall warnings, impact short, 0/100** | G5, E1 |
+| Full approach, 26 nm | timed out, 187 kts at start | **Landed, B 81** | P10 |
+
+The round-2 touchdowns cluster at 460–600 fpm because the test pilot starts its
+flare late; the autoland tests and the mouse-yoke landing test flare earlier and
+land softly (grade B, 83–89), so this is a limit of the scripted pilot, not of
+the aircraft.
