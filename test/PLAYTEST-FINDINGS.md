@@ -197,7 +197,7 @@ were fixed the same way (root cause, not per-scenario) and replayed again.
 | Clear, standard | crash (8 km short), crash (nose-first), then B | **Landed, B 81** | G1, P1, P4, P6 |
 | Flight School | B 80, false "speed low" hint | **Landed, B 81** | T1, T2, G6 |
 | Strong tailwind | B 88, IAS 13 kts at a standstill | **Landed, B 81** | I1, G4, U3 |
-| Heavy crosswind | D 55 (hard landing) | _re-run in progress_ | V9, P9 |
+| Heavy crosswind | D 55 (hard landing), started in a cloud void | **Landed and stopped on the runway, D 55 (firm arrival)** | V9, P9 |
 | Severe storm | B 78, false horizon in cloud | _re-run in progress_ | V10, V11 |
 | Night | crash (pilot chased the beam) | **Landed, B 81** | V12 |
 | Go-around | B 81, climb not captured | **Landed, B 81 after 1 go-around** | U4 |
