@@ -474,6 +474,7 @@ export class Aircraft {
     // --- landing gear + tyres
     this.stepGear(dt);
     this.hullFriction(dt);
+    this.autoSpeedbrake();
 
     // --- integrate
     this.hullContacts.clear();
@@ -666,6 +667,23 @@ export class Aircraft {
     }
   }
 
+  /**
+   * 737 auto speedbrake: with the lever ARMED the spoilers deploy once the main gear is on the
+   * ground (air/ground logic, so not on a belly) and the thrust levers are at idle — or, armed or
+   * not, as soon as reverse thrust is selected on the ground. Checked every step, so closing the
+   * throttles after touchdown still deploys them.
+   */
+  autoSpeedbrake() {
+    const inp = this.input;
+    if (inp.speedbrake >= 1 || !this.touchdown || this.airborne) return;
+    const mainsDown = this.gearPos > 0.98 && (this.gear.left.onGround || this.gear.right.onGround);
+    if (!mainsDown) return;
+    if ((inp.speedbrakeArmed && inp.throttle < 0.1) || inp.reverse) {
+      inp.speedbrake = 1; inp.speedbrakeArmed = false;
+      this.events.push({ t: this.time, type: 'spoilers', auto: true });
+    }
+  }
+
   /** Coulomb sliding friction for the airframe on the ground (belly, nacelles, wing tips). */
   hullFriction(dt) {
     if (!(this._hullTouching || this.hullContacts.size > 0)) return;
@@ -760,11 +778,7 @@ export class Aircraft {
       hull: this.hullContacts.size > 0 || this.gearPos < 0.98,
     };
     this.events.push({ t: this.time, type: 'touchdown', ...this.touchdown });
-    // auto speedbrakes need the air/ground logic: main gear on the ground (a belly landing does not trigger them)
-    if (this.input.speedbrakeArmed && this.input.throttle < 0.1 && this.gearPos > 0.98 && (this.gear.left.onGround || this.gear.right.onGround)) {
-      this.input.speedbrake = 1; this.input.speedbrakeArmed = false;
-      this.events.push({ t: this.time, type: 'spoilers', auto: true });
-    }
+    this.autoSpeedbrake();
     this._bounces = 0;
   }
 
