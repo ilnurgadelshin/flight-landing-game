@@ -83,7 +83,8 @@ export function evaluateLanding(ac, ctx = {}) {
   const lat = td.lateralOffset;
   let latPts, latNote;
   const alat = Math.abs(lat);
-  if (d < 0 || d > RUNWAY.length) { latPts = 0; latNote = 'Not on the runway.'; }
+  // judged on where the wheels actually touched: the paved pad before the threshold still has a centreline
+  if (td.onRunway === false || d < -RUNWAY.padLength || d > RUNWAY.length) { latPts = 0; latNote = 'Not on the runway.'; }
   else if (alat <= 4) { latPts = 15; latNote = 'On the centreline.'; }
   else if (alat <= 10) { latPts = 12; latNote = 'Slightly off centre.'; }
   else if (alat <= 16) { latPts = 6; latNote = 'Well off the centreline.'; }

@@ -166,6 +166,7 @@ export const RUNWAY = {
   length: 3000,
   width: 45,
   elevation: 0,
+  padLength: 60,        // paved blast pad beyond each end (part of the runway surface)
   // centre of the runway is at the world origin; threshold of 27 is at +X
   thresholdX: 1500,
   // touchdown zone (from threshold) for a "good" landing

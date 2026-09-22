@@ -145,7 +145,7 @@ that was made; round 2 replays the same runs on the fixed build.
 ## Round 2 (replay on the fixed build)
 
 Every scenario was replayed with the same harness on the fixed build. The
-replay confirmed the round-1 fixes and turned up nine further issues, which
+replay confirmed the round-1 fixes and turned up ten further issues, which
 were fixed the same way (root cause, not per-scenario) and replayed again.
 
 ### Issues found in round 2 and fixed
@@ -185,6 +185,9 @@ were fixed the same way (root cause, not per-scenario) and replayed again.
   *Fix:* 70 kts.
 - **U4 UI.** The HUD showed GEAR UP in red during a go-around climb. *Fix:* red only
   when descending low.
+- **E6 Evaluation.** A touchdown on the paved blast pad just before the threshold was
+  noted "Centreline: not on the runway". *Fix:* the note follows the surface the wheels
+  actually touched (the blast-pad length is now a runway parameter).
 - **Ground handling check.** A crosswind roll-out that turned *away* from the wind
   was traced to the test pilot (a decrab rudder key never released). A new physics
   test confirms that, hands off, the aircraft weathervanes into the wind and that
@@ -198,11 +201,11 @@ were fixed the same way (root cause, not per-scenario) and replayed again.
 | Flight School | B 80, false "speed low" hint | **Landed, B 81** | T1, T2, G6 |
 | Strong tailwind | B 88, IAS 13 kts at a standstill | **Landed, B 81** | I1, G4, U3 |
 | Heavy crosswind | D 55 (hard landing), started in a cloud void | **Landed and stopped on the runway, D 55 (firm arrival)** | V9, P9 |
-| Severe storm | B 78, false horizon in cloud | _re-run in progress_ | V10, V11 |
+| Severe storm | B 78, false horizon in cloud | **Landed, D 49 (touched the blast pad in gusts); uniform murk in cloud, lights through the rain** | V10, V11 |
 | Night | crash (pilot chased the beam) | **Landed, B 81** | V12 |
 | Go-around | B 81, climb not captured | **Landed, B 81 after 1 go-around** | U4 |
 | Gear up | belly, 30/100, stopped in 270 m at 1.5 g | **Belly landing, 15/100, 1 km slide** | P8, E1, P12 |
-| No flare | collapse graded "greaser" | _re-run in progress_ | E3, E5, G7 |
+| No flare | collapse graded "greaser" | **Hard landing 658 fpm, D 55; spoilers deploy on reverse** | E3, E5, G7 |
 | Long landing, no brakes | sideways excursion | **Overrun at 82 kts (as designed)** | P9, E4 |
 | Stall on final | no stick shaker | **Stall warnings, impact short, 0/100** | G5, E1 |
 | Full approach, 26 nm | timed out, 187 kts at start | **Landed, B 81** | P10 |

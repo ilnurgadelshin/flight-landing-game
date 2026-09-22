@@ -43,7 +43,7 @@ export const TERRAIN = {
   // 'runway' | 'taxiway' | 'grass'
   surfaceAt(x, z) {
     const halfL = RUNWAY.length / 2, halfW = RUNWAY.width / 2;
-    if (Math.abs(x) <= halfL + 60 && Math.abs(z) <= halfW) return 'runway'; // include 60 m blast pads
+    if (Math.abs(x) <= halfL + RUNWAY.padLength && Math.abs(z) <= halfW) return 'runway'; // include the blast pads
     // parallel taxiway on the south side and apron
     if (Math.abs(x) <= halfL && z > 120 && z < 150) return 'taxiway';
     if (Math.abs(x) < 700 && z > 150 && z < 420) return 'taxiway';
