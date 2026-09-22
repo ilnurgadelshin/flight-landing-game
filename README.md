@@ -118,7 +118,8 @@ control geometry, a realistic stall, crosswind drift, successful autolands
 in every scenario and every starting point (flown by a test pilot that uses
 only the same input channels as a human), and the failure cases (gear up,
 no flare, pushed into the runway, no brakes, beside the runway, no decrab,
-too fast) plus a go-around and reposition.
+too fast) plus a go-around and reposition, and ground handling (a hands-off
+crosswind roll-out weathervanes into the wind; pedal inputs hold the heading).
 
 `test/visual-tour.mjs` captures the view at every stage of an approach in each
 scenario and time of day (10 nm, 4 nm with left/right/pedestal views, 1.5 nm,
@@ -132,7 +133,8 @@ at every phase of the approach — configuration, 1000 ft, 500 ft, minimums,
 callouts and events plus screenshots and display dumps into
 `test/output/playtest/<scenario>/` for review. It also flies the deliberate
 mistakes (gear up, no flare, no brakes, stall, go-around) with the same
-human-like pilot (`test/human-pilot.browser.js`).
+human-like pilot (`test/human-pilot.browser.js`). The findings of two full
+playtest rounds, and how each was fixed, are in `test/PLAYTEST-FINDINGS.md`.
 
 `test/e2e.mjs` loads the real page, drives the menu, presses every mapped key
 and moves the mouse yoke, walks through all Flight School steps, autolands in
