@@ -243,5 +243,25 @@ console.log('\n[10] Runway excursion at speed collapses the gear (soft ground)')
   check('steering off the runway at speed -> gear collapse / crash', sim.aircraft.damage.gearCollapsed || sim.aircraft.damage.destroyed, sim.aircraft.damage.notes.join('; ') || `surface ${sim.state.surface}, z=${fmt(sim.state.z, 0)}`);
 }
 
+console.log('\n[11] Ground handling: hands off in a crosswind the aircraft weathervanes into the wind; the rudder holds it straight');
+{
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const rollout = (yawFn) => {
+    const sim = new Simulation({ scenarioId: 'crosswind', startId: 'short', seed: 3 });
+    const ac = sim.aircraft;
+    ac.place({ x: RUNWAY.thresholdX - 400, y: 3.35, z: 0, headingDeg: 270, iasKts: 130, flapIndex: 4, gearDown: true, throttle: 0, onGround: true });
+    ac.body.velocity.set(-130 * KTS, 0, 0);
+    ac.input.speedbrake = 1; ac.speedbrakePos = 1;
+    let maxDev = 0;
+    for (let i = 0; i < 120 * 5; i++) { ac.input.yaw = yawFn(sim.state); sim.stepOnce(); if (i > 120) maxDev = Math.max(maxDev, Math.abs(sim.state.heading / DEG - 270)); }
+    return { hdg: sim.state.heading / DEG, xw: sim.state.crosswind, maxDev };
+  };
+  const free = rollout(() => 0);
+  check('hands off, the nose turns into a crosswind from the right (weathervane)', free.hdg > 271 && free.xw > 5, `heading ${fmt(free.hdg)}°, crosswind ${fmt(free.xw, 0)} kt`);
+  // a pilot holding the heading with the pedals (proportional rudder, as a person would)
+  const held = rollout((st) => clamp(-(st.heading / DEG - 270) * 0.15 - (st.r / DEG) * 0.1, -1, 1));
+  check('pedal inputs keep the roll-out within 2° of the runway heading', held.maxDev < 2, `max heading deviation ${fmt(held.maxDev, 2)}°`);
+}
+
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failed) { console.log('Failed: ' + results.join(' | ')); process.exit(1); }

@@ -12,7 +12,13 @@
       if (on && !held.has(code)) { held.add(code); window.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true })); }
       if (!on && held.has(code)) { held.delete(code); window.dispatchEvent(new KeyboardEvent('keyup', { code, bubbles: true })); }
     };
-    const tap = (code, ms = 60) => { window.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true })); setTimeout(() => window.dispatchEvent(new KeyboardEvent('keyup', { code, bubbles: true })), ms); };
+    const tapping = new Set();
+    const tap = (code, ms = 60) => {
+      if (held.has(code) || tapping.has(code)) return;
+      tapping.add(code);
+      window.dispatchEvent(new KeyboardEvent('keydown', { code, bubbles: true }));
+      setTimeout(() => { tapping.delete(code); window.dispatchEvent(new KeyboardEvent('keyup', { code, bubbles: true })); }, ms);
+    };
     const mouse = (rollIn, pitchIn) => { const x = W() / 2 + rollIn * W() / 2, y = H() / 2 - pitchIn * H() / 2; window.dispatchEvent(new MouseEvent('mousemove', { clientX: x, clientY: y, bubbles: true })); };
     const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
     const DEG = Math.PI / 180, NM = 1852;
@@ -89,7 +95,8 @@
         const bankCmd = o.keepCrab ? 0 : clamp((st.crosswind * 0.24 - st.lateralOffset * 0.4 - drift * 1.4) * DEG, -5 * DEG, 5 * DEG);
         rollIn = clamp((bankCmd - st.roll) * 2.5 - st.p * 1.2, -1, 1);
         if (!o.keepCrab) { key('KeyD', st.crabDeg < -2); key('KeyA', st.crabDeg > 2); }
-        if (st.onGround && st.mainsOnGround) { P.phase = 'rollout'; note('touchdown'); }
+        // the decrab rudder is let go at touchdown; the roll-out is steered with taps
+        if (st.onGround && st.mainsOnGround) { P.phase = 'rollout'; key('KeyA', false); key('KeyD', false); note('touchdown'); }
       } else if (P.phase === 'rollout') {
         key('KeyS', true); key('KeyW', false);
         key('KeyR', o.useReversers && st.groundSpeed > 30 * 0.5144); key('KeyB', !o.noBrakes && (inp.autobrake === 0 || st.groundSpeed < 25));
@@ -99,7 +106,7 @@
         // at high speed a pilot leaves a small error alone; the rudder is very powerful there
         if (st.groundSpeed > 80 * 0.5144 && Math.abs(st.crabDeg) < 1.5 && Math.abs(st.lateralOffset) < 5) steer = 0;
         // tap length scales with the error and never drops below ~1.5 rendered frames
-        if (Math.abs(steer) > 0.1 && !held.has('KeyD') && !held.has('KeyA')) tap(steer > 0 ? 'KeyD' : 'KeyA', Math.max(clamp(Math.abs(steer) * 600, 100, 400), dt * 1500));
+        if (Math.abs(steer) > 0.1 && !tapping.has('KeyD') && !tapping.has('KeyA')) tap(steer > 0 ? 'KeyD' : 'KeyA', Math.max(clamp(Math.abs(steer) * 600, 100, 400), dt * 1500));
       } else if (P.phase === 'goaround') {
         P.gaT += dt;
         key('KeyW', false); key('KeyS', false);
