@@ -131,6 +131,9 @@ export const AIRCRAFT = {
   // Collision hull (body frame) used for belly / nacelle / tail / wing strikes.
   // The fuselage tapers aft so a tail strike happens at ~10° pitch with the
   // struts compressed, nacelle strike at ~7° bank, wing tip at ~10° bank.
+  // sliding friction of the airframe on the ground (belly / nacelles scraping), applied from the
+  // load the hull actually carries, not per contact point
+  hullSlideMu: { runway: 0.35, grass: 0.5 },
   hull: {
     fuselage: { half: [1.9, 1.9, 11.5], pos: [0, 0, -2.9] },
     nose:     { half: [1.2, 1.3, 2.6], pos: [0, -0.3, -17.0] },

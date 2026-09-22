@@ -52,8 +52,11 @@ export class Aircraft {
 
     const groundMat = new CANNON.Material('ground');
     const hullMat = new CANNON.Material('hull');
+    // the engine only keeps the hull out of the ground; its friction would add a fixed limit per
+    // contact point (so four touching boxes stopped the aircraft at >1 g), so sliding friction is
+    // applied explicitly from the load the hull carries (see hullFriction)
     world.addContactMaterial(new CANNON.ContactMaterial(groundMat, hullMat, {
-      friction: 0.3, restitution: 0.0, contactEquationStiffness: 1.5e7, contactEquationRelaxation: 4,
+      friction: 0.0, restitution: 0.0, contactEquationStiffness: 1.5e7, contactEquationRelaxation: 4,
     }));
 
     const ground = new CANNON.Body({ mass: 0, material: groundMat, shape: new CANNON.Plane() });
@@ -451,6 +454,7 @@ export class Aircraft {
       );
       const fWorld = q.vmult(fBody, _v2);
       b.applyForce(fWorld, CANNON.Vec3.ZERO);
+      this._aeroFy = fWorld.y;
       // moments (aero convention -> cannon local axes: pitch about +X, yaw about -Y, roll about -Z)
       const Lm = qbar * S * bSpan * Cl;
       const Mm = qbar * S * c * Cm + totalThrust * (-E.thrustArmY);
@@ -469,6 +473,7 @@ export class Aircraft {
 
     // --- landing gear + tyres
     this.stepGear(dt);
+    this.hullFriction(dt);
 
     // --- integrate
     this.hullContacts.clear();
@@ -659,6 +664,26 @@ export class Aircraft {
         else this.events.push({ t: this.time, type: 'scrub', text: `${g.name} tyres scrubbed at ${crabDeg.toFixed(0)}° of drift` });
       }
     }
+  }
+
+  /** Coulomb sliding friction for the airframe on the ground (belly, nacelles, wing tips). */
+  hullFriction(dt) {
+    if (!(this._hullTouching || this.hullContacts.size > 0)) return;
+    const b = this.body;
+    let gearLoad = 0;
+    for (const g of Object.values(this.gear)) gearLoad += g.load || 0;
+    // the hull carries whatever the lift and the gear do not
+    const N = Math.max(0, AC.mass * G - (this._aeroFy || 0) - gearLoad);
+    if (N <= 0) return;
+    const surface = this.terrain.surfaceAt(b.position.x, b.position.z);
+    const mu = surface === 'grass' ? AC.hullSlideMu.grass : AC.hullSlideMu.runway;
+    const vx = b.velocity.x, vz = b.velocity.z, v = Math.hypot(vx, vz);
+    if (v < 1e-3) return;
+    // never more than stops the aircraft in this step (static friction at rest)
+    const F = Math.min(mu * N, AC.mass * v / dt);
+    // applied at the belly line so the scraping also pitches the nose down and damps yaw
+    const rel = b.quaternion.vmult(_v4.set(0, -1.6, -2.0), _v4);
+    b.applyForce(_v3.set(-vx / v * F, 0, -vz / v * F), rel);
   }
 
   collapseGear(g, reason) {
