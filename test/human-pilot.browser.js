@@ -101,12 +101,13 @@
         key('KeyS', true); key('KeyW', false);
         key('KeyR', o.useReversers && st.groundSpeed > 30 * 0.5144); key('KeyB', !o.noBrakes && (inp.autobrake === 0 || st.groundSpeed < 25));
         pitchIn = st.groundSpeed > 30 ? -0.1 : 0; rollIn = clamp(-st.roll * 3, -1, 1);
-        // gentle rudder on the roll-out: short taps sized to the error, never a key held for a whole frame
-        let steer = (-st.lateralOffset * 0.025 - drift * 0.10 - st.crabDeg * 0.2) * (st.groundSpeed > 40 ? 0.6 : 1);
-        // at high speed a pilot leaves a small error alone; the rudder is very powerful there
-        if (st.groundSpeed > 80 * 0.5144 && Math.abs(st.crabDeg) < 1.5 && Math.abs(st.lateralOffset) < 5) steer = 0;
-        // tap length scales with the error and never drops below ~1.5 rendered frames
-        if (Math.abs(steer) > 0.1 && !tapping.has('KeyD') && !tapping.has('KeyA')) tap(steer > 0 ? 'KeyD' : 'KeyA', Math.max(clamp(Math.abs(steer) * 600, 100, 400), dt * 1500));
+        // roll-out: decide the pedal position wanted (heading error, yaw rate, lateral offset) and
+        // hold or release A / D to move the keyboard rudder axis toward it, as a keyboard player does
+        const rDeg = st.r / DEG;
+        const want = clamp(-st.crabDeg * 0.15 - rDeg * 0.12 - st.lateralOffset * 0.015 - drift * 0.05, -1, 1);
+        const have = inp.yaw || 0;
+        key('KeyD', want > have + 0.06);
+        key('KeyA', want < have - 0.06);
       } else if (P.phase === 'goaround') {
         P.gaT += dt;
         key('KeyW', false); key('KeyS', false);
