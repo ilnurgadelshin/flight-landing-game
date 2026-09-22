@@ -50,10 +50,10 @@ const SKY_FRAG = /* glsl */`
     // the sky blends into the fog colour near the horizon (haze) and completely inside cloud
     float fb = clamp(uFogMix + (1.0 - uFogMix) * exp(-max(h, 0.0) * uHorizonFog), 0.0, 1.0);
     fb = max(fb, smoothstep(0.0, -0.04, h));
-    col = mix(col, uFogColor, fb);
     gl_FragColor = vec4(col, 1.0);
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
+    gl_FragColor.rgb = mix(gl_FragColor.rgb, uFogColor, fb);   // uFogColor is in output (sRGB) space
   }
 `;
 
@@ -101,9 +101,11 @@ const GROUND_FRAG = /* glsl */`
     float diff = max(dot(n, uSunDir), 0.0);
     vec3 col = base * (uAmbient + uSunColor * diff);
     gl_FragColor = vec4(col, 1.0);
-    #include <fog_fragment>
+    // same order as three.js' built-in materials: the fog colour is an output-space colour,
+    // mixed in after tone mapping, so distant terrain, buildings and the sky all fade to one colour
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
+    #include <fog_fragment>
   }
 `;
 
@@ -557,14 +559,14 @@ export class World {
     const murk = vis < 1500 ? 1 : (vis < 5000 ? (5000 - vis) / 3500 : 0);
     this.skyMat.uniforms.uFogMix.value = Math.max(inCloudF, murk);
     this.skyMat.uniforms.uHorizonFog.value = Math.max(0.8, Math.min(25, this.visibility / 1500));
-    this.skyMat.uniforms.uFogColor.value.copy(this.scene.fog.color);
     // fog colour brightens slightly with a lightning flash
     this.scene.fog.color.copy(this.baseFogColor);
     if (this.lightningFlash > 0) {
       this.scene.fog.color.lerp(new THREE.Color(0xffffff), Math.min(1, this.lightningFlash * 0.7));
       this.lightningFlash = Math.max(0, this.lightningFlash - dt * 6);
     }
-    this.skyMat.uniforms.uFogColor.value.copy(this.scene.fog.color);
+    // the sky mixes its fog after tone mapping, in output space, like every other material
+    this.skyMat.uniforms.uFogColor.value.copy(this.scene.fog.color).convertLinearToSRGB();
     if (this.lightningEnabled) {
       this.lightningTimer -= dt;
       if (this.lightningTimer <= 0) { this.lightningTimer = 6 + this.rng() * 14; this.lightningFlash = 1; this.onLightning && this.onLightning(); }
