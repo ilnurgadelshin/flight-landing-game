@@ -2,7 +2,7 @@
 // pause and results screens.
 import { SCENARIOS, APPROACH_STARTS, AIRCRAFT as AC, FT, KTS, DEG } from './config.js';
 import { fmtOutcome } from './evaluate.js';
-import { controlsHtml, controlsText, getScheme, onSchemeChange, tiltWording } from './controls.js';
+import { controlsHtml, controlsText, getScheme, onSchemeChange, tiltWording, padWording } from './controls.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -56,7 +56,14 @@ export const SCHOOL_STEPS = [
 
 /** A school page as the active control scheme shows it. */
 export function schoolPage(s) {
-  const t = getScheme() === 'touch' ? (s.touch || {}) : {};
+  const touch = getScheme() === 'touch' ? (s.touch || {}) : {};
+  if (padWording()) {
+    // a controller in use: the standard pages in the controller's words; on a phone the head-up
+    // display pages still point at the head-up display (the touch controls are hidden)
+    const hud = touch.anchor && /^#(hgs|g-)/.test(touch.anchor);
+    return { title: (hud && touch.title) || s.title, anchor: hud ? touch.anchor : s.anchor, look: hud ? 0 : (s.look || 0), body: controlsHtml((hud && touch.body) || s.body) };
+  }
+  const t = touch;
   const body = (tiltWording() && t.tiltBody) || t.body || s.body;
   return { title: (tiltWording() && t.tiltTitle) || t.title || s.title, anchor: t.anchor || s.anchor, look: t.anchor ? (t.look || 0) : (s.look || 0), body: controlsHtml(body) };
 }
@@ -163,7 +170,7 @@ export class UI {
     set('h-trim', `${st.trim >= 0 ? 'NU' : 'ND'} ${Math.abs(st.trim).toFixed(1)}`);
     set('h-wind', `${String(Math.round(st.windDirDeg)).padStart(3, '0')}°/${Math.round(st.windKts)}kt`, '');
     set('h-xwind', `${Math.round(Math.abs(st.crosswind))}${st.crosswind > 0.5 ? 'R' : (st.crosswind < -0.5 ? 'L' : '')}`, Math.abs(st.crosswind) > 20 ? 'warn' : '');
-    set('h-mouse', extra.mouse ? 'YOKE ON (Esc)' : 'click to engage', extra.mouse ? 'good' : '');
+    set('h-mouse', extra.pad ? 'CONTROLLER' : (extra.mouse ? 'YOKE ON (Esc)' : 'click to engage'), extra.pad || extra.mouse ? 'good' : '');
     this.el.stall.classList.toggle('hidden', !st.stallWarning);
     this.el.config.classList.toggle('hidden', !extra.configWarning);
     if (extra.configWarning) this.el.config.textContent = extra.configWarning;

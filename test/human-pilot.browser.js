@@ -2,7 +2,9 @@
 // person would: mouse moves for the yoke, key presses for everything else, or
 // (input: 'touch') touches on the on-screen stick, thrust lever, rudder and buttons, or
 // (input: 'tilt') the same touches but pitch and roll by tilting the phone (the simulated
-// sensor in test/tilt-pose.browser.js must be loaded and running).
+// sensor in test/tilt-pose.browser.js must be loaded and running), or
+// (input: 'gamepad') a game controller: stick, triggers and buttons of the simulated controller
+// in test/gamepad-stub.browser.js (connected and in use).
 // It runs once per rendered frame (like a human reacting to what they see).
 // Used by the browser tests and the playtest harness.
 //   window.installHumanPilot({ input, noGear, noFlare, noBrakes, stallOnFinal, landLong, goAroundAt, targetOffset, ... })
@@ -93,7 +95,48 @@
       },
       releaseAll: () => { touchIO.rudderTo(0); touchIO.brake(false); window.tiltFeed.set({ pull: 0, bank: 0 }); },
     });
-    const IO = o.input === 'tilt' ? tiltIO : o.input === 'touch' ? touchIO : keyIO;
+    // Controller: the same decisions on the simulated controller. Buttons are pressed one at a time and
+    // held until the game has read them (2 frames); the stick is pushed a little further to cover its
+    // dead zone, as a player's thumb does
+    const padIO = (() => {
+      const F = window.fakePad, DZ = (window.__sim && window.__sim.padDeadZone) || 0.12, TDZ = 0.05;
+      const MAP = { KeyF: 'RB', KeyV: 'LB', KeyG: 'Y', KeyX: 'Right', KeyN: 'Left', Space: 'Right', KeyT: 'View', Backspace: 'View' };
+      const queue = [];
+      let cur = null;
+      const frames = () => window.__sim.stats.frames;
+      const trig = (v) => (v <= 0 ? 0 : TDZ + Math.min(1, v) * (1 - TDZ));
+      const io = {
+        pump: () => {
+          const now = performance.now();
+          if (cur && cur.releasedAt === null && frames() - cur.f0 >= (cur.hold > 0 ? 4 : 2) && now - cur.t0 >= cur.hold) { F.release(cur.btn); cur.releasedAt = frames(); }
+          else if (cur && cur.releasedAt !== null && frames() - cur.releasedAt >= 2) cur = null;
+          if (!cur && queue.length) { const q = queue.shift(); cur = { btn: q.btn, hold: q.hold, f0: frames(), t0: now, releasedAt: null }; F.press(q.btn); }
+        },
+        tap: (code, hold) => { if (MAP[code]) queue.push({ btn: MAP[code], hold: hold !== undefined ? hold : (code === 'Space' ? 1500 : 0) }); },
+        stick: (rollIn, pitchIn) => {
+          let x = clamp(rollIn, -1, 1), y = -clamp(pitchIn, -1, 1);
+          const m = Math.hypot(x, y);
+          if (m > 1e-6) { const k = (DZ + Math.min(1, m) * (1 - DZ)) / m; x *= k; y *= k; } else { x = 0; y = 0; }
+          F.stick('left', x, y);
+        },
+        thrust: (des, inp) => { const up = inp.throttle < des - 0.02, down = inp.throttle > des + 0.02; F.set('A', up ? 1 : 0); F.set('B', down ? 1 : 0); },
+        idle: (inp) => { if (!(cur && cur.btn === 'A')) F.set('A', 0); F.set('B', inp.throttle > 0.005 ? 1 : 0); },   // a queued A (stowing the reversers) is left pressed
+        hands: () => { F.set('A', 0); F.set('B', 0); },
+        rudderTo: (v) => { F.set('LT', trig(-v)); F.set('RT', trig(v)); },
+        decrab: (st) => io.rudderTo(clamp(-st.crabDeg * 0.12, -0.8, 0.8)),
+        steer: (want) => io.rudderTo(want),
+        pedalsOff: () => io.rudderTo(0),
+        // reverse: keep B held at idle on the ground until it is selected; stow with a press of A
+        reverse: (on, inp) => {
+          if (on && !inp.reverse && window.__sim.state().onGround && inp.throttle <= 0.005) F.set('B', 1);
+          if (!on && inp.reverse && !queue.some((q) => q.btn === 'A') && !(cur && cur.btn === 'A')) queue.push({ btn: 'A', hold: 0 });
+        },
+        brake: (on) => F.set('X', on ? 1 : 0),
+        releaseAll: () => { F.set('A', 0); F.set('B', 0); F.set('X', 0); io.rudderTo(0); F.stick('left', 0, 0); },
+      };
+      return io;
+    })();
+    const IO = o.input === 'gamepad' ? padIO : o.input === 'tilt' ? tiltIO : o.input === 'touch' ? touchIO : keyIO;
     const DEG = Math.PI / 180, NM = 1852;
     const P = { phase: 'approach', prevLat: null, flareT: 0, flarePitch0: 0, flareVs0: -3.7, last: performance.now(), iVs: 0, iSpd: 0, did: {}, log: [], gaT: 0, stopped: false, trace: [] };
     window.__pilot = P;
@@ -116,6 +159,7 @@
     function tick() {
       const now = performance.now(); const dt = Math.min(0.25, (now - P.last) / 1000); P.last = now; P.dt = dt * (window.__sim.game.sim.timeScale || 1);
       const g = window.__sim.game; const st = window.__sim.state(); const inp = window.__sim.input();
+      if (IO.pump) IO.pump();
       if (g.state !== 'flying') { IO.releaseAll(); if (g.state === 'finished') { P.stopped = true; return; } requestAnimationFrame(tick); return; }
       // a person who sees "click to engage" on the HUD clicks the window again
       if (IO === keyIO && !window.__sim.inputManager.mouseEngaged) { const cv = document.querySelector('canvas'); cv.dispatchEvent(new MouseEvent('mousedown', { button: 0, clientX: W() / 2, clientY: H() / 2, bubbles: true })); cv.dispatchEvent(new MouseEvent('mouseup', { button: 0, clientX: W() / 2, clientY: H() / 2, bubbles: true })); note('yoke re-engaged'); }

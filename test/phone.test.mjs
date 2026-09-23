@@ -164,11 +164,18 @@ console.log('\n[T6] Vibration patterns');
   st.stallWarning = false; h.update(0.1, st);
   check('stall warning: a stick-shaker burst every 0.5 s, stopped when it ends', bursts === 3 && calls[calls.length - 1] === 0, `${bursts} bursts, last call ${JSON.stringify(calls[calls.length - 1])}`);
   calls.length = 0;
+  const rumbles = [];
+  h.pad = { rumble: (ms, strong, weak) => rumbles.push([ms, strong, weak]) };
+  h.touchdown(1.5, false); h.touchdown(4, true); h.crash();
+  check('a controller in use rumbles for the same events, harder for a hard landing and a crash', rumbles.length === 3 && rumbles[1][1] > rumbles[0][1] && rumbles[2][0] > rumbles[1][0], JSON.stringify(rumbles));
+  calls.length = 0; rumbles.length = 0;
   h.enabled = false; h.tick(); h.touchdown(1, false);
-  check('switched off: no vibration', calls.length === 0);
+  check('switched off: no vibration and no rumble', calls.length === 0 && rumbles.length === 0);
   delete globalThis.navigator;
   const none = new Haptics();
-  check('without the Vibration API (iPhone) it stays off and silent', !none.supported && !none.enabled);
+  let threw = false;
+  try { none.tick(); none.touchdown(2, true); none.update(0.1, { gearDown: true, onGround: false, stallWarning: true }); } catch (e) { threw = true; }
+  check('without the Vibration API (iPhone) it is silent and never fails', !none.supported && !threw);
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

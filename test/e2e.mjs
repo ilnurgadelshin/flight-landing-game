@@ -1,5 +1,5 @@
 // Browser end-to-end QA: plays the game in headless Chromium (SwiftShader).
-//   node test/e2e.mjs            (all)      node test/e2e.mjs quick   (skip the slow keyboard, touch and tilt landings)
+//   node test/e2e.mjs            (all)      node test/e2e.mjs quick   (skip the slow keyboard, touch, tilt and controller landings)
 import { chromium } from 'playwright';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -700,6 +700,189 @@ if (!quick && want('tiltland')) {
   const td = r.vib.filter((p) => (typeof p === 'number' && p >= 18 && p <= 60 && p !== 20 && p !== 25) || (Array.isArray(p) && p[0] === 70));
   check('the roll-out used the REV gate, and the touchdown was felt as a vibration', r.log.includes('reverse on') && r.log.includes('reverse off') && td.length > 0 && !r.stick, `touchdown vibration ${JSON.stringify(td[0])}`);
   await mp.screenshot({ path: path.join(out, 'e2e-phone-tilt-landing.png') });
+  await ctx.close();
+}
+
+// --------------------------------------------------------------------------- game controller
+// Browsers cannot emulate a controller: test/gamepad-stub.browser.js replaces navigator.getGamepads()
+// with a standard-layout controller that the test presses (held until the game has read it).
+async function padPage({ phone = false } = {}) {
+  const ctx = await browser.newContext(phone ? { viewport: { width: 852, height: 393 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true } : { viewport: { width: 1024, height: 576 } });
+  const pp = await ctx.newPage();
+  pp.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') consoleErrors.push(`[pad ${m.type()}] ${m.text()}`); });
+  pp.on('pageerror', (e) => consoleErrors.push(`[pad pageerror] ${e.message}`));
+  await page.setViewportSize({ width: 320, height: 180 });     // keep the long-lived desktop page cheap
+  await pp.goto(url + '/');
+  await pp.waitForFunction(() => window.__sim, null, { timeout: 180000 });
+  await pp.addScriptTag({ path: path.join(root, 'test', 'gamepad-stub.browser.js') });
+  const pf = async (n) => { await pp.evaluate((n) => new Promise((res) => { const f0 = window.__sim.stats.frames; const chk = () => (window.__sim.stats.frames - f0 >= n ? res() : requestAnimationFrame(chk)); chk(); }), n); };
+  const tapPad = (name, hold = 0) => pp.evaluate(([n, h]) => window.fakePad.tap(n, h), [name, hold]);
+  return { ctx, pp, pf, tapPad };
+}
+
+if (want('gamepad')) {
+  console.log('\n[E14] Game controller: standard layout, menus, wording, rumble, disconnect');
+  const { ctx, pp, pf, tapPad } = await padPage();
+  const PI = () => pp.evaluate(() => Object.assign({}, window.__sim.input()));
+  const PS = () => pp.evaluate(() => { const g = window.__sim.game; return { state: g.state, ga: g.ctx.gaMode, dist: window.__sim.state().distToThreshold, pad: document.body.classList.contains('pad'), look: Object.assign({}, window.__sim.inputManager.look) }; });
+  await pf(2);
+  check('no controller: nothing about controllers is shown', await pp.evaluate(() => !document.body.classList.contains('pad') && document.getElementById('pad-msg').textContent === ''));
+  await pp.evaluate(() => window.fakePad.connect()); await pf(2);
+  const msg = await pp.evaluate(() => document.getElementById('pad-msg').textContent);
+  check('a connected controller is announced in the menu with how to start', /Xbox controller connected.*Menu or A starts/.test(msg), msg);
+  await tapPad('Menu'); await pf(3);
+  let s = await PS();
+  const hud = await pp.evaluate(() => ({ cell: document.getElementById('h-mouse').textContent, hint: getComputedStyle(document.getElementById('pad-hint')).display }));
+  check('Menu starts the approach, and the controller is the device in use', s.state === 'flying' && s.pad && hud.cell === 'CONTROLLER', JSON.stringify(hud));
+  await pp.evaluate(() => window.fakePad.stick('left', 0, -0.8)); await pf(2);
+  let i = await PI();
+  check('left stick up = nose up (like the up arrow)', i.pitch > 0.3, `pitch ${fmt(i.pitch, 2)}`);
+  await pp.evaluate(() => { window.__sim.inputManager.opts.invertPitch = true; }); await pf(2);
+  i = await PI();
+  check('pilot-style pitch: pushing the stick forward = nose down', i.pitch < -0.3, `pitch ${fmt(i.pitch, 2)}`);
+  await pp.evaluate(() => { window.__sim.inputManager.opts.invertPitch = false; window.fakePad.stick('left', 0.8, 0); }); await pf(2);
+  i = await PI();
+  check('left stick right = roll right; released stick = centred', i.roll > 0.3 && Math.abs(i.pitch) < 0.02, `roll ${fmt(i.roll, 2)}`);
+  await pp.evaluate(() => { window.fakePad.stick('left', 0, 0); window.fakePad.set('RT', 0.8); }); await pf(2);
+  const yr = (await PI()).yaw;
+  await pp.evaluate(() => { window.fakePad.set('RT', 0); window.fakePad.set('LT', 0.8); }); await pf(2);
+  const yl = (await PI()).yaw;
+  await pp.evaluate(() => window.fakePad.set('LT', 0)); await pf(2);
+  check('RT / LT = right / left rudder, analog', yr > 0.5 && yl < -0.5 && Math.abs((await PI()).yaw) < 0.02, `${fmt(yr, 2)} / ${fmt(yl, 2)}`);
+  const t0 = (await PI()).throttle;
+  await pp.evaluate(() => window.fakePad.press('A')); await pf(4); await pp.evaluate(() => window.fakePad.release('A')); await pf(1);
+  const t1 = (await PI()).throttle;
+  await pp.evaluate(() => window.fakePad.press('B')); await pf(4); await pp.evaluate(() => window.fakePad.release('B')); await pf(1);
+  const t2 = (await PI()).throttle;
+  check('A held = more thrust, B held = less', t1 > t0 + 0.05 && t2 < t1 - 0.05, `${fmt(t0, 2)} → ${fmt(t1, 2)} → ${fmt(t2, 2)}`);
+  const c0 = await PI();
+  await tapPad('Y'); await tapPad('RB'); await tapPad('Left'); await tapPad('Right');
+  const c1 = await PI();
+  check('Y = gear, RB = flaps down, D-pad ← = autobrake, D-pad → = arm speedbrakes', c1.gearDown !== c0.gearDown && c1.flapIndex === c0.flapIndex + 1 && c1.autobrake === (c0.autobrake + 1) % 5 && c1.speedbrakeArmed, `gear ${c1.gearDown}, flaps ${c0.flapIndex}→${c1.flapIndex}, autobrake ${c1.autobrake}, armed ${c1.speedbrakeArmed}`);
+  await tapPad('LB'); await tapPad('Right', 1500);
+  const c2 = await PI();
+  check('LB = flaps up; D-pad → held = speedbrakes out', c2.flapIndex === c0.flapIndex && c2.speedbrake === 1 && !c2.speedbrakeArmed, `flaps ${c2.flapIndex}, speedbrake ${c2.speedbrake}`);
+  await tapPad('Right', 1500);
+  const trim0 = (await PI()).trim;
+  await pp.evaluate(() => { window.fakePad.press('Down'); window.fakePad.press('X'); }); await pf(3);
+  const c3 = await PI();
+  await pp.evaluate(() => { window.fakePad.release('Down'); window.fakePad.release('X'); }); await pf(1);
+  check('held again: speedbrakes in; D-pad ↓ = trim nose up; X = wheel brakes', c3.speedbrake === 0 && c3.trim > trim0 && c3.brake > 0.1, `speedbrake ${c3.speedbrake}, trim ${fmt(trim0, 2)}→${fmt(c3.trim, 2)}, brake ${fmt(c3.brake, 2)}`);
+  await pp.evaluate(() => window.fakePad.stick('right', -0.8, 0)); await pf(2);
+  const lookOn = (await PS()).look.yaw;
+  await pp.evaluate(() => window.fakePad.stick('right', 0, 0)); await pf(2);
+  await tapPad('R3');
+  s = await PS();
+  check('right stick looks around and lets go; pressing it shows the panel', lookOn > 0.5 && s.look.yaw === 0 && s.look.down === true, `look ${fmt(lookOn, 2)} → ${s.look.yaw}, panel ${s.look.down}`);
+  await tapPad('R3');
+  await pp.evaluate(() => { window.__rumble.length = 0; }); await tapPad('Y'); await tapPad('Y');   // gear up then down again
+  await pp.waitForFunction(() => window.__sim.state().gearDown, null, { timeout: 120000 }); await pf(2);
+  const rum = await pp.evaluate(() => window.__rumble.slice());
+  check('the gear locking down rumbles the controller; the Vibration option is offered', rum.some((r) => r.type === 'dual-rumble' && r.duration === 120) && await pp.evaluate(() => getComputedStyle(document.getElementById('opt-vib').parentElement).display !== 'none'), JSON.stringify(rum.slice(0, 2)));
+  await tapPad('View'); await pf(2);
+  s = await PS(); i = await PI();
+  check('View = TO/GA: full thrust and a go-around', s.ga && i.throttle === 1);
+  await pp.waitForFunction(() => window.__sim.game.ctx.gaTimer > 3.5, null, { timeout: 120000 });
+  await tapPad('View'); await pf(2);
+  s = await PS();
+  check('View again during the go-around = back on final', !s.ga && Math.abs(s.dist - 10 * 1852) < 0.25 * 1852, `${fmt(s.dist / 1852)} nm`);
+  await tapPad('Menu'); s = await PS();
+  const paused = s.state === 'paused';
+  await tapPad('A'); s = await PS();
+  check('Menu pauses, A resumes', paused && s.state === 'flying');
+  const beforeHold = (await PI()).throttle;
+  await tapPad('Menu'); await pp.evaluate(() => window.fakePad.press('A')); await pf(4);
+  const heldResume = await PI();
+  await pp.evaluate(() => window.fakePad.release('A')); await pf(2);
+  check('the A press that resumes does not also add thrust while it is held', (await PS()).state === 'flying' && Math.abs(heldResume.throttle - beforeHold) < 0.01, `${fmt(beforeHold, 2)} → ${fmt(heldResume.throttle, 2)}`);
+  await tapPad('Menu'); await tapPad('B'); await pf(2);
+  check('B in the pause menu goes back to the main menu', (await PS()).state === 'menu');
+
+  // Flight School in the controller's words
+  await pp.click('#mode-row .choice[data-mode="training"]');
+  check('using the mouse hands control back to the keyboard and mouse', !(await PS()).pad);
+  await tapPad('Menu'); await pf(3); await pp.waitForTimeout(400);
+  const total = parseInt((await pp.evaluate(() => document.getElementById('school-step').textContent)).split('/')[1], 10);
+  let padPages = 0, kbdPages = 0;
+  for (let k = 0; k < total; k++) {
+    const b = await pp.evaluate(() => document.getElementById('school-body').innerHTML);
+    if (b.includes('class="gp"')) padPages++;
+    if (b.includes('<kbd>') && !/<kbd>H<\/kbd>/.test(b)) kbdPages++;
+    if (k === 8) await pp.screenshot({ path: path.join(out, 'e2e-pad-school.png') });
+    if (k < total - 1) await tapPad('A');
+  }
+  check('Flight School names the controller\'s buttons, and A turns the pages', padPages >= 9 && kbdPages === 0, `${padPages} of ${total} pages with controller buttons, ${kbdPages} with keys`);
+  await tapPad('B');
+  const back = await pp.evaluate(() => document.getElementById('school-step').textContent);
+  check('B goes back a page', back.startsWith(`${total - 1} /`), back);
+  await tapPad('Menu'); await pf(3);
+  // the live hint depends on the moment; a hint that names controls shows how it is worded now
+  const HINT = 'Arm the speedbrakes ([[armSpeedbrake]]) and set autobrake 2 or 3 ([[autobrake]]).';
+  const instr = await pp.evaluate((h) => { window.__sim.ui.setInstructor(h); return document.getElementById('instructor').innerHTML; }, HINT);
+  check('Menu skips the school; instructor hints name controller buttons', (await PS()).state === 'flying' && instr.includes('class="gp"') && !instr.includes('<kbd>'), instr.replace(/<[^>]+>/g, ''));
+  await pp.keyboard.press('KeyF'); await pf(2);
+  const instr2 = await pp.evaluate((h) => { window.__sim.ui.setInstructor(h); return document.getElementById('instructor').innerHTML; }, HINT);
+  check('a key press switches the wording back to keys', !(await PS()).pad && instr2.includes('<kbd>X</kbd>') && !instr2.includes('class="gp"'), instr2.replace(/<[^>]+>/g, ''));
+
+  // other controller families, a joystick, and unplugging
+  await pp.evaluate(() => { window.fakePad.disconnect(); }); await pf(2);   // swapping controllers pauses the flight
+  await pp.evaluate(() => { window.fakePad.connect({ id: 'DualSense Wireless Controller (STANDARD GAMEPAD Vendor: 054c Product: 0ce6)' }); }); await pf(1);
+  await tapPad('A');                                                          // ✕ resumes
+  const psHint = await pp.evaluate(() => document.getElementById('pad-hint').textContent);
+  check('a PlayStation controller is worded with its own buttons (✕ ○ □ △, L1 R1, L2 R2)', /△/.test(psHint) && /L2 \/ R2/.test(psHint) && /R1/.test(psHint), psHint.slice(0, 90));
+  s = await PS();
+  const wasFlying = s.state === 'flying';
+  await pp.evaluate(() => window.fakePad.disconnect()); await pf(2);
+  const dc = await pp.evaluate(() => ({ state: window.__sim.game.state, msg: document.getElementById('mode-msg').textContent, pad: document.body.classList.contains('pad') }));
+  check('unplugging the controller mid-flight pauses and says so', wasFlying && dc.state === 'paused' && /CONTROLLER DISCONNECTED/.test(dc.msg) && !dc.pad, JSON.stringify(dc));
+  await pp.evaluate(() => { window.__sim.game.togglePause(); window.fakePad.connect({ id: 'Logitech Extreme 3D pro (Vendor: 046d Product: c215)', mapping: '', rumble: false }); window.fakePad.stick('left', -0.7, 0.7); }); await pf(3);
+  i = await PI();
+  check('a joystick with its own layout flies roll and pitch with its stick', i.roll < -0.3 && i.pitch < -0.3, `roll ${fmt(i.roll, 2)}, pitch ${fmt(i.pitch, 2)}`);
+  const perr = await pp.evaluate(() => window.__sim.errors);
+  check('no JavaScript errors in the controller session', perr.length === 0, perr.slice(0, 3).join(' | '));
+  await ctx.close();
+
+  // on a phone, a controller in use hides the touch controls; a touch brings them back
+  const P2 = await padPage({ phone: true });
+  await P2.pp.evaluate(() => window.fakePad.connect()); await P2.pf(2);
+  await P2.tapPad('Menu'); await P2.pf(3);
+  const hidden = await P2.pp.evaluate(() => getComputedStyle(document.getElementById('touch')).display === 'none' && getComputedStyle(document.getElementById('hgs')).display !== 'none');
+  await P2.pp.tap('#hgs', { force: true }).catch(() => {});
+  await P2.pp.touchscreen.tap(430, 60); await P2.pf(2);
+  const shown = await P2.pp.evaluate(() => getComputedStyle(document.getElementById('touch')).display !== 'none');
+  check('phone with a controller: touch controls hidden (head-up display kept); a touch brings them back', hidden && shown);
+  await P2.ctx.close();
+}
+
+// --------------------------------------------------------------------------- a landing flown with the controller
+if (!quick && want('padland')) {
+  console.log('\n[E15] Landing flown with a game controller (real time)');
+  const { ctx, pp, pf, tapPad } = await padPage();
+  await pp.setViewportSize({ width: 800, height: 450 });
+  await pp.evaluate(() => window.fakePad.connect());
+  await pp.evaluate(() => window.__sim.start({ scenarioId: 'clear', startId: 'short', mode: 'game', sound: false, seed: 5 }));
+  await pp.waitForTimeout(2500); await pf(3); await pp.waitForTimeout(1000);
+  const fps = await pp.evaluate(() => window.__sim.stats.fps);
+  const scale = Math.max(0.35, Math.min(1, fps / 10));
+  await pp.evaluate((sc) => window.__sim.setTimeScale(sc), scale);
+  console.log(`    render rate ${fmt(fps, 1)} fps -> simulation time scale ${fmt(scale, 2)}`);
+  await tapPad('X');   // a first press: the controller becomes the device in use (wheel brakes do nothing in the air)
+  check('the controller is the device in use', await pp.evaluate(() => window.__sim.inputManager.pad.active));
+  await pp.evaluate(() => { window.__rumble.length = 0; });
+  // the human-like pilot, on the controller: stick, A/B thrust, triggers, buttons, reverse by holding B
+  await pp.addScriptTag({ path: path.join(root, 'test', 'human-pilot.browser.js') });
+  await pp.evaluate(() => window.installHumanPilot({ input: 'gamepad' }));
+  let done = true;
+  try { await pp.waitForFunction(() => window.__sim.game.state === 'finished', null, { timeout: 600000 }); } catch (e) { done = false; console.log('    (timeout waiting for the landing to finish)'); }
+  await pp.evaluate(() => window.__sim.setTimeScale(1));
+  const r = await pp.evaluate(() => ({ result: window.__sim.result(), log: window.__sim.events().filter((e) => e.type === 'input').map((e) => e.text), mouse: window.__sim.inputManager.mouseEngaged, active: window.__sim.inputManager.pad.active, rumble: window.__rumble.slice(), trace: (window.__pilot.trace || []).slice(-24).map((x) => JSON.stringify(x)) }));
+  if (!(r.result && r.result.success)) console.log('    trace:\n    ' + r.trace.join('\n    '));
+  console.log(`  controller landing: ${r.result ? `${r.result.outcome} ${r.result.score} ${r.result.grade} — ${r.result.headline}` : 'not finished'} | inputs: ${r.log.slice(0, 14).join(', ')}`);
+  if (r.result) console.log('    ' + r.result.items.map((it) => `${it.label}: ${it.value}`).join(' · '));
+  check('a landing flown with the controller ends stopped on the runway', done && r.result && r.result.success, r.result ? r.result.headline : 'no result');
+  const td = r.rumble.filter((x) => x.duration === 200 || x.duration === 450);
+  check('reverse by holding B at idle, stowed with A; the touchdown rumbled; no mouse or keys', r.log.includes('reverse on') && r.log.includes('reverse off') && td.length > 0 && !r.mouse && r.active, `touchdown rumble ${JSON.stringify(td[0])}`);
+  await pp.screenshot({ path: path.join(out, 'e2e-pad-landing.png') });
   await ctx.close();
 }
 

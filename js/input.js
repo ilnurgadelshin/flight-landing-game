@@ -13,6 +13,8 @@
 // absolute thrust lever with a latched reverse position, and a held brake. Its buttons
 // emit the same actions as the keys. Tilt steering (js/tilt.js) writes this.tilt: pitch and
 // roll from how the device is held, used like a stick that is always held.
+// A game controller (js/gamepad.js) writes this.pad; while it is the device in use its stick,
+// triggers (rudder) and buttons (thrust, brakes, trim) drive the aircraft.
 import { AIRCRAFT as AC } from './config.js';
 
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
@@ -39,8 +41,11 @@ export class InputManager {
     this.time = 0;
     this.touchMode = false;             // the touch scheme is active: taps on the canvas never grab the mouse yoke
     this.touch = {};
-    this.resetTouch();
     this.tilt = { active: false, pitch: 0, roll: 0 };   // -1..1 each, written by TiltControl
+    // written by GamepadInput; reverse / stowing / revHold / holdoff are this manager's own bookkeeping
+    this.pad = { active: false, pitch: 0, roll: 0, yaw: 0, thrust: 0, brake: false, trim: 0, lookX: 0, lookY: 0, reverse: false, stowing: false, revHold: 0, holdoff: false };
+    this._padLook = false;
+    this.resetTouch();
     this.bind();
   }
 
@@ -49,7 +54,10 @@ export class InputManager {
   /** Touch control state; a new flight starts with everything released and the reversers stowed. */
   resetTouch() {
     Object.assign(this.touch, { stickHeld: false, pitch: 0, roll: 0, rudderHeld: false, yaw: 0, leverHeld: false, throttle: null, reverse: false, brake: false });
+    Object.assign(this.pad, { reverse: false, stowing: false, revHold: 0, holdoff: true });
   }
+  /** The controller is in use and being moved (used to take over from the autoland demo). */
+  padFlying() { const p = this.pad; return p.active && (Math.abs(p.pitch) > 0.3 || Math.abs(p.roll) > 0.3 || Math.abs(p.yaw) > 0.3 || p.thrust !== 0); }
   /** The player is flying through the touch controls right now (used to take over from the autoland demo). */
   touchFlying() { const t = this.touch; return t.stickHeld || t.rudderHeld || t.leverHeld; }
   /** Tilt steering is on and the device is tilted well away from its neutral position. */
@@ -149,13 +157,17 @@ export class InputManager {
     if (T.stickHeld && pk === 0 && rk === 0) { this.axes.pitch = shape(T.pitch); this.axes.roll = shape(T.roll); }
     // tilt: the same shaping as the stick; tipping the top edge towards you is always nose up (like
     // pulling a yoke), so the pitch-style option is undone here (inv * inv = 1)
-    const TL = this.tilt, tilting = TL.active && this.touchMode && !T.stickHeld && pk === 0 && rk === 0;
+    // controller: its stick springs back by itself, so while it is the device in use it sets the axes
+    const PD = this.pad, padOn = PD.active;
+    if (padOn && pk === 0 && rk === 0 && !T.stickHeld) { this.axes.pitch = shape(PD.pitch); this.axes.roll = shape(PD.roll); }
+    if (padOn && yk === 0 && !T.rudderHeld) this.axes.yaw = clamp(PD.yaw, -1, 1);
+    const TL = this.tilt, tilting = TL.active && this.touchMode && !padOn && !T.stickHeld && pk === 0 && rk === 0;
     if (tilting) { this.axes.pitch = shape(TL.pitch) * inv; this.axes.roll = shape(TL.roll); }
     if (T.rudderHeld && yk === 0) this.axes.yaw = clamp(T.yaw, -1, 1);
     if (this.touchFlying()) this.lastHumanInputT = this.time;
     let pitch = this.axes.pitch * inv;           // up arrow / stick up = nose up unless inverted
     let roll = this.axes.roll;
-    if (this.mouseEngaged && pk === 0 && rk === 0 && !T.stickHeld && !tilting) {
+    if (this.mouseEngaged && pk === 0 && rk === 0 && !T.stickHeld && !tilting && !padOn) {
       const s = this.opts.mouseSensitivity;
       const dz = (v) => (Math.abs(v) < 0.06 ? 0 : (v - Math.sign(v) * 0.06) / 0.94);
       // mouse up (negative y) = nose up unless inverted (pilot style: forward = push = nose down)
@@ -174,11 +186,12 @@ export class InputManager {
     const tr = 0.35 * dt;
     if (K('KeyW')) inp.throttle = clamp(inp.throttle + tr, 0, 1);
     if (K('KeyS')) inp.throttle = clamp(inp.throttle - tr, 0, 1);
+    if (padOn) this.padThrust(dt, tr, inp, st);
     // ---- brakes (hold), reversers (hold)
-    const bTarget = K('KeyB') || T.brake ? 1 : 0;
+    const bTarget = K('KeyB') || T.brake || (padOn && PD.brake) ? 1 : 0;
     this.brake = bTarget ? Math.min(1, this.brake + dt * 2.5) : Math.max(0, this.brake - dt * 4);
     inp.brake = this.brake;
-    const rev = K('KeyR') || T.reverse;
+    const rev = K('KeyR') || T.reverse || (padOn && PD.reverse);
     if (rev && !inp.reverse) { inp.reverse = true; inp.throttle = 0; this.emit('reverse', true); }
     if (!rev && inp.reverse) { inp.reverse = false; this.emit('reverse', false); }
     if (inp.reverse) inp.throttle = 0;
@@ -186,8 +199,32 @@ export class InputManager {
     const trimRate = AC.controls.trimRateDegPerSec * dt * 1.6;
     if (K('BracketRight') || K('PageDown')) inp.trim = clamp(inp.trim - trimRate, -AC.controls.maxTrimDeg, AC.controls.maxTrimDeg);
     if (K('BracketLeft') || K('PageUp')) inp.trim = clamp(inp.trim + trimRate, -AC.controls.maxTrimDeg, AC.controls.maxTrimDeg);
+    if (padOn && PD.trim) inp.trim = clamp(inp.trim + PD.trim * trimRate, -AC.controls.maxTrimDeg, AC.controls.maxTrimDeg);
+    // controller right stick: look around while it is pushed, straight ahead again when let go
+    if (padOn && (PD.lookX || PD.lookY || this._padLook)) {
+      this.look.yaw = clamp(-PD.lookX * 1.4, -1.6, 1.6);
+      this.look.pitch = clamp(-PD.lookY * 0.8, -1.0, 0.6);
+      this._padLook = !!(PD.lookX || PD.lookY);
+    }
     this.tapped.clear();
-    void st;
+  }
+
+  /**
+   * Controller thrust: A / B held move the thrust levers at the keyboard's rate. At idle on the
+   * ground, B kept held for 0.4 s selects reverse, which stays selected; A then stows it (that press
+   * adds no thrust). A button still held when a flight starts or resumes is ignored until released.
+   */
+  padThrust(dt, tr, inp, st) {
+    const PD = this.pad;
+    if (PD.holdoff) { if (PD.thrust === 0) PD.holdoff = false; return; }
+    if (PD.stowing) { if (PD.thrust <= 0) PD.stowing = false; return; }
+    if (PD.thrust > 0) {
+      if (PD.reverse) { PD.reverse = false; PD.stowing = true; } else inp.throttle = clamp(inp.throttle + tr, 0, 1);
+    } else if (PD.thrust < 0) {
+      if (inp.throttle > 0) inp.throttle = clamp(inp.throttle - tr, 0, 1);
+      else if (st && st.onGround && !PD.reverse && (PD.revHold += dt) >= 0.4) PD.reverse = true;
+    }
+    if (PD.thrust >= 0 || inp.throttle > 0) PD.revHold = 0;
   }
 
   anyFlightKeyHeld() {

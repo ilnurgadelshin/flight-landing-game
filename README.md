@@ -33,8 +33,9 @@ tablet:
 - **A believable flight deck.** A first-person 737 cockpit with working
   displays, levers and warnings, a runway with ICAO markings, approach lights
   and a PAPI computed from the pilot's eye, weather and night lighting.
-- **Accessible.** Laptop keyboard and mouse controls, on-screen touch controls
-  and a head-up display on phones and tablets, a skippable Flight School that
+- **Accessible.** Laptop keyboard and mouse controls, game controllers, on-screen
+  touch controls, tilt steering and a head-up display on phones and tablets, a
+  skippable Flight School that
   walks through every instrument and control, instructor hints and a flight
   director.
 - **Verified by playing it.** Frame-rate-independent physics, automated test
@@ -118,6 +119,48 @@ deployment" in the Actions tab).
 The pitch axis defaults to "game style" (up arrow / mouse up = nose up). Tick
 *Pilot-style pitch* in the menu for the yoke convention (push forward = nose
 down).
+
+### Controls (game controller)
+
+Xbox, PlayStation, Switch Pro and most Bluetooth controllers are read through
+the browser's Gamepad API, which Chrome, Edge, Firefox and Safari provide on
+desktop and on phones (the automated tests run in Chromium with a simulated
+controller). Connect one and press any of its buttons: browsers only reveal a
+controller once it has been used. The
+layout follows Microsoft Flight Simulator's default controller scheme. The
+table uses Xbox names; PlayStation and Switch controllers are worded with their
+own buttons throughout the game.
+
+| Control | Controller |
+| --- | --- |
+| Pitch and roll | Left stick (stick up = nose up; tick *Pilot-style pitch* for push forward = nose down) |
+| Rudder / nose-wheel steering | LT / RT, analog |
+| Thrust | A (more) / B (less), held |
+| Thrust reversers | On the ground at idle, keep holding B: reverse is selected and stays until A |
+| Wheel brakes | X (hold) |
+| Landing gear | Y |
+| Flaps | LB up / RB down |
+| Speedbrakes | D-pad →: tap to arm, hold to extend / retract |
+| Autobrake | D-pad ← cycles OFF/1/2/3/MAX |
+| Trim | D-pad ↑ nose down / ↓ nose up |
+| TO/GA | View; pressed again during the go-around, it puts you back on final |
+| Look around / at the panel | Right stick (lets go straight ahead) · press it for the panel |
+| Pause, menus | Menu: start the approach from the menu, pause and resume, skip Flight School, fly again. In menus A confirms and B goes back; in Flight School A / B turn the pages |
+
+- **Switching devices.** The controller is in use from its first press until a
+  key, the mouse or a touch is used; the hints and Flight School follow the
+  device in use.
+- **Held buttons.** A button still held from the press that starts or resumes a
+  flight does nothing until it is released, so the A that resumes does not also
+  add thrust.
+- **Unplugging.** Unplugging the controller mid-flight pauses the game.
+- **Rumble** (Chrome and Edge): the controller rumbles for the gear locking down,
+  the touchdown (harder for a harder landing), a crash and the stick shaker.
+  *Vibration* in the menu turns it off.
+- **Phones.** With a controller in use, the touch controls are hidden and the
+  head-up display stays.
+- **Joysticks with their own layout.** They fly pitch and roll with their stick;
+  use the keyboard for the rest.
 
 ### Controls (phones and tablets, landscape)
 
@@ -271,7 +314,7 @@ The **Night** option in the menu flies any of these after dark.
 | `js/cockpit/` | 3D flight deck and the canvas-drawn displays |
 | `js/input.js`, `js/audio.js`, `js/gpws.js` | Keyboard, mouse yoke and touch input, synthesised sound and voice, warning system |
 | `js/touch.js`, `js/platform.js`, `js/controls.js` | On-screen touch controls; phone support (orientation, full screen, pausing, wake lock, adaptive resolution); the control glossary that words hints for keys, touch or tilt |
-| `js/tilt.js`, `js/haptics.js` | Tilt steering from the motion sensor; vibration feedback |
+| `js/tilt.js`, `js/haptics.js`, `js/gamepad.js` | Tilt steering from the motion sensor; vibration and controller rumble; game controllers |
 | `manifest.webmanifest`, `icons/`, `tools/make-icons.mjs` | Home-screen app: manifest, icons, and the script that renders the icons |
 | `js/evaluate.js` | Landing grading and outcomes |
 | `js/autopilot.js` | Test pilot used by the tests and the autoland demo |
@@ -298,11 +341,11 @@ GPU, at about 1–5 rendered frames per second.
 
 | Command | What it checks | Time |
 | --- | --- | --- |
-| `npm test` | Node, no browser: physics (62 checks in 12 groups) and phone features (38 checks in 6 groups, below) | ~3 min |
-| `npm run test:e2e` | The real page in Chromium: 158 checks in 13 groups (below) | 40–60 min |
-| `node test/e2e.mjs quick` | The same without the slow mouse-yoke, touch and tilt landings (E9, E11, E13) | 15–25 min |
-| `node test/e2e.mjs only=<groups>` | E1 plus the groups listed, comma-separated: `menu`, `keys`, `school`, `land`, `fail`, `ga`, `fps`, `keyboard`, `mobile`, `touchland`, `tilt`, `tiltland` (e.g. `only=tilt,tiltland`) | 1–10 min each |
-| `npm run test:all` | All three: physics, phone features, then the browser suite | 45–65 min |
+| `npm test` | Node, no browser: physics (62 checks in 12 groups), phone features (39 checks in 6 groups) and game controllers (34 checks in 4 groups), below | ~3 min |
+| `npm run test:e2e` | The real page in Chromium: 189 checks in 15 groups (below) | 50–70 min |
+| `node test/e2e.mjs quick` | The same without the slow mouse-yoke, touch, tilt and controller landings (E9, E11, E13, E15) | 20–30 min |
+| `node test/e2e.mjs only=<groups>` | E1 plus the groups listed, comma-separated: `menu`, `keys`, `school`, `land`, `fail`, `ga`, `fps`, `keyboard`, `mobile`, `touchland`, `tilt`, `tiltland`, `gamepad`, `padland` (e.g. `only=tilt,tiltland`) | 1–10 min each |
+| `npm run test:all` | All of them: the Node suites, then the browser suite | 55–75 min |
 | `node test/robustness.mjs` | 18 short-final autolands, crosswind and storm with 9 gust seeds each; prints each result as a report, not pass/fail | under a minute |
 
 `test/physics.test.mjs` flies the aircraft in Node and checks:
@@ -371,6 +414,24 @@ controls a player has.
   - the manifest and every icon.
 - **E13** lands by tilting the phone, with the thrust lever, rudder, REV gate and
   buttons by touch, and checks the touchdown is felt as a vibration.
+- **E14** uses a simulated controller (`test/gamepad-stub.browser.js`; browsers
+  cannot emulate one). It checks:
+  - the connection message, and Menu starting the approach;
+  - the stick with and without pilot-style pitch;
+  - the triggers, thrust, gear, flaps, autobrake, speedbrakes (tap and hold),
+    trim, brakes and look-around;
+  - rumble at gear lock;
+  - View for TO/GA, then back on final;
+  - pause and resume, and a resume that adds no thrust;
+  - B back to the menu;
+  - Flight School and the instructor in controller words;
+  - switching back to keys;
+  - PlayStation button names;
+  - unplugging mid-flight;
+  - a joystick with its own layout;
+  - the touch controls hiding on a phone.
+- **E15** lands with the controller only: stick, A/B thrust, triggers, buttons,
+  reverse by holding B, stowed with A. It checks the touchdown rumble.
 
 `test/phone.test.mjs` checks the phone features in Node:
 
@@ -381,7 +442,20 @@ controls a player has.
 3. centring corrects a browser that reports the screen angle the other way round;
 4. deflection scales to full at the tilt range and centres when held as at the start;
 5. the browser tests' simulated sensor matches the rotation-matrix phone model;
-6. each vibration pattern, and silence when switched off or on an iPhone.
+6. each vibration pattern and controller rumble, and silence when switched off
+   or on an iPhone.
+
+`test/gamepad.test.mjs` checks the controller module against a fake
+`navigator.getGamepads()`, and InputManager's controller thrust:
+
+1. controller families and dead zones;
+2. the standard layout: announced but not in use until used; sticks, triggers,
+   buttons once per press; D-pad → tap versus hold, even across a slow frame;
+   handing back to other devices; rumble only while in use; unplugging;
+3. joysticks with their own layout: stick only;
+4. thrust at the keyboard's rate; the hold-off after a start; reverse only on
+   the ground after 0.4 s of B at idle; stowing with A without added thrust;
+   pilot-style pitch; a controller not in use drives nothing.
 
 Screenshots go to `test/output/`.
 
