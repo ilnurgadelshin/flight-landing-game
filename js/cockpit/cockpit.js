@@ -44,7 +44,8 @@ export class Cockpit {
       black: new THREE.MeshStandardMaterial({ color: 0x1a1b1e, roughness: 0.6 }),
       red: new THREE.MeshStandardMaterial({ color: 0xaa1010, roughness: 0.5 }),
       seat: new THREE.MeshStandardMaterial({ color: 0x2f3450, roughness: 1 }),
-      glass: new THREE.MeshPhysicalMaterial({ color: 0x8fb3d9, transparent: true, opacity: 0.08, roughness: 0.05, metalness: 0, side: THREE.DoubleSide, depthWrite: false }),
+      // the windows: a faint tint and a hint of reflection (a sharp glint of the sun off the inside would read as a smudge)
+      glass: new THREE.MeshPhysicalMaterial({ color: 0x8fb3d9, transparent: true, opacity: 0.08, roughness: 0.18, specularIntensity: 0.2, metalness: 0, side: THREE.DoubleSide, depthWrite: false }),
     };
     this.anchors = {};   // named 3D anchor points (local to root) for the Flight School highlights
     this.buildShell();

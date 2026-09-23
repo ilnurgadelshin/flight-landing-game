@@ -20,16 +20,19 @@ import { setTilt, getScheme, setPad, controlsHtml } from './controls.js';
 const params = new URLSearchParams(location.search);
 // phones get the lighter scene; their resolution then adapts to the frame rate (see ResolutionScaler)
 const lowDetail = params.has('lowdetail') || phone;
+// graphics tier: 'high' (shadows, bloom, MSAA) on computers, 'low' on phones; ?quality= overrides
+const quality = ['high', 'low'].includes(params.get('quality')) ? params.get('quality') : undefined;
 
 async function boot() {
   const ui = new UI();
   ui.hideLoading('Building the world…');
   await new Promise((r) => setTimeout(r, 30));
   const canvas = document.getElementById('gl');
-  const world = new World(canvas, { lowDetail, pixelRatio: touchFirst ? Math.min(window.devicePixelRatio || 1, 1.5) : undefined });
+  const world = new World(canvas, { lowDetail, quality, pixelRatio: touchFirst ? Math.min(window.devicePixelRatio || 1, 1.5) : undefined });
   ui.hideLoading('Building the flight deck…');
   await new Promise((r) => setTimeout(r, 10));
   const cockpit = new Cockpit(world.camera);
+  world.setupCockpit(cockpit.root);
   const input = new InputManager(canvas);
   const audio = new AudioSystem();
   const gpws = new GPWS(audio);

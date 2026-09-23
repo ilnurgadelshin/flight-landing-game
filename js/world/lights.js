@@ -37,6 +37,7 @@ const FRAG = /* glsl */`
   uniform float uFogDensity;
   uniform vec3 uFogColor;
   uniform float uDaylight;
+  uniform float uIntensity;   // scene-linear brightness of a light's core (lights glow through the bloom pass)
   #include <logdepthbuf_pars_fragment>
   void main() {
     #include <logdepthbuf_fragment>
@@ -51,7 +52,8 @@ const FRAG = /* glsl */`
     a *= mix(1.0, fog, 0.97);
     // by day the lights are dimmer relative to the scene
     a *= mix(1.0, 0.9, uDaylight);
-    gl_FragColor = vec4(vColor * (1.0 + 0.6 * core), a);
+    gl_FragColor = vec4(vColor * (1.0 + 0.6 * core) * mix(1.0, uIntensity, core), a);
+    #include <tonemapping_fragment>
     #include <colorspace_fragment>
   }
 `;
@@ -158,7 +160,7 @@ export class AirfieldLights {
     this.brightAttr = geo.getAttribute('bright');
     this.material = new THREE.ShaderMaterial({
       vertexShader: VERT, fragmentShader: FRAG,
-      uniforms: { uPixelRatio: { value: 1 }, uFogDensity: { value: 0 }, uFogColor: { value: new THREE.Color(0x000000) }, uDaylight: { value: 1 } },
+      uniforms: { uPixelRatio: { value: 1 }, uFogDensity: { value: 0 }, uFogColor: { value: new THREE.Color(0x000000) }, uDaylight: { value: 1 }, uIntensity: { value: 1.5 } },
       transparent: true, depthWrite: false, blending: THREE.NormalBlending,
     });
     this.points = new THREE.Points(geo, this.material);
