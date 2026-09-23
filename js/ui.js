@@ -2,24 +2,61 @@
 // pause and results screens.
 import { SCENARIOS, APPROACH_STARTS, AIRCRAFT as AC, FT, KTS, DEG } from './config.js';
 import { fmtOutcome } from './evaluate.js';
+import { controlsHtml, controlsText, getScheme, onSchemeChange } from './controls.js';
 
 const $ = (id) => document.getElementById(id);
 
+// Flight School pages. [[name]] tokens render as the active scheme's controls (js/controls.js);
+// `touch` overrides the anchor (a page element instead of a 3D cockpit part), the camera look
+// and, where the phone layout differs (head-up display instead of the panel), the text.
 export const SCHOOL_STEPS = [
-  { title: 'Welcome aboard', anchor: 'windshield', body: `You are in the captain's seat of a Boeing 737-800 on final approach to runway 27. Your job: fly the ILS down the 3° glideslope at <b>Vref + 5 = 147 kts</b>, flare at 30 ft, touch down in the touchdown zone and stop.<ul><li>Click the window to engage the <b>mouse yoke</b>, or fly with the keyboard.</li><li>Press <kbd>H</kbd> any time to reopen this school.</li></ul>` },
-  { title: 'Artificial horizon (attitude)', anchor: 'attitude', body: `The blue/brown ball shows pitch and bank. Keep the wings level and the nose about <b>+2°</b> on approach.<ul><li><kbd>↑</kbd>/<kbd>↓</kbd> or mouse: pitch (nose up/down)</li><li><kbd>←</kbd>/<kbd>→</kbd> or mouse: roll (bank)</li></ul>The aircraft is heavy: make small, smooth inputs and wait for it to respond.` },
-  { title: 'Airspeed tape', anchor: 'airspeed', body: `Speed in knots. The green <b>REF</b> bug is Vref (142 kts with flaps 30). The red barber pole at the bottom is the stall; the red one at the top is the flap limit.<ul><li><kbd>W</kbd> / <kbd>S</kbd>: throttle up / down. Thrust controls your speed on approach — about <b>60 % N1</b> holds Vref+5.</li></ul>` },
-  { title: 'Altimeter & vertical speed', anchor: 'altimeter', body: `Barometric altitude in feet with the radio altitude below the horizon under 2500 ft. The vertical-speed needle on the right should sit near <b>−750 fpm</b> on the glideslope.<ul><li>Pitch controls the descent rate. High on the glideslope → lower the nose a little; low → raise it.</li></ul>` },
-  { title: 'ILS: localizer & glideslope', anchor: 'nd', body: `The magenta diamonds on the PFD show your position relative to the runway centreline (bottom) and the 3° glideslope (right). Keep both centred. The navigation display shows the extended centreline and your track.<ul><li>Follow the <b>PAPI</b> lights left of the runway: 2 white + 2 red = on slope, more white = high, more red = low.</li></ul>` },
-  { title: 'Rudder — essential in a crosswind', anchor: 'rudder', look: 1, body: `In a crosswind you fly "crabbed" into the wind. Just before touchdown, press the rudder to align the nose with the runway and lower the upwind wing slightly.<ul><li><kbd>A</kbd> / <kbd>D</kbd>: left / right rudder. On the ground the same keys steer the nose wheel.</li></ul>` },
-  { title: 'Thrust levers', anchor: 'throttle', look: 1, body: `Two thrust levers on the pedestal (hold <kbd>L</kbd> or right-drag to look down). N1 is shown on the engine display.<ul><li><kbd>W</kbd>/<kbd>S</kbd>: move the levers</li><li><kbd>T</kbd>: TOGA — full thrust for a go-around</li><li>Engines take a few seconds to spool up: anticipate!</li></ul>` },
-  { title: 'Flaps', anchor: 'flapLever', look: 1, body: `Flaps add lift for slow flight. Extend them step by step as you slow down: flaps 5 by 190 kts, flaps 15 by 170, <b>flaps 30 for landing</b> below 165 kts.<ul><li><kbd>F</kbd>: extend one notch · <kbd>V</kbd>: retract one notch</li><li>The gauge next to the gear lever shows the actual position.</li></ul>` },
-  { title: 'Landing gear', anchor: 'gear', look: 0.45, body: `Lower the gear when you intercept the glideslope (about 2000 ft). It takes ~8 s and adds drag — three green lights mean down and locked.<ul><li><kbd>G</kbd>: gear up / down</li><li>Landing without gear = belly landing. The warning system will shout at you.</li></ul>` },
-  { title: 'Speedbrakes / spoilers', anchor: 'speedbrake', look: 1, body: `The speedbrake lever raises spoilers on the wing. In flight they add drag (use them if you are high and fast). On the ground they dump the lift so the brakes can work.<ul><li><kbd>X</kbd>: <b>arm</b> them before landing — they deploy automatically at touchdown</li><li><kbd>Space</kbd>: extend / retract manually</li></ul>` },
-  { title: 'Brakes & thrust reversers', anchor: 'lower', look: 0.45, body: `After touchdown: hold the reversers, then brake. Reversers only work on the ground.<ul><li><kbd>R</kbd> (hold): reverse thrust — stow below 60 kts</li><li><kbd>B</kbd> (hold): wheel brakes</li><li><kbd>N</kbd>: autobrake OFF / 1 / 2 / 3 / MAX (set 3 for a wet runway)</li></ul>` },
-  { title: 'Trim & go-around', anchor: 'trim', look: 1, body: `The trim wheels relieve the control force so the aircraft holds its attitude hands-off.<ul><li><kbd>[</kbd> / <kbd>]</kbd> (or PageUp / PageDown): trim nose up / down</li></ul>If the approach is not stable below 500 ft: <b>go around</b>. Press <kbd>T</kbd> for full thrust, pitch up to +12°, gear up when climbing, flaps 15. Then press <kbd>Backspace</kbd> to reposition on final, or fly a visual circuit.` },
-  { title: 'Landing criteria', anchor: 'pfd', body: `You will be graded on:<ul><li><b>Touchdown zone</b>: 150–900 m past the threshold (aim for the big white blocks)</li><li><b>Sink rate</b> under 300 fpm is smooth; over 600 fpm is a hard landing; 900+ collapses the gear</li><li><b>Centreline</b> and <b>alignment</b> (less than 3° crab, wings level)</li><li><b>Speed</b> near Vref, <b>flaps 30</b> and gear down</li><li>Stop before the end of the runway</li></ul>Callouts: "Fifty, forty, thirty, twenty, ten" — start the flare at <b>thirty</b>. Good luck, Captain.` },
+  { title: 'Welcome aboard', anchor: 'windshield', touch: { anchor: '#hgs' },
+    body: `You are in the captain's seat of a Boeing 737-800 on final approach to runway 27. Your job: fly the ILS down the 3° glideslope at <b>Vref + 5 = 147 kts</b>, flare at 30 ft, touch down in the touchdown zone and stop.<ul><li>[[flyWith]]</li><li>Press [[help]] any time to reopen this school.</li></ul>` },
+  { title: 'Artificial horizon (attitude)', anchor: 'attitude',
+    body: `The blue/brown ball shows pitch and bank. Keep the wings level and the nose about <b>+2°</b> on approach.<ul><li>[[pitch]]: pitch (nose up/down)</li><li>[[roll]]: roll (bank)</li></ul>The aircraft is heavy: make small, smooth inputs and wait for it to respond.`,
+    touch: { title: 'Attitude and the stick', anchor: '#t-stick-zone',
+      body: `Keep the wings level with the horizon outside and the nose about <b>+2°</b> on approach ([[look]] shows the panel's attitude display).<ul><li>[[pitch]]: pitch (nose up/down)</li><li>[[roll]]: roll (bank)</li></ul>The stick appears where your right thumb touches. Let go and it springs back: the aircraft holds its attitude and trims itself. It is heavy: make small, smooth inputs and wait for it to respond.` } },
+  { title: 'Airspeed tape', anchor: 'airspeed',
+    body: `Speed in knots. The green <b>REF</b> bug is Vref (142 kts with flaps 30). The red barber pole at the bottom is the stall; the red one at the top is the flap limit.<ul><li>[[thrust]]: throttle up / down. Thrust controls your speed on approach — about <b>60 % N1</b> holds Vref+5.</li></ul>`,
+    touch: { title: 'Airspeed', anchor: '#g-spd',
+      body: `Speed in knots, in the left box of the head-up display. Below it: the target <b>REF+5</b> (Vref + 5 = 147 kts with flaps 30) and the engines' N1. With landing flaps the box turns green on target and amber when fast or slow; it turns red at the stall.<ul><li>[[thrust]]: thrust controls your speed on approach — about <b>60 % N1</b> holds Vref+5.</li></ul>` } },
+  { title: 'Altimeter & vertical speed', anchor: 'altimeter',
+    body: `Barometric altitude in feet with the radio altitude below the horizon under 2500 ft. The vertical-speed needle on the right should sit near <b>−750 fpm</b> on the glideslope.<ul><li>Pitch controls the descent rate. High on the glideslope → lower the nose a little; low → raise it.</li></ul>`,
+    touch: { anchor: '#g-alt',
+      body: `Altitude in feet (right box), the radio altitude (height above the ground) below 2500 ft, and the vertical speed: about <b>−750 fpm</b> on the glideslope.<ul><li>Pitch controls the descent rate. High on the glideslope → lower the nose a little; low → raise it.</li></ul>` } },
+  { title: 'ILS: localizer & glideslope', anchor: 'nd',
+    body: `The magenta diamonds on the PFD show your position relative to the runway centreline (bottom) and the 3° glideslope (right). Keep both centred. The navigation display shows the extended centreline and your track.<ul><li>Follow the <b>PAPI</b> lights left of the runway: 2 white + 2 red = on slope, more white = high, more red = low.</li></ul>`,
+    touch: { anchor: '#hgs',
+      body: `The magenta diamonds show where the runway centreline (bottom scale) and the 3° glideslope (right scale) are. Steer towards them to centre them: diamond below the middle → you are high, lower the nose a little; diamond left → bank left a little.<ul><li>Follow the <b>PAPI</b> lights left of the runway: 2 white + 2 red = on slope, more white = high, more red = low.</li></ul>` } },
+  { title: 'Rudder — essential in a crosswind', anchor: 'rudder', look: 1, touch: { anchor: '#t-rudder' },
+    body: `In a crosswind you fly "crabbed" into the wind. Just before touchdown, press the rudder to align the nose with the runway and lower the upwind wing slightly.<ul><li>[[rudder]]: left / right rudder. On the ground it also steers the nose wheel.</li></ul>` },
+  { title: 'Thrust levers', anchor: 'throttle', look: 1,
+    body: `Two thrust levers on the pedestal ([[look]] to look down). N1 is shown on the engine display.<ul><li>[[thrust]]: move the levers</li><li>[[toga]]: TOGA — full thrust for a go-around</li><li>Engines take a few seconds to spool up: anticipate!</li></ul>`,
+    touch: { title: 'Thrust lever', anchor: '#t-lever',
+      body: `The thrust lever on the left edge stays where you leave it: drag it with your left thumb (the number is the thrust in %). N1 is shown under your speed.<ul><li>[[toga]] on top of the lever: full thrust for a go-around</li><li>On the ground, pull it down past idle into <span class="tc">REV</span> for reverse thrust</li><li>Engines take a few seconds to spool up: anticipate!</li></ul>` } },
+  { title: 'Flaps', anchor: 'flapLever', look: 1,
+    body: `Flaps add lift for slow flight. Extend them step by step as you slow down: flaps 5 by 190 kts, flaps 15 by 170, <b>flaps 30 for landing</b> below 165 kts.<ul><li>[[flapsDown]]: extend one notch · [[flapsUp]]: retract one notch</li><li>The gauge next to the gear lever shows the actual position.</li></ul>`,
+    touch: { anchor: '#t-flaps',
+      body: `Flaps add lift for slow flight. Extend them step by step as you slow down: flaps 5 by 190 kts, flaps 15 by 170, <b>flaps 30 for landing</b> below 165 kts.<ul><li>[[flapsDown]]: extend one notch · [[flapsUp]]: retract one notch</li><li>The number between them is the setting; it turns amber while the flaps move.</li></ul>` } },
+  { title: 'Landing gear', anchor: 'gear', look: 0.45,
+    body: `Lower the gear when you intercept the glideslope (about 2000 ft). It takes ~8 s and adds drag — three green lights mean down and locked.<ul><li>[[gear]]: gear up / down</li><li>Landing without gear = belly landing. The warning system will shout at you.</li></ul>`,
+    touch: { anchor: '#t-gear',
+      body: `Lower the gear when you intercept the glideslope (about 2000 ft). It takes ~8 s and adds drag — the button shows a green <b>DN</b> when it is down and locked.<ul><li>[[gear]]: gear up / down</li><li>Landing without gear = belly landing. The warning system will shout at you.</li></ul>` } },
+  { title: 'Speedbrakes / spoilers', anchor: 'speedbrake', look: 1, touch: { anchor: '#t-spd' },
+    body: `The speedbrake lever raises spoilers on the wing. In flight they add drag (use them if you are high and fast). On the ground they dump the lift so the brakes can work.<ul><li>[[armSpeedbrake]]: <b>arm</b> them before landing — they deploy automatically at touchdown</li><li>[[speedbrake]]: extend / retract manually</li></ul>` },
+  { title: 'Brakes & thrust reversers', anchor: 'lower', look: 0.45, touch: { anchor: '#t-lever' },
+    body: `After touchdown: hold the reversers, then brake. Reversers only work on the ground.<ul><li>[[reverse]]: reverse thrust — stow below 60 kts</li><li>[[brakes]] (hold): wheel brakes</li><li>[[autobrake]]: autobrake OFF / 1 / 2 / 3 / MAX (set 3 for a wet runway)</li></ul>` },
+  { title: 'Trim & go-around', anchor: 'trim', look: 1, touch: { anchor: '#t-toga' },
+    body: `The trim wheels relieve the control force so the aircraft holds its attitude hands-off.<ul><li>[[trim]]</li></ul>If the approach is not stable below 500 ft: <b>go around</b>. Press [[toga]] for full thrust, pitch up to +12°, gear up when climbing, flaps 15. Then press [[reposition]] to reposition on final, or fly a visual circuit.` },
+  { title: 'Landing criteria', anchor: 'pfd', touch: { anchor: '#hgs' },
+    body: `You will be graded on:<ul><li><b>Touchdown zone</b>: 150–900 m past the threshold (aim for the big white blocks)</li><li><b>Sink rate</b> under 300 fpm is smooth; over 600 fpm is a hard landing; 900+ collapses the gear</li><li><b>Centreline</b> and <b>alignment</b> (less than 3° crab, wings level)</li><li><b>Speed</b> near Vref, <b>flaps 30</b> and gear down</li><li>Stop before the end of the runway</li></ul>Callouts: "Fifty, forty, thirty, twenty, ten" — start the flare at <b>thirty</b>. Good luck, Captain.` },
 ];
+
+/** A school page as the active control scheme shows it. */
+export function schoolPage(s) {
+  const t = getScheme() === 'touch' ? (s.touch || {}) : {};
+  return { title: t.title || s.title, anchor: t.anchor || s.anchor, look: t.anchor ? (t.look || 0) : (s.look || 0), body: controlsHtml(t.body || s.body) };
+}
 
 export class UI {
   constructor() {
@@ -33,6 +70,12 @@ export class UI {
     this.onStart = null; this.onDemo = null; this.onResume = null; this.onQuit = null; this.onAgain = null; this.onSchoolDone = null;
     this.buildMenu();
     this.bindButtons();
+    this.hgs = {}; this.hgsShown = {};
+    for (const id of ['hgs', 'g-ias', 'g-tgt', 'g-n1', 'g-altv', 'g-ra', 'g-vs', 'g-wind']) this.hgs[id] = $(id);
+    this.hgs.gsDia = document.querySelector('#g-gs .g-dia'); this.hgs.locDia = document.querySelector('#g-loc .g-dia');
+    this.hgs.fdh = document.querySelector('#g-fd .g-fdh'); this.hgs.fdv = document.querySelector('#g-fd .g-fdv');
+    // a scheme switch (first touch on a hybrid laptop, a mouse on an iPad) re-renders the open page
+    onSchemeChange(() => { if (!this.el.school.classList.contains('hidden')) this.renderSchool(); });
   }
 
   buildMenu() {
@@ -121,12 +164,46 @@ export class UI {
     this.el.stall.classList.toggle('hidden', !st.stallWarning);
     this.el.config.classList.toggle('hidden', !extra.configWarning);
     if (extra.configWarning) this.el.config.textContent = extra.configWarning;
+    if (getScheme() === 'touch') this.updateHGS(st, extra);
   }
 
-  setModeMessage(text, cls = '') { const e = this.el.modeMsg; if (e.textContent !== text) e.textContent = text; e.className = cls; }
+  /** Touch devices: the head-up display with the numbers needed to land (DOM writes only on change). */
+  updateHGS(st, extra = {}) {
+    const g = this.hgs, shown = this.hgsShown;
+    const set = (id, txt, cls = '') => { const k = txt + '|' + cls; if (shown[id] === k) return; shown[id] = k; g[id].textContent = txt; g[id].className = (id === 'g-altv' || id === 'g-ias' ? 'g-box ' : '') + cls; };
+    const pos = (key, el, prop, v) => { const txt = v.toFixed(1) + '%'; if (shown[key] !== txt) { shown[key] = txt; el.style[prop] = txt; } };
+    const airborne = !st.onGround;
+    const target = st.vref + 5, dv = st.ias - target;
+    set('g-ias', String(Math.round(st.ias)), st.stallWarning ? 'bad' : (st.flapIndex >= 4 && airborne ? (Math.abs(dv) < 6 ? 'good' : (dv > 12 || dv < -6 ? 'warn' : '')) : ''));
+    set('g-tgt', airborne ? `REF+5 ${Math.round(target)}` : '');
+    set('g-n1', `N1 ${Math.round(st.n1[0] * 100)}${st.reverser > 0.5 ? ' REV' : ''}`, st.reverser > 0.5 ? 'warn' : '');
+    set('g-altv', String(Math.round(st.alt / FT / 10) * 10));
+    set('g-ra', st.agl / FT < 2500 ? `RA ${Math.round(st.agl / FT)}` : '', st.agl / FT < 100 ? 'warn' : '');
+    const vs = Math.round(st.vs / 0.00508 / 10) * 10;
+    set('g-vs', `V/S ${vs > 0 ? '+' : ''}${vs}`, vs < -1000 ? 'bad' : '');
+    set('g-wind', `W ${String(Math.round(st.windDirDeg)).padStart(3, '0')}/${Math.round(st.windKts)}`);
+    // ILS: diamonds on the same scales as the PFD (1° localizer, 0.35° glideslope per dot)
+    const ils = airborne && st.distToThreshold > 0 && st.distToThreshold < 25 * 1852;
+    const cls = (ils ? 'ils ' : '') + (extra.fd ? 'fd' : '');
+    if (shown.hgsCls !== cls) { shown.hgsCls = cls; g.hgs.className = cls; }
+    if (ils) {
+      const dots = (dev, full) => Math.max(-2.5, Math.min(2.5, dev / full));
+      pos('gs', g.gsDia, 'top', 50 + dots(st.gsDev, 0.35) * 20);        // above the glideslope: diamond low
+      pos('loc', g.locDia, 'left', 50 + dots(-st.locDev, 1.0) * 20);    // right of the centreline: diamond left
+    }
+    if (extra.fd) {
+      const fp = Math.max(-40, Math.min(40, (extra.fd.pitch - st.pitch) / DEG * 5));
+      const fr = Math.max(-40, Math.min(40, (extra.fd.roll - st.roll) / DEG * 2));
+      const tp = `translateY(${(-fp).toFixed(1)}px)`, tr = `translateX(${fr.toFixed(1)}px)`;
+      if (shown.fdh !== tp) { shown.fdh = tp; g.fdh.style.transform = tp; }
+      if (shown.fdv !== tr) { shown.fdv = tr; g.fdv.style.transform = tr; }
+    }
+  }
+
+  setModeMessage(text, cls = '') { const e = this.el.modeMsg; const t = controlsText(text); if (e.textContent !== t) e.textContent = t; e.className = cls; }
   /** Landing checklist overlay (training mode): [{ text, done }] or null to hide. */
   setChecklist(items) { const e = this.el.checklist; if (!items) { e.classList.add('hidden'); return; } e.classList.remove('hidden'); const html = items.map((c) => `<div class="${c.done ? 'done' : 'todo'}">${c.done ? '✓' : '□'} ${c.text}</div>`).join(''); if (e.innerHTML !== html) e.innerHTML = html; }
-  setInstructor(text) { const e = this.el.instructor; if (!text) { e.classList.add('hidden'); return; } e.classList.remove('hidden'); if (e.innerHTML !== text) e.innerHTML = text; }
+  setInstructor(text) { const e = this.el.instructor; if (!text) { e.classList.add('hidden'); this._instr = ''; return; } e.classList.remove('hidden'); const h = controlsHtml(text); if (this._instr !== h) { this._instr = h; e.innerHTML = h; } }
   setCaption(text, kind) { const e = this.el.caption; if (!text) { e.classList.remove('show'); return; } e.textContent = text; e.className = 'show ' + (kind === 'warning' ? 'warning' : (kind === 'caution' ? 'caution' : 'info')); }
   flash(strength = 1) { const e = this.el.crashFlash; e.style.transition = 'none'; e.style.opacity = String(Math.min(1, strength)); requestAnimationFrame(() => { e.style.transition = 'opacity 1.2s'; e.style.opacity = '0'; }); }
   setRain(on) { this.el.rain.style.opacity = '0'; void on; }
@@ -146,7 +223,7 @@ export class UI {
     this.renderSchool();
   }
   renderSchool() {
-    const s = SCHOOL_STEPS[this.schoolIndex];
+    const s = schoolPage(SCHOOL_STEPS[this.schoolIndex]);
     $('school-step').textContent = `${this.schoolIndex + 1} / ${SCHOOL_STEPS.length}`;
     $('school-title').textContent = s.title;
     $('school-body').innerHTML = s.body;
@@ -157,16 +234,22 @@ export class UI {
   }
   updateSchoolHighlight() {
     if (this.el.school.classList.contains('hidden') || !this.getAnchor) return;
-    const s = SCHOOL_STEPS[this.schoolIndex];
-    const a = this.getAnchor(s.anchor);
+    const s = schoolPage(SCHOOL_STEPS[this.schoolIndex]);
     const h = $('school-highlight');
-    if (!a) { h.style.display = 'none'; return; }
+    let box = null;
+    if (s.anchor[0] === '#') {
+      // a page element (touch controls, head-up display): frame it with a little margin
+      const el = document.querySelector(s.anchor), r = el && el.getBoundingClientRect();
+      if (r && r.width > 0) box = { x: r.left - 6, y: r.top - 6, w: r.width + 12, h: r.height + 12 };
+    } else {
+      const a = this.getAnchor(s.anchor);
+      if (a) { const size = a.size || 150; box = { x: a.x - size / 2, y: a.y - size / 2, w: size, h: size * (a.aspect || 1) }; }
+    }
+    if (!box) { h.style.display = 'none'; return; }
     h.style.display = 'block';
-    const size = a.size || 150;
-    h.style.left = `${a.x - size / 2}px`; h.style.top = `${a.y - size / 2}px`; h.style.width = `${size}px`; h.style.height = `${size * (a.aspect || 1)}px`;
+    h.style.left = `${box.x}px`; h.style.top = `${box.y}px`; h.style.width = `${box.w}px`; h.style.height = `${box.h}px`;
     // keep the card away from the highlight
-    const card = $('school-card');
-    if (a.x > window.innerWidth * 0.55) { card.style.right = 'auto'; card.style.left = '24px'; } else { card.style.left = 'auto'; card.style.right = '24px'; }
+    $('school-card').classList.toggle('left', box.x + box.w / 2 > window.innerWidth * 0.55);
   }
   hideSchool(skipped) { this.show('school', false); this.onSchoolDone && this.onSchoolDone(skipped); }
 

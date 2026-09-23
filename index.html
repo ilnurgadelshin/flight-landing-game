@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0f14" />
+  <!-- launched from the home screen, iOS and Android open it without the browser bars -->
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="737 Landing" />
   <title>737-800 Landing Simulator</title>
   <link rel="stylesheet" href="css/style.css" />
   <script type="importmap">
@@ -44,6 +50,14 @@
       <div class="hud-cell wide"><span class="lbl">MOUSE</span><span id="h-mouse">click to engage</span></div>
       <div class="hud-cell"><button id="btn-help" title="Flight School (H)">?</button></div>
     </div>
+    <!-- phones: head-up display with the landing numbers (the 737NG can have one in front of the captain) -->
+    <div id="hgs">
+      <div id="g-spd" class="g-col"><b id="g-ias" class="g-box">---</b><small id="g-tgt"></small><small id="g-n1"></small></div>
+      <div id="g-alt" class="g-col"><b id="g-altv" class="g-box">---</b><small id="g-ra"></small><small id="g-vs"></small><small id="g-wind"></small></div>
+      <div id="g-gs" class="g-scale v"><i></i><i></i><em></em><i></i><i></i><div class="g-dia"></div></div>
+      <div id="g-loc" class="g-scale h"><i></i><i></i><em></em><i></i><i></i><div class="g-dia"></div></div>
+      <div id="g-fd"><div class="g-ac"></div><div class="g-fdh"></div><div class="g-fdv"></div></div>
+    </div>
     <div id="alert-stall" class="alert hidden">STALL</div>
     <div id="alert-config" class="alert hidden">GEAR</div>
     <div id="crash-flash"></div>
@@ -56,7 +70,7 @@
       <h1>BOEING 737-800 <span>LANDING SIMULATOR</span></h1>
       <p class="sub">Final approach into Westhaven International, runway 27. Fly the ILS, flare, and stop on the runway.</p>
 
-      <div class="menu-section">
+      <div class="menu-section" id="mode-section">
         <h2>Mode</h2>
         <div class="choice-row" id="mode-row">
           <button class="choice" data-mode="training">
@@ -73,23 +87,24 @@
         <div class="choice-row" id="scenario-row"></div>
       </div>
 
-      <div class="menu-section">
+      <div class="menu-section" id="start-section">
         <h2>Starting point</h2>
         <div class="choice-row" id="start-row"></div>
       </div>
 
       <div class="menu-section options">
-        <label><input type="checkbox" id="opt-invert" /> Pilot-style pitch (push forward = nose down)</label>
+        <label><input type="checkbox" id="opt-invert" /> Pilot-style pitch <span class="only-desktop">(push forward = nose down)</span><span class="only-touch">(stick up = nose down)</span></label>
         <label><input type="checkbox" id="opt-night" /> Night</label>
         <label><input type="checkbox" id="opt-sound" checked /> Sound &amp; voice callouts</label>
-        <label>Mouse sensitivity <input type="range" id="opt-mouse" min="0.4" max="2" step="0.1" value="1" /></label>
+        <label class="only-desktop">Mouse sensitivity <input type="range" id="opt-mouse" min="0.4" max="2" step="0.1" value="1" /></label>
       </div>
 
       <div class="menu-actions">
         <button id="btn-start" class="primary">Start approach</button>
         <button id="btn-demo">Watch an autoland demo</button>
       </div>
-      <p class="hint">Keyboard: ↑↓ pitch · ←→ roll · A/D rudder · W/S throttle · T TOGA · F/V flaps · G gear · Space speedbrake · X arm · B brakes · N autobrake · R reversers · [ ] trim · L look down · H help</p>
+      <p class="hint only-touch">Right thumb: the stick · left thumb: the thrust lever and the rudder · buttons for gear, flaps, speedbrakes and autobrake. <span class="ios-only">For full screen on iPhone: Share → Add to Home Screen.</span></p>
+      <p class="hint only-desktop">Keyboard: ↑↓ pitch · ←→ roll · A/D rudder · W/S throttle · T TOGA · F/V flaps · G gear · Space speedbrake · X arm · B brakes · N autobrake · R reversers · [ ] trim · L look down · H help</p>
     </div>
   </div>
 
@@ -112,7 +127,7 @@
   <div id="pause" class="overlay hidden">
     <div class="panel small">
       <h2>Paused</h2>
-      <p>Press <b>P</b> to resume.</p>
+      <p class="only-desktop">Press <b>P</b> to resume.</p>
       <button id="btn-resume" class="primary">Resume</button>
       <button id="btn-quit">Back to menu</button>
     </div>
@@ -130,6 +145,16 @@
         <button id="btn-again" class="primary">Fly again</button>
         <button id="btn-menu">Change conditions</button>
       </div>
+    </div>
+  </div>
+
+  <!-- touch devices held upright -->
+  <div id="rotate" class="overlay hidden">
+    <div class="panel small">
+      <div class="rot-icon" aria-hidden="true">📱↻</div>
+      <h2>Rotate to landscape</h2>
+      <p>The flight deck needs the full width of the screen.</p>
+      <p class="ios-only muted">For full screen on iPhone: Share → Add to Home Screen.</p>
     </div>
   </div>
 
