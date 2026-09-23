@@ -102,6 +102,7 @@ export class Game {
     this.input.enabled = (s === 'flying');
     if (s !== 'flying') this.input.setMouse(false);
     if (s === 'flying') {
+      this.input.pad.holdoff = true;   // a controller button still held from a menu press does not fly
       this.ui.setModeMessage('');
       if ((prev === 'paused' || prev === 'school') && this._yokeWasOn) {
         // give the yoke back, blended in over a second so the mouse position cannot jerk the aircraft
@@ -124,6 +125,12 @@ export class Game {
     if (name === 'menu') { if (this.state === 'flying') this.togglePause(); return; }
     if (name === 'help') { if (this.state === 'flying') { this.sim.paused = true; this.setState('school'); this.ui.showSchool((n) => this.anchorFor(n), (look) => { this.schoolLook = look; }); this.ui.onSchoolDone = () => { this.sim.paused = false; this.schoolLook = 0; this.setState('flying'); }; } return; }
     if (name === 'enter') { if (this.state === 'finished') this.ui.onAgain && this.ui.onAgain(); return; }
+    if (name === 'padButton') { this.padButton(arg); return; }
+    if (name === 'togaOrReposition') {
+      // the controller's View button: TO/GA, and once the go-around is under way, back on final
+      if (this.state === 'flying') this.onAction(this.ctx.gaMode && this.ctx.gaTimer > 3 ? 'reposition' : 'toga');
+      return;
+    }
     if (this.state !== 'flying') return;
     if (this.demoAp && ['gear', 'flapsDown', 'flapsUp', 'speedbrake', 'toga'].includes(name)) this.disengageDemo();
     switch (name) {
@@ -141,8 +148,21 @@ export class Game {
     }
   }
 
-  /** The player grabbed a flight control (keys, mouse yoke, the touch stick, rudder or lever, or tilted the phone). */
-  humanTakeover() { return this.input.anyFlightKeyHeld() || this.input.mouseEngaged || this.input.touchFlying() || this.input.tiltFlying(); }
+  /** The player grabbed a flight control (keys, mouse yoke, the touch stick, rudder or lever, the controller, or tilted the phone). */
+  humanTakeover() { return this.input.anyFlightKeyHeld() || this.input.mouseEngaged || this.input.touchFlying() || this.input.tiltFlying() || this.input.padFlying(); }
+
+  /** Controller buttons outside flying: Menu / A confirm, B goes back, Menu pauses in flight. */
+  padButton(b) {
+    const ui = this.ui;
+    switch (this.state) {
+      case 'menu': if (b === 'Menu' || b === 'A') { if (ui.onStart) ui.onStart(ui.getOptions()); } break;
+      case 'school': if (b === 'A') ui.schoolStep(1); else if (b === 'B') ui.schoolStep(-1); else if (b === 'Menu') ui.hideSchool(true); break;
+      case 'paused': if (b === 'Menu' || b === 'A') this.togglePause(); else if (b === 'B' && ui.onQuit) ui.onQuit(); break;
+      case 'finished': if ((b === 'A' || b === 'Menu') && ui.onAgain) ui.onAgain(); else if (b === 'B' && ui.onQuit) ui.onQuit(); break;
+      case 'flying': if (b === 'Menu') this.togglePause(); break;
+      default: break;
+    }
+  }
 
   disengageDemo() { if (!this.demoAp) return; this.demoAp = null; this.audio.play('apdisc'); this.ui.setModeMessage('AUTOPILOT DISENGAGED — you have control', ''); setTimeout(() => this.ui.setModeMessage(''), 2500); this.log('demo', 'disengaged'); }
 
@@ -205,7 +225,7 @@ export class Game {
     this.syncVisual();
     // HUD
     const configWarning = this.gpws.hornOn ? 'GEAR NOT DOWN' : (st.destroyed ? 'CRASHED' : '');
-    this.ui.updateHUD(st, { mouse: this.input.mouseEngaged, configWarning, fd: this.fdCommand() });
+    this.ui.updateHUD(st, { mouse: this.input.mouseEngaged, pad: this.input.pad.active, configWarning, fd: this.fdCommand() });
     if (this.touch) this.touch.sync(st, inp, { gaMode: this.ctx.gaMode });
     this.ui.setCaption(this.gpws.caption, this.gpws.captionKind);
   }

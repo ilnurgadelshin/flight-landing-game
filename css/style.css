@@ -29,7 +29,15 @@ body.touch #gl { cursor: default; touch-action: none; }
 body.touch .overlay { touch-action: pan-y; overscroll-behavior: contain; }
 /* tilt steering (body.tilt) and vibration (body.can-vibrate) */
 body:not(.tilt) .only-tilt, body.tilt .no-tilt { display: none !important; }
-body:not(.can-vibrate) .vib-only { display: none !important; }
+/* Vibration: phones that can vibrate, and controllers that can rumble */
+.options label.vib-opt { display: none; }
+body.touch.can-vibrate .options label.vib-opt, body.pad-rumble .options label.vib-opt { display: flex; }
+/* a game controller in use (body.pad): its hint replaces the keyboard / touch hints, the touch controls go */
+body:not(.pad) .only-pad, body.pad .hint:not(.only-pad) { display: none !important; }
+body.pad #touch { display: none !important; }
+.pad-msg { flex-basis: 100%; color: var(--good); font-size: 12px; }
+.pad-msg:empty { display: none; }
+.gp { display: inline-block; min-width: 1.4em; padding: 0 5px; border: 1px solid rgba(255,255,255,0.45); border-radius: 999px; background: rgba(255,255,255,0.1); font-size: 0.85em; font-weight: 700; text-align: center; white-space: nowrap; }
 .tilt-msg { flex-basis: 100%; color: var(--accent); font-size: 12px; }
 .tilt-msg:empty { display: none; }
 

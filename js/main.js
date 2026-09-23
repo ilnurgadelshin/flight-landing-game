@@ -14,7 +14,8 @@ import { TouchControls } from './touch.js';
 import { Platform, ResolutionScaler, touchFirst, phone } from './platform.js';
 import { TiltControl, TILT } from './tilt.js';
 import { Haptics } from './haptics.js';
-import { setTilt, getScheme } from './controls.js';
+import { GamepadInput, PAD } from './gamepad.js';
+import { setTilt, getScheme, setPad, controlsHtml } from './controls.js';
 
 const params = new URLSearchParams(location.search);
 // phones get the lighter scene; their resolution then adapts to the frame rate (see ResolutionScaler)
@@ -39,6 +40,8 @@ async function boot() {
   const platform = new Platform({ game, input, world });
   const tilt = new TiltControl(input);
   touch.onCenter = () => tilt.center();
+  const pad = new GamepadInput(input);
+  haptics.pad = pad;
   // a flight that starts or resumes takes the way the phone is held as level; anything else stops vibrating
   game.onStateChange = (s) => { platform.onGameState(s); if (s === 'flying') tilt.requestCenter(); else haptics.stop(); };
 
@@ -50,8 +53,8 @@ async function boot() {
   const optTilt = document.getElementById('opt-tilt'), optVib = document.getElementById('opt-vib'), tiltMsg = document.getElementById('tilt-msg');
   document.body.classList.toggle('can-vibrate', haptics.supported);
   optVib.checked = pref.get('vibration') !== '0';
-  haptics.enabled = haptics.supported && optVib.checked;
-  optVib.addEventListener('change', () => { haptics.enabled = haptics.supported && optVib.checked; pref.set('vibration', optVib.checked ? '1' : '0'); haptics.tick(); });
+  haptics.enabled = optVib.checked;
+  optVib.addEventListener('change', () => { haptics.enabled = optVib.checked; pref.set('vibration', optVib.checked ? '1' : '0'); haptics.tick(); });
   optTilt.checked = pref.get('tilt') === '1';
   const TILT_MSG = {
     denied: 'Motion access was declined, so the stick stays on. On iPhone, close and reopen the tab to be asked again.',
@@ -73,6 +76,28 @@ async function boot() {
     if (optTilt.checked) tilt.enable(); else tilt.disable();
   });
   const tiltFromTap = () => { if (optTilt.checked && !tilt.enabled && getScheme() === 'touch') tilt.enable(); };
+
+  // ---- game controller: in use from its first press until a key, the mouse or a touch is used
+  const padMsg = document.getElementById('pad-msg'), padHint = document.getElementById('pad-hint');
+  const PAD_HINT = 'Controller: [[pitch]] to fly · thrust [[thrust]] · rudder [[rudder]] · flaps [[flapsUp]] / [[flapsDown]] · gear [[gear]] · '
+    + 'speedbrakes [[armSpeedbrake]] (arm), [[speedbrake]] (extend) · brakes [[brakes]] · autobrake [[autobrake]] · trim D-pad ↑/↓ · TO/GA [[toga]] · look [[look]] · pause [[pause]]';
+  let padWas = false;
+  pad.onChange = ({ connected, active, labels }) => {
+    document.body.classList.toggle('pad', active);
+    document.body.classList.toggle('pad-rumble', connected && pad.canRumble);
+    setPad(active ? labels : null);
+    if (active) padHint.innerHTML = controlsHtml(PAD_HINT);
+    if (connected && !padWas) {
+      padMsg.innerHTML = `🎮 ${labels.name} controller connected: <span class="gp">${labels.Menu}</span> or <span class="gp">${labels.A}</span> starts, the left stick flies.`;
+      if (game.state === 'flying') { ui.setModeMessage('CONTROLLER CONNECTED', ''); setTimeout(() => { if (game.state === 'flying') ui.setModeMessage(''); }, 2500); }
+    } else if (!connected && padWas) {
+      padMsg.textContent = '';
+      if (game.state === 'flying') game.togglePause();          // the controller in hand is gone: stop the flight
+      ui.setModeMessage(game.state === 'paused' ? 'CONTROLLER DISCONNECTED — paused' : '', 'ga');
+    }
+    padWas = connected;
+  };
+  for (const ev of ['keydown', 'pointerdown']) window.addEventListener(ev, () => pad.otherDeviceUsed(), true);
   const scaler = new ResolutionScaler(world, { enabled: params.has('drs') ? params.get('drs') !== '0' : touchFirst, start: world.pixelRatio });
   world.applyScenario(SCENARIOS.clear, false);
   ui.hideLoading();
@@ -106,6 +131,7 @@ async function boot() {
     const draw = !still || now - lastDraw > 66;
     if (draw) lastDraw = now;
     if (tilt.enabled) tilt.update();       // a sensor that stops reporting lets go of the controls
+    pad.poll(now / 1000);
     const t0 = performance.now();
     if (game.state !== 'menu') {
       game.update(dt);
@@ -123,8 +149,9 @@ async function boot() {
 
   // ---- test / automation hooks
   window.__sim = {
-    game, world, cockpit, inputManager: input, audio, gpws, ui, stats, touch, platform, scaler, tilt, haptics,
+    game, world, cockpit, inputManager: input, audio, gpws, ui, stats, touch, platform, scaler, tilt, haptics, pad,
     tiltRange: { pitch: TILT.pitchRange * 180 / Math.PI, roll: TILT.rollRange * 180 / Math.PI },   // degrees for full deflection
+    padDeadZone: PAD.stickDeadZone,
     scenarios: Object.keys(SCENARIOS), starts: Object.keys(APPROACH_STARTS),
     start: (opts) => game.start(Object.assign({ mode: 'game', scenarioId: 'clear', startId: 'standard', sound: false }, opts)),
     state: () => game.sim.state,
