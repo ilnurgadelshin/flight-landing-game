@@ -471,9 +471,11 @@ if (want('mobile')) {
   const g1 = await MS(), gi = await MI();
   const repVisible = await mp.evaluate(() => !document.getElementById('t-reposition').classList.contains('hidden'));
   check('TO/GA gives full thrust, starts a go-around and offers REPOSITION', gi.throttle === 1 && g1.gaMode && repVisible);
+  const gaDist = g1.dist;
   await mp.tap('#t-reposition'); await mf(2);
   const g2 = await MS();
-  check('REPOSITION puts the aircraft back on final', !g2.gaMode && Math.abs(g2.dist - 10 * 1852) < 0.25 * 1852 && await mp.evaluate(() => document.getElementById('t-reposition').classList.contains('hidden')), `${fmt(g2.dist / 1852)} nm`);
+  const repositioned = await mp.evaluate(() => window.__sim.events().some((e) => e.type === 'reposition'));
+  check('REPOSITION puts the aircraft back on final', repositioned && !g2.gaMode && g2.dist <= 10.02 * 1852 && g2.dist > gaDist + 0.2 * 1852 && await mp.evaluate(() => document.getElementById('t-reposition').classList.contains('hidden')), `${fmt(gaDist / 1852)} → ${fmt(g2.dist / 1852)} nm`);
 
   // pause, rotation, leaving the app
   await mp.tap('#t-pause'); await mf(1);
@@ -783,9 +785,12 @@ if (want('gamepad')) {
   s = await PS(); i = await PI();
   check('View = TO/GA: full thrust and a go-around', s.ga && i.throttle === 1);
   await pp.waitForFunction(() => window.__sim.game.ctx.gaTimer > 3.5, null, { timeout: 120000 });
+  const gaDist = (await PS()).dist;
   await tapPad('View'); await pf(2);
   s = await PS();
-  check('View again during the go-around = back on final', !s.ga && Math.abs(s.dist - 10 * 1852) < 0.25 * 1852, `${fmt(s.dist / 1852)} nm`);
+  // placed back at the 10 nm start (it flies on while the frames go by, at up to a second per frame here)
+  const repositioned = await pp.evaluate(() => window.__sim.events().some((e) => e.type === 'reposition'));
+  check('View again during the go-around = back on final', repositioned && !s.ga && s.dist <= 10.02 * 1852 && s.dist > gaDist + 0.2 * 1852, `${fmt(gaDist / 1852)} → ${fmt(s.dist / 1852)} nm`);
   await tapPad('Menu'); s = await PS();
   const paused = s.state === 'paused';
   await tapPad('A'); s = await PS();
