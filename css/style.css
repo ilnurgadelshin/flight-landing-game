@@ -1,0 +1,102 @@
+:root {
+  --bg: #0b0f14;
+  --panel: rgba(12, 18, 26, 0.92);
+  --accent: #ffb020;
+  --accent2: #3fd0ff;
+  --good: #40d47e;
+  --bad: #ff4d4d;
+  --text: #e8eef4;
+  --muted: #9fb0c0;
+  font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); overflow: hidden; }
+#gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; cursor: crosshair; }
+.hidden { display: none !important; }
+
+/* ---------- overlays ---------- */
+.overlay { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.55); z-index: 20; overflow: auto; }
+.panel { background: var(--panel); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 22px 26px; box-shadow: 0 20px 60px rgba(0,0,0,0.6); backdrop-filter: blur(6px); max-width: 960px; width: min(96vw, 960px); }
+.panel.small { width: 360px; text-align: center; }
+h1 { margin: 0 0 4px; font-size: 26px; letter-spacing: 2px; }
+h1 span { color: var(--accent); font-weight: 400; }
+h2 { margin: 12px 0 8px; font-size: 15px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--muted); }
+.sub { margin: 0 0 8px; color: var(--muted); }
+.choice-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.choice { flex: 1 1 180px; text-align: left; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.14); color: var(--text); border-radius: 10px; padding: 10px 12px; cursor: pointer; transition: all .15s; }
+.choice:hover { background: rgba(255,255,255,0.1); }
+.choice.selected { border-color: var(--accent); background: rgba(255,176,32,0.12); box-shadow: 0 0 0 1px var(--accent) inset; }
+.choice b { display: block; font-size: 15px; margin-bottom: 3px; }
+.choice small { color: var(--muted); font-size: 12px; line-height: 1.35; display: block; }
+.choice .icon { font-size: 20px; margin-right: 6px; }
+.options { display: flex; gap: 18px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+.options label { display: flex; align-items: center; gap: 6px; }
+.menu-actions { display: flex; gap: 10px; margin-top: 18px; flex-wrap: wrap; }
+button { font: inherit; }
+button.primary { background: var(--accent); color: #111; border: none; padding: 12px 22px; border-radius: 8px; font-weight: 700; font-size: 15px; cursor: pointer; }
+button.primary:hover { filter: brightness(1.1); }
+.menu-actions button:not(.primary), .school-actions button:not(.primary), #pause button:not(.primary) { background: transparent; color: var(--text); border: 1px solid rgba(255,255,255,0.25); padding: 12px 18px; border-radius: 8px; cursor: pointer; }
+.hint { color: var(--muted); font-size: 12px; margin: 14px 0 0; }
+
+/* ---------- HUD ---------- */
+#hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
+#hud-top { position: absolute; top: 10px; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+#mode-msg { font-size: 22px; font-weight: 700; letter-spacing: 3px; color: var(--accent); text-shadow: 0 2px 8px #000; min-height: 26px; }
+#mode-msg.ga { color: #7ef; }
+#checklist { position: absolute; top: 12px; right: 14px; background: rgba(0, 0, 0, 0.55); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 6px 10px; font-family: "Consolas", "Menlo", monospace; font-size: 12px; line-height: 1.5; text-align: left; }
+#checklist .done { color: #6f6; } #checklist .todo { color: #fc6; }
+#instructor { background: rgba(0, 40, 70, 0.75); border: 1px solid rgba(63,208,255,0.5); color: #dff6ff; padding: 8px 14px; border-radius: 8px; font-size: 14px; max-width: 640px; text-align: center; }
+#gpws-caption { font-size: 20px; font-weight: 700; color: #fff; background: rgba(160, 0, 0, 0.75); padding: 4px 14px; border-radius: 6px; letter-spacing: 2px; opacity: 0; transition: opacity .2s; }
+#gpws-caption.show { opacity: 1; }
+#gpws-caption.info { background: rgba(0, 80, 160, 0.75); }
+#gpws-caption.caution { background: rgba(200, 130, 0, 0.85); color: #111; }
+#hud-bottom { position: absolute; bottom: 0; left: 0; right: 0; display: flex; gap: 2px; padding: 2px 6px 3px; background: linear-gradient(transparent, rgba(0,0,0,0.7)); font-family: "Consolas", "Menlo", monospace; font-size: 12px; flex-wrap: wrap; justify-content: center; }
+.hud-cell { display: flex; flex-direction: column; align-items: center; min-width: 50px; padding: 1px 5px; background: rgba(0,0,0,0.4); border-radius: 4px; }
+.hud-cell.wide { min-width: 88px; }
+.hud-cell .lbl { font-size: 9px; color: var(--muted); letter-spacing: 1px; }
+.hud-cell span:nth-child(2) { font-size: 15px; font-weight: 700; color: #cfe; }
+.hud-cell .unit { font-size: 9px; color: var(--muted); }
+.hud-cell .warn { color: var(--accent) !important; }
+.hud-cell .bad { color: var(--bad) !important; }
+.hud-cell .good { color: var(--good) !important; }
+#btn-help { pointer-events: auto; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: #fff; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; font-weight: 700; }
+.alert { position: absolute; left: 50%; transform: translateX(-50%); font-weight: 900; letter-spacing: 6px; padding: 6px 20px; border-radius: 6px; animation: blink .5s steps(2) infinite; }
+#alert-stall { top: 34%; color: #fff; background: rgba(200,0,0,0.85); font-size: 34px; }
+#alert-config { top: 43%; color: #111; background: rgba(255,60,60,0.9); font-size: 20px; }
+@keyframes blink { 50% { opacity: 0.25; } }
+#crash-flash { position: absolute; inset: 0; background: #fff; opacity: 0; pointer-events: none; }
+#rain-overlay { position: absolute; inset: 0; pointer-events: none; opacity: 0; background-image: radial-gradient(circle at 20% 30%, rgba(255,255,255,0.18) 0 1.5px, transparent 2px), radial-gradient(circle at 70% 60%, rgba(255,255,255,0.15) 0 1px, transparent 2px), radial-gradient(circle at 45% 80%, rgba(255,255,255,0.14) 0 1.2px, transparent 2px), radial-gradient(circle at 85% 20%, rgba(255,255,255,0.12) 0 1px, transparent 2px); background-size: 90px 120px, 140px 160px, 110px 90px, 70px 130px; }
+
+/* ---------- Flight School ---------- */
+#school { background: rgba(0,0,0,0.25); pointer-events: none; }
+#school-highlight { position: absolute; border: 3px solid var(--accent); border-radius: 10px; box-shadow: 0 0 0 9999px rgba(0,0,0,0.55), 0 0 24px var(--accent); transition: all .3s ease; pointer-events: none; }
+#school-card { pointer-events: auto; position: absolute; right: 24px; top: 24px; width: 380px; padding: 18px 20px; }
+#school-step { color: var(--muted); font-size: 12px; }
+#school-title { margin: 4px 0 8px; font-size: 18px; color: #fff; text-transform: none; letter-spacing: 0; }
+#school-body { font-size: 14px; line-height: 1.5; }
+#school-body kbd { background: #222; border: 1px solid #555; border-bottom-width: 3px; border-radius: 4px; padding: 1px 6px; font-family: inherit; font-size: 12px; color: #fff; margin: 0 1px; }
+#school-body ul { padding-left: 18px; margin: 6px 0; }
+#school-body .ok { color: var(--good); }
+.school-actions { display: flex; gap: 8px; margin-top: 14px; }
+.school-actions button { padding: 8px 12px !important; font-size: 13px; }
+
+/* ---------- Results ---------- */
+.results-panel { width: min(96vw, 720px); }
+#res-outcome { font-size: 13px; letter-spacing: 3px; font-weight: 700; }
+#res-outcome.ok { color: var(--good); }
+#res-outcome.fail { color: var(--bad); }
+#res-headline { font-size: 24px; margin: 4px 0 6px; text-transform: none; letter-spacing: 0; color: #fff; }
+#res-score { font-size: 40px; font-weight: 900; color: var(--accent); margin-bottom: 10px; }
+#res-score small { font-size: 16px; color: var(--muted); font-weight: 400; margin-left: 10px; }
+#res-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+#res-table td { padding: 6px 8px; border-top: 1px solid rgba(255,255,255,0.08); vertical-align: top; }
+#res-table td.pts { text-align: right; white-space: nowrap; font-family: monospace; }
+#res-table tr.bad td { color: #ffb3b3; }
+#res-table td.note { color: var(--muted); }
+#res-notes { margin-top: 10px; font-size: 13px; color: #ffb3b3; }
+#res-notes div::before { content: "⚠ "; }
+
+@media (max-width: 800px) {
+  #school-card { right: 8px; left: 8px; width: auto; top: auto; bottom: 70px; }
+  #hud-bottom { font-size: 11px; }
+}
