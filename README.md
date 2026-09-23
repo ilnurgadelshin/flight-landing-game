@@ -261,6 +261,26 @@ edge, centreline and touchdown-zone lights, a PAPI computed from the pilot's
 eye position, taxiways, buildings, a town, forests, clouds, rain, fog and
 lightning.
 
+**Light and atmosphere** (`js/world/sky.js`, `js/world/scene.js`): one
+scattering model of the sky (Preetham, as in three.js' Sky) gives the sky dome,
+the haze over the land (it takes the colour of the horizon sky in each
+direction: warm and bright towards the sun, blue away from it), the colour of
+the sunlight and the light the sky sheds. The sky is captured into an
+environment map that lights, and is reflected by, every surface outside and
+inside the cockpit, so water mirrors the sky and a wet runway shines. The sun
+casts shadows: over the airport, and through the flight-deck windows, whose
+frames throw moving shadows across the glareshield and panel. Under a cloud
+deck the sun is hidden and the light turns flat and grey; above it, sunshine
+and a clear sky return. At night there are stars, moonlight, and runway and
+town lights that glow.
+
+Computers get the **high** graphics tier: sun shadows, and the outside view
+drawn into a floating-point frame with 4× multisampling and a bloom pass (the
+sun, glints, the lights at night) before tone mapping. Phones and tablets get
+the **low** tier: the same sky, haze and lighting, drawn straight to the screen,
+without shadows or bloom. Add `?quality=high` or `?quality=low` to the address
+to choose.
+
 **Cockpit** (`js/cockpit/`): a first-person 737 flight deck with a PFD
 (attitude, airspeed and altitude tapes, vertical speed, ILS deviation,
 heading, flight director), navigation display, engine display (N1, EGT, flap
@@ -310,7 +330,7 @@ The **Night** option in the menu flies any of these after dark.
 | `js/sim.js` | Fixed 120 Hz simulation loop and approach placement |
 | `js/config.js` | Aircraft data, runway, scenarios and starting points |
 | `js/physics/` | Flight model and landing gear (`aircraft.js`), atmosphere and wind, terrain |
-| `js/world/` | Terrain, airport, runway textures, airfield lights and PAPI, weather |
+| `js/world/` | Terrain, airport, runway textures, airfield lights and PAPI, weather; the sky and haze model (`sky.js`); lighting, shadows and post-processing (`scene.js`) |
 | `js/cockpit/` | 3D flight deck and the canvas-drawn displays |
 | `js/input.js`, `js/audio.js`, `js/gpws.js` | Keyboard, mouse yoke and touch input, synthesised sound and voice, warning system |
 | `js/touch.js`, `js/platform.js`, `js/controls.js` | On-screen touch controls; phone support (orientation, full screen, pausing, wake lock, adaptive resolution); the control glossary that words hints for keys, touch or tilt |
@@ -318,7 +338,7 @@ The **Night** option in the menu flies any of these after dark.
 | `manifest.webmanifest`, `icons/`, `tools/make-icons.mjs` | Home-screen app: manifest, icons, and the script that renders the icons |
 | `js/evaluate.js` | Landing grading and outcomes |
 | `js/autopilot.js` | Test pilot used by the tests and the autoland demo |
-| `vendor/` | Three.js and cannon-es (no install needed to play) |
+| `vendor/` | Three.js, its post-processing add-ons (`vendor/addons/`) and cannon-es (no install needed to play) |
 | `test/` | Test suites, playtest harness and findings (below) |
 
 ## Testing
@@ -341,11 +361,11 @@ GPU, at about 1–5 rendered frames per second.
 
 | Command | What it checks | Time |
 | --- | --- | --- |
-| `npm test` | Node, no browser: physics (62 checks in 12 groups), phone features (39 checks in 6 groups) and game controllers (34 checks in 4 groups), below | ~3 min |
-| `npm run test:e2e` | The real page in Chromium: 189 checks in 15 groups (below) | 50–70 min |
+| `npm test` | Node, no browser: physics (62 checks in 12 groups), phone features (39 checks in 6 groups), game controllers (34 checks in 4 groups) and the sky model (12 checks in 3 groups), below | ~3 min |
+| `npm run test:e2e` | The real page in Chromium: 200 checks in 16 groups (below) | 55–75 min |
 | `node test/e2e.mjs quick` | The same without the slow mouse-yoke, touch, tilt and controller landings (E9, E11, E13, E15) | 20–30 min |
-| `node test/e2e.mjs only=<groups>` | E1 plus the groups listed, comma-separated: `menu`, `keys`, `school`, `land`, `fail`, `ga`, `fps`, `keyboard`, `mobile`, `touchland`, `tilt`, `tiltland`, `gamepad`, `padland` (e.g. `only=tilt,tiltland`) | 1–10 min each |
-| `npm run test:all` | All of them: the Node suites, then the browser suite | 55–75 min |
+| `node test/e2e.mjs only=<groups>` | E1 plus the groups listed, comma-separated: `menu`, `keys`, `school`, `land`, `fail`, `ga`, `fps`, `keyboard`, `mobile`, `touchland`, `tilt`, `tiltland`, `gamepad`, `padland`, `graphics` (e.g. `only=tilt,tiltland`) | 1–10 min each |
+| `npm run test:all` | All of them: the Node suites, then the browser suite | 60–80 min |
 | `node test/robustness.mjs` | 18 short-final autolands, crosswind and storm with 9 gust seeds each; prints each result as a report, not pass/fail | under a minute |
 
 `test/physics.test.mjs` flies the aircraft in Node and checks:
@@ -432,6 +452,20 @@ controls a player has.
   - the touch controls hiding on a phone.
 - **E15** lands with the controller only: stick, A/B thrust, triggers, buttons,
   reverse by holding B, stowed with A. It checks the touchdown rumble.
+- **E16** checks the graphics tiers. The high tier (a computer) must have 4×
+  MSAA, bloom, sun shadows and sky lighting; the low tier (phones and the other
+  groups) must have neither post-processing nor shadow maps. On pixels read
+  back from the canvas it checks:
+  - the sky is blue up high, paler and brighter at the horizon, and the land is
+    darker;
+  - the flight deck is darker with its shadows than without, but brighter than
+    with the sun off, because sunlight comes in through the windows.
+
+  It also checks sunshine above a cloud deck and overcast light inside and
+  below it, and stars, moonlight and glowing lights at night.
+
+The other browser groups run on the fast low tier, since software rendering of
+the high tier is about twice as slow.
 
 `test/phone.test.mjs` checks the phone features in Node:
 
@@ -444,6 +478,16 @@ controls a player has.
 5. the browser tests' simulated sensor matches the rotation-matrix phone model;
 6. each vibration pattern and controller rumble, and silence when switched off
    or on an iPhone.
+
+`test/sky.test.mjs` checks the atmosphere model in Node:
+
+1. by day, the sky is blue overhead and paler and brighter at the horizon. It
+   glows towards the sun, and its light on the ground is bluish. The sunlight
+   is yellowish white;
+2. under a low sun the light is orange and weaker. At night there is no
+   sunlight and the sky is dark. Under an overcast the sky and its light are
+   one grey;
+3. colours given as they should look on screen tone-map back to themselves.
 
 `test/gamepad.test.mjs` checks the controller module against a fake
 `navigator.getGamepads()`, and InputManager's controller thrust:

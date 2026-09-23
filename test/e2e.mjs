@@ -1,5 +1,6 @@
 // Browser end-to-end QA: plays the game in headless Chromium (SwiftShader).
 //   node test/e2e.mjs            (all)      node test/e2e.mjs quick   (skip the slow keyboard, touch, tilt and controller landings)
+// The functional groups use the fast 'low' graphics tier (software rendering is slow); E16 checks the 'high' one.
 import { chromium } from 'playwright';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -133,8 +134,11 @@ if (want('keys')) {
   check('H opens Flight School in flight', (await S()).gameState === 'school' && !(await page.evaluate(() => document.getElementById('school').classList.contains('hidden'))));
   await page.click('#school-skip'); await frames(2);
   check('Skip returns to flying', (await S()).gameState === 'flying');
+  // the aircraft flies on while the key is down: check the jump back and the event, not an exact distance
+  const dRp = (await S()).distToThreshold;
   await tap('Backspace');
-  const sRp = await S(); check('Backspace repositions on final after a go-around', Math.abs(sRp.distToThreshold - 10 * 1852) < 100 && !sRp.gaMode, `${fmt(sRp.distToThreshold / 1852)} nm`);
+  const sRp = await S(); const rp = await page.evaluate(() => window.__sim.events().some((e) => e.type === 'reposition'));
+  check('Backspace repositions on final after a go-around', rp && !sRp.gaMode && sRp.distToThreshold <= 10.02 * 1852 && sRp.distToThreshold > 9.6 * 1852 && sRp.distToThreshold > dRp + 0.2 * 1852, `${fmt(dRp / 1852)} → ${fmt(sRp.distToThreshold / 1852)} nm`);
 }
 
 // --------------------------------------------------------------------------- flight school
@@ -269,7 +273,7 @@ if (want('ga')) {
     await shot(mode === 'training' ? 'e2e-goaround-school' : 'e2e-goaround');
     await tap('Backspace'); await page.waitForTimeout(300);
     const s2 = await S();
-    check(tag + 'Backspace repositions for another approach (same 4 nm start)', Math.abs(s2.distToThreshold - 4 * 1852) < 100 && !s2.gaMode && s2.gameState === 'flying', `${fmt(s2.distToThreshold / 1852)} nm, ${fmt(s2.alt / 0.3048, 0)} ft`);
+    check(tag + 'Backspace repositions for another approach (same 4 nm start)', s2.distToThreshold <= 4.02 * 1852 && s2.distToThreshold > 3.6 * 1852 && !s2.gaMode && s2.gameState === 'flying', `${fmt(s2.distToThreshold / 1852)} nm, ${fmt(s2.alt / 0.3048, 0)} ft`);
   }
 }
 
@@ -714,7 +718,7 @@ async function padPage({ phone = false } = {}) {
   pp.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') consoleErrors.push(`[pad ${m.type()}] ${m.text()}`); });
   pp.on('pageerror', (e) => consoleErrors.push(`[pad pageerror] ${e.message}`));
   await page.setViewportSize({ width: 320, height: 180 });     // keep the long-lived desktop page cheap
-  await pp.goto(url + '/');
+  await pp.goto(url + '/?quality=low');                         // the fast renderer: E16 covers the other
   await pp.waitForFunction(() => window.__sim, null, { timeout: 180000 });
   await pp.addScriptTag({ path: path.join(root, 'test', 'gamepad-stub.browser.js') });
   const pf = async (n) => { await pp.evaluate((n) => new Promise((res) => { const f0 = window.__sim.stats.frames; const chk = () => (window.__sim.stats.frames - f0 >= n ? res() : requestAnimationFrame(chk)); chk(); }), n); };
@@ -889,6 +893,79 @@ if (!quick && want('padland')) {
   check('reverse by holding B at idle, stowed with A; the touchdown rumbled; no mouse or keys', r.log.includes('reverse on') && r.log.includes('reverse off') && td.length > 0 && !r.mouse && r.active, `touchdown rumble ${JSON.stringify(td[0])}`);
   await pp.screenshot({ path: path.join(out, 'e2e-pad-landing.png') });
   await ctx.close();
+}
+
+// --------------------------------------------------------------------------- graphics
+// The 'high' tier a computer gets (shadows, sky lighting, bloom, MSAA), checked on pixels read back
+// from the canvas straight after a frame, and the 'low' tier phones and the other groups use.
+if (want('graphics')) {
+  console.log('\n[E16] Graphics: sky, haze, sunlight and shadows; quality tiers');
+  const low = await page.evaluate(() => { const w = window.__sim.world; return { q: w.quality, composer: !!w.composer, shadows: w.renderer.shadowMap.enabled }; });
+  check('the fast tier (phones, and this page): no post-processing and no shadow maps', low.q === 'low' && !low.composer && !low.shadows, JSON.stringify(low));
+  const ctx = await browser.newContext({ viewport: { width: 960, height: 540 } });
+  const gp = await ctx.newPage();
+  gp.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') consoleErrors.push(`[graphics ${m.type()}] ${m.text()}`); });
+  gp.on('pageerror', (e) => consoleErrors.push(`[graphics pageerror] ${e.message}`));
+  await page.setViewportSize({ width: 320, height: 180 });     // keep the long-lived desktop page cheap
+  await gp.goto(url + '/');
+  await gp.waitForFunction(() => window.__sim, null, { timeout: 180000 });
+  const gf = async (n) => { await gp.evaluate((n) => new Promise((res) => { const f0 = window.__sim.stats.frames; const chk = () => (window.__sim.stats.frames - f0 >= n ? res() : requestAnimationFrame(chk)); chk(); }), n); };
+  const hi = await gp.evaluate(() => {
+    const w = window.__sim.world; let casters = 0;
+    w.cockpitScene.traverse((o) => { if (o.isMesh && o.castShadow) casters++; });
+    return { q: w.quality, composer: !!w.composer, samples: w.composer && w.composer.renderTarget1.samples, bloom: !!w.bloom, shadows: w.renderer.shadowMap.enabled, sun: w.sun.castShadow, cockpitSun: w.cockpitSun.castShadow, casters, env: !!w.scene.environment };
+  });
+  check('a computer gets the high tier: 4× MSAA floating-point frame, bloom, sun shadows outside and in the flight deck', hi.q === 'high' && hi.composer && hi.samples === 4 && hi.bloom && hi.shadows && hi.sun && hi.cockpitSun && hi.casters > 40, JSON.stringify(hi));
+  check('the sky lights every surface (environment map)', hi.env);
+  await gp.evaluate(() => { window.__sim.start({ scenarioId: 'clear', startId: 'short', mode: 'game', sound: false, seed: 5 }); window.__sim.setTimeScale(0); document.getElementById('hud').style.visibility = 'hidden'; });
+  await gf(3);
+  // read the frame back (a 96×54 thumbnail) right after drawing it, in the same task
+  const grab = (setup) => gp.evaluate((setup) => {
+    const w = window.__sim.world;
+    const restore = new Function('w', setup)(w);
+    w.render();
+    const cv = document.createElement('canvas'); cv.width = 96; cv.height = 54;
+    const g = cv.getContext('2d'); g.drawImage(w.renderer.domElement, 0, 0, 96, 54);
+    const d = Array.from(g.getImageData(0, 0, 96, 54).data);
+    if (restore) restore();
+    return d;
+  }, setup);
+  const rowMean = (d, y0, y1, x0 = 0, x1 = 96) => { let r = 0, g = 0, b = 0, n = 0; for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) { const i = (y * 96 + x) * 4; r += d[i]; g += d[i + 1]; b += d[i + 2]; n++; } return [r / n, g / n, b / n]; };
+  const L = (c) => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  // the view without the flight deck: where is the horizon on screen?
+  const hz = await gp.evaluate(() => { const w = window.__sim.world; const v = w.camera.getWorldPosition(w.camera.position.clone()).add(w.camera.position.clone().set(-20000, 0, 0)).project(w.camera); return (1 - v.y) / 2; });
+  const view = await grab(`w.cockpitScene.children.forEach((c) => { if (c.isGroup) c.visible = false; }); return () => w.cockpitScene.children.forEach((c) => { c.visible = true; });`);
+  const hy = Math.round(hz * 54);
+  const top = rowMean(view, 0, 3), nearHz = rowMean(view, Math.max(0, hy - 3), Math.max(1, hy - 1)), below = rowMean(view, Math.min(53, hy + 6), Math.min(54, hy + 9));
+  check('clear day: the sky high up is blue', top[2] > top[0] + 40 && top[2] > 120, top.map((x) => x.toFixed(0)).join(','));
+  check('towards the horizon it turns paler and brighter (haze)', L(nearHz) > L(top) && nearHz[2] - nearHz[0] < top[2] - top[0], `horizon ${nearHz.map((x) => x.toFixed(0)).join(',')} at row ${hy}`);
+  check('the land below the horizon is darker than the sky above it', L(below) < L(nearHz), below.map((x) => x.toFixed(0)).join(','));
+  // the flight deck: the sun comes in through the windows only; the shell shades the rest
+  const shade = rowMean(await grab(`return null;`), 30, 54);
+  const noShadow = rowMean(await grab(`const s = w.cockpitSun.shadow.intensity; w.cockpitSun.shadow.intensity = 0; return () => { w.cockpitSun.shadow.intensity = s; };`), 30, 54);
+  const noSun = rowMean(await grab(`const i = w.cockpitSun.intensity; w.cockpitSun.intensity = 0; return () => { w.cockpitSun.intensity = i; };`), 30, 54);
+  check('the flight deck is shaded by its roof and walls (darker with its shadows than without)', L(shade) < 0.9 * L(noShadow), `with ${L(shade).toFixed(1)}, without ${L(noShadow).toFixed(1)}`);
+  check('but sunlight falls in through the windows (brighter than with the sun off)', L(shade) > L(noSun) + 0.5, `sun off ${L(noSun).toFixed(1)}`);
+  // a cloud deck: sunshine and a clear sky above it, overcast light below
+  await gp.evaluate(() => { window.__sim.start({ scenarioId: 'crosswind', startId: 'standard', mode: 'game', sound: false, seed: 5 }); window.__sim.setTimeScale(0); });
+  await gf(2);
+  const deck = await gp.evaluate(() => {
+    const w = window.__sim.world, st = Object.assign({}, window.__sim.state()), eye = w.camera.getWorldPosition(w.camera.position.clone());
+    const at = (alt) => { w.update(0, Object.assign({}, st, { alt }), eye); return { env: w.envKey, sun: +w.sun.intensity.toFixed(2), overcast: +w.atmo.uniforms.skyOvercast.value.toFixed(2) }; };
+    const r = { above: at(w.cloudTop + 200), inside: at((w.cloudBase + w.cloudTop) / 2), below: at(w.cloudBase - 150) };
+    w.update(0, st, eye);
+    return r;
+  });
+  check('above a cloud deck: full sunshine, clear-sky light', deck.above.env === 'above' && deck.above.overcast === 0 && deck.above.sun > 3, JSON.stringify(deck.above));
+  check('inside and below it: the sun is hidden and the light is the overcast\'s', deck.inside.overcast === 1 && deck.below.env === 'below' && deck.below.sun < 0.15 * deck.above.sun && deck.below.overcast > 0.8, `${JSON.stringify(deck.inside)} ${JSON.stringify(deck.below)}`);
+  // night: stars and airfield lights bright enough to glow through the bloom pass
+  await gp.evaluate(() => { window.__sim.start({ scenarioId: 'clear', night: true, startId: 'short', mode: 'game', sound: false, seed: 5 }); window.__sim.setTimeScale(0); });
+  await gf(2);
+  const night = await gp.evaluate(() => { const w = window.__sim.world; return { lights: w.lights.material.uniforms.uIntensity.value, threshold: w.bloom.threshold, sunE: w.atmo.uniforms.skySunE.value, stars: w.skyMat.uniforms.uStars.value, moon: +w.sun.intensity.toFixed(2) }; });
+  check('night: no sky glow, stars out, moonlight, and the lights\' cores above the glow threshold', night.sunE === 0 && night.stars > 0 && night.moon > 0 && night.moon < 1 && night.lights * 1.6 > night.threshold, JSON.stringify(night));
+  await gp.screenshot({ path: path.join(out, 'e2e-graphics-night.png') });
+  await ctx.close();
+  await page.setViewportSize({ width: VW, height: VH });
 }
 
 // --------------------------------------------------------------------------- wrap up
