@@ -1,6 +1,10 @@
 // Browser end-to-end QA: plays the game in headless Chromium (SwiftShader).
 //   node test/e2e.mjs            (all)      node test/e2e.mjs quick   (skip the slow keyboard, touch, tilt and controller landings)
-// The functional groups use the fast 'low' graphics tier (software rendering is slow); E16 checks the 'high' one.
+// Software rendering (no graphics card) is ~95% of a frame, so the pages run with the 3D drawing
+// switched off (window.__sim.setDrawing): the game loop, physics, rules, displays and interface run
+// as usual at 30-50 fps. A frame is drawn for every screenshot; E1 and E16 check drawn pixels, and
+// E16 draws every scenario by day and night on both graphics tiers. The functional groups use the
+// fast 'low' tier; E16 checks the 'high' one. Each group reports how long it took.
 import { chromium } from 'playwright';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -16,6 +20,15 @@ const want = (g) => !onlyGroups || onlyGroups.includes(g);
 let passed = 0, failed = 0; const failures = [];
 const check = (name, cond, detail = '') => { if (cond) { passed++; console.log(`  ✔ ${name}${detail ? '  (' + detail + ')' : ''}`); } else { failed++; failures.push(name); console.log(`  ✘ ${name}${detail ? '  (' + detail + ')' : ''}`); } };
 const fmt = (n, d = 1) => Number(n).toFixed(d);
+// group headers, timed
+const sections = [];
+const tStart = Date.now();
+const section = (id, title) => {
+  const now = Date.now(), prev = sections[sections.length - 1];
+  if (prev) prev.s = (now - prev.t0) / 1000;
+  sections.push({ id, title, t0: now });
+  console.log(`\n[${id}] ${title}`);
+};
 
 const { server, url } = await startServer(root);
 const browser = await chromium.launch({ headless: true, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'] });
@@ -25,29 +38,57 @@ const consoleErrors = [];
 page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') consoleErrors.push(`[${m.type()}] ${m.text()}`); });
 page.on('pageerror', (e) => consoleErrors.push(`[pageerror] ${e.message}`));
 
-const shot = (name) => page.screenshot({ path: path.join(out, name + '.png') });
+// screenshots draw a frame first (the pages run with drawing off)
+// screenshots are for people to look at, not checks: a slow one (a busy machine) is skipped, not fatal
+const snap = async (p, name) => {
+  try { await p.evaluate(() => window.__sim.drawNow()); await p.screenshot({ path: path.join(out, name + '.png'), timeout: 90000 }); }
+  catch (e) { console.log(`    (screenshot ${name} skipped: ${String(e.message).split('\n')[0]})`); }
+};
+const shot = (name) => snap(page, name);
+const drawOff = (p) => p.evaluate(() => window.__sim.setDrawing(false));
 const S = () => page.evaluate(() => { const s = window.__sim.state(); const g = window.__sim.game; return Object.assign({}, s, { gameState: g.state, gaMode: g.ctx.gaMode, time: s.time }); });
 const I = () => page.evaluate(() => Object.assign({}, window.__sim.input()));
 const start = (opts) => page.evaluate((o) => window.__sim.start(o), opts);
 const waitFor = async (fn, timeout, label) => { try { await page.waitForFunction(fn, null, { timeout }); return true; } catch (e) { console.log(`    (timeout waiting for ${label || fn})`); return false; } };
 // frame-based waits: SwiftShader frames can take 100–400 ms, so wall-clock holds are unreliable
 const frames = async (n) => { await page.evaluate((n) => new Promise((res) => { const f0 = window.__sim.stats.frames; const chk = () => (window.__sim.stats.frames - f0 >= n ? res() : requestAnimationFrame(chk)); chk(); }), n); };
-const holdKey = async (code, ms) => { await page.keyboard.down(code); await frames(Math.max(2, Math.round(ms / 80))); await page.keyboard.up(code); await frames(1); };
+// a key held for at least `ms` and at least two frames (so the game reads it whatever the frame rate)
+const holdKey = async (code, ms) => { const t0 = Date.now(); await page.keyboard.down(code); await frames(2); const left = ms - (Date.now() - t0); if (left > 0) await page.waitForTimeout(left); await page.keyboard.up(code); await frames(1); };
 const tap = async (code) => { await page.keyboard.down(code); await frames(1); await page.keyboard.up(code); await frames(1); };
+// frames flowing steadily on a page (5 in a row, under 100 ms apart). In software rendering the
+// graphics work queued when a flight starts (the sky's lighting map) can hold frames back for up to
+// a second some time later, while the page's timers and sensor events carry on
+const steady = (p) => p.evaluate(() => new Promise((res) => { let last = performance.now(), n = 0; const f = (t) => { n = t - last < 100 ? n + 1 : 0; last = t; if (n >= 5) res(); else requestAnimationFrame(f); }; requestAnimationFrame(f); }));
+// simulated time passing on any page (a hold that means the same at any frame rate)
+const simWaitOn = async (p, sec) => {
+  const t = await p.evaluate((sec) => window.__sim.state().time + sec, sec);
+  await p.waitForFunction((t) => window.__sim.state().time >= t || window.__sim.game.state !== 'flying', t, { timeout: 120000 });
+};
 const simWait = async (sec) => { await page.evaluate((sec) => { window.__until = window.__sim.state().time + sec; }, sec); await waitFor(() => window.__sim.state().time >= window.__until || window.__sim.game.state !== 'flying', 120000, 'sim time'); };
 
 // --------------------------------------------------------------------------- load
-console.log('\n[E1] Page loads, WebGL renderer up, no errors');
+section('E1', 'Page loads, WebGL renderer up, no errors');
 await page.goto(url + '/?lowdetail', { waitUntil: 'load' });
 const ready = await waitFor(() => window.__sim, 60000, 'sim ready');
 check('sim ready', ready);
 const gl = await page.evaluate(() => ({ renderer: !!window.__sim.world.renderer, scenarios: window.__sim.scenarios, menu: !document.getElementById('menu').classList.contains('hidden') }));
 check('renderer created and menu visible', gl.renderer && gl.menu, gl.scenarios.join(','));
 await shot('e2e-menu');
+// a real frame: the drawn picture is not a blank canvas (the other groups run with drawing off)
+const drawn = await page.evaluate(() => {
+  window.__sim.drawNow();
+  const cv = document.createElement('canvas'); cv.width = 64; cv.height = 36;
+  const g = cv.getContext('2d'); g.drawImage(window.__sim.world.renderer.domElement, 0, 0, 64, 36);
+  const d = g.getImageData(0, 0, 64, 36).data; let lo = 255, hi = 0;
+  for (let i = 0; i < d.length; i += 4) { const l = (d[i] + d[i + 1] + d[i + 2]) / 3; lo = Math.min(lo, l); hi = Math.max(hi, l); }
+  return { lo, hi };
+});
+check('a frame draws: the 3D scene behind the menu, not a blank canvas', drawn.hi - drawn.lo > 40, `luminance ${fmt(drawn.lo, 0)}..${fmt(drawn.hi, 0)}`);
+await drawOff(page);
 
 // --------------------------------------------------------------------------- menu flow
 if (want('menu')) {
-  console.log('\n[E2] Menu: choose mode / scenario / start with the mouse, start the approach');
+  section('E2', 'Menu: choose mode / scenario / start with the mouse, start the approach');
   await page.click('#mode-row .choice[data-mode="game"]');
   await page.click('#scenario-row .choice[data-scenario="crosswind"]');
   await page.click('#start-row .choice[data-start="short"]');
@@ -69,13 +110,13 @@ if (want('menu')) {
 
 // --------------------------------------------------------------------------- keyboard & mouse mapping
 if (want('keys')) {
-  console.log('\n[E3] Every mapped key drives the right control (real key events)');
+  section('E3', 'Every mapped key drives the right control (real key events)');
   await start({ scenarioId: 'clear', startId: 'standard', mode: 'game', sound: false });
   await page.waitForTimeout(300);
   let i0 = await I();
-  await page.keyboard.down('KeyW'); await frames(10); await page.keyboard.up('KeyW'); await frames(1); let i1 = await I();
+  await page.keyboard.down('KeyW'); await simWait(0.6); await page.keyboard.up('KeyW'); await frames(1); let i1 = await I();
   check('W increases throttle', i1.throttle > i0.throttle + 0.12, `${fmt(i0.throttle, 2)} -> ${fmt(i1.throttle, 2)}`);
-  await page.keyboard.down('KeyS'); await frames(10); await page.keyboard.up('KeyS'); await frames(1); let i2 = await I();
+  await page.keyboard.down('KeyS'); await simWait(0.6); await page.keyboard.up('KeyS'); await frames(1); let i2 = await I();
   check('S decreases throttle', i2.throttle < i1.throttle - 0.12, `${fmt(i1.throttle, 2)} -> ${fmt(i2.throttle, 2)}`);
   await tap('KeyG'); let i3 = await I();
   check('G lowers the gear', i3.gearDown === true);
@@ -88,7 +129,7 @@ if (want('keys')) {
   await tap('Space'); check('Space again retracts it', (await I()).speedbrake === 0);
   await tap('KeyX'); check('X arms the speedbrake', (await I()).speedbrakeArmed === true);
   const ab0 = (await I()).autobrake; await tap('KeyN'); check('N cycles the autobrake', (await I()).autobrake === (ab0 + 1) % 5);
-  await page.keyboard.down('KeyB'); await frames(8); check('B applies the wheel brakes', (await I()).brake > 0.5, `${fmt((await I()).brake, 2)}`); await page.keyboard.up('KeyB'); await frames(6);
+  await page.keyboard.down('KeyB'); await simWait(0.4); check('B applies the wheel brakes', (await I()).brake > 0.5, `${fmt((await I()).brake, 2)}`); await page.keyboard.up('KeyB'); await simWait(0.4);
   check('brakes release', (await I()).brake < 0.1);
   await page.keyboard.down('KeyR'); await frames(3); const ir = await I(); check('R selects reverse (and closes the thrust levers)', ir.reverse === true && ir.throttle === 0); await page.keyboard.up('KeyR'); await frames(3);
   check('reverse stows on release', (await I()).reverse === false);
@@ -105,7 +146,9 @@ if (want('keys')) {
   await page.keyboard.down('ArrowRight'); await simWait(1.5); const rr = await S(); await page.keyboard.up('ArrowRight');
   check('→ rolls right', rr.roll > 3 * Math.PI / 180, `roll ${fmt(rr.roll * 57.3)}°`);
   await page.keyboard.down('ArrowLeft'); await simWait(2.5); const rl = await S(); await page.keyboard.up('ArrowLeft');
-  check('← rolls left', rl.roll < rr.roll - 5 * Math.PI / 180, `roll ${fmt(rl.roll * 57.3)}°`);
+  // the key's input ramps in (fast through zero, then progressively), so from a right bank the aircraft
+  // first stops rolling right: the check is a left roll rate and a bank angle already coming back
+  check('← rolls left', rl.p < -3 * Math.PI / 180 && rl.roll < rr.roll - 2 * Math.PI / 180, `roll ${fmt(rr.roll * 57.3)}° → ${fmt(rl.roll * 57.3)}°, p=${fmt(rl.p * 57.3)}°/s`);
   await page.keyboard.down('KeyD'); await simWait(1.5); const yd = await S(); const iy = await I(); await page.keyboard.up('KeyD');
   check('D applies right rudder (nose right / sideslip)', iy.yaw > 0.5 && (yd.r > 0.005 || yd.beta < -0.5 * Math.PI / 180), `yaw input ${fmt(iy.yaw, 2)}, r=${fmt(yd.r * 57.3)}°/s beta=${fmt(yd.beta * 57.3)}°`);
   await simWait(0.8);
@@ -143,7 +186,7 @@ if (want('keys')) {
 
 // --------------------------------------------------------------------------- flight school
 if (want('school')) {
-  console.log('\n[E4] Flight School onboarding (training mode)');
+  section('E4', 'Flight School onboarding (training mode)');
   await page.evaluate(() => window.__sim.game.quitToMenu());
   await page.click('#mode-row .choice[data-mode="training"]');
   await page.click('#start-row .choice[data-start="short"]');
@@ -178,12 +221,12 @@ async function autoland(scenarioId, startId, apOpts = {}, extra = {}) {
   await start(Object.assign({ scenarioId, startId, mode: 'game', sound: false, night: !!extra.night, seed: extra.seed || 11 }, extra.startOpts || {}));
   await page.waitForTimeout(200);
   if (extra.before) await page.evaluate(extra.before);
-  await page.evaluate((o) => { window.__sim.autopilot(o); window.__sim.setTimeScale(8); }, apOpts);
+  await page.evaluate((o) => { window.__sim.autopilot(o); window.__sim.setTimeScale(16); }, apOpts);
   let shotDone = false;
   const t0 = Date.now();
   while (Date.now() - t0 < 240000) {
     const s = await S();
-    if (!shotDone && s.agl < 110 && extra.shotName) { await page.evaluate(() => window.__sim.setTimeScale(1)); await page.waitForTimeout(300); await shot(extra.shotName); await page.evaluate(() => window.__sim.setTimeScale(8)); shotDone = true; }
+    if (!shotDone && s.agl < 110 && extra.shotName) { await page.evaluate(() => window.__sim.setTimeScale(1)); await page.waitForTimeout(300); await shot(extra.shotName); await page.evaluate(() => window.__sim.setTimeScale(16)); shotDone = true; }
     if (s.gameState === 'finished') break;
     await page.waitForTimeout(250);
   }
@@ -195,7 +238,7 @@ async function autoland(scenarioId, startId, apOpts = {}, extra = {}) {
 const said = (r, re) => r.audio.some((a) => a.kind === 'voice' && re.test(a.text));
 
 if (want('land')) {
-  console.log('\n[E5] Autoland in every scenario, day and night, with GPWS callouts');
+  section('E5', 'Autoland in every scenario, day and night, with GPWS callouts');
   const cases = [['clear', 'short', false], ['tailwind', 'short', false], ['crosswind', 'short', false], ['storm', 'short', true], ['clear', 'standard', true]];
   for (const [sc, st, night] of cases) {
     const r = await autoland(sc, st, {}, { shotName: `e2e-land-${sc}${night ? '-night' : ''}`, night });
@@ -211,7 +254,7 @@ if (want('land')) {
 
 // --------------------------------------------------------------------------- failure consequences
 if (want('fail')) {
-  console.log('\n[E6] Intentional errors: the simulation reacts with alarms and consequences');
+  section('E6', 'Intentional errors: the simulation reacts with alarms and consequences');
   let r = await autoland('clear', 'short', { noGear: true }, { before: () => { window.__sim.input().gearDown = false; window.__sim.game.sim.aircraft.gearPos = 0; }, shotName: 'e2e-fail-gearup' });
   console.log(`  gear up: ${r.outcome} — ${r.headline}`);
   check('gear-up: "Too low, gear" warning and the configuration horn', said(r, /Too low, gear/) && r.gpws.some((e) => e.type === 'horn'), r.gpws.map((e) => e.text).join(', ').slice(0, 100));
@@ -244,7 +287,7 @@ if (want('fail')) {
 
 // --------------------------------------------------------------------------- go-around with the keyboard
 if (want('ga')) {
-  console.log('\n[E7] Go-around flown with the keyboard from 500 ft, then reposition (Fly the Approach and Flight School)');
+  section('E7', 'Go-around flown with the keyboard from 500 ft, then reposition (Fly the Approach and Flight School)');
   for (const mode of ['game', 'training']) {
     const tag = mode === 'training' ? 'Flight School ' : '';
     await start({ scenarioId: 'clear', startId: 'short', mode, sound: false, skipSchool: true });
@@ -279,7 +322,7 @@ if (want('ga')) {
 
 // --------------------------------------------------------------------------- frame-rate decoupling in the browser
 if (want('fps')) {
-  console.log('\n[E8] Physics time is decoupled from the render frame rate');
+  section('E8', 'Physics time is decoupled from the render frame rate');
   await start({ scenarioId: 'clear', startId: 'standard', mode: 'game', sound: false });
   await page.waitForTimeout(300);
   // The physics must integrate exactly the frame time the loop hands it, at any frame rate. Sim time
@@ -305,8 +348,8 @@ if (want('fps')) {
 
 // --------------------------------------------------------------------------- mouse-yoke + keyboard landing (human control path, real time)
 if (!quick && want('keyboard')) {
-  console.log('\n[E9] Landing flown through the mouse yoke and the keyboard (real input events, real time)');
-  // software rendering here runs at ~5 fps; a person on a laptop gets 60. Measure the frame rate and, when it is
+  section('E9', 'Landing flown through the mouse yoke and the keyboard (real input events, real time)');
+  // without drawing the page runs at 10-40 fps here; a person on a laptop gets 60. Measure the frame rate and, when it is
   // very low, slow the simulation so the pilot still gets a human-like ~10 decisions per simulated second.
   await page.setViewportSize({ width: 800, height: 450 });
   await start({ scenarioId: 'clear', startId: 'short', mode: 'game', sound: false, seed: 5 });
@@ -349,7 +392,7 @@ async function phonePage() {
   await page.setViewportSize({ width: 320, height: 180 });
   const t0 = Date.now();
   await mp.goto(url + '/');
-  try { await mp.waitForFunction(() => window.__sim, null, { timeout: 180000 }); } catch (e) { console.log('    phone page did not boot:\n    ' + bootLog.slice(-10).join('\n    ')); throw e; }
+  try { await mp.waitForFunction(() => window.__sim, null, { timeout: 180000 }); await drawOff(mp); } catch (e) { console.log('    phone page did not boot:\n    ' + bootLog.slice(-10).join('\n    ')); throw e; }
   console.log(`    phone page booted in ${fmt((Date.now() - t0) / 1000, 1)} s`);
   const cdp = await ctx.newCDPSession(mp);
   const pts = new Map();
@@ -367,7 +410,7 @@ async function phonePage() {
 }
 
 if (want('mobile')) {
-  console.log('\n[E10] Phone in landscape: layout, touch controls, multi-touch, rotation and pausing');
+  section('E10', 'Phone in landscape: layout, touch controls, multi-touch, rotation and pausing');
   const { ctx, mp, fingers, mf, centreOf } = await phonePage();
   const SAFE = { l: 59, r: 59, t: 0, b: 21 };
   await mp.evaluate((s) => { const st = document.documentElement.style; st.setProperty('--sal', s.l + 'px'); st.setProperty('--sar', s.r + 'px'); st.setProperty('--sat', s.t + 'px'); st.setProperty('--sab', s.b + 'px'); }, SAFE);
@@ -377,7 +420,7 @@ if (want('mobile')) {
   check('a phone is detected as a touch device', await mp.evaluate(() => document.body.classList.contains('touch') && window.__sim.inputManager.touchMode));
   const menu = await mp.evaluate(() => { const t = document.querySelector('.menu-panel h1').getBoundingClientRect(), b = document.getElementById('btn-start').getBoundingClientRect(); return { titleTop: Math.round(t.top), startBottom: Math.round(b.bottom), vh: innerHeight }; });
   check('menu fits a 393 px tall screen: title and Start both visible without scrolling', menu.titleTop >= 0 && menu.startBottom <= menu.vh, `title at ${menu.titleTop} px, Start ends at ${menu.startBottom} of ${menu.vh}`);
-  await mp.screenshot({ path: path.join(out, 'e2e-phone-menu.png') });
+  await snap(mp, 'e2e-phone-menu');
   await mp.tap('#btn-start'); await mf(4);
   check('tapping Start begins the flight', (await MS()).gameState === 'flying');
 
@@ -400,7 +443,7 @@ if (want('mobile')) {
   check('touch targets are at least 34×40 px', lay.small.length === 0, lay.small.join(', '));
   check('the head-up display is clear of the buttons and levers', lay.hgsHits.length === 0, lay.hgsHits.join(', '));
   check('the head-up display replaces the desktop readout strip', lay.strip === 'none' && /^\d+$/.test(lay.ias) && /^\d+$/.test(lay.alt), `IAS ${lay.ias}, ALT ${lay.alt}`);
-  await mp.screenshot({ path: path.join(out, 'e2e-phone-flying.png') });
+  await snap(mp, 'e2e-phone-flying');
   // the same rules on smaller phones: iPhone SE and a 640×360 Android (no notch), and the narrowest
   // notched iPhone (13 mini, 812×375 with 50 px side insets)
   const setSafe = (s) => mp.evaluate((s) => { const st = document.documentElement.style; st.setProperty('--sal', s.l + 'px'); st.setProperty('--sar', s.r + 'px'); st.setProperty('--sat', s.t + 'px'); st.setProperty('--sab', s.b + 'px'); }, s);
@@ -447,7 +490,7 @@ if (want('mobile')) {
   await fingers.move(1, base.x + 45, base.y); await mf(3);
   const s4 = await MI();
   check('stick right = roll right', s4.roll > 0.3 && Math.abs(s4.pitch) < 0.1, `roll ${fmt(s4.roll, 2)}, pitch ${fmt(s4.pitch, 2)}`);
-  await fingers.up(1); await mf(4);
+  await fingers.up(1); await mf(2); await simWaitOn(mp, 0.5);   // the spring takes ~0.3 s of flight time
   const s5 = await MI();
   check('released, the stick springs back to centre', Math.abs(s5.pitch) < 0.02 && Math.abs(s5.roll) < 0.02, `pitch ${fmt(s5.pitch, 3)}, roll ${fmt(s5.roll, 3)}`);
   const lv = await centreOf('#t-lever .thandle');
@@ -457,7 +500,7 @@ if (want('mobile')) {
   const rd = await centreOf('#t-rudder');
   await fingers.down(4, rd.x, rd.y); await fingers.move(4, rd.x + 50, rd.y); await mf(3);
   const s7 = await MI();
-  await fingers.up(4); await mf(4);
+  await fingers.up(4); await mf(2); await simWaitOn(mp, 0.5);
   const s8 = await MI();
   check('rudder strip: right = right rudder, and it springs back', s7.yaw > 0.4 && Math.abs(s8.yaw) < 0.02, `yaw ${fmt(s7.yaw, 2)} → ${fmt(s8.yaw, 3)}`);
   await fingers.down(5, 430, 60); await fingers.move(5, 330, 60); await mf(2);
@@ -488,7 +531,7 @@ if (want('mobile')) {
   await mp.setViewportSize({ width: 393, height: 852 }); await mf(2);
   const rot = await mp.evaluate(() => ({ shown: !document.getElementById('rotate').classList.contains('hidden'), state: window.__sim.game.state }));
   check('turning the phone upright pauses and asks for landscape', rot.shown && rot.state === 'paused', JSON.stringify(rot));
-  await mp.screenshot({ path: path.join(out, 'e2e-phone-portrait.png') });
+  await snap(mp, 'e2e-phone-portrait');
   await mp.setViewportSize({ width: 852, height: 393 }); await mf(2);
   check('back in landscape the rotate screen goes and the flight waits for Resume', await mp.evaluate(() => document.getElementById('rotate').classList.contains('hidden') && window.__sim.game.state === 'paused'));
   await mp.tap('#btn-resume'); await mf(1);
@@ -523,7 +566,7 @@ if (want('mobile')) {
       else console.log(`    step ${k + 1}: highlight does not frame ${anchor}`);
     }
     if (info.card.l < 0 || info.card.t < 0 || info.card.r > info.W || info.card.b > info.H) { cardOk = false; console.log(`    step ${k + 1}: card off screen ${JSON.stringify(info.card)}`); }
-    if (k === 6) await mp.screenshot({ path: path.join(out, 'e2e-phone-school.png') });
+    if (k === 6) await snap(mp, 'e2e-phone-school');
     if (k < total - 1) { await mp.tap('#school-next'); }
   }
   check('Flight School on a phone names the touch controls, never keys', kbdSeen === 0 && chips >= 8, `${chips} of ${total} pages show touch controls, ${kbdSeen} show keys`);
@@ -540,7 +583,7 @@ if (want('mobile')) {
 
 // --------------------------------------------------------------------------- phones: a landing flown with the touch controls
 if (!quick && want('touchland')) {
-  console.log('\n[E11] Landing flown through the touch controls (phone, real time)');
+  section('E11', 'Landing flown through the touch controls (phone, real time)');
   const { ctx, mp, mf } = await phonePage();
   await mp.evaluate(() => window.__sim.start({ scenarioId: 'clear', startId: 'short', mode: 'game', sound: false, seed: 5 }));
   await mp.waitForTimeout(2500); await mf(3); await mp.waitForTimeout(1000);
@@ -561,7 +604,7 @@ if (!quick && want('touchland')) {
   if (r.result) console.log('    ' + r.result.items.map((it) => `${it.label}: ${it.value}`).join(' · '));
   check('a landing flown only with the touch controls ends stopped on the runway', done && r.result && r.result.success, r.result ? r.result.headline : 'no result');
   check('the roll-out used the REV gate on the thrust lever, and no mouse yoke', r.log.includes('reverse on') && r.log.includes('reverse off') && !r.mouse);
-  await mp.screenshot({ path: path.join(out, 'e2e-phone-landing.png') });
+  await snap(mp, 'e2e-phone-landing');
   await ctx.close();
 }
 
@@ -576,8 +619,11 @@ async function tiltPhonePage() {
 }
 
 if (want('tilt')) {
-  console.log('\n[E12] Tilt steering, vibration and the home-screen app (phone)');
+  section('E12', 'Tilt steering, vibration and the home-screen app (phone)');
   const { ctx, mp, mf } = await tiltPhonePage();
+  // after the pose changes: 0.3 s of sensor readings (the tilt filter's time constant is 0.06 s),
+  // then frames flowing again (see steady) so the controls have followed
+  const tiltSettle = async () => { await mf(3); await mp.waitForTimeout(300); await steady(mp); };
   const MI = () => mp.evaluate(() => Object.assign({}, window.__sim.input()));
   const TL = () => mp.evaluate(() => Object.assign({}, window.__sim.inputManager.tilt, { status: window.__sim.tilt.status, flip: window.__sim.tilt.flip, neutral: !!window.__sim.tilt.neutral, body: document.body.classList.contains('tilt'), checked: document.getElementById('opt-tilt').checked, msg: document.getElementById('tilt-msg').textContent }));
   await mf(2);
@@ -601,26 +647,26 @@ if (want('tilt')) {
   t = await TL();
   const zone = await mp.evaluate(() => ({ label: document.querySelector('#t-stick-zone .tlabel').textContent, pe: getComputedStyle(document.getElementById('t-stick-zone')).pointerEvents, center: getComputedStyle(document.getElementById('t-center')).display }));
   check('the flight starts level with the phone as it is held; the circle shows TILT and CENTER appears', t.active && t.neutral && Math.abs(t.pitch) < 0.03 && Math.abs(t.roll) < 0.03 && zone.label === 'TILT' && zone.pe === 'none' && zone.center !== 'none', `tilt ${fmt(t.pitch, 2)}/${fmt(t.roll, 2)}, ${JSON.stringify(zone)}`);
-  await mp.evaluate(() => window.tiltFeed.set({ pull: 10 })); await mf(3);
+  await mp.evaluate(() => window.tiltFeed.set({ pull: 10 })); await tiltSettle();
   let i1 = await MI(); t = await TL();
   const knob = await mp.evaluate(() => document.querySelector('#t-stick-zone .tknob').style.transform);
   check('top edge 10° towards you = nose up', t.pitch > 0.4 && i1.pitch > 0.2 && Math.abs(i1.roll) < 0.05, `tilt ${fmt(t.pitch, 2)}, pitch input ${fmt(i1.pitch, 2)}`);
   check('the circle shows the tilt', /translate\(-?[\d.]+px, -[\d.]+px\)/.test(knob), knob);
-  await mp.evaluate(() => window.tiltFeed.set({ pull: 0, bank: 10 })); await mf(3);
+  await mp.evaluate(() => window.tiltFeed.set({ pull: 0, bank: 10 })); await tiltSettle();
   i1 = await MI();
   check('left side 10° down = bank left', i1.roll < -0.15 && Math.abs(i1.pitch) < 0.05, `roll input ${fmt(i1.roll, 2)}`);
-  await mp.evaluate(() => window.tiltFeed.set({ pull: 0, bank: 0 })); await mf(3);
+  await mp.evaluate(() => window.tiltFeed.set({ pull: 0, bank: 0 })); await tiltSettle();
   i1 = await MI();
   check('back to how it was held: controls centred', Math.abs(i1.pitch) < 0.02 && Math.abs(i1.roll) < 0.02, `${fmt(i1.pitch, 3)}, ${fmt(i1.roll, 3)}`);
-  await mp.evaluate(() => { window.__sim.inputManager.opts.invertPitch = true; window.tiltFeed.set({ pull: 10 }); }); await mf(3);
+  await mp.evaluate(() => { window.__sim.inputManager.opts.invertPitch = true; window.tiltFeed.set({ pull: 10 }); }); await tiltSettle();
   i1 = await MI();
   check('pilot-style pitch does not reverse tilt: tipping towards you is always nose up', i1.pitch > 0.2, `pitch input ${fmt(i1.pitch, 2)}`);
-  await mp.evaluate(() => { window.__sim.inputManager.opts.invertPitch = false; window.tiltFeed.set({ pull: -15 }); }); await mf(3);
+  await mp.evaluate(() => { window.__sim.inputManager.opts.invertPitch = false; window.tiltFeed.set({ pull: -15 }); }); await tiltSettle();
   const lean = (await MI()).pitch;
   await mp.tap('#t-center'); await mf(3);
   i1 = await MI();
   check('CENTER makes the way the phone is held now level', lean < -0.3 && Math.abs(i1.pitch) < 0.03, `pitch input ${fmt(lean, 2)} → ${fmt(i1.pitch, 3)}`);
-  await mp.evaluate(() => window.tiltFeed.set({ pull: -5 })); await mf(3);
+  await mp.evaluate(() => window.tiltFeed.set({ pull: -5 })); await tiltSettle();
   const before = (await TL()).pitch;
   await mp.tap('#t-pause'); await mf(1); await mp.tap('#btn-resume'); await mf(4);
   t = await TL();
@@ -631,13 +677,13 @@ if (want('tilt')) {
   check('a sensor that stops reporting lets go of the controls', !t.active && t.pitch === 0 && /hold level/.test(lbl), lbl);
   await mp.evaluate(() => { Object.defineProperty(screen.orientation, 'angle', { get: () => 270, configurable: true }); window.tiltFeed.start({ back: 35, pull: 0, bank: 0 }); });
   await mf(2); await mp.tap('#t-center'); await mf(3);
-  await mp.evaluate(() => window.tiltFeed.set({ pull: 10, bank: 10 })); await mf(3);
+  await mp.evaluate(() => window.tiltFeed.set({ pull: 10, bank: 10 })); await tiltSettle();
   t = await TL();
   check('a browser that reports the screen angle the other way round is corrected at CENTER', t.flip && t.pitch > 0.4 && t.roll < -0.3, `flip ${t.flip}, tilt ${fmt(t.pitch, 2)}/${fmt(t.roll, 2)}`);
   await mp.evaluate(() => { delete screen.orientation.angle; window.__sim.tilt.flip = false; window.tiltFeed.set({ pull: 0, bank: 0 }); });
 
   await mp.evaluate(() => window.__sim.start({ scenarioId: 'clear', startId: 'standard', mode: 'game', sound: false, demo: true })); await mf(4);
-  await mp.evaluate(() => window.tiltFeed.set({ pull: 12 })); await mf(3);
+  await mp.evaluate(() => window.tiltFeed.set({ pull: 12 })); await tiltSettle();
   check('tilting the phone takes over from the autoland demo', await mp.evaluate(() => window.__sim.game.demoAp === null));
   await mp.evaluate(() => window.tiltFeed.set({ pull: 0 }));
   await mp.evaluate(() => window.__sim.start({ scenarioId: 'clear', startId: 'short', mode: 'training', sound: false })); await mf(3);
@@ -645,7 +691,7 @@ if (want('tilt')) {
   await mp.tap('#school-next'); await mf(2); await mp.waitForTimeout(400); await mf(1);
   const s2 = await mp.evaluate(() => ({ title: document.getElementById('school-title').textContent, body: document.getElementById('school-body').innerHTML }));
   check('Flight School explains tilt steering and CENTER', /tilting the phone/.test(welcome) && s2.title === 'Attitude and tilt steering' && s2.body.includes('CENTER') && !s2.body.includes('<kbd>'), s2.title);
-  await mp.screenshot({ path: path.join(out, 'e2e-phone-tilt-school.png') });
+  await snap(mp, 'e2e-phone-tilt-school');
   await mp.tap('#school-skip'); await mf(2);
 
   await mp.evaluate(() => window.__sim.start({ scenarioId: 'clear', startId: 'standard', mode: 'game', sound: false })); await mf(3);   // gear up at 10 nm
@@ -655,7 +701,7 @@ if (want('tilt')) {
   check('pressing a touch control gives a short tick', v1.includes(8), JSON.stringify(v1));
   await mp.waitForFunction(() => window.__sim.state().gearDown, null, { timeout: 120000 }); await mf(2);
   check('the gear locking down gives a thump', await mp.evaluate(() => window.__vib.includes(25)), JSON.stringify(await mp.evaluate(() => window.__vib.slice(0, 8))));
-  await mp.screenshot({ path: path.join(out, 'e2e-phone-tilt.png') });
+  await snap(mp, 'e2e-phone-tilt');
   await mp.evaluate(() => window.__sim.game.quitToMenu()); await mf(2);
   await mp.tap('#opt-vib'); await mf(1);
   await mp.evaluate(() => { window.__vib.length = 0; });
@@ -683,7 +729,7 @@ if (want('tilt')) {
   const ip = await ictx.newPage();
   ip.on('pageerror', (e) => consoleErrors.push(`[iphone pageerror] ${e.message}`));
   await ip.goto(url + '/?quality=low');
-  await ip.waitForFunction(() => window.__sim, null, { timeout: 180000 });
+  await ip.waitForFunction(() => window.__sim, null, { timeout: 180000 }); await drawOff(ip);
   await ip.tap('#btn-start');
   await ip.waitForFunction(() => window.__sim.audio.ctx && window.__sim.audio.ctx.state === 'running' && window.__sim.audio.keepAlive && !window.__sim.audio.keepAlive.paused, null, { timeout: 30000 }).catch(() => {});
   const snd = await ip.evaluate(() => { const a = window.__sim.audio; return { ios: document.body.classList.contains('ios'), state: a.ctx && a.ctx.state, keep: !!a.keepAlive && !a.keepAlive.paused && a.keepAlive.loop, speech: a.speechPrimed, err: window.__sim.errors.length }; });
@@ -693,7 +739,7 @@ if (want('tilt')) {
 
 // --------------------------------------------------------------------------- phones: a landing flown by tilting the phone
 if (!quick && want('tiltland')) {
-  console.log('\n[E13] Landing flown by tilting the phone (phone, real time)');
+  section('E13', 'Landing flown by tilting the phone (phone, real time)');
   const { ctx, mp, mf } = await tiltPhonePage();
   await mp.evaluate(() => window.tiltFeed.start({ back: 35 }));
   await mp.tap('#opt-tilt'); await mp.waitForTimeout(300);
@@ -719,7 +765,7 @@ if (!quick && want('tiltland')) {
   check('a landing flown by tilting the phone ends stopped on the runway', done && r.result && r.result.success, r.result ? r.result.headline : 'no result');
   const td = r.vib.filter((p) => (typeof p === 'number' && p >= 18 && p <= 60 && p !== 20 && p !== 25) || (Array.isArray(p) && p[0] === 70));
   check('the roll-out used the REV gate, and the touchdown was felt as a vibration', r.log.includes('reverse on') && r.log.includes('reverse off') && td.length > 0 && !r.stick, `touchdown vibration ${JSON.stringify(td[0])}`);
-  await mp.screenshot({ path: path.join(out, 'e2e-phone-tilt-landing.png') });
+  await snap(mp, 'e2e-phone-tilt-landing');
   await ctx.close();
 }
 
@@ -733,7 +779,7 @@ async function padPage({ phone = false } = {}) {
   pp.on('pageerror', (e) => consoleErrors.push(`[pad pageerror] ${e.message}`));
   await page.setViewportSize({ width: 320, height: 180 });     // keep the long-lived desktop page cheap
   await pp.goto(url + '/?quality=low');                         // the fast renderer: E16 covers the other
-  await pp.waitForFunction(() => window.__sim, null, { timeout: 180000 });
+  await pp.waitForFunction(() => window.__sim, null, { timeout: 180000 }); await drawOff(pp);
   await pp.addScriptTag({ path: path.join(root, 'test', 'gamepad-stub.browser.js') });
   const pf = async (n) => { await pp.evaluate((n) => new Promise((res) => { const f0 = window.__sim.stats.frames; const chk = () => (window.__sim.stats.frames - f0 >= n ? res() : requestAnimationFrame(chk)); chk(); }), n); };
   const tapPad = (name, hold = 0) => pp.evaluate(([n, h]) => window.fakePad.tap(n, h), [name, hold]);
@@ -741,7 +787,7 @@ async function padPage({ phone = false } = {}) {
 }
 
 if (want('gamepad')) {
-  console.log('\n[E14] Game controller: standard layout, menus, wording, rumble, disconnect');
+  section('E14', 'Game controller: standard layout, menus, wording, rumble, disconnect');
   const { ctx, pp, pf, tapPad } = await padPage();
   const PI = () => pp.evaluate(() => Object.assign({}, window.__sim.input()));
   const PS = () => pp.evaluate(() => { const g = window.__sim.game; return { state: g.state, ga: g.ctx.gaMode, dist: window.__sim.state().distToThreshold, pad: document.body.classList.contains('pad'), look: Object.assign({}, window.__sim.inputManager.look) }; });
@@ -770,9 +816,9 @@ if (want('gamepad')) {
   await pp.evaluate(() => window.fakePad.set('LT', 0)); await pf(2);
   check('RT / LT = right / left rudder, analog', yr > 0.5 && yl < -0.5 && Math.abs((await PI()).yaw) < 0.02, `${fmt(yr, 2)} / ${fmt(yl, 2)}`);
   const t0 = (await PI()).throttle;
-  await pp.evaluate(() => window.fakePad.press('A')); await pf(4); await pp.evaluate(() => window.fakePad.release('A')); await pf(1);
+  await pp.evaluate(() => window.fakePad.press('A')); await pf(2); await simWaitOn(pp, 0.4); await pp.evaluate(() => window.fakePad.release('A')); await pf(1);
   const t1 = (await PI()).throttle;
-  await pp.evaluate(() => window.fakePad.press('B')); await pf(4); await pp.evaluate(() => window.fakePad.release('B')); await pf(1);
+  await pp.evaluate(() => window.fakePad.press('B')); await pf(2); await simWaitOn(pp, 0.4); await pp.evaluate(() => window.fakePad.release('B')); await pf(1);
   const t2 = (await PI()).throttle;
   check('A held = more thrust, B held = less', t1 > t0 + 0.05 && t2 < t1 - 0.05, `${fmt(t0, 2)} → ${fmt(t1, 2)} → ${fmt(t2, 2)}`);
   const c0 = await PI();
@@ -831,7 +877,7 @@ if (want('gamepad')) {
     const b = await pp.evaluate(() => document.getElementById('school-body').innerHTML);
     if (b.includes('class="gp"')) padPages++;
     if (b.includes('<kbd>') && !/<kbd>H<\/kbd>/.test(b)) kbdPages++;
-    if (k === 8) await pp.screenshot({ path: path.join(out, 'e2e-pad-school.png') });
+    if (k === 8) await snap(pp, 'e2e-pad-school');
     if (k < total - 1) await tapPad('A');
   }
   check('Flight School names the controller\'s buttons, and A turns the pages', padPages >= 9 && kbdPages === 0, `${padPages} of ${total} pages with controller buttons, ${kbdPages} with keys`);
@@ -879,7 +925,7 @@ if (want('gamepad')) {
 
 // --------------------------------------------------------------------------- a landing flown with the controller
 if (!quick && want('padland')) {
-  console.log('\n[E15] Landing flown with a game controller (real time)');
+  section('E15', 'Landing flown with a game controller (real time)');
   const { ctx, pp, pf, tapPad } = await padPage();
   await pp.setViewportSize({ width: 800, height: 450 });
   await pp.evaluate(() => window.fakePad.connect());
@@ -905,7 +951,7 @@ if (!quick && want('padland')) {
   check('a landing flown with the controller ends stopped on the runway', done && r.result && r.result.success, r.result ? r.result.headline : 'no result');
   const td = r.rumble.filter((x) => x.duration === 200 || x.duration === 450);
   check('reverse by holding B at idle, stowed with A; the touchdown rumbled; no mouse or keys', r.log.includes('reverse on') && r.log.includes('reverse off') && td.length > 0 && !r.mouse && r.active, `touchdown rumble ${JSON.stringify(td[0])}`);
-  await pp.screenshot({ path: path.join(out, 'e2e-pad-landing.png') });
+  await snap(pp, 'e2e-pad-landing');
   await ctx.close();
 }
 
@@ -913,16 +959,16 @@ if (!quick && want('padland')) {
 // The 'high' tier a computer gets (shadows, sky lighting, bloom, MSAA), checked on pixels read back
 // from the canvas straight after a frame, and the 'low' tier phones and the other groups use.
 if (want('graphics')) {
-  console.log('\n[E16] Graphics: sky, haze, sunlight and shadows; quality tiers');
+  section('E16', 'Graphics: sky, haze, sunlight and shadows; quality tiers');
   const low = await page.evaluate(() => { const w = window.__sim.world; return { q: w.quality, composer: !!w.composer, shadows: w.renderer.shadowMap.enabled }; });
   check('the fast tier (phones, and this page): no post-processing and no shadow maps', low.q === 'low' && !low.composer && !low.shadows, JSON.stringify(low));
-  const ctx = await browser.newContext({ viewport: { width: 960, height: 540 } });
+  const ctx = await browser.newContext({ viewport: { width: 640, height: 360 } });   // the pixel checks use thumbnails: a small page draws faster
   const gp = await ctx.newPage();
   gp.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') consoleErrors.push(`[graphics ${m.type()}] ${m.text()}`); });
   gp.on('pageerror', (e) => consoleErrors.push(`[graphics pageerror] ${e.message}`));
   await page.setViewportSize({ width: 320, height: 180 });     // keep the long-lived desktop page cheap
   await gp.goto(url + '/');
-  await gp.waitForFunction(() => window.__sim, null, { timeout: 180000 });
+  await gp.waitForFunction(() => window.__sim, null, { timeout: 180000 }); await drawOff(gp);
   const gf = async (n) => { await gp.evaluate((n) => new Promise((res) => { const f0 = window.__sim.stats.frames; const chk = () => (window.__sim.stats.frames - f0 >= n ? res() : requestAnimationFrame(chk)); chk(); }), n); };
   const hi = await gp.evaluate(() => {
     const w = window.__sim.world; let casters = 0;
@@ -972,12 +1018,33 @@ if (want('graphics')) {
   });
   check('above a cloud deck: full sunshine, clear-sky light', deck.above.env === 'above' && deck.above.overcast === 0 && deck.above.sun > 3, JSON.stringify(deck.above));
   check('inside and below it: the sun is hidden and the light is the overcast\'s', deck.inside.overcast === 1 && deck.below.env === 'below' && deck.below.sun < 0.15 * deck.above.sun && deck.below.overcast > 0.8, `${JSON.stringify(deck.inside)} ${JSON.stringify(deck.below)}`);
+  // every scenario, by day and night, drawn on both tiers: each one's materials compile and draw
+  const drawAll = (p) => p.evaluate(async (scenarios) => {
+    const out = [];
+    for (const sc of scenarios) for (const night of [false, true]) {
+      window.__sim.start({ scenarioId: sc, night, startId: 'short', mode: 'game', sound: false, seed: 5 });
+      window.__sim.setTimeScale(0);
+      await new Promise((r) => requestAnimationFrame(() => r()));
+      window.__sim.drawNow();
+      const cv = document.createElement('canvas'); cv.width = 48; cv.height = 27;
+      const g = cv.getContext('2d'); g.drawImage(window.__sim.world.renderer.domElement, 0, 0, 48, 27);
+      const d = g.getImageData(0, 0, 48, 27).data; let lo = 255, hi = 0;
+      for (let i = 0; i < d.length; i += 4) { const l = (d[i] + d[i + 1] + d[i + 2]) / 3; lo = Math.min(lo, l); hi = Math.max(hi, l); }
+      out.push({ sc: sc + (night ? ' night' : ''), range: Math.round(hi - lo), errors: window.__sim.errors.length });
+    }
+    window.__sim.setTimeScale(1);
+    return out;
+  }, ['clear', 'tailwind', 'crosswind', 'storm']);
+  for (const [tier, p] of [['high', gp], ['low', page]]) {
+    const r = await drawAll(p);
+    check(`${tier} tier: every scenario draws by day and night without errors`, r.every((x) => x.range > 30 && x.errors === 0), r.map((x) => `${x.sc} ${x.range}`).join(', '));
+  }
   // night: stars and airfield lights bright enough to glow through the bloom pass
   await gp.evaluate(() => { window.__sim.start({ scenarioId: 'clear', night: true, startId: 'short', mode: 'game', sound: false, seed: 5 }); window.__sim.setTimeScale(0); });
   await gf(2);
   const night = await gp.evaluate(() => { const w = window.__sim.world; return { lights: w.lights.material.uniforms.uIntensity.value, threshold: w.bloom.threshold, sunE: w.atmo.uniforms.skySunE.value, stars: w.skyMat.uniforms.uStars.value, moon: +w.sun.intensity.toFixed(2) }; });
   check('night: no sky glow, stars out, moonlight, and the lights\' cores above the glow threshold', night.sunE === 0 && night.stars > 0 && night.moon > 0 && night.moon < 1 && night.lights * 1.6 > night.threshold, JSON.stringify(night));
-  await gp.screenshot({ path: path.join(out, 'e2e-graphics-night.png') });
+  await snap(gp, 'e2e-graphics-night');
   await ctx.close();
   await page.setViewportSize({ width: VW, height: VH });
 }
@@ -986,7 +1053,12 @@ if (want('graphics')) {
 const errs = await page.evaluate(() => window.__sim.errors);
 const realConsole = consoleErrors.filter((e) => !/favicon|Autoplay|speech/i.test(e));
 check('no JavaScript errors during the whole session', errs.length === 0 && realConsole.length === 0, [...errs, ...realConsole].slice(0, 5).join(' | '));
+const last = sections[sections.length - 1];
+if (last) last.s = (Date.now() - last.t0) / 1000;
+console.log('\nTime per group: ' + sections.map((x) => `${x.id} ${fmt(x.s, 0)} s`).join(' · ') + `  (total ${fmt((Date.now() - tStart) / 1000, 0)} s)`);
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failed) console.log('Failed: ' + failures.join(' | '));
+// one line for test/e2e-parallel.mjs
+console.log('E2E-RESULT ' + JSON.stringify({ passed, failed, failures, sections: sections.map((x) => ({ id: x.id, s: Math.round(x.s) })) }));
 await browser.close(); server.close();
 process.exit(failed ? 1 : 0);

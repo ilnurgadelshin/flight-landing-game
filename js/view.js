@@ -61,6 +61,9 @@ export class GameView {
       rollMode: demo ? 'LOC' : (g.mode === 'training' ? 'FD' : ''), pitchMode: demo ? 'G/S' : (g.mode === 'training' ? 'FD' : ''),
     });
     this.world.update(frameDt, st, this.eye);
+    // keep the camera's matrices current even on frames that are not drawn (the Flight School
+    // highlights project flight-deck parts onto the screen)
+    this.world.cockpitScene.updateMatrixWorld(true);
   }
 
   draw() { this.world.render(); }

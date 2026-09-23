@@ -402,18 +402,48 @@ npx playwright install chromium
 
 The browser tests start their own local web server and force software
 rendering (SwiftShader), so they run the same on any machine, with or without a
-GPU, at about 1–5 rendered frames per second.
+GPU. Software rendering is about 95% of each frame's cost: 0.6–3 drawn frames per
+second, against 30–50 when the 3D scene is not drawn. So the pages run with the
+3D drawing switched off (`window.__sim.setDrawing(false)`). The game loop, physics,
+rules, displays and interface all run as usual. A frame is drawn for every
+screenshot (`window.__sim.drawNow()`). E1 and E16 check drawn pixels, and E16
+draws every scenario by day and night on both graphics tiers.
 
 ### Automated suites
 
 | Command | What it checks | Time |
 | --- | --- | --- |
-| `npm test` | Node, no browser: physics (62 checks in 12 groups), phone features (54 checks in 7 groups), game controllers (34 checks in 4 groups), the sky model (12 checks in 3 groups) and the game's rules (34 checks in 6 groups), below | ~4 min |
-| `npm run test:e2e` | The real page in Chromium: 201 checks in 16 groups (below) | 55–75 min |
-| `node test/e2e.mjs quick` | The same without the slow mouse-yoke, touch, tilt and controller landings (E9, E11, E13, E15) | 20–30 min |
-| `node test/e2e.mjs only=<groups>` | E1 plus the groups listed, comma-separated: `menu`, `keys`, `school`, `land`, `fail`, `ga`, `fps`, `keyboard`, `mobile`, `touchland`, `tilt`, `tiltland`, `gamepad`, `padland`, `graphics` (e.g. `only=tilt,tiltland`) | 1–10 min each |
-| `npm run test:all` | All of them: the Node suites, then the browser suite | 60–80 min |
+| `npm test` | Node, no browser: physics (62 checks in 12 groups), phone features (54 checks in 7 groups), game controllers (34 checks in 4 groups), the sky model (12 checks in 3 groups) and the game's rules (34 checks in 6 groups), below | ~5 s |
+| `npm run test:e2e` | The real page in Chromium: 204 checks in 16 groups (below), run in 3 parallel processes (`test/e2e-parallel.mjs`) | ~11–15 min |
+| `npm run test:e2e:quick` | The same without the four landings flown in real time (E9, E11, E13, E15) | ~6 min |
+| `node test/e2e.mjs only=<groups>` | E1 plus the groups listed, in one process, comma-separated: `menu`, `keys`, `school`, `land`, `fail`, `ga`, `fps`, `keyboard`, `mobile`, `touchland`, `tilt`, `tiltland`, `gamepad`, `padland`, `graphics` (e.g. `only=tilt,tiltland`) | 10 s – 3 min each |
+| `npm run test:e2e:serial` | All browser groups in one process | ~25 min |
+| `npm run test:all` | The Node suites, then the browser suite in parallel | ~11–15 min |
 | `node test/robustness.mjs` | 18 short-final autolands, crosswind and storm with 9 gust seeds each; prints each result as a report, not pass/fail | under a minute |
+
+**What to run when.** After any change, run `npm test` (seconds). While working on one area,
+run its browser groups with `only=`. Before merging to `main` or publishing, run
+`npm run test:all`.
+
+**Timing.** Each browser run ends with the time each group took. The parallel runner shares the
+groups out by the durations in `test/e2e-parallel.mjs` (`GROUP_SECONDS`), so update those when a
+group changes a lot (they are measured with 3 processes running, so they include the slow-down
+from sharing the CPU). It uses 3 processes by default (`workers=N` to change). On 4 cores, 3
+processes already keep the CPU busy, so groups take 1.5–2× longer than alone. A fourth process made
+the whole run slower: the real-time landings could no longer keep up with real time. How long a
+run takes depends on which groups overlap: a real-time landing next to the graphics group (the only
+one that draws a lot) slows down, which is why E16 uses a small page.
+
+**Real time.** E9, E11, E13 and E15 fly a whole approach with the human-like pilot sending real
+input events. They run at real time (1×) when the frame rate allows about 10 of the pilot's
+decisions per simulated second, and slower otherwise. Faster than real time, a simulated touch or
+button press takes longer in simulated time and the flare comes late, so these landings are never
+sped up. The autolands (E5, E6) have no such input delay and run at 16×.
+
+**Waiting in the tests.** Waits are for simulated time (`simWait`, `simWaitOn`) or a number of
+frames, not fixed sleeps, so they hold at any frame rate. Tilt checks also let the sensor readings
+settle, then wait for frames to flow steadily (`steady`). In software rendering, the graphics work
+queued when a flight starts can hold frames back for up to a second some time later.
 
 `test/physics.test.mjs` flies the aircraft in Node and checks:
 
@@ -438,7 +468,7 @@ controls a player has.
 
 `test/e2e.mjs` drives the real page:
 
-- **E1** loads the page with a working WebGL renderer and no errors.
+- **E1** loads the page with a working WebGL renderer and no errors, and draws a frame.
 - **E2** chooses the mode, conditions and start with the mouse and starts the approach.
 - **E3** presses every mapped key and checks the control it drives.
 - **E4** walks through every Flight School step.
@@ -501,7 +531,8 @@ controls a player has.
   - the touch controls hiding on a phone.
 - **E15** lands with the controller only: stick, A/B thrust, triggers, buttons,
   reverse by holding B, stowed with A. It checks the touchdown rumble.
-- **E16** checks the graphics tiers. The high tier (a computer) must have 4×
+- **E16** checks the graphics tiers, and draws every scenario by day and night on both tiers
+  (each one's materials compile and draw without errors). The high tier (a computer) must have 4×
   MSAA, bloom, sun shadows and sky lighting; the low tier (phones and the other
   groups) must have neither post-processing nor shadow maps. On pixels read
   back from the canvas it checks:
@@ -513,8 +544,7 @@ controls a player has.
   It also checks sunshine above a cloud deck and overcast light inside and
   below it, and stars, moonlight and glowing lights at night.
 
-The other browser groups run on the fast low tier, since software rendering of
-the high tier is about twice as slow.
+The other browser groups run on the fast low tier with the 3D drawing off.
 
 `test/phone.test.mjs` checks the phone features in Node:
 

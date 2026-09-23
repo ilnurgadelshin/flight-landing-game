@@ -131,6 +131,9 @@ async function boot() {
   let frames = 0, fpsT = 0, lastDraw = 0;
   // wallTime: frame time seen by the loop; frameTime: the part handed to the game (after the 1 s cap)
   const stats = { fps: 0, frameMs: 0, frames: 0, wallTime: 0, frameTime: 0 };
+  // tests without a graphics card switch the 3D drawing off (software rendering is ~95% of a
+  // frame) and draw on demand when they look at pixels; everything else runs as usual
+  let drawing = true;
   function frame(now) {
     let dt = (now - last) / 1000; last = now;
     stats.wallTime += dt;
@@ -149,9 +152,9 @@ async function boot() {
       presentation.frame(dt, simDt);        // vibration, HUD
       view.update(dt);                      // aircraft, flight deck, world
       presentation.sound(dt);
-      if (draw) view.draw();
+      if (draw && drawing) view.draw();
       if (game.state === 'school') ui.updateSchoolHighlight();
-    } else if (draw) {
+    } else if (draw && drawing) {
       view.draw();
     }
     stats.frameMs = performance.now() - t0;
@@ -178,6 +181,8 @@ async function boot() {
     audioLog: () => audio.log,
     result: () => game.result,
     press: (code) => input.press(code), release: (code) => input.release(code),
+    setDrawing: (on) => { drawing = !!on; },
+    drawNow: () => view.draw(),
     errors: [],
   };
   window.addEventListener('error', (e) => window.__sim.errors.push(String(e.message)));
