@@ -214,8 +214,8 @@ GPU, at about 1–5 rendered frames per second.
 
 | Command | What it checks | Time |
 | --- | --- | --- |
-| `npm test` | Physics in Node, no browser: 59 checks in 11 groups (below) | ~3 min |
-| `npm run test:e2e` | The real page in Chromium: 92 checks in 9 groups (below) | 15–25 min |
+| `npm test` | Physics in Node, no browser: 62 checks in 12 groups (below) | ~3 min |
+| `npm run test:e2e` | The real page in Chromium: 96 checks in 9 groups (below) | 15–25 min |
 | `node test/e2e.mjs quick` | The same without the slow mouse-yoke landing (E9) | 10–20 min |
 | `node test/e2e.mjs only=<group>` | E1 plus one group: `menu`, `keys`, `school`, `land`, `fail`, `ga`, `fps` or `keyboard` | 1–10 min |
 | `npm run test:all` | Both suites | 20–30 min |
@@ -235,7 +235,9 @@ GPU, at about 1–5 rendered frames per second.
 9. a go-around climbs away and the reposition works;
 10. leaving the runway at speed collapses the gear;
 11. hands off in a crosswind the aircraft weathervanes into the wind, and pedal
-    inputs hold the roll-out within 2° of the runway heading.
+    inputs hold the roll-out within 2° of the runway heading;
+12. the Flight School flight director computes its guidance on its own copy of
+    the controls and never moves the aircraft's, from the approach to the stop.
 
 The autolands are flown by a test pilot (`js/autopilot.js`) that uses only the
 controls a player has.
@@ -248,7 +250,7 @@ controls a player has.
 - **E4** walks through every Flight School step.
 - **E5** autolands in every scenario by day and night and checks the callouts and sounds.
 - **E6** provokes the failures and checks the warnings and outcomes.
-- **E7** flies a keyboard-only go-around from 500 ft and repositions.
+- **E7** flies a keyboard-only go-around from 500 ft and repositions, in Fly the Approach and in Flight School.
 - **E8** checks that simulated time follows wall time at any frame rate.
 - **E9** lands with real mouse-yoke and keyboard events.
 
