@@ -320,13 +320,54 @@ tyre friction.
 
 The **Night** option in the menu flies any of these after dark.
 
+## Architecture
+
+The game is layered so that each part can change, or be tested, on its own. Arrows point from
+a module to what it uses; nothing points back up.
+
+```
+                          main.js  (builds and wires everything, runs the frame loop)
+        ┌──────────────────┬───────────┴───────┬──────────────────────┐
+  Presentation         GameView            Game (rules)          player's devices
+  sound, vibration,    aircraft, flight    state machine,        InputManager + touch,
+  screens              deck, world         actions, go-around,   tilt, gamepad
+  (listens to the      (reads the          finish, grading,      (send actions; move
+   game's events)       game's state)      instructor            the controls when asked)
+                                               │
+                        ┌──────────────────────┼─────────────┐
+                  FlightControls           Simulation      GPWS
+                  one owner of the         fixed 120 Hz    callouts and
+                  aircraft's controls      steps           warnings
+                  (player or autoland)         │
+                                   physics/  +  avionics.js
+                                   flight model   runway geometry, ILS, Vref
+```
+
+- **Physics** (`js/physics/`) knows only the aircraft, the air and the ground. It publishes its
+  state after every step; the Simulation adds the approach geometry through a hook
+  (`js/avionics.js`), so the flight model knows nothing about runways.
+- **The rules** (`js/game.js`) have no DOM, Three.js or sound, and run in Node
+  (`test/game.test.mjs`). They say what happened through events (`state`, `control`,
+  `touchdown`, `damage`, `finish`, `message`, …). They never call the screen or the speakers.
+- **The controls** of the aircraft have one owner (`js/flightcontrols.js`). Either the player's
+  devices or the autoland demo has command, and grabbing a control takes it back. Gear, flaps and
+  the other switches are applied in one place. The Flight School flight director flies a copy.
+- **Presentation** (`js/presentation.js`) turns the events into sound, vibration and screens, and
+  looks after the devices around a flight (they only fly while flying; the mouse yoke comes back
+  after a pause).
+- **The view** (`js/view.js`) places the aircraft from the published state and draws the flight
+  deck and the world; it never changes the game.
+
 ## Project structure
 
 | Path | Contents |
 | --- | --- |
 | `index.html`, `css/style.css` | Page, menu, HUD, Flight School and results overlays |
-| `js/main.js` | Boot, render loop, test hooks (`window.__sim`) |
-| `js/game.js` | Game state machine, go-around logic, instructor hints, debrief |
+| `js/main.js` | Boot, wiring, frame loop, test hooks (`window.__sim`) |
+| `js/game.js` | The rules: state machine, actions, go-around detection, finish and grading, instructor hints; emits events |
+| `js/flightcontrols.js` | The one owner of the aircraft's controls: player or autoland in command, discrete actions, the flight director's copy |
+| `js/avionics.js` | Runway-relative geometry, ILS deviations, Vref, terrain ahead |
+| `js/presentation.js`, `js/view.js` | Sound, vibration and screens from the game's events; the 3D view from the game's state |
 | `js/sim.js` | Fixed 120 Hz simulation loop and approach placement |
 | `js/config.js` | Aircraft data, runway, scenarios and starting points |
 | `js/physics/` | Flight model and landing gear (`aircraft.js`), atmosphere and wind, terrain |
@@ -361,7 +402,7 @@ GPU, at about 1–5 rendered frames per second.
 
 | Command | What it checks | Time |
 | --- | --- | --- |
-| `npm test` | Node, no browser: physics (62 checks in 12 groups), phone features (39 checks in 6 groups), game controllers (34 checks in 4 groups) and the sky model (12 checks in 3 groups), below | ~3 min |
+| `npm test` | Node, no browser: physics (62 checks in 12 groups), phone features (39 checks in 6 groups), game controllers (34 checks in 4 groups), the sky model (12 checks in 3 groups) and the game's rules (34 checks in 6 groups), below | ~4 min |
 | `npm run test:e2e` | The real page in Chromium: 200 checks in 16 groups (below) | 55–75 min |
 | `node test/e2e.mjs quick` | The same without the slow mouse-yoke, touch, tilt and controller landings (E9, E11, E13, E15) | 20–30 min |
 | `node test/e2e.mjs only=<groups>` | E1 plus the groups listed, comma-separated: `menu`, `keys`, `school`, `land`, `fail`, `ga`, `fps`, `keyboard`, `mobile`, `touchland`, `tilt`, `tiltland`, `gamepad`, `padland`, `graphics` (e.g. `only=tilt,tiltland`) | 1–10 min each |
@@ -488,6 +529,20 @@ the high tier is about twice as slow.
    sunlight and the sky is dark. Under an overcast the sky and its light are
    one grey;
 3. colours given as they should look on screen tone-map back to themselves.
+
+`test/game.test.mjs` runs the game's rules in Node, with no browser, recording their events:
+
+1. a flight starts and the physics advances;
+2. every action: the control moves, it is announced and logged; flaps stop at the ends; TO/GA
+   starts a go-around; repositioning; pause stops time and actions;
+3. the autoland demo has command, the devices only keep time, and grabbing a control or a
+   configuration action takes over;
+4. a whole landing by the test pilot: touchdown, spoilers, the finish and grade, the GPWS
+   callouts through its voice output;
+5. training: Flight School before and during the flight, the flight director, the checklist, the
+   instructor;
+6. one owner of the controls: actions report what changed; the flight director never moves the
+   aircraft's controls.
 
 `test/gamepad.test.mjs` checks the controller module against a fake
 `navigator.getGamepads()`, and InputManager's controller thrust:

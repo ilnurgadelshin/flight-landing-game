@@ -1,7 +1,8 @@
-// Simulation session: atmosphere + aircraft + fixed-step integration with a
+// Simulation session: atmosphere + aircraft (+ its avionics) + fixed-step integration with a
 // frame-time accumulator. Shared by the game (browser) and the tests (Node).
 import { Atmosphere } from './physics/atmosphere.js';
 import { Aircraft } from './physics/aircraft.js';
+import { deriveApproach } from './avionics.js';
 import { SCENARIOS, APPROACH_STARTS, RUNWAY, PHYSICS_DT, NM, FT, KTS, DEG } from './config.js';
 
 export class Simulation {
@@ -9,7 +10,8 @@ export class Simulation {
     this.scenario = SCENARIOS[scenarioId];
     this.start = APPROACH_STARTS[startId];
     this.atmosphere = new Atmosphere(this.scenario, seed);
-    this.aircraft = new Aircraft({ atmosphere: this.atmosphere });
+    // the flight model publishes its state; the avionics add the approach geometry to it
+    this.aircraft = new Aircraft({ atmosphere: this.atmosphere, derive: (st) => deriveApproach(st) });
     this.accumulator = 0;
     this.fixedDt = PHYSICS_DT;
     this.maxSubSteps = 120;  // up to 1 s of physics per frame: never falls behind on slow machines
