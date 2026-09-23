@@ -251,7 +251,7 @@ controls a player has.
 - **E5** autolands in every scenario by day and night and checks the callouts and sounds.
 - **E6** provokes the failures and checks the warnings and outcomes.
 - **E7** flies a keyboard-only go-around from 500 ft and repositions, in Fly the Approach and in Flight School.
-- **E8** checks that simulated time follows wall time at any frame rate.
+- **E8** checks that simulated time matches the frame time the game loop hands the physics, at any frame rate, and that the 4× time scale runs the physics 4× as fast.
 - **E9** lands with real mouse-yoke and keyboard events.
 
 Screenshots go to `test/output/`.

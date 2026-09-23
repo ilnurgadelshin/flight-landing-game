@@ -276,22 +276,25 @@ if (!only || only === 'fps') {
   console.log('\n[E8] Physics time is decoupled from the render frame rate');
   await start({ scenarioId: 'clear', startId: 'standard', mode: 'game', sound: false });
   await page.waitForTimeout(300);
+  // The physics must integrate exactly the frame time the loop hands it, at any frame rate. Sim time
+  // and frame time are both counted inside the same frames, so a window edge falling mid-frame cannot
+  // skew the ratio; time dropped by the loop's 1 s per-frame cap is reported separately.
+  await frames(3);                                        // let the heavy first frames after a restart pass
   const m = await page.evaluate(async () => {
-    const t0 = performance.now(), s0 = window.__sim.state().time;
-    await new Promise((r) => setTimeout(r, 3000));
-    const wall = (performance.now() - t0) / 1000, sim = window.__sim.state().time - s0;
-    return { wall, sim, fps: window.__sim.stats.fps };
+    const st = window.__sim.stats, sim0 = window.__sim.state().time, ft0 = st.frameTime, wt0 = st.wallTime, f0 = st.frames;
+    await new Promise((r) => setTimeout(r, 4000));
+    return { sim: window.__sim.state().time - sim0, frameTime: st.frameTime - ft0, wall: st.wallTime - wt0, frames: st.frames - f0, fps: st.fps };
   });
-  check('sim time tracks wall time at 1x regardless of fps', Math.abs(m.sim / m.wall - 1) < 0.15, `sim ${fmt(m.sim, 2)} s in ${fmt(m.wall, 2)} s wall at ${fmt(m.fps, 1)} fps`);
+  check('sim time tracks the frame time at 1x regardless of fps', m.frames >= 3 && Math.abs(m.sim - m.frameTime) < Math.max(0.05 * m.frameTime, 1 / 60), `sim ${fmt(m.sim, 2)} s for ${fmt(m.frameTime, 2)} s of frame time over ${m.frames} frames at ${fmt(m.fps, 1)} fps; ${fmt(m.wall - m.frameTime, 2)} s dropped by the 1 s frame cap`);
   const m4 = await page.evaluate(async () => {
     window.__sim.setTimeScale(4);
-    const t0 = performance.now(), s0 = window.__sim.state().time;
+    const st = window.__sim.stats, sim0 = window.__sim.state().time, ft0 = st.frameTime;
     await new Promise((r) => setTimeout(r, 3000));
-    const wall = (performance.now() - t0) / 1000, sim = window.__sim.state().time - s0;
+    const out = { sim: window.__sim.state().time - sim0, frameTime: st.frameTime - ft0 };
     window.__sim.setTimeScale(1);
-    return { wall, sim };
+    return out;
   });
-  check('time scale 4x advances the physics ~4x', m4.sim / m4.wall > 3.2 && m4.sim / m4.wall < 4.6, `ratio ${fmt(m4.sim / m4.wall, 2)}`);
+  check('time scale 4x advances the physics 4x the frame time', Math.abs(m4.sim / m4.frameTime - 4) < 0.2, `ratio ${fmt(m4.sim / m4.frameTime, 2)} (${fmt(m4.sim, 2)} s for ${fmt(m4.frameTime, 2)} s)`);
 }
 
 // --------------------------------------------------------------------------- mouse-yoke + keyboard landing (human control path, real time)
