@@ -1,5 +1,5 @@
 // Browser end-to-end QA: plays the game in headless Chromium (SwiftShader).
-//   node test/e2e.mjs            (all)      node test/e2e.mjs quick   (skip the slow keyboard landing)
+//   node test/e2e.mjs            (all)      node test/e2e.mjs quick   (skip the slow keyboard and touch landings)
 import { chromium } from 'playwright';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -325,6 +325,228 @@ if (!quick && (!only || only === 'keyboard')) {
   check('mouse-yoke + keyboard approach ends with the aircraft stopped on the runway', done && r.result && r.result.success, r.result ? r.result.headline : 'no result');
   await shot('e2e-manual-landing');
   await page.setViewportSize({ width: VW, height: VH });
+}
+
+// --------------------------------------------------------------------------- phones: layout and touch controls
+// A phone in landscape (iPhone 15 size, 852×393) with touch. Chromium has no notch to emulate, so the
+// safe-area insets are set through the CSS variables the layout reads. Touches are real touch
+// events sent through the DevTools protocol, which (unlike Playwright's tap) can hold several
+// fingers at once.
+async function phonePage() {
+  const ctx = await browser.newContext({ viewport: { width: 852, height: 393 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
+  const mp = await ctx.newPage();
+  mp.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') consoleErrors.push(`[phone ${m.type()}] ${m.text()}`); });
+  mp.on('pageerror', (e) => consoleErrors.push(`[phone pageerror] ${e.message}`));
+  await mp.goto(url + '/');
+  await mp.waitForFunction(() => window.__sim, null, { timeout: 60000 });
+  const cdp = await ctx.newCDPSession(mp);
+  const pts = new Map();
+  // touchStart / touchMove take every finger on the screen; touchEnd takes the fingers lifted
+  const list = (m) => [...m.entries()].map(([id, p]) => ({ x: p.x, y: p.y, id }));
+  const send = (type, touchPoints) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints });
+  const fingers = {
+    down: async (id, x, y) => { pts.set(id, { x, y }); await send('touchStart', list(pts)); },
+    move: async (id, x, y) => { pts.set(id, { x, y }); await send('touchMove', list(pts)); },
+    up: async (id) => { const p = pts.get(id); pts.delete(id); await send('touchEnd', [{ x: p.x, y: p.y, id }]); },
+  };
+  const mf = async (n) => { await mp.evaluate((n) => new Promise((res) => { const f0 = window.__sim.stats.frames; const chk = () => (window.__sim.stats.frames - f0 >= n ? res() : requestAnimationFrame(chk)); chk(); }), n); };
+  const centreOf = (sel) => mp.evaluate((sel) => { const r = document.querySelector(sel).getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }, sel);
+  return { ctx, mp, fingers, mf, centreOf };
+}
+
+if (!only || only === 'mobile') {
+  console.log('\n[E10] Phone in landscape: layout, touch controls, multi-touch, rotation and pausing');
+  const { ctx, mp, fingers, mf, centreOf } = await phonePage();
+  const SAFE = { l: 59, r: 59, t: 0, b: 21 };
+  await mp.evaluate((s) => { const st = document.documentElement.style; st.setProperty('--sal', s.l + 'px'); st.setProperty('--sar', s.r + 'px'); st.setProperty('--sat', s.t + 'px'); st.setProperty('--sab', s.b + 'px'); }, SAFE);
+  const MS = () => mp.evaluate(() => { const s = window.__sim.state(), g = window.__sim.game; return { gameState: g.state, gaMode: g.ctx.gaMode, dist: s.distToThreshold, onGround: s.onGround }; });
+  const MI = () => mp.evaluate(() => Object.assign({}, window.__sim.input()));
+  await mf(2);
+  check('a phone is detected as a touch device', await mp.evaluate(() => document.body.classList.contains('touch') && window.__sim.inputManager.touchMode));
+  const menu = await mp.evaluate(() => { const t = document.querySelector('.menu-panel h1').getBoundingClientRect(), b = document.getElementById('btn-start').getBoundingClientRect(); return { titleTop: Math.round(t.top), startBottom: Math.round(b.bottom), vh: innerHeight }; });
+  check('menu fits a 393 px tall screen: title and Start both visible without scrolling', menu.titleTop >= 0 && menu.startBottom <= menu.vh, `title at ${menu.titleTop} px, Start ends at ${menu.startBottom} of ${menu.vh}`);
+  await mp.screenshot({ path: path.join(out, 'e2e-phone-menu.png') });
+  await mp.tap('#btn-start'); await mf(4);
+  check('tapping Start begins the flight', (await MS()).gameState === 'flying');
+
+  const lay = await mp.evaluate((S) => {
+    const ids = ['t-gear', 't-autobrake', 't-flaps-up', 't-flaps-dn', 't-arm', 't-ext', 't-toga', 't-lever-body', 't-rudder', 't-stick-zone', 't-view', 't-pause', 't-help'];
+    const rects = ids.map((id) => { const r = document.getElementById(id).getBoundingClientRect(); return { id, l: r.left, t: r.top, r: r.right, b: r.bottom, w: r.width, h: r.height }; });
+    const W = innerWidth, H = innerHeight;
+    const outside = rects.filter((r) => r.w === 0 || r.l < S.l || r.r > W - S.r || r.t < S.t || r.b > H - S.b).map((r) => r.id);
+    const hit = (a, b) => a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b;
+    const overlaps = [];
+    for (let i = 0; i < rects.length; i++) for (let j = i + 1; j < rects.length; j++) if (hit(rects[i], rects[j])) overlaps.push(rects[i].id + '/' + rects[j].id);
+    const small = rects.filter((r) => r.w < 34 || r.h < 40).map((r) => `${r.id} ${Math.round(r.w)}×${Math.round(r.h)}`);
+    const g = document.getElementById('hgs').getBoundingClientRect();
+    const hgs = { l: g.left, r: g.right, t: g.top, b: g.bottom };
+    const hgsHits = rects.filter((r) => r.id !== 't-stick-zone' && hit(r, hgs)).map((r) => r.id);
+    return { outside, overlaps, small, hgsHits, strip: getComputedStyle(document.getElementById('hud-bottom')).display, ias: document.getElementById('g-ias').textContent, alt: document.getElementById('g-altv').textContent };
+  }, SAFE);
+  check('every touch control sits inside the notch and home-bar safe area', lay.outside.length === 0, lay.outside.join(', ') || '13 controls checked');
+  check('no two touch controls overlap', lay.overlaps.length === 0, lay.overlaps.join(', '));
+  check('touch targets are at least 34×40 px', lay.small.length === 0, lay.small.join(', '));
+  check('the head-up display is clear of the buttons and levers', lay.hgsHits.length === 0, lay.hgsHits.join(', '));
+  check('the head-up display replaces the desktop readout strip', lay.strip === 'none' && /^\d+$/.test(lay.ias) && /^\d+$/.test(lay.alt), `IAS ${lay.ias}, ALT ${lay.alt}`);
+  await mp.screenshot({ path: path.join(out, 'e2e-phone-flying.png') });
+  // the same rules on smaller phones (no notch): iPhone SE and a 640×360 Android
+  for (const vp of [{ width: 667, height: 375 }, { width: 640, height: 360 }]) {
+    await mp.setViewportSize(vp); await mf(2);
+    const small = await mp.evaluate(() => {
+      const ids = ['t-gear', 't-autobrake', 't-flaps-up', 't-flaps-dn', 't-arm', 't-ext', 't-toga', 't-lever-body', 't-rudder', 't-stick-zone', 't-view', 't-pause', 't-help', 'hgs'];
+      const rects = ids.map((id) => { const r = document.getElementById(id).getBoundingClientRect(); return { id, l: r.left, t: r.top, r: r.right, b: r.bottom, w: r.width, h: r.height }; });
+      const hit = (a, b) => a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b;
+      const bad = [];
+      for (const r of rects) if (r.l < 0 || r.t < 0 || r.r > innerWidth || r.b > innerHeight) bad.push(r.id + ' off screen');
+      for (let i = 0; i < rects.length; i++) for (let j = i + 1; j < rects.length; j++) if (!(rects[i].id === 'hgs' && rects[j].id === 't-stick-zone') && !(rects[j].id === 'hgs' && rects[i].id === 't-stick-zone') && hit(rects[i], rects[j])) bad.push(rects[i].id + '/' + rects[j].id);
+      for (const r of rects) if (r.id !== 'hgs' && (r.w < 34 || r.h < 39)) bad.push(`${r.id} ${Math.round(r.w)}×${Math.round(r.h)}`);
+      return bad;
+    });
+    check(`${vp.width}×${vp.height}: controls on screen, apart, at least 34×39 px`, small.length === 0, small.join(', '));
+  }
+  await mp.setViewportSize({ width: 852, height: 393 }); await mf(2);
+
+  // buttons: real taps
+  const i0 = await MI();
+  await mp.tap('#t-gear'); await mp.tap('#t-flaps-dn'); await mp.tap('#t-arm'); await mp.tap('#t-autobrake'); await mp.tap('#t-autobrake'); await mf(2);
+  const i1 = await MI();
+  check('GEAR, FLAPS +, ARM and A/BRK buttons drive the aircraft', i1.gearDown !== i0.gearDown && i1.flapIndex === i0.flapIndex + 1 && i1.speedbrakeArmed && i1.autobrake === 2, `gear ${i1.gearDown}, flaps ${i0.flapIndex}→${i1.flapIndex}, armed ${i1.speedbrakeArmed}, autobrake ${i1.autobrake}`);
+  const btnTxt = await mp.evaluate(() => ({ flaps: document.getElementById('t-flaps-val').textContent, ab: document.querySelector('#t-autobrake b').textContent, armOn: document.getElementById('t-arm').classList.contains('on') }));
+  check('the buttons show the new settings', btnTxt.ab === '2' && btnTxt.armOn && Number(btnTxt.flaps) > 0, JSON.stringify(btnTxt));
+  await mp.tap('#t-flaps-up'); await mp.tap('#t-ext'); await mf(2);
+  const i2 = await MI();
+  check('FLAPS − and EXT (speedbrakes out) work', i2.flapIndex === i0.flapIndex && i2.speedbrake === 1 && !i2.speedbrakeArmed, `flaps ${i2.flapIndex}, speedbrake ${i2.speedbrake}`);
+  await mp.tap('#t-ext'); await mf(1);
+
+  // the stick, and two thumbs at once
+  const base = await centreOf('#t-stick-zone .tbase');
+  await fingers.down(1, base.x, base.y); await fingers.move(1, base.x, base.y - 45); await mf(3);
+  const s1 = await MI();
+  check('stick up = nose up', s1.pitch > 0.3, `pitch input ${fmt(s1.pitch, 2)}`);
+  const handle = await centreOf('#t-lever .thandle');
+  await fingers.down(2, handle.x, handle.y); await fingers.move(2, handle.x, handle.y + 30); await mf(3);
+  const s2 = await MI();
+  check('two thumbs at once: the thrust lever moves while the stick is held', s2.throttle < s1.throttle - 0.1 && s2.pitch > 0.3, `throttle ${fmt(s1.throttle, 2)}→${fmt(s2.throttle, 2)}, pitch ${fmt(s2.pitch, 2)}`);
+  await fingers.up(2); await mf(3);
+  const s3 = await MI();
+  check('the thrust lever stays where it was left; the other thumb keeps the stick', Math.abs(s3.throttle - s2.throttle) < 0.01 && s3.pitch > 0.3, `throttle ${fmt(s3.throttle, 2)}, pitch ${fmt(s3.pitch, 2)}`);
+  await fingers.move(1, base.x + 45, base.y); await mf(3);
+  const s4 = await MI();
+  check('stick right = roll right', s4.roll > 0.3 && Math.abs(s4.pitch) < 0.1, `roll ${fmt(s4.roll, 2)}, pitch ${fmt(s4.pitch, 2)}`);
+  await fingers.up(1); await mf(4);
+  const s5 = await MI();
+  check('released, the stick springs back to centre', Math.abs(s5.pitch) < 0.02 && Math.abs(s5.roll) < 0.02, `pitch ${fmt(s5.pitch, 3)}, roll ${fmt(s5.roll, 3)}`);
+  const lv = await centreOf('#t-lever .thandle');
+  await fingers.down(3, lv.x, lv.y); await fingers.move(3, lv.x, lv.y + 220); await fingers.up(3); await mf(3);
+  const s6 = await MI();
+  check('in the air the lever stops at idle: the reverse gate stays shut', s6.throttle === 0 && !s6.reverse, `throttle ${s6.throttle}, reverse ${s6.reverse}`);
+  const rd = await centreOf('#t-rudder');
+  await fingers.down(4, rd.x, rd.y); await fingers.move(4, rd.x + 50, rd.y); await mf(3);
+  const s7 = await MI();
+  await fingers.up(4); await mf(4);
+  const s8 = await MI();
+  check('rudder strip: right = right rudder, and it springs back', s7.yaw > 0.4 && Math.abs(s8.yaw) < 0.02, `yaw ${fmt(s7.yaw, 2)} → ${fmt(s8.yaw, 3)}`);
+  await fingers.down(5, 430, 60); await fingers.move(5, 330, 60); await mf(2);
+  const lk = await mp.evaluate(() => window.__sim.inputManager.look.yaw);
+  await fingers.up(5); await mf(1);
+  const lk2 = await mp.evaluate(() => window.__sim.inputManager.look.yaw);
+  check('dragging on the windshield looks around and lets go straight ahead', Math.abs(lk) > 0.3 && lk2 === 0, `look yaw ${fmt(lk, 2)} → ${lk2}`);
+  await mp.tap('#t-view'); await mf(1);
+  const v1 = await mp.evaluate(() => window.__sim.inputManager.look.down);
+  await mp.tap('#t-view'); await mf(1);
+  check('VIEW toggles the panel view', v1 === true && !(await mp.evaluate(() => window.__sim.inputManager.look.down)));
+
+  // go-around and reposition through the buttons
+  await mp.tap('#t-toga'); await mf(2);
+  const g1 = await MS(), gi = await MI();
+  const repVisible = await mp.evaluate(() => !document.getElementById('t-reposition').classList.contains('hidden'));
+  check('TO/GA gives full thrust, starts a go-around and offers REPOSITION', gi.throttle === 1 && g1.gaMode && repVisible);
+  await mp.tap('#t-reposition'); await mf(2);
+  const g2 = await MS();
+  check('REPOSITION puts the aircraft back on final', !g2.gaMode && Math.abs(g2.dist - 10 * 1852) < 150 && await mp.evaluate(() => document.getElementById('t-reposition').classList.contains('hidden')), `${fmt(g2.dist / 1852)} nm`);
+
+  // pause, rotation, leaving the app
+  await mp.tap('#t-pause'); await mf(1);
+  check('the pause button pauses', (await MS()).gameState === 'paused' && await mp.evaluate(() => !document.getElementById('pause').classList.contains('hidden')));
+  await mp.tap('#btn-resume'); await mf(1);
+  await mp.setViewportSize({ width: 393, height: 852 }); await mf(2);
+  const rot = await mp.evaluate(() => ({ shown: !document.getElementById('rotate').classList.contains('hidden'), state: window.__sim.game.state }));
+  check('turning the phone upright pauses and asks for landscape', rot.shown && rot.state === 'paused', JSON.stringify(rot));
+  await mp.screenshot({ path: path.join(out, 'e2e-phone-portrait.png') });
+  await mp.setViewportSize({ width: 852, height: 393 }); await mf(2);
+  check('back in landscape the rotate screen goes and the flight waits for Resume', await mp.evaluate(() => document.getElementById('rotate').classList.contains('hidden') && window.__sim.game.state === 'paused'));
+  await mp.tap('#btn-resume'); await mf(1);
+  await mp.evaluate(() => { Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true }); document.dispatchEvent(new Event('visibilitychange')); delete document.visibilityState; });
+  check('switching away from the browser pauses the flight', (await MS()).gameState === 'paused');
+
+  // the autoland demo hands over when the stick is touched
+  await mp.evaluate(() => window.__sim.start({ scenarioId: 'clear', startId: 'standard', mode: 'game', sound: false, demo: true })); await mf(2);
+  const b2 = await centreOf('#t-stick-zone .tbase');
+  await fingers.down(1, b2.x, b2.y); await fingers.move(1, b2.x, b2.y - 10); await mf(3); await fingers.up(1); await mf(1);
+  check('touching the stick takes over from the autoland demo', await mp.evaluate(() => window.__sim.game.demoAp === null && window.__sim.events().some((e) => e.type === 'demo' && e.text === 'disengaged')));
+
+  // Flight School on a phone: touch wording and highlights on the touch controls
+  await mp.evaluate(() => window.__sim.start({ scenarioId: 'clear', startId: 'short', mode: 'training', sound: false })); await mf(3);
+  const total = parseInt((await mp.evaluate(() => document.getElementById('school-step').textContent)).split('/')[1], 10);
+  let kbdSeen = 0, chips = 0, framed = 0, domAnchors = 0, cardOk = true;
+  for (let k = 0; k < total; k++) {
+    await mf(2); await mp.waitForTimeout(400); await mf(1);   // the highlight glides to its target over 0.3 s
+    const info = await mp.evaluate((k) => {
+      const body = document.getElementById('school-body');
+      const h = document.getElementById('school-highlight').getBoundingClientRect();
+      const card = document.getElementById('school-card').getBoundingClientRect();
+      return { kbd: body.innerHTML.includes('<kbd>'), chips: body.querySelectorAll('.tc').length, h: { l: h.left, t: h.top, r: h.right, b: h.bottom }, card: { l: card.left, t: card.top, r: card.right, b: card.bottom }, W: innerWidth, H: innerHeight };
+    }, k);
+    const anchor = await mp.evaluate(async (k) => { const m = await import('./js/ui.js'); return m.schoolPage(m.SCHOOL_STEPS[k]).anchor; }, k);
+    if (info.kbd) kbdSeen++;
+    if (info.chips) chips++;
+    if (anchor[0] === '#') {
+      domAnchors++;
+      const r = await mp.evaluate((sel) => { const r = document.querySelector(sel).getBoundingClientRect(); return { l: r.left, t: r.top, r: r.right, b: r.bottom }; }, anchor);
+      if (info.h.l <= r.l && info.h.t <= r.t && info.h.r >= r.r && info.h.b >= r.b) framed++;
+      else console.log(`    step ${k + 1}: highlight does not frame ${anchor}`);
+    }
+    if (info.card.l < 0 || info.card.t < 0 || info.card.r > info.W || info.card.b > info.H) { cardOk = false; console.log(`    step ${k + 1}: card off screen ${JSON.stringify(info.card)}`); }
+    if (k === 6) await mp.screenshot({ path: path.join(out, 'e2e-phone-school.png') });
+    if (k < total - 1) { await mp.tap('#school-next'); }
+  }
+  check('Flight School on a phone names the touch controls, never keys', kbdSeen === 0 && chips >= 8, `${chips} of ${total} pages show touch controls, ${kbdSeen} show keys`);
+  check('each touch page frames its control or display', framed === domAnchors && domAnchors === total, `${framed}/${domAnchors} framed`);
+  check('the school card stays on screen', cardOk);
+  await mp.tap('#school-next'); await mf(4);
+  await mp.waitForTimeout(1500); await mf(2);
+  const instr = await mp.evaluate(() => document.getElementById('instructor').innerHTML);
+  check('instructor hints use the touch controls', instr.length > 10 && !instr.includes('<kbd>'), instr.replace(/<[^>]+>/g, '').slice(0, 70));
+  const perr = await mp.evaluate(() => window.__sim.errors);
+  check('no JavaScript errors on the phone', perr.length === 0, perr.slice(0, 3).join(' | '));
+  await ctx.close();
+}
+
+// --------------------------------------------------------------------------- phones: a landing flown with the touch controls
+if (!quick && (!only || only === 'touchland')) {
+  console.log('\n[E11] Landing flown through the touch controls (phone, real time)');
+  const { ctx, mp, mf } = await phonePage();
+  await mp.evaluate(() => window.__sim.start({ scenarioId: 'clear', startId: 'short', mode: 'game', sound: false, seed: 5 }));
+  await mp.waitForTimeout(2500); await mf(3); await mp.waitForTimeout(1000);
+  const fps = await mp.evaluate(() => window.__sim.stats.fps);
+  const scale = Math.max(0.35, Math.min(1, fps / 10));
+  await mp.evaluate((sc) => window.__sim.setTimeScale(sc), scale);
+  console.log(`    render rate ${fmt(fps, 1)} fps -> simulation time scale ${fmt(scale, 2)}`);
+  await mp.tap('#t-arm'); await mp.tap('#t-autobrake'); await mp.tap('#t-autobrake'); await mp.tap('#t-autobrake'); await mf(1);   // real taps: arm, autobrake 3
+  // the same human-like pilot, flying through the stick, thrust lever, rudder strip, REV gate and BRAKE button
+  await mp.addScriptTag({ path: path.join(root, 'test', 'human-pilot.browser.js') });
+  await mp.evaluate(() => window.installHumanPilot({ input: 'touch' }));
+  let done = true;
+  try { await mp.waitForFunction(() => window.__sim.game.state === 'finished', null, { timeout: 600000 }); } catch (e) { done = false; console.log('    (timeout waiting for the landing to finish)'); }
+  await mp.evaluate(() => window.__sim.setTimeScale(1));
+  const r = await mp.evaluate(() => ({ result: window.__sim.result(), log: window.__sim.events().filter((e) => e.type === 'input').map((e) => e.text), mouse: window.__sim.inputManager.mouseEngaged, trace: (window.__pilot.trace || []).slice(-24).map((x) => JSON.stringify(x)) }));
+  if (!(r.result && r.result.success)) console.log('    trace:\n    ' + r.trace.join('\n    '));
+  console.log(`  touch landing: ${r.result ? `${r.result.outcome} ${r.result.score} ${r.result.grade} — ${r.result.headline}` : 'not finished'} | inputs: ${r.log.slice(0, 14).join(', ')}`);
+  if (r.result) console.log('    ' + r.result.items.map((it) => `${it.label}: ${it.value}`).join(' · '));
+  check('a landing flown only with the touch controls ends stopped on the runway', done && r.result && r.result.success, r.result ? r.result.headline : 'no result');
+  check('the roll-out used the REV gate on the thrust lever, and no mouse yoke', r.log.includes('reverse on') && r.log.includes('reverse off') && !r.mouse);
+  await mp.screenshot({ path: path.join(out, 'e2e-phone-landing.png') });
+  await ctx.close();
 }
 
 // --------------------------------------------------------------------------- wrap up

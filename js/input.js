@@ -7,9 +7,18 @@
 //   Reversers  R (hold, ground only)          Trim       [ / ]  or PageUp / PageDown
 //   Look down  L (hold), right-drag = look    Mouse yoke click canvas / M, Esc releases
 //   Pause P · Help H · Reposition Backspace · Menu Esc
+//
+// Touch (phones, tablets): js/touch.js writes this.touch — a spring-return stick and rudder
+// that share the keyboard axes (so letting go springs back through the same ramp), an
+// absolute thrust lever with a latched reverse position, and a held brake. Its buttons
+// emit the same actions as the keys.
 import { AIRCRAFT as AC } from './config.js';
 
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+// touch stick shaping, the same as the mouse yoke's: a small dead zone around centre, then a
+// gentle curve so small movements are precise
+const deadZone = (v) => (Math.abs(v) < 0.06 ? 0 : (v - Math.sign(v) * 0.06) / 0.94);
+const shape = (v) => { const d = clamp(deadZone(v), -1, 1); return Math.sign(d) * Math.pow(Math.abs(d), 1.4); };
 
 export class InputManager {
   constructor(canvas, opts = {}) {
@@ -27,10 +36,20 @@ export class InputManager {
     this.enabled = false;               // only drives the aircraft while flying
     this.lastHumanInputT = -1;
     this.time = 0;
+    this.touchMode = false;             // the touch scheme is active: taps on the canvas never grab the mouse yoke
+    this.touch = {};
+    this.resetTouch();
     this.bind();
   }
 
   onAction(fn) { this.listeners.push(fn); }
+  setTouchMode(on) { this.touchMode = on; if (on && this.mouseEngaged) this.setMouse(false); }
+  /** Touch control state; a new flight starts with everything released and the reversers stowed. */
+  resetTouch() {
+    Object.assign(this.touch, { stickHeld: false, pitch: 0, roll: 0, rudderHeld: false, yaw: 0, leverHeld: false, throttle: null, reverse: false, brake: false });
+  }
+  /** The player is flying through the touch controls right now (used to take over from the autoland demo). */
+  touchFlying() { const t = this.touch; return t.stickHeld || t.rudderHeld || t.leverHeld; }
   emit(name, arg) { for (const l of this.listeners) l(name, arg); }
 
   bind() {
@@ -66,7 +85,7 @@ export class InputManager {
     });
     window.addEventListener('blur', () => { this.keys.clear(); this.look.down = false; });
     this.canvas.addEventListener('mousedown', (e) => {
-      if (e.button === 0) { if (this.enabled) this.setMouse(true); }
+      if (e.button === 0) { if (this.enabled && !this.touchMode) this.setMouse(true); }
       if (e.button === 2) { this.rightDrag = { x: e.clientX, y: e.clientY, yaw: this.look.yaw, pitch: this.look.pitch }; }
     });
     window.addEventListener('mouseup', (e) => { if (e.button === 2) { this.rightDrag = null; this.look.yaw = 0; this.look.pitch = 0; } });
@@ -120,9 +139,15 @@ export class InputManager {
     this.axes.pitch = ramp(this.axes.pitch, pk, 1.6, 3.0);
     this.axes.roll = ramp(this.axes.roll, rk, 2.0, 3.0);
     this.axes.yaw = ramp(this.axes.yaw, yk, 1.6, 2.5);
-    let pitch = this.axes.pitch * inv;           // up arrow = nose up unless inverted
+    // touch stick and rudder: while held they set the axes directly; released, the axes ramp
+    // back to centre like a released key (~0.3 s), which is the stick's spring
+    const T = this.touch;
+    if (T.stickHeld && pk === 0 && rk === 0) { this.axes.pitch = shape(T.pitch); this.axes.roll = shape(T.roll); }
+    if (T.rudderHeld && yk === 0) this.axes.yaw = clamp(T.yaw, -1, 1);
+    if (this.touchFlying()) this.lastHumanInputT = this.time;
+    let pitch = this.axes.pitch * inv;           // up arrow / stick up = nose up unless inverted
     let roll = this.axes.roll;
-    if (this.mouseEngaged && pk === 0 && rk === 0) {
+    if (this.mouseEngaged && pk === 0 && rk === 0 && !T.stickHeld) {
       const s = this.opts.mouseSensitivity;
       const dz = (v) => (Math.abs(v) < 0.06 ? 0 : (v - Math.sign(v) * 0.06) / 0.94);
       // mouse up (negative y) = nose up unless inverted (pilot style: forward = push = nose down)
@@ -136,15 +161,16 @@ export class InputManager {
       // keyboard overrides the mouse while a key is held
     }
     inp.pitch = pitch; inp.roll = roll; inp.yaw = this.axes.yaw;
-    // ---- throttle
+    // ---- throttle: the touch lever sets a position, the keys move it at a fixed rate
+    if (T.throttle !== null) { inp.throttle = clamp(T.throttle, 0, 1); T.throttle = null; }
     const tr = 0.35 * dt;
     if (K('KeyW')) inp.throttle = clamp(inp.throttle + tr, 0, 1);
     if (K('KeyS')) inp.throttle = clamp(inp.throttle - tr, 0, 1);
     // ---- brakes (hold), reversers (hold)
-    const bTarget = K('KeyB') ? 1 : 0;
+    const bTarget = K('KeyB') || T.brake ? 1 : 0;
     this.brake = bTarget ? Math.min(1, this.brake + dt * 2.5) : Math.max(0, this.brake - dt * 4);
     inp.brake = this.brake;
-    const rev = K('KeyR');
+    const rev = K('KeyR') || T.reverse;
     if (rev && !inp.reverse) { inp.reverse = true; inp.throttle = 0; this.emit('reverse', true); }
     if (!rev && inp.reverse) { inp.reverse = false; this.emit('reverse', false); }
     if (inp.reverse) inp.throttle = 0;

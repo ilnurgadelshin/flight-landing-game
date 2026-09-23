@@ -142,7 +142,8 @@ export class World {
     this.canvas = canvas;
     this.lowDetail = !!opts.lowDetail;
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: !this.lowDetail, logarithmicDepthBuffer: true, powerPreference: 'high-performance' });
-    renderer.setPixelRatio(this.lowDetail ? 1 : Math.min(window.devicePixelRatio || 1, 1.5));
+    this.pixelRatio = opts.pixelRatio || (this.lowDetail ? 1 : Math.min(window.devicePixelRatio || 1, 1.5));
+    renderer.setPixelRatio(this.pixelRatio);
     renderer.setSize(window.innerWidth, window.innerHeight, false);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -174,6 +175,13 @@ export class World {
 
     window.addEventListener('resize', () => this.resize());
     this.resize();
+  }
+
+  /** Render resolution relative to CSS pixels (the dynamic resolution scaler adjusts it on phones). */
+  setPixelRatio(r) {
+    this.pixelRatio = r;
+    this.renderer.setPixelRatio(r);
+    this.renderer.setSize(window.innerWidth, window.innerHeight, false);
   }
 
   resize() {

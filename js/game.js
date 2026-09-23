@@ -11,8 +11,10 @@ import { TERRAIN } from './physics/terrain.js';
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 
 export class Game {
-  constructor({ world, cockpit, input, audio, gpws, ui }) {
+  constructor({ world, cockpit, input, audio, gpws, ui, touch }) {
     this.world = world; this.cockpit = cockpit; this.input = input; this.audio = audio; this.gpws = gpws; this.ui = ui;
+    this.touch = touch || null;          // on-screen controls (phones, tablets)
+    this.onStateChange = null;           // platform hook (wake lock)
     this.sim = new Simulation({ scenarioId: 'clear', startId: 'standard' });
     this.state = 'menu';
     this.mode = 'game';
@@ -41,6 +43,7 @@ export class Game {
   start(opts) {
     this.opts = opts;
     this._yokeWasOn = false;   // a new flight never inherits the previous flight's yoke engagement
+    this.input.resetTouch();   // nor a held stick or a latched reverse lever
     this.mode = opts.mode;
     this.night = !!opts.night;
     this.input.opts.invertPitch = !!opts.invertPitch;
@@ -69,7 +72,7 @@ export class Game {
     if (opts.demo) {
       this.demoAp = new Autopilot(this.sim.aircraft, {});
       this.setState('flying');
-      this.ui.setModeMessage('AUTOLAND DEMO — press any flight key to take over', 'ga');
+      this.ui.setModeMessage('AUTOLAND DEMO — [[takeover]] to take over', 'ga');
       this.log('demo', 'autoland demo started');
     } else if (this.mode === 'training' && !opts.skipSchool) {
       this.setState('school');
@@ -106,6 +109,7 @@ export class Game {
       }
       if (prev === 'menu' || prev === 'finished') this._yokeWasOn = false;
     }
+    if (this.onStateChange && prev !== s) this.onStateChange(s, prev);
   }
 
   bindActions() {
@@ -135,6 +139,9 @@ export class Game {
     }
   }
 
+  /** The player grabbed a flight control (keys, mouse yoke or the touch stick, rudder or lever). */
+  humanTakeover() { return this.input.anyFlightKeyHeld() || this.input.mouseEngaged || this.input.touchFlying(); }
+
   disengageDemo() { if (!this.demoAp) return; this.demoAp = null; this.audio.play('apdisc'); this.ui.setModeMessage('AUTOPILOT DISENGAGED — you have control', ''); setTimeout(() => this.ui.setModeMessage(''), 2500); this.log('demo', 'disengaged'); }
 
   togglePause() {
@@ -157,7 +164,7 @@ export class Game {
   beginGoAround(manual) {
     if (this.ctx.gaMode) return;
     this.ctx.gaMode = true; this.ctx.gaTimer = 0; this.ctx.goArounds++; this.ctx.gaMaxAgl = this.sim.state.agl; this.ctx.gaStartAgl = this.sim.state.agl;
-    this.ui.setModeMessage('GO-AROUND — pitch up, gear up, flaps 15. Backspace = reposition on final', 'ga');
+    this.ui.setModeMessage('GO-AROUND — pitch up, gear up, flaps 15. [[reposition]]: back on final', 'ga');
     this.audio.say('Go around, flaps fifteen', { priority: 1 });
     this.log('goaround', manual ? 'TOGA pressed' : 'detected');
   }
@@ -167,7 +174,7 @@ export class Game {
     // called before every physics sub-step (fixed dt)
     if (this.demoAp) {
       this.demoAp.update(dt);
-      if (this.input.anyFlightKeyHeld() || this.input.mouseEngaged) this.disengageDemo();
+      if (this.humanTakeover()) this.disengageDemo();
     }
     if (this.fdAp && this.mode === 'training' && !this.demoAp) {
       // the flight director runs the same law against a shadow input to produce command bars
@@ -180,7 +187,7 @@ export class Game {
   update(frameDt) {
     const ac = this.sim.aircraft, st = ac.state, inp = ac.input;
     if (this.state === 'flying') {
-      if (this.demoAp) { this.input.time += frameDt; if (this.input.anyFlightKeyHeld() || this.input.mouseEngaged) this.disengageDemo(); }
+      if (this.demoAp) { this.input.time += frameDt; if (this.humanTakeover()) this.disengageDemo(); }
       // the control axes ramp in simulated time, so a slowed simulation (tests) sees the same inputs as real time
       else this.input.update(Math.min(frameDt, 1.0) * this.sim.timeScale, inp, st);
     }
@@ -195,7 +202,8 @@ export class Game {
     this.syncVisual();
     // HUD
     const configWarning = this.gpws.hornOn ? 'GEAR NOT DOWN' : (st.destroyed ? 'CRASHED' : '');
-    this.ui.updateHUD(st, { mouse: this.input.mouseEngaged, configWarning });
+    this.ui.updateHUD(st, { mouse: this.input.mouseEngaged, configWarning, fd: this.fdCommand() });
+    if (this.touch) this.touch.sync(st, inp, { gaMode: this.ctx.gaMode });
     this.ui.setCaption(this.gpws.caption, this.gpws.captionKind);
   }
 
@@ -231,7 +239,7 @@ export class Game {
     if (!c.gaMode && c.wasLow && !st.onGround && c.togaT > 2 && st.vs > 2 && st.agl - c.togaMinAgl > 15 && !ac.touchdown) this.beginGoAround(false);
     if (c.gaMode) {
       c.gaTimer += dt; c.gaMaxAgl = Math.max(c.gaMaxAgl, st.agl);
-      if (c.gaTimer > 8 && st.agl > 900 * FT && inp.gearDown === false && !this._gaHint) { this._gaHint = true; this.ui.setModeMessage('GO-AROUND complete — press Backspace to reposition on final, or fly a visual circuit', 'ga'); }
+      if (c.gaTimer > 8 && st.agl > 900 * FT && inp.gearDown === false && !this._gaHint) { this._gaHint = true; this.ui.setModeMessage('GO-AROUND complete — press [[reposition]] to reposition on final, or fly a visual circuit', 'ga'); }
       // the go-around ends if the pilot is back on a stabilised approach below 1000 ft
       if (c.gaTimer > 30 && st.agl < 1000 * FT && st.vs < 0 && inp.throttle < 0.8) { c.gaMode = false; this._gaHint = false; this.ui.setModeMessage(''); this.log('goaround', 'ended, approach resumed'); }
     }
@@ -291,31 +299,31 @@ export class Game {
     const hints = [];
     if (this.demoAp) { this.ui.setInstructor('Watch the demo: notice the small, smooth control inputs and how thrust is used to hold the speed.'); return; }
     if (st.onGround && this.sim.aircraft.touchdown) {
-      if (st.groundSpeed > 30 * KTS) hints.push(`<b>Rolling out.</b> Hold <kbd>R</kbd> for reverse thrust and <kbd>B</kbd> to brake. Keep straight with <kbd>A</kbd>/<kbd>D</kbd>.`);
-      else if (st.groundSpeed > 1) hints.push('Stow the reversers below 60 kts (release <kbd>R</kbd>) and brake to a stop.');
+      if (st.groundSpeed > 30 * KTS) hints.push('<b>Rolling out.</b> Reverse thrust: [[reverse]]; brakes: hold [[brakes]]. Keep straight with [[rudder]].');
+      else if (st.groundSpeed > 1) hints.push('Stow the reversers below 60 kts ([[reverseStow]]) and brake to a stop.');
     } else if (c.gaMode) {
-      hints.push('<b>Go-around:</b> pitch to +12° with full thrust, gear up when climbing (<kbd>G</kbd>), flaps 15 (<kbd>V</kbd>). Above 1000 ft press <kbd>Backspace</kbd> to reposition.');
+      hints.push('<b>Go-around:</b> pitch to +12° with full thrust, gear up when climbing ([[gear]]), flaps 15 ([[flapsUp]]). Above 1000 ft press [[reposition]] to reposition.');
     } else if (aglFt < 60) {
-      hints.push(aglFt < 35 ? '<b>Flare!</b> Raise the nose 2–3° and close the throttle (<kbd>S</kbd>). Hold it… let it settle.' : 'Approaching the flare. Wings level, aim for the touchdown zone, throttle coming back.');
-      if (Math.abs(st.crabDeg) > 3) hints.push(`Kick off the crab: rudder <kbd>${st.crabDeg > 0 ? 'A' : 'D'}</kbd> to align with the runway.`);
+      hints.push(aglFt < 35 ? '<b>Flare!</b> Raise the nose 2–3° and close the throttle ([[thrustDown]]). Hold it… let it settle.' : 'Approaching the flare. Wings level, aim for the touchdown zone, throttle coming back.');
+      if (Math.abs(st.crabDeg) > 3) hints.push(`Kick off the crab: ${st.crabDeg > 0 ? 'left rudder ([[rudderLeft]])' : 'right rudder ([[rudderRight]])'} to align with the runway.`);
     } else {
       // configuration schedule
-      if (dNm > 8 && inp.flapIndex < 2 && st.ias < 220) hints.push('Select <b>flaps 5</b> (<kbd>F</kbd>).');
-      if (dNm <= 8 && dNm > 6 && inp.flapIndex < 3 && st.ias < 195) hints.push('Slow to about 160 kts and select <b>flaps 15</b> (<kbd>F</kbd>).');
-      if (dNm <= 7 && !inp.gearDown) hints.push('<b>Gear down</b> (<kbd>G</kbd>) — you are near glideslope intercept.');
-      if (dNm <= 6 && inp.flapIndex < 4 && st.ias < 168) hints.push('<b>Flaps 30</b> (<kbd>F</kbd>) — landing flaps. Speed target Vref+5 = ' + target + ' kts.');
-      if (dNm <= 5 && !inp.speedbrakeArmed && st.speedbrake < 0.1) hints.push('Arm the speedbrakes (<kbd>X</kbd>) and set autobrake 2 or 3 (<kbd>N</kbd>).');
+      if (dNm > 8 && inp.flapIndex < 2 && st.ias < 220) hints.push('Select <b>flaps 5</b> ([[flapsDown]]).');
+      if (dNm <= 8 && dNm > 6 && inp.flapIndex < 3 && st.ias < 195) hints.push('Slow to about 160 kts and select <b>flaps 15</b> ([[flapsDown]]).');
+      if (dNm <= 7 && !inp.gearDown) hints.push('<b>Gear down</b> ([[gear]]) — you are near glideslope intercept.');
+      if (dNm <= 6 && inp.flapIndex < 4 && st.ias < 168) hints.push('<b>Flaps 30</b> ([[flapsDown]]) — landing flaps. Speed target Vref+5 = ' + target + ' kts.');
+      if (dNm <= 5 && !inp.speedbrakeArmed && st.speedbrake < 0.1) hints.push('Arm the speedbrakes ([[armSpeedbrake]]) and set autobrake 2 or 3 ([[autobrake]]).');
       // energy
       // target speeds per configuration: flaps 5 ~175, flaps 15 ~162, landing flaps Vref+5
       const dv = st.ias - (inp.flapIndex >= 4 ? target : (inp.flapIndex >= 3 ? 162 : (inp.flapIndex >= 2 ? 175 : 210)));
-      if (dv > 12) hints.push(`Speed high (+${dv.toFixed(0)}): reduce thrust (<kbd>S</kbd>).`);
-      else if (dv < -10) hints.push(`Speed low (${dv.toFixed(0)}): add thrust (<kbd>W</kbd>) — do not raise the nose to hold altitude.`);
+      if (dv > 12) hints.push(`Speed high (+${dv.toFixed(0)}): reduce thrust ([[thrustDown]]).`);
+      else if (dv < -10) hints.push(`Speed low (${dv.toFixed(0)}): add thrust ([[thrustUp]]) — do not raise the nose to hold altitude.`);
       // glideslope
       if (dNm < 12 && st.gsDev > 0.4) hints.push('Above the glideslope: lower the nose a little, reduce thrust.');
       else if (dNm < 12 && st.gsDev < -0.4) hints.push('Below the glideslope: raise the nose a little and add a touch of thrust.');
       if (Math.abs(st.locDev) > 0.5 && dNm < 12) hints.push(`${st.locDev > 0 ? 'Right' : 'Left'} of the centreline: bank ${st.locDev > 0 ? 'left' : 'right'} a few degrees to rejoin.`);
       if (Math.abs(st.roll) > 12 * DEG) hints.push('Bank angle too large — ease off the roll input.');
-      if (aglFt < 500 && (Math.abs(st.gsDev) > 0.7 || Math.abs(st.locDev) > 1.2 || st.ias > target + 20)) hints.push('<b>Unstable approach — consider a go-around (<kbd>T</kbd>).</b>');
+      if (aglFt < 500 && (Math.abs(st.gsDev) > 0.7 || Math.abs(st.locDev) > 1.2 || st.ias > target + 20)) hints.push('<b>Unstable approach — consider a go-around ([[toga]]).</b>');
       if (!hints.length) hints.push(dNm > 2 ? 'Nicely stable. Small corrections only; keep the diamonds centred and the speed on target.' : 'On profile. Look at the runway, keep it steady.');
     }
     this.ui.setInstructor(hints.slice(0, 2).join('<br>'));
@@ -335,7 +343,7 @@ export class Game {
     return { pitch: st.pitch + clamp(sh.pitch, -1, 1) * 6 * DEG, roll: st.roll + clamp(sh.roll, -1, 1) * 20 * DEG };
   }
 
-  render(frameDt) {
+  render(frameDt, draw = true) {
     const st = this.sim.state, inp = this.sim.aircraft.input;
     this.cockpit.eyeWorld(this.eye);
     const papi = this.world.lights.papiWhites(this.eye);
@@ -352,6 +360,6 @@ export class Game {
     this.world.update(frameDt, st, this.eye);
     this.audio.update(frameDt, st, { rain: this.world.rain.visible ? 1 : 0 });
     if (this.world.lightningFlash > 0.95) { this.ui.flash(0.5); setTimeout(() => this.audio.play('thunder'), 800 + Math.random() * 1500); }
-    this.world.render();
+    if (draw) this.world.render();
   }
 }

@@ -17,7 +17,8 @@ collapse, belly landings, runway excursions and overruns are all simulated.
 ## Project goal
 
 The aim is a realistic, interactive landing simulator for the most demanding
-few minutes of an airliner flight, playable on an ordinary laptop:
+few minutes of an airliner flight, playable on an ordinary laptop, phone or
+tablet:
 
 - **Realistic heavy-airliner handling.** A 62-tonne aircraft with the 737-800's
   mass, inertia, flap schedule and engines: slow to respond, energy that has to
@@ -32,8 +33,9 @@ few minutes of an airliner flight, playable on an ordinary laptop:
 - **A believable flight deck.** A first-person 737 cockpit with working
   displays, levers and warnings, a runway with ICAO markings, approach lights
   and a PAPI computed from the pilot's eye, weather and night lighting.
-- **Accessible.** Laptop keyboard and mouse controls, a skippable Flight School
-  that walks through every instrument and control, instructor hints and a flight
+- **Accessible.** Laptop keyboard and mouse controls, on-screen touch controls
+  and a head-up display on phones and tablets, a skippable Flight School that
+  walks through every instrument and control, instructor hints and a flight
   director.
 - **Verified by playing it.** Frame-rate-independent physics, automated test
   suites, and scripted playtests that fly every scenario the way a new player
@@ -52,6 +54,8 @@ python3 -m http.server 8080
 ```
 
 Then open `http://localhost:8080` in a current Chrome, Edge, Firefox or Safari.
+On a phone or tablet, open the same address (or the live link) and hold the
+device in landscape; see [Phones and tablets](#controls-phones-and-tablets-landscape).
 Everything (Three.js, cannon-es) is vendored in `vendor/`, so it also works
 offline and can be hosted on any static host.
 
@@ -114,6 +118,46 @@ deployment" in the Actions tab).
 The pitch axis defaults to "game style" (up arrow / mouse up = nose up). Tick
 *Pilot-style pitch* in the menu for the yoke convention (push forward = nose
 down).
+
+### Controls (phones and tablets, landscape)
+
+On a touch screen the game shows on-screen controls and a head-up display
+instead of the keyboard hints and the readout strip. The layout follows mobile
+flight simulators and RC transmitters: a self-centring stick for one thumb, a
+thrust lever that stays where it is left for the other.
+
+| Control | Touch |
+| --- | --- |
+| Pitch and roll | **Stick** (right thumb): it appears where the thumb lands in the lower right and springs back to centre when released. The aircraft then holds its attitude and trims itself. Stick up = nose up (tick *Pilot-style pitch* for stick up = nose down) |
+| Thrust | **Thrust lever** at the left edge: drag it, and it stays where you leave it. **TO/GA** on top gives go-around thrust |
+| Thrust reversers | On the ground, pull the lever down past idle into **REV**. It stays there until you push it back up |
+| Rudder / nose-wheel steering | **RUDDER** strip next to the lever; springs back to centre |
+| Gear, flaps, speedbrakes, autobrake | **GEAR**, **FLAPS − / +**, **ARM** and **EXT** (speedbrakes), **A/BRK** buttons at the top left. Each shows its current setting |
+| Wheel brakes | **BRAKE** (hold): appears on the ground |
+| Reposition on final | **REPOSITION**: appears during a go-around |
+| Look around / at the panel | Drag on the windshield (lets go straight ahead) · **VIEW** toggles the panel |
+| Pause / Flight School | **❚❚** / **?** at the top right |
+
+The head-up display in the windshield shows what is needed to land: speed
+against Vref + 5, N1, altitude, radio altitude, vertical speed, wind, the
+localizer and glideslope diamonds, and the flight director in Flight School.
+Flight School and the instructor hints name the touch controls instead of keys,
+and highlight them.
+
+- **Orientation and full screen.** On Android, starting a flight goes full
+  screen and locks landscape. iPhone Safari cannot do either, so holding the
+  phone upright shows a "rotate to landscape" screen, and the menu suggests
+  *Share → Add to Home Screen*, which opens the game without the browser bars.
+- **Interruptions.** Turning the phone upright or switching away from the
+  browser pauses the flight. While flying, the screen is kept awake where the
+  browser supports it.
+- **Performance.** Phones get the lighter scene detail, the rendering
+  resolution adapts to the frame rate, and still screens (menu, pause, results)
+  are drawn at about 15 fps.
+- **Detection.** The touch layout appears on touch-first devices and switches
+  with the pointer in use (a touch on a laptop, a mouse on an iPad). Add
+  `?touch=1` or `?touch=0` to the address to force it, and `?drs=1` or `?drs=0`
+  to force the adaptive resolution on or off.
 
 ## What is simulated
 
@@ -188,7 +232,8 @@ The **Night** option in the menu flies any of these after dark.
 | `js/physics/` | Flight model and landing gear (`aircraft.js`), atmosphere and wind, terrain |
 | `js/world/` | Terrain, airport, runway textures, airfield lights and PAPI, weather |
 | `js/cockpit/` | 3D flight deck and the canvas-drawn displays |
-| `js/input.js`, `js/audio.js`, `js/gpws.js` | Keyboard and mouse yoke, synthesised sound and voice, warning system |
+| `js/input.js`, `js/audio.js`, `js/gpws.js` | Keyboard, mouse yoke and touch input, synthesised sound and voice, warning system |
+| `js/touch.js`, `js/platform.js`, `js/controls.js` | On-screen touch controls; phone support (orientation, full screen, pausing, wake lock, adaptive resolution); the control glossary that words hints for keys or touch |
 | `js/evaluate.js` | Landing grading and outcomes |
 | `js/autopilot.js` | Test pilot used by the tests and the autoland demo |
 | `vendor/` | Three.js and cannon-es (no install needed to play) |
@@ -215,9 +260,9 @@ GPU, at about 1–5 rendered frames per second.
 | Command | What it checks | Time |
 | --- | --- | --- |
 | `npm test` | Physics in Node, no browser: 62 checks in 12 groups (below) | ~3 min |
-| `npm run test:e2e` | The real page in Chromium: 96 checks in 9 groups (below) | 15–25 min |
-| `node test/e2e.mjs quick` | The same without the slow mouse-yoke landing (E9) | 10–20 min |
-| `node test/e2e.mjs only=<group>` | E1 plus one group: `menu`, `keys`, `school`, `land`, `fail`, `ga`, `fps` or `keyboard` | 1–10 min |
+| `npm run test:e2e` | The real page in Chromium: 130 checks in 11 groups (below) | 30–45 min |
+| `node test/e2e.mjs quick` | The same without the slow mouse-yoke and touch landings (E9, E11) | 15–25 min |
+| `node test/e2e.mjs only=<group>` | E1 plus one group: `menu`, `keys`, `school`, `land`, `fail`, `ga`, `fps`, `keyboard`, `mobile` or `touchland` | 1–10 min |
 | `npm run test:all` | Both suites | 20–30 min |
 | `node test/robustness.mjs` | 18 short-final autolands, crosswind and storm with 9 gust seeds each; prints each result as a report, not pass/fail | under a minute |
 
@@ -253,6 +298,24 @@ controls a player has.
 - **E7** flies a keyboard-only go-around from 500 ft and repositions, in Fly the Approach and in Flight School.
 - **E8** checks that simulated time matches the frame time the game loop hands the physics, at any frame rate, and that the 4× time scale runs the physics 4× as fast.
 - **E9** lands with real mouse-yoke and keyboard events.
+- **E10** runs on a phone-sized landscape screen (852×393, touch, simulated notch
+  insets). It checks:
+  - the menu fits the screen;
+  - every touch control sits inside the safe area, with no overlaps and targets
+    of at least 34×40 px;
+  - the head-up display replaces the readout strip;
+  - each button drives its control;
+  - two thumbs work at once, the stick and rudder spring back and the lever
+    stays put;
+  - the reverse gate stays shut in the air;
+  - look-around, VIEW, TO/GA and REPOSITION work;
+  - rotating the phone or leaving the browser pauses the flight;
+  - touching the stick takes over from the autoland demo;
+  - Flight School and the instructor name the touch controls and highlight them.
+
+  Touches are real multi-finger touch events sent through the DevTools protocol.
+- **E11** lands on the phone screen using only the touch controls: stick,
+  thrust lever, rudder strip and buttons. The roll-out uses the REV gate.
 
 Screenshots go to `test/output/`.
 
