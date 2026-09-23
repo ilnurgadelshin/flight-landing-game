@@ -46,10 +46,13 @@ async function boot() {
   // ---- main loop
   let last = performance.now();
   let frames = 0, fpsT = 0;
-  const stats = { fps: 0, frameMs: 0, frames: 0 };
+  // wallTime: frame time seen by the loop; frameTime: the part handed to the game (after the 1 s cap)
+  const stats = { fps: 0, frameMs: 0, frames: 0, wallTime: 0, frameTime: 0 };
   function frame(now) {
     let dt = (now - last) / 1000; last = now;
+    stats.wallTime += dt;
     if (dt > 1.0) dt = 1.0;                 // tab was hidden etc. — never integrate a huge step
+    if (game.state === 'flying') stats.frameTime += dt;
     dt *= game.sim.timeScale === 1 ? 1 : 1; // (time scale is applied inside the simulation)
     const t0 = performance.now();
     if (game.state !== 'menu') {

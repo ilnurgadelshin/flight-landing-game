@@ -24,7 +24,7 @@ export class Autopilot {
 
   update(dt) {
     const ac = this.ac, st = ac.state, o = this.opts;
-    const inp = this.inputTarget || ac.input;   // a shadow input lets the flight director reuse this law
+    const inp = this.target();   // a shadow input lets the flight director reuse this law without flying the aircraft
     this.t += dt;
     const agl = st.agl;
     const distThr = st.distToThreshold;  // + before the threshold
@@ -130,8 +130,11 @@ export class Autopilot {
     }
   }
 
+  /** The controls this autopilot writes: the aircraft's, or the flight director's shadow copy. */
+  target() { return this.inputTarget || this.ac.input; }
+
   pitchForVs(vsTarget, dt) {
-    const st = this.ac.state, inp = this.ac.input;
+    const st = this.ac.state, inp = this.target();
     const err = vsTarget - st.vs;   // m/s
     this.iPitch = clamp(this.iPitch + err * dt * 0.02, -0.4, 0.4);
     // pitch input: proportional on VS error, damping on pitch rate
@@ -139,7 +142,7 @@ export class Autopilot {
   }
 
   throttleForSpeed(targetKts, dt) {
-    const st = this.ac.state, inp = this.ac.input;
+    const st = this.ac.state, inp = this.target();
     const err = targetKts - st.ias;
     this.iSpeed = clamp(this.iSpeed + err * dt * 0.004, -0.25, 0.25);
     const accel = this.prevIas === undefined ? 0 : (st.ias - this.prevIas) / dt;
