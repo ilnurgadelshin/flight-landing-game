@@ -263,5 +263,32 @@ console.log('\n[11] Ground handling: hands off in a crosswind the aircraft weath
   check('pedal inputs keep the roll-out within 2° of the runway heading', held.maxDev < 2, `max heading deviation ${fmt(held.maxDev, 2)}°`);
 }
 
+console.log('\n[12] Flight School flight director: computes guidance on its own controls and never flies the aircraft');
+{
+  const sim = new Simulation({ scenarioId: 'clear', startId: 'standard', seed: 11 });
+  const ac = sim.aircraft;
+  // stands in for the player and writes the real controls; it flies 8 kts faster than the flight
+  // director's law so any control the flight director overwrote would show up as a changed value
+  const player = new Autopilot(ac, { targetSpeedOffset: 8 });
+  const fd = new Autopilot(ac, {});                     // the flight director, as training mode sets it up
+  const shadow = Object.assign({}, ac.input);
+  fd.inputTarget = shadow;
+  const KEYS = ['pitch', 'roll', 'yaw', 'throttle', 'trim', 'flapIndex', 'gearDown', 'speedbrake', 'speedbrakeArmed', 'brake', 'autobrake', 'reverse'];
+  let touched = 0, firstTouch = '', steps = 0, fdPitchMin = 0, fdPitchMax = 0, t = 0;
+  while (t < 600) {
+    player.update(sim.fixedDt);
+    Object.assign(shadow, { flapIndex: ac.input.flapIndex, gearDown: ac.input.gearDown, throttle: ac.input.throttle });
+    const before = KEYS.map((k) => ac.input[k]);
+    fd.update(sim.fixedDt);
+    KEYS.forEach((k, i) => { if (ac.input[k] !== before[i]) { touched++; if (!firstTouch) firstTouch = `${k} at ${fmt(t, 1)} s in the ${fd.phase} phase`; } });
+    if (fd.phase === 'approach') { fdPitchMin = Math.min(fdPitchMin, shadow.pitch); fdPitchMax = Math.max(fdPitchMax, shadow.pitch); }
+    sim.stepOnce(); t += sim.fixedDt; steps++;
+    if (sim.aircraft.touchdown && sim.state.groundSpeed < 0.5) break;
+  }
+  check('the flight director never changes the aircraft controls (approach, flare, roll-out)', touched === 0, touched ? `${touched} writes, first: ${firstTouch}` : `${steps} steps checked`);
+  check('the flight director computes live pitch guidance on the approach', fdPitchMax - fdPitchMin > 0.05, `shadow pitch ${fmt(fdPitchMin, 2)} .. ${fmt(fdPitchMax, 2)}`);
+  check('the aircraft, flown only by the player, lands and stops', !!sim.aircraft.touchdown && sim.state.groundSpeed < 0.5, `ground speed ${fmt(sim.state.groundSpeed, 1)} m/s`);
+}
+
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failed) { console.log('Failed: ' + results.join(' | ')); process.exit(1); }

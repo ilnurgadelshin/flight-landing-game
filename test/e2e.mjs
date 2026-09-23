@@ -238,34 +238,37 @@ if (!only || only === 'fail') {
 
 // --------------------------------------------------------------------------- go-around with the keyboard
 if (!only || only === 'ga') {
-  console.log('\n[E7] Go-around flown with the keyboard from 500 ft, then reposition');
-  await start({ scenarioId: 'clear', startId: 'short', mode: 'game', sound: false });
-  await page.evaluate(() => { window.__sim.autopilot(); window.__sim.setTimeScale(6); });
-  await waitFor(() => window.__sim.state().agl < 500 * 0.3048, 120000, '500 ft');
-  await page.evaluate(() => { window.__sim.setTimeScale(1); window.__sim.disengage(); });
-  const agl0 = (await S()).agl;
-  await tap('KeyT');                       // TOGA
-  let minAgl = agl0; const t0 = Date.now();
-  // pilot: pulse the up arrow to hold ~12° pitch, raise the gear when climbing, flaps 15
-  let gearUp = false, flapsSet = false;
-  while (Date.now() - t0 < 60000) {
-    const s = await S();
-    minAgl = Math.min(minAgl, s.agl);
-    const pitchDeg = s.pitch * 57.3;
-    if (pitchDeg < 11) await holdKey('ArrowUp', 120); else if (pitchDeg > 14) await holdKey('ArrowDown', 100); else await page.waitForTimeout(100);
-    if (Math.abs(s.roll) > 0.05) await holdKey(s.roll > 0 ? 'ArrowLeft' : 'ArrowRight', 80);
-    if (!gearUp && s.vs > 2) { await tap('KeyG'); gearUp = true; }
-    if (!flapsSet && s.agl > 400 * 0.3048) { await tap('KeyV'); flapsSet = true; }
-    if (s.agl > 1100 * 0.3048) break;
+  console.log('\n[E7] Go-around flown with the keyboard from 500 ft, then reposition (Fly the Approach and Flight School)');
+  for (const mode of ['game', 'training']) {
+    const tag = mode === 'training' ? 'Flight School ' : '';
+    await start({ scenarioId: 'clear', startId: 'short', mode, sound: false, skipSchool: true });
+    await page.evaluate(() => { window.__sim.autopilot(); window.__sim.setTimeScale(6); });
+    await waitFor(() => window.__sim.state().agl < 500 * 0.3048, 120000, '500 ft');
+    await page.evaluate(() => { window.__sim.setTimeScale(1); window.__sim.disengage(); });
+    const agl0 = (await S()).agl;
+    await tap('KeyT');                       // TOGA
+    let minAgl = agl0; const t0 = Date.now();
+    // pilot: pulse the up arrow to hold ~12° pitch, raise the gear when climbing, flaps 15
+    let gearUp = false, flapsSet = false;
+    while (Date.now() - t0 < 60000) {
+      const s = await S();
+      minAgl = Math.min(minAgl, s.agl);
+      const pitchDeg = s.pitch * 57.3;
+      if (pitchDeg < 11) await holdKey('ArrowUp', 120); else if (pitchDeg > 14) await holdKey('ArrowDown', 100); else await page.waitForTimeout(100);
+      if (Math.abs(s.roll) > 0.05) await holdKey(s.roll > 0 ? 'ArrowLeft' : 'ArrowRight', 80);
+      if (!gearUp && s.vs > 2) { await tap('KeyG'); gearUp = true; }
+      if (!flapsSet && s.agl > 400 * 0.3048) { await tap('KeyV'); flapsSet = true; }
+      if (s.agl > 1100 * 0.3048) break;
+    }
+    const s1 = await S(); const ev = await page.evaluate(() => window.__sim.events().map((e) => e.type + ':' + e.text));
+    check(tag + 'go-around: aircraft climbed away without touching down', s1.agl > 1000 * 0.3048 && !s1.onGround && minAgl > 20, `from ${fmt(agl0 / 0.3048, 0)} ft, lowest ${fmt(minAgl / 0.3048, 0)} ft, now ${fmt(s1.agl / 0.3048, 0)} ft, gear ${s1.gearDown ? 'down' : 'up'}`);
+    check(tag + 'go-around: detected and announced', ev.some((e) => e.startsWith('goaround')) && (await page.evaluate(() => window.__sim.audioLog().some((a) => /Go around/.test(a.text)))), ev.filter((e) => e.startsWith('goaround')).join(', '));
+    check(tag + 'go-around: gear retracted with G', !s1.gearDown);
+    await shot(mode === 'training' ? 'e2e-goaround-school' : 'e2e-goaround');
+    await tap('Backspace'); await page.waitForTimeout(300);
+    const s2 = await S();
+    check(tag + 'Backspace repositions for another approach (same 4 nm start)', Math.abs(s2.distToThreshold - 4 * 1852) < 100 && !s2.gaMode && s2.gameState === 'flying', `${fmt(s2.distToThreshold / 1852)} nm, ${fmt(s2.alt / 0.3048, 0)} ft`);
   }
-  const s1 = await S(); const ev = await page.evaluate(() => window.__sim.events().map((e) => e.type + ':' + e.text));
-  check('go-around: aircraft climbed away without touching down', s1.agl > 1000 * 0.3048 && !s1.onGround && minAgl > 20, `from ${fmt(agl0 / 0.3048, 0)} ft, lowest ${fmt(minAgl / 0.3048, 0)} ft, now ${fmt(s1.agl / 0.3048, 0)} ft, gear ${s1.gearDown ? 'down' : 'up'}`);
-  check('go-around: detected and announced', ev.some((e) => e.startsWith('goaround')) && (await page.evaluate(() => window.__sim.audioLog().some((a) => /Go around/.test(a.text)))), ev.filter((e) => e.startsWith('goaround')).join(', '));
-  check('go-around: gear retracted with G', !s1.gearDown);
-  await shot('e2e-goaround');
-  await tap('Backspace'); await page.waitForTimeout(300);
-  const s2 = await S();
-  check('Backspace repositions for another approach (same 4 nm start)', Math.abs(s2.distToThreshold - 4 * 1852) < 100 && !s2.gaMode && s2.gameState === 'flying', `${fmt(s2.distToThreshold / 1852)} nm, ${fmt(s2.alt / 0.3048, 0)} ft`);
 }
 
 // --------------------------------------------------------------------------- frame-rate decoupling in the browser
