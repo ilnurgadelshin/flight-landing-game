@@ -1,8 +1,33 @@
 // Web Audio: synthesised engines, wind, rain, rolling, one-shot effects and
 // voice callouts (speechSynthesis with a tone fallback). Everything is
 // generated procedurally — no audio files needed.
+//
+// Browsers only let a page start sound from a user gesture, so main.js calls unlock() on every
+// tap, click and key press. iPhones and iPads need more (see unlock() and setSession()): the
+// sound has to be started inside the gesture, iOS pauses it after a call or the app switcher, it
+// follows the ring/silent switch unless the page asks otherwise, and speech stays silent until a
+// first utterance is spoken from a gesture.
+
+/** Half a second of silence as a WAV file (8 kHz, 8-bit mono). */
+export function silentWav() {
+  const n = 4000, v = new DataView(new ArrayBuffer(44 + n));
+  const str = (o, t) => { for (let i = 0; i < t.length; i++) v.setUint8(o + i, t.charCodeAt(i)); };
+  str(0, 'RIFF'); v.setUint32(4, 36 + n, true); str(8, 'WAVE');
+  str(12, 'fmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+  v.setUint32(24, 8000, true); v.setUint32(28, 8000, true); v.setUint16(32, 1, true); v.setUint16(34, 8, true);
+  str(36, 'data'); v.setUint32(40, n, true);
+  for (let i = 0; i < n; i++) v.setUint8(44 + i, 128);   // 8-bit audio is silent at its mid value
+  return v.buffer;
+}
+const silentWavUrl = () => URL.createObjectURL(new Blob([silentWav()], { type: 'audio/wav' }));
+
 export class AudioSystem {
-  constructor() {
+  /** @param opts { ios } an iPhone or iPad (js/platform.js isIOS) */
+  constructor(opts = {}) {
+    this.ios = !!opts.ios;
+    this.keepAlive = null;         // older iOS: a silent looping media element (see setSession)
+    this.primed = false;           // a sound has been started inside a gesture
+    this.speechPrimed = false;     // an utterance has been spoken from a gesture
     this.ctx = null;
     this.enabled = true;
     this.master = null;
@@ -60,8 +85,63 @@ export class AudioSystem {
     }
   }
 
-  setEnabled(on) { this.enabled = on; if (this.master) this.master.gain.setTargetAtTime(on ? 0.8 : 0, this.ctx.currentTime, 0.05); }
-  resume() { if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume(); }
+  setEnabled(on) {
+    this.enabled = on;
+    if (this.master) this.master.gain.setTargetAtTime(on ? 0.8 : 0, this.ctx.currentTime, 0.05);
+    this.setSession();
+  }
+
+  /**
+   * Start (or restart) the sound. Call from a user gesture: a tap ending, a click or a key press.
+   * iOS only unlocks sound that is started inside one, and after a phone call, Siri or the app
+   * switcher leaves it 'interrupted' until the next gesture, so this runs on every gesture.
+   */
+  unlock() {
+    this.init();
+    const ctx = this.ctx;
+    if (!ctx) return;
+    this.setSession();
+    const running = ctx.state === 'running';
+    if (!running) {
+      const p = ctx.resume();
+      if (p && p.catch) p.catch(() => { /* not a gesture that counts: the next one will do */ });
+    }
+    if (!this.primed || !running) {
+      // older iOS unlocks only on sound actually started in the gesture: one silent sample
+      const src = ctx.createBufferSource();
+      src.buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+      src.connect(ctx.destination); src.start(0);
+      this.primed = true;
+    }
+    // iOS speaks only once a first utterance has come from a gesture: an empty, silent one
+    if (!this.speechPrimed && typeof window !== 'undefined' && window.speechSynthesis && typeof SpeechSynthesisUtterance !== 'undefined') {
+      this.speechPrimed = true;
+      try { const u = new SpeechSynthesisUtterance(' '); u.volume = 0; window.speechSynthesis.speak(u); } catch (e) { /* no speech */ }
+    }
+    if (this.keepAlive && this.keepAlive.paused && this.enabled) { const p = this.keepAlive.play(); if (p && p.catch) p.catch(() => {}); }
+  }
+  /**
+   * On iPhone and iPad, web audio follows the ring/silent switch: in silent mode a page's sound
+   * is muted (videos still play). A game's sound should play like a video's. Where Safari has the
+   * Audio Session API that is one setting; older versions switch when a media element is playing,
+   * so a silent looping one is started. With the sound option off, other apps' audio (music)
+   * is left alone.
+   */
+  setSession() {
+    const s = typeof navigator !== 'undefined' ? navigator.audioSession : null;
+    const type = this.enabled ? 'playback' : 'ambient';
+    if (s && 'type' in s) { if (s.type !== type) { try { s.type = type; } catch (e) { /* not allowed */ } } return; }
+    if (!this.ios) return;
+    if (!this.enabled) { if (this.keepAlive) this.keepAlive.pause(); return; }
+    if (!this.keepAlive && typeof document !== 'undefined') {
+      const a = document.createElement('audio');
+      a.src = silentWavUrl(); a.loop = true; a.preload = 'auto';
+      a.setAttribute('playsinline', ''); a.setAttribute('x-webkit-airplay', 'deny');
+      this.keepAlive = a;
+      // the page in the background: stop it (the next gesture starts it again)
+      document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') a.pause(); });
+    }
+  }
 
   /** Continuous sounds from the aircraft state. */
   update(dt, st, env = {}) {

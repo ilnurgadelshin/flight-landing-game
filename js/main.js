@@ -16,7 +16,7 @@ import { GameView } from './view.js';
 import { Presentation } from './presentation.js';
 import { SCENARIOS, APPROACH_STARTS } from './config.js';
 import { TouchControls } from './touch.js';
-import { Platform, ResolutionScaler, touchFirst, phone } from './platform.js';
+import { Platform, ResolutionScaler, touchFirst, phone, isIOS } from './platform.js';
 import { TiltControl, TILT } from './tilt.js';
 import { Haptics } from './haptics.js';
 import { GamepadInput, PAD } from './gamepad.js';
@@ -39,7 +39,7 @@ async function boot() {
   const cockpit = new Cockpit(world.camera);
   world.setupCockpit(cockpit.root);
   const input = new InputManager(canvas);
-  const audio = new AudioSystem();
+  const audio = new AudioSystem({ ios: isIOS });
   const gpws = new GPWS(audio);
   const haptics = new Haptics();
   const touch = new TouchControls(input, document.getElementById('hud'), haptics);
@@ -113,8 +113,9 @@ async function boot() {
   ui.hideLoading();
   ui.showMenu();
 
-  // audio can only start after a user gesture; iOS counts a tap only when it ends (not pointerdown)
-  const armAudio = () => { audio.init(); audio.resume(); };
+  // audio can only start from a user gesture; iOS counts a tap only when it ends (not pointerdown),
+  // and needs it again after a call or the app switcher, so every gesture tries (see AudioSystem.unlock)
+  const armAudio = () => audio.unlock();
   for (const ev of ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown']) window.addEventListener(ev, armAudio);
 
   // starting a flight is a tap: on Android that is the moment full screen and landscape can be requested
