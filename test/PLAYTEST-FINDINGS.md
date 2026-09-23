@@ -198,7 +198,7 @@ were fixed the same way (root cause, not per-scenario) and replayed again.
 | Scenario | Round 1 | Round 2 | Confirmed fixed |
 | --- | --- | --- | --- |
 | Clear, standard | crash (8 km short), crash (nose-first), then B | **Landed, B 81** | G1, P1, P4, P6 |
-| Flight School | B 80, false "speed low" hint | **Landed, B 81** | T1, T2, G6 |
+| Flight School | B 80, false "speed low" hint | **Landed, B 81**, but see below: the approach was flown by the flight director | T1, T2, G6 |
 | Strong tailwind | B 88, IAS 13 kts at a standstill | **Landed, B 81** | I1, G4, U3 |
 | Heavy crosswind | D 55 (hard landing), started in a cloud void | **Landed and stopped on the runway, D 55 (firm arrival)** | V9, P9 |
 | Severe storm | B 78, false horizon in cloud | **Landed, D 49 (touched the blast pad in gusts); uniform murk in cloud, lights through the rain** | V10, V11 |
@@ -214,3 +214,36 @@ The round-2 touchdowns cluster at 460–600 fpm because the test pilot starts it
 flare late; the autoland tests and the mouse-yoke landing test flare earlier and
 land softly (grade B, 83–89), so this is a limit of the scripted pilot, not of
 the aircraft.
+
+## Found after the replay: the Flight School flight director flew the aircraft
+
+An external review found an issue both playtest rounds missed. It is confirmed
+and fixed.
+
+- **F1 Gameplay (Flight School only).** The flight director runs the autopilot's
+  control law against its own copy of the controls, but the law's pitch and
+  throttle helpers (`pitchForVs` and `throttleForSpeed` in `js/autopilot.js`)
+  wrote to the aircraft's real controls. Training mode runs the flight director
+  before every physics step, so until the flare the player's pitch and throttle
+  were replaced by the autopilot's. With the yoke held half back and 90 % thrust
+  for 8 s the aircraft pitched up 0.3° instead of 42°. A go-around could not be
+  flown: TOGA and the pull-up were overridden and the aircraft was flown back down
+  to the runway. The flight director's pitch bar also never received a command.
+  *Fix:* every control the autopilot writes goes through one target, the flight
+  director's copy when it has one.
+- **Why the playtests missed it.** The Flight School playtest's human-like pilot
+  was overridden in the same way, so the unusually steady descent in both rounds
+  was the autopilot flying. The earlier Flight School verdicts still hold for the
+  lesson pages, the highlights, the hints and the checklist, but not for the
+  player's control of the approach.
+- **Regression tests.** Physics test 12 flies a full approach and landing while
+  the flight director runs every step and checks that it never changes the
+  aircraft's controls and that its pitch guidance is live; the old code fails
+  with 29,339 overwritten controls. The browser go-around test (E7) now also runs
+  in Flight School; the old code fails there because the aircraft descends to the
+  runway.
+- **Replay.** The Flight School playtest was run again with the fix: the scripted
+  player now flies the approach itself, the instructor reacts to its actual speed
+  ("Speed high (+17): reduce thrust" at 8 nm), and it lands with grade B (89),
+  437 fpm at 312 m, 4 m from the centreline, stopping in 1134 m.
+
