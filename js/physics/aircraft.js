@@ -6,9 +6,13 @@
 // Runs at a fixed rate (PHYSICS_HZ) via `step(dt)`; the caller accumulates
 // frame time and calls step() as many times as needed — rendering never
 // affects the integration.
+//
+// It knows nothing about runways or instruments: after each step it publishes its dynamic state
+// (this.state) and passes it to an optional `derive(state, aircraft)` hook, through which the
+// Simulation adds the approach geometry (js/avionics.js).
 // ---------------------------------------------------------------------------
 import * as CANNON from 'cannon-es';
-import { AIRCRAFT as AC, KTS, DEG, G, RUNWAY, PHYSICS_DT } from '../config.js';
+import { AIRCRAFT as AC, KTS, DEG, G, PHYSICS_DT } from '../config.js';
 import { TERRAIN } from './terrain.js';
 
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
@@ -29,11 +33,12 @@ export const CG_HEIGHT_ON_GROUND = 3.3;
 
 export class Aircraft {
   /**
-   * @param {object} opts { atmosphere, terrain }
+   * @param {object} opts { atmosphere, terrain, derive }
    */
   constructor(opts) {
     this.atmosphere = opts.atmosphere;
     this.terrain = opts.terrain || TERRAIN;
+    this.derive = opts.derive || null;   // adds derived fields to each published state
     this.time = 0;
 
     // ----- cannon world --------------------------------------------------
@@ -169,12 +174,11 @@ export class Aircraft {
       elevator: 0, aileron: 0, rudder: 0, throttle: 0, brake: 0, autobrake: 0,
       onGround: false, wheelsOnGround: 0, mainsOnGround: false, noseOnGround: false,
       surface: 'grass', anyOnRunway: false, skidding: false, brakeTemp: 0,
-      locDev: 0, gsDev: 0, gsAngle: 3, gsAltitude: 0, distToThreshold: 0, distFromThreshold: 0,
-      lateralOffset: 0, alongRunway: 0, crabDeg: 0, landingDirection: '27',
+      quat: [0, 0, 0, 1],
       windDirDeg: 0, windKts: 0, headwind: 0, crosswind: 0,
       stallWarning: false, stalled: false, aStallDeg: 13,
-      CL: 0, CD: 0, qbar: 0, vref: AC.vref30, gearCollapsed: false, destroyed: false, time: 0,
-      onRunwayStrip: false, beyondRunwayEnd: false, gearLoads: [0, 0, 0], gearCompression: [0, 0, 0], noseSteer: 0,
+      CL: 0, CD: 0, qbar: 0, gearCollapsed: false, destroyed: false, time: 0,
+      gearLoads: [0, 0, 0], gearCompression: [0, 0, 0], noseSteer: 0,
     };
   }
 
@@ -264,16 +268,6 @@ export class Aircraft {
   }
 
   // ----- helpers ---------------------------------------------------------------
-  currentVref() {
-    const fi = this.input.flapIndex;
-    if (fi >= 5) return AC.vref40;
-    if (fi >= 4) return AC.vref30;
-    if (fi >= 3) return AC.vref15;
-    if (fi >= 2) return AC.vref15 + 10;
-    if (fi >= 1) return AC.vref15 + 20;
-    return AC.stallClean * 1.3;
-  }
-
   // Lift curve with a smooth stall; works with the actual (continuous) flap angle
   liftCoefficient(alpha, dCL0f, aStall) {
     const A = AC.aero;
@@ -636,6 +630,7 @@ export class Aircraft {
   onGearTouch(g, vLong, vLat) {
     const sink = -this.body.velocity.y;   // positive down at the CG
     const st = this.state;
+    // the runway-relative figures (crab, offset, distance) come from the derive hook (js/avionics.js)
     this.events.push({ t: this.time, type: 'geartouch', gear: g.name, sink, ias: st.ias, surface: g.surface,
       crabDeg: st.crabDeg, bank: st.roll, pitch: st.pitch, lateralOffset: st.lateralOffset, distFromThreshold: st.distFromThreshold,
       groundSpeed: st.groundSpeed, onRunway: st.anyOnRunway });
@@ -798,6 +793,7 @@ export class Aircraft {
     st.vx = b.velocity.x; st.vy = b.velocity.y; st.vz = b.velocity.z;
     st.vs = b.velocity.y;
     st.groundSpeed = Math.hypot(st.vx, st.vz);
+    st.quat[0] = q.x; st.quat[1] = q.y; st.quat[2] = q.z; st.quat[3] = q.w;   // attitude, for the view
     const fwd = q.vmult(_v1.set(0, 0, -1), _v1);
     const right = q.vmult(_v3.set(1, 0, 0), _v3);
     st.pitch = Math.asin(clamp(fwd.y, -1, 1));
@@ -845,7 +841,6 @@ export class Aircraft {
     st.stallWarning = this.stallWarning; st.stalled = this.stalled;
     st.aStallDeg = extra.aStallDeg || 13;
     st.CL = extra.CL || 0; st.CD = extra.CD || 0; st.qbar = extra.qbar || 0;
-    st.vref = this.currentVref();
     st.gearCollapsed = this.damage.gearCollapsed; st.collapsedGear = this.damage.collapsedGear; st.destroyed = this.damage.destroyed;
     st.time = this.time;
 
@@ -858,35 +853,11 @@ export class Aircraft {
     st.headwind = -(wind[0] * hx + wind[2] * hz) / KTS;         // + = headwind
     st.crosswind = -(wind[0] * (-hz) + wind[2] * hx) / KTS;     // + = from the right
 
-    // --- approach geometry relative to the runway (landing direction from heading)
-    const rwyHdg = RUNWAY.headingDeg * DEG;
-    let dHdg = st.heading - rwyHdg; while (dHdg > Math.PI) dHdg -= 2 * Math.PI; while (dHdg < -Math.PI) dHdg += 2 * Math.PI;
-    const landingWest = Math.abs(dHdg) <= Math.PI / 2;
-    st.landingDirection = landingWest ? RUNWAY.ident : RUNWAY.reciprocal;
-    const thresholdX = landingWest ? RUNWAY.thresholdX : -RUNWAY.thresholdX;
-    st.alongRunway = landingWest ? (thresholdX - st.x) : (st.x - thresholdX); // + past the threshold
-    st.distFromThreshold = st.alongRunway;
-    st.distToThreshold = -st.alongRunway;
-    st.lateralOffset = landingWest ? -st.z : st.z;  // + = right of the centreline
-    const dirHdg = landingWest ? rwyHdg : rwyHdg - Math.PI;
-    let crab = st.heading - dirHdg; while (crab > Math.PI) crab -= 2 * Math.PI; while (crab < -Math.PI) crab += 2 * Math.PI;
-    st.crabDeg = crab / DEG;
-    // ILS-like deviations
-    const locAntennaAlong = RUNWAY.length + 300;
-    const dAlong = locAntennaAlong - st.alongRunway;
-    st.locDev = Math.atan2(st.lateralOffset, Math.max(dAlong, 50)) / DEG;   // + = right of centreline
-    const gsAntennaAlong = RUNWAY.papiDistance;
-    const dGs = gsAntennaAlong - st.alongRunway;
-    const hAboveThr = st.alt - RUNWAY.elevation;
-    st.gsAngle = dGs > 100 ? Math.atan2(hAboveThr, dGs) / DEG : RUNWAY.glideslopeDeg;
-    st.gsDev = st.gsAngle - RUNWAY.glideslopeDeg;                          // + = above
-    st.gsAltitude = Math.tan(RUNWAY.glideslopeDeg * DEG) * Math.max(dGs, 0);
-    st.onRunwayStrip = Math.abs(st.z) <= RUNWAY.width / 2 && Math.abs(st.x) <= RUNWAY.length / 2;
-    st.beyondRunwayEnd = st.alongRunway > RUNWAY.length;
     st.gearLoads[0] = this.gear.nose.load; st.gearLoads[1] = this.gear.left.load; st.gearLoads[2] = this.gear.right.load;
     st.gearCompression[0] = this.gear.nose.compression; st.gearCompression[1] = this.gear.left.compression; st.gearCompression[2] = this.gear.right.compression;
     st.noseSteer = this.gear.nose.steer;
     if (this._hullTouching) { this._hullTouchTimer -= dt; if (this._hullTouchTimer <= 0) this._hullTouching = false; }
+    if (this.derive) this.derive(st, this);
     return st;
   }
 }

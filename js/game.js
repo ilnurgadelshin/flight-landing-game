@@ -1,37 +1,59 @@
-// Game state machine: menu → (school) → flying → rollout → results.
-// Tracks everything the evaluator needs, detects go-arounds, drives the
-// instructor hints in training mode and the autoland demo.
-import * as THREE from 'three';
+// The game's rules: the state machine (menu → school → flying ⇄ paused → finished), what the
+// player's actions do, go-around detection, excursions and overruns, the finish, the grading,
+// the instructor's hints in training and the autoland demo.
+//
+// No DOM, no Three.js, no sound: it runs in Node (test/game.test.mjs). It tells the rest of the
+// game what happened through events (on / emit); js/presentation.js turns them into sound,
+// vibration and screens, and js/view.js draws the aircraft and the world. The aircraft's controls
+// are owned by FlightControls (js/flightcontrols.js).
+//
+// Events:
+//   state        { state, prev }                      the state machine moved
+//   start        { opts, scenario, night }            a flight is set up (before it begins)
+//   school       { fromStart }                        show Flight School (the flight is paused)
+//   message      { text, kind, duration }             the mode line; duration in s (0: until replaced)
+//   instructor   { html }                             training hint ('' clears it)
+//   control      { name, value }                      a discrete control moved (gear, flaps, TO/GA …)
+//   goaround     { manual }
+//   reposition   { distanceNm }
+//   demo         { engaged }                          the autoland demo handed over
+//   touchdown    { sink, hard, distFromThreshold }
+//   spoilers     {}
+//   damage       { type, reason }                     strikes, gear collapse, destruction
+//   finish       { result }
 import { Simulation } from './sim.js';
-import { Autopilot } from './autopilot.js';
+import { FlightControls } from './flightcontrols.js';
 import { evaluateLanding } from './evaluate.js';
+import { terrainAhead } from './avionics.js';
 import { SCENARIOS, RUNWAY, FT, KTS, DEG, NM, AIRCRAFT as AC } from './config.js';
-import { TERRAIN } from './physics/terrain.js';
 
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+const DAMAGE = ['gearcollapse', 'destroyed', 'bellycontact', 'wingstrike', 'tailstrike', 'enginestrike', 'nosefirst'];
 
 export class Game {
-  constructor({ world, cockpit, input, audio, gpws, ui, touch }) {
-    this.world = world; this.cockpit = cockpit; this.input = input; this.audio = audio; this.gpws = gpws; this.ui = ui;
-    this.touch = touch || null;          // on-screen controls (phones, tablets)
-    this.haptics = null;                 // vibration feedback (set by main.js where supported)
-    this.onStateChange = null;           // platform hook (wake lock)
+  /**
+   * @param player the player's devices (see FlightControls), or null
+   * @param gpws   the ground proximity warning system (js/gpws.js), or null
+   */
+  constructor({ player = null, gpws = null } = {}) {
+    this.player = player;
+    this.gpws = gpws;
+    this.listeners = {};
     this.sim = new Simulation({ scenarioId: 'clear', startId: 'standard' });
+    this.controls = new FlightControls(this.sim.aircraft, player);
     this.state = 'menu';
     this.mode = 'game';
-    this.aircraftGroup = new THREE.Group();
-    this.aircraftGroup.add(cockpit.group);
-    world.cockpitScene.add(this.aircraftGroup);
-    this.eye = new THREE.Vector3();
-    this.events = [];           // game-level events for tests: { t, type, text }
+    this.opts = null;
+    this.night = false;
+    this.events = [];           // the flight's log, for the debrief and the tests: { t, type, text }
     this.ctx = this.newCtx();
     this.time = 0;
-    this.demoAp = null;
-    this.fdAp = null;
-    this.shadowInput = null;
-    this.bindActions();
-    this.syncVisual();
+    this.result = null;
   }
+
+  on(type, fn) { (this.listeners[type] = this.listeners[type] || []).push(fn); }
+  emit(type, data = {}) { for (const fn of this.listeners[type] || []) fn(data); }
+  message(text, kind = '', duration = 0) { this.emit('message', { text, kind, duration }); }
 
   newCtx() {
     return { usedReversers: false, usedSpeedbrake: false, maxBrake: 0, goArounds: 0, excursion: false, overrun: false, overrunSpeedKts: 0,
@@ -40,107 +62,77 @@ export class Game {
 
   log(type, text) { this.events.push({ t: this.time, type, text }); }
 
+  /** The demo autoland, while it has command (null otherwise). */
+  get demoAp() { return this.controls.autopilot; }
+  /** Put the autoland in command without announcing a demo (tests, automation). */
+  engageAutopilot(opts) { return this.controls.engageAutopilot(opts); }
+
   // ------------------------------------------------------------------ setup
   start(opts) {
     this.opts = opts;
-    this._yokeWasOn = false;   // a new flight never inherits the previous flight's yoke engagement
-    this.input.resetTouch();   // nor a held stick or a latched reverse lever
-    if (this.haptics) this.haptics.reset();
     this.mode = opts.mode;
     this.night = !!opts.night;
-    this.input.opts.invertPitch = !!opts.invertPitch;
-    this.input.opts.mouseSensitivity = opts.mouseSensitivity || 1;
-    this.audio.setEnabled(opts.sound !== false);
+    const scenario = SCENARIOS[opts.scenarioId];
     this.sim = new Simulation({ scenarioId: opts.scenarioId, startId: opts.startId, seed: opts.seed || (Date.now() % 1000) + 1 });
-    this.sim.preStep = (dt) => this.preStep(dt);
-    this.sim.postStep = (dt) => { if (this.state === 'flying') this.gpws.update(dt, this.sim.state, { gaMode: this.ctx.gaMode, gaAltitudeLoss: this.ctx.gaMaxAgl - this.sim.state.agl, terrainAhead: this.terrainAhead() }); };
-    this.world.applyScenario(SCENARIOS[opts.scenarioId], this.night);
-    this.cockpit.setNight(this.night || SCENARIOS[opts.scenarioId].timeOfDay !== 'day');
-    this.gpws.reset();
-    this.audio.log.length = 0;
+    this.controls = new FlightControls(this.sim.aircraft, this.player);
+    if (this.mode === 'training') this.controls.enableDirector();
+    this.sim.preStep = (dt) => { if (this.controls.step(dt)) this.announceTakeover(); };
+    this.sim.postStep = (dt) => { if (this.state === 'flying' && this.gpws) this.gpws.update(dt, this.sim.state, { gaMode: this.ctx.gaMode, gaAltitudeLoss: this.ctx.gaMaxAgl - this.sim.state.agl, terrainAhead: this.terrainAhead() }); };
+    if (this.gpws) this.gpws.reset();
     this.ctx = this.newCtx();
     this.events.length = 0;
-    this.schoolLook = 0;
     this.time = 0;
-    this.demoAp = null;
-    this.fdAp = new Autopilot(this.sim.aircraft, {});
-    this.shadowInput = Object.assign({}, this.sim.aircraft.input);
-    this.fdAp.inputTarget = this.shadowInput;
-    this.ui.show('menu', false); this.ui.show('results', false); this.ui.show('pause', false);
-    this.ui.show('hud', true);
-    this.ui.setRain(SCENARIOS[opts.scenarioId].rain > 0);
-    this.ui.setInstructor('');
-    this.syncVisual();
+    this.result = null;
+    this._instT = 0; this._gaHint = false;
+    this.emit('start', { opts, scenario, night: this.night });
+    this.emit('instructor', { html: '' });
     if (opts.demo) {
-      this.demoAp = new Autopilot(this.sim.aircraft, {});
+      this.controls.engageAutopilot({});
       this.setState('flying');
-      this.ui.setModeMessage('AUTOLAND DEMO — [[takeover]] to take over', 'ga');
+      this.message('AUTOLAND DEMO — [[takeover]] to take over', 'ga');
       this.log('demo', 'autoland demo started');
     } else if (this.mode === 'training' && !opts.skipSchool) {
-      this.setState('school');
-      this.sim.paused = true;
-      this.ui.showSchool((name) => this.anchorFor(name), (look) => { this.schoolLook = look; });
-      this.ui.onSchoolDone = (skipped) => { this.sim.paused = false; this.schoolLook = 0; this.setState('flying'); this.log('school', skipped ? 'skipped' : 'completed'); };
+      this.openSchool(true);
     } else {
       this.setState('flying');
     }
     this.log('start', `${opts.mode} ${opts.scenarioId} ${opts.startId}`);
   }
 
-  anchorFor(name) {
-    const a = this.cockpit.anchorScreen(name, this.world.renderer);
-    if (!a) return null;
-    const sizes = { windshield: 420, attitude: 130, airspeed: 60, altimeter: 60, nd: 130, pfd: 150, upper: 150, lower: 150, gear: 70, flapLever: 70, throttle: 110, speedbrake: 70, trim: 90, rudder: 160, yoke: 160, mcp: 300 };
-    return { x: a.x, y: a.y, size: sizes[name] || 120, aspect: name === 'windshield' ? 0.6 : (name === 'airspeed' || name === 'altimeter' ? 3.5 : 1) };
-  }
-
   setState(s) {
     const prev = this.state;
-    // remember whether the mouse yoke was engaged when the flight was interrupted (pause, help)
-    if (prev === 'flying' && s !== 'flying') this._yokeWasOn = this.input.mouseEngaged;
     this.state = s;
-    this.input.enabled = (s === 'flying');
-    if (s !== 'flying') this.input.setMouse(false);
-    if (s === 'flying') {
-      this.input.pad.holdoff = true;   // a controller button still held from a menu press does not fly
-      this.ui.setModeMessage('');
-      if ((prev === 'paused' || prev === 'school') && this._yokeWasOn) {
-        // give the yoke back, blended in over a second so the mouse position cannot jerk the aircraft
-        this.input.setMouse(true, true);
-        this.ui.setModeMessage('MOUSE YOKE ON — you have control', '');
-        setTimeout(() => { if (this.state === 'flying') this.ui.setModeMessage(''); }, 2500);
-      }
-      if (prev === 'menu' || prev === 'finished') this._yokeWasOn = false;
-    }
-    if (this.onStateChange && prev !== s) this.onStateChange(s, prev);
+    if (s === 'flying') this.message('');
+    if (prev !== s) this.emit('state', { state: s, prev });
   }
 
-  bindActions() {
-    this.input.onAction((name, arg) => this.onAction(name, arg));
-  }
-
-  onAction(name, arg) {
-    const ac = this.sim.aircraft, inp = ac.input, st = ac.state;
+  // ------------------------------------------------------------------ the player's actions
+  /** An action from any device (the key, button or touch that sent it does not matter here). */
+  action(name, arg) {
+    const st = this.sim.state;
     if (name === 'pause') { this.togglePause(); return; }
     if (name === 'menu') { if (this.state === 'flying') this.togglePause(); return; }
-    if (name === 'help') { if (this.state === 'flying') { this.sim.paused = true; this.setState('school'); this.ui.showSchool((n) => this.anchorFor(n), (look) => { this.schoolLook = look; }); this.ui.onSchoolDone = () => { this.sim.paused = false; this.schoolLook = 0; this.setState('flying'); }; } return; }
-    if (name === 'enter') { if (this.state === 'finished') this.ui.onAgain && this.ui.onAgain(); return; }
-    if (name === 'padButton') { this.padButton(arg); return; }
+    if (name === 'help') { if (this.state === 'flying') this.openSchool(false); return; }
     if (name === 'togaOrReposition') {
       // the controller's View button: TO/GA, and once the go-around is under way, back on final
-      if (this.state === 'flying') this.onAction(this.ctx.gaMode && this.ctx.gaTimer > 3 ? 'reposition' : 'toga');
+      if (this.state === 'flying') this.action(this.ctx.gaMode && this.ctx.gaTimer > 3 ? 'reposition' : 'toga');
       return;
     }
     if (this.state !== 'flying') return;
     if (this.demoAp && ['gear', 'flapsDown', 'flapsUp', 'speedbrake', 'toga'].includes(name)) this.disengageDemo();
     switch (name) {
-      case 'gear': inp.gearDown = !inp.gearDown; this.audio.play('gear'); this.log('input', `gear ${inp.gearDown ? 'down' : 'up'}`); break;
-      case 'flapsDown': if (inp.flapIndex < AC.flapDetents.length - 1) { inp.flapIndex++; this.audio.play('flaps'); this.log('input', `flaps ${AC.flapDetents[inp.flapIndex]}`); } break;
-      case 'flapsUp': if (inp.flapIndex > 0) { inp.flapIndex--; this.audio.play('flaps'); this.log('input', `flaps ${AC.flapDetents[inp.flapIndex]}`); } break;
-      case 'speedbrake': inp.speedbrake = inp.speedbrake > 0.5 ? 0 : 1; inp.speedbrakeArmed = false; this.audio.play('click'); this.log('input', `speedbrake ${inp.speedbrake ? 'up' : 'down'}`); break;
-      case 'armSpeedbrake': inp.speedbrakeArmed = !inp.speedbrakeArmed; if (inp.speedbrakeArmed) inp.speedbrake = 0; this.audio.play('click'); this.log('input', `speedbrake ${inp.speedbrakeArmed ? 'armed' : 'disarmed'}`); break;
-      case 'autobrake': inp.autobrake = (inp.autobrake + 1) % 5; this.audio.play('click'); this.log('input', `autobrake ${inp.autobrake}`); break;
-      case 'toga': inp.throttle = 1; inp.reverse = false; inp.speedbrake = 0; this.audio.play('chime'); this.log('input', 'TOGA'); this.beginGoAround(true); break;
+      case 'gear': case 'flapsDown': case 'flapsUp': case 'speedbrake': case 'armSpeedbrake': case 'autobrake': case 'toga': {
+        const c = this.controls.act(name);
+        if (!c) break;
+        this.emit('control', c);
+        this.log('input', ({
+          gear: () => `gear ${c.value ? 'down' : 'up'}`, flapsDown: () => `flaps ${AC.flapDetents[c.value]}`, flapsUp: () => `flaps ${AC.flapDetents[c.value]}`,
+          speedbrake: () => `speedbrake ${c.value ? 'up' : 'down'}`, armSpeedbrake: () => `speedbrake ${c.value ? 'armed' : 'disarmed'}`,
+          autobrake: () => `autobrake ${c.value}`, toga: () => 'TOGA',
+        })[name]());
+        if (name === 'toga') this.beginGoAround(true);
+        break;
+      }
       case 'reposition': if (this.ctx.gaMode || st.alt > 900 || st.onGround) this.reposition(); break;
       case 'mouse': this.log('input', `mouse yoke ${arg ? 'on' : 'off'}`); break;
       case 'reverse': this.log('input', `reverse ${arg ? 'on' : 'off'}`); break;
@@ -148,86 +140,65 @@ export class Game {
     }
   }
 
-  /** The player grabbed a flight control (keys, mouse yoke, the touch stick, rudder or lever, the controller, or tilted the phone). */
-  humanTakeover() { return this.input.anyFlightKeyHeld() || this.input.mouseEngaged || this.input.touchFlying() || this.input.tiltFlying() || this.input.padFlying(); }
-
-  /** Controller buttons outside flying: Menu / A confirm, B goes back, Menu pauses in flight. */
-  padButton(b) {
-    const ui = this.ui;
-    switch (this.state) {
-      case 'menu': if (b === 'Menu' || b === 'A') { if (ui.onStart) ui.onStart(ui.getOptions()); } break;
-      case 'school': if (b === 'A') ui.schoolStep(1); else if (b === 'B') ui.schoolStep(-1); else if (b === 'Menu') ui.hideSchool(true); break;
-      case 'paused': if (b === 'Menu' || b === 'A') this.togglePause(); else if (b === 'B' && ui.onQuit) ui.onQuit(); break;
-      case 'finished': if ((b === 'A' || b === 'Menu') && ui.onAgain) ui.onAgain(); else if (b === 'B' && ui.onQuit) ui.onQuit(); break;
-      case 'flying': if (b === 'Menu') this.togglePause(); break;
-      default: break;
-    }
+  /** Flight School: before the flight (training) or opened from the flight (help). */
+  openSchool(fromStart) {
+    this._schoolFromStart = fromStart;
+    this.sim.paused = true;
+    this.setState('school');
+    this.emit('school', { fromStart });
   }
 
-  disengageDemo() { if (!this.demoAp) return; this.demoAp = null; this.audio.play('apdisc'); this.ui.setModeMessage('AUTOPILOT DISENGAGED — you have control', ''); setTimeout(() => this.ui.setModeMessage(''), 2500); this.log('demo', 'disengaged'); }
+  schoolDone(skipped) {
+    if (this.state !== 'school') return;
+    this.sim.paused = false;
+    this.setState('flying');
+    if (this._schoolFromStart) this.log('school', skipped ? 'skipped' : 'completed');
+  }
+
+  disengageDemo() { if (this.controls.disengageAutopilot()) this.announceTakeover(); }
+  announceTakeover() {
+    this.emit('demo', { engaged: false });
+    this.message('AUTOPILOT DISENGAGED — you have control', '', 2.5);
+    this.log('demo', 'disengaged');
+  }
 
   togglePause() {
-    if (this.state === 'flying') { this.sim.paused = true; this.setState('paused'); this.ui.show('pause', true); }
-    else if (this.state === 'paused') { this.sim.paused = false; this.setState('flying'); this.ui.show('pause', false); }
+    if (this.state === 'flying') { this.sim.paused = true; this.setState('paused'); }
+    else if (this.state === 'paused') { this.sim.paused = false; this.setState('flying'); }
   }
 
-  quitToMenu() { this.setState('menu'); this.sim.paused = true; this.ui.showMenu(); this.audio.setConfigHorn(false); this.audio.stopStickShaker(); }
+  quitToMenu() { this.setState('menu'); this.sim.paused = true; }
 
   reposition() {
     this.sim.reposition();
     this.ctx.gaMode = false; this.ctx.wasLow = false; this.ctx.gaTimer = 0;
-    this.gpws.reset();
-    this.ui.setModeMessage(`REPOSITIONED — ${this.sim.start.distanceNm} nm final`, 'ga');
-    setTimeout(() => this.ui.setModeMessage(''), 2500);
+    if (this.gpws) this.gpws.reset();
+    this.message(`REPOSITIONED — ${this.sim.start.distanceNm} nm final`, 'ga', 2.5);
+    this.emit('reposition', { distanceNm: this.sim.start.distanceNm });
     this.log('reposition', 'back on final');
-    this.syncVisual();
   }
 
   beginGoAround(manual) {
     if (this.ctx.gaMode) return;
     this.ctx.gaMode = true; this.ctx.gaTimer = 0; this.ctx.goArounds++; this.ctx.gaMaxAgl = this.sim.state.agl; this.ctx.gaStartAgl = this.sim.state.agl;
-    this.ui.setModeMessage('GO-AROUND — pitch up, gear up, flaps 15. [[reposition]]: back on final', 'ga');
-    this.audio.say('Go around, flaps fifteen', { priority: 1 });
+    this.message('GO-AROUND — pitch up, gear up, flaps 15. [[reposition]]: back on final', 'ga');
+    this.emit('goaround', { manual });
     this.log('goaround', manual ? 'TOGA pressed' : 'detected');
   }
 
-  // ------------------------------------------------------------------ per step
-  preStep(dt) {
-    // called before every physics sub-step (fixed dt)
-    if (this.demoAp) {
-      this.demoAp.update(dt);
-      if (this.humanTakeover()) this.disengageDemo();
-    }
-    if (this.fdAp && this.mode === 'training' && !this.demoAp) {
-      // the flight director runs the same law against a shadow input to produce command bars
-      const ac = this.sim.aircraft;
-      Object.assign(this.shadowInput, { flapIndex: ac.input.flapIndex, gearDown: ac.input.gearDown, throttle: ac.input.throttle });
-      this.fdAp.update(dt);
-    }
-  }
-
+  // ------------------------------------------------------------------ per frame
+  /** Advance by a frame's time (s). Returns the simulated time that passed. */
   update(frameDt) {
-    const ac = this.sim.aircraft, st = ac.state, inp = ac.input;
-    if (this.state === 'flying') {
-      if (this.demoAp) { this.input.time += frameDt; if (this.humanTakeover()) this.disengageDemo(); }
-      // the control axes ramp in simulated time, so a slowed simulation (tests) sees the same inputs as real time
-      else this.input.update(Math.min(frameDt, 1.0) * this.sim.timeScale, inp, st);
-    }
+    const st = this.sim.state;
+    if (this.state === 'flying' && this.controls.frame(Math.min(frameDt, 1.0) * this.sim.timeScale, frameDt, st)) this.announceTakeover();
     const steps = this.sim.update(frameDt);
-    if (steps > 0 && !this.sim.paused) {
-      const dt = steps * this.sim.fixedDt;
-      this.time += dt;
-      this.ctx.elapsed += dt;
-      this.track(dt);
-      if (this.haptics && this.state === 'flying') this.haptics.update(dt, st);
-      if (this.state === 'flying' && this.mode === 'training') this.instructor(dt);
-    }
-    this.syncVisual();
-    // HUD
-    const configWarning = this.gpws.hornOn ? 'GEAR NOT DOWN' : (st.destroyed ? 'CRASHED' : '');
-    this.ui.updateHUD(st, { mouse: this.input.mouseEngaged, pad: this.input.pad.active, configWarning, fd: this.fdCommand() });
-    if (this.touch) this.touch.sync(st, inp, { gaMode: this.ctx.gaMode });
-    this.ui.setCaption(this.gpws.caption, this.gpws.captionKind);
+    if (steps === 0 || this.sim.paused) return 0;
+    const dt = steps * this.sim.fixedDt;
+    this.time += dt;
+    this.ctx.elapsed += dt;
+    this.track(dt);
+    if (this.state === 'flying' && this.mode === 'training') this.instructor(dt);
+    return dt;
   }
 
   terrainAhead() {
@@ -235,16 +206,8 @@ export class Game {
     if (st.onGround) return false;
     if (this._taT !== undefined && st.time - this._taT < 0.5) return this._taV;
     this._taT = st.time;
-    this._taV = this._terrainAheadCalc(st);
+    this._taV = terrainAhead(st);
     return this._taV;
-  }
-  _terrainAheadCalc(st) {
-    const hx = Math.sin(st.heading), hz = -Math.cos(st.heading);
-    for (const d of [800, 1600, 2600]) {
-      const h = TERRAIN.heightAt(st.x + hx * d, st.z + hz * d);
-      if (h > 5 && st.alt - h < 120 + d * 0.05) return true;
-    }
-    return false;
   }
 
   track(dt) {
@@ -262,20 +225,24 @@ export class Game {
     if (!c.gaMode && c.wasLow && !st.onGround && c.togaT > 2 && st.vs > 2 && st.agl - c.togaMinAgl > 15 && !ac.touchdown) this.beginGoAround(false);
     if (c.gaMode) {
       c.gaTimer += dt; c.gaMaxAgl = Math.max(c.gaMaxAgl, st.agl);
-      if (c.gaTimer > 8 && st.agl > 900 * FT && inp.gearDown === false && !this._gaHint) { this._gaHint = true; this.ui.setModeMessage('GO-AROUND complete — press [[reposition]] to reposition on final, or fly a visual circuit', 'ga'); }
+      if (c.gaTimer > 8 && st.agl > 900 * FT && inp.gearDown === false && !this._gaHint) { this._gaHint = true; this.message('GO-AROUND complete — press [[reposition]] to reposition on final, or fly a visual circuit', 'ga'); }
       // the go-around ends if the pilot is back on a stabilised approach below 1000 ft
-      if (c.gaTimer > 30 && st.agl < 1000 * FT && st.vs < 0 && inp.throttle < 0.8) { c.gaMode = false; this._gaHint = false; this.ui.setModeMessage(''); this.log('goaround', 'ended, approach resumed'); }
+      if (c.gaTimer > 30 && st.agl < 1000 * FT && st.vs < 0 && inp.throttle < 0.8) { c.gaMode = false; this._gaHint = false; this.message(''); this.log('goaround', 'ended, approach resumed'); }
     }
-    // touchdown / crash events -> sounds & flash
+    // what the aircraft reported: touchdown, spoilers, bounces, damage
     for (const e of ac.events.splice(0)) {
-      if (e.type === 'touchdown') { c.touchdownSeen = true; this.audio.play(e.sink > AC.gear.hardSink ? 'hardlanding' : 'touchdown'); if (this.haptics) this.haptics.touchdown(e.sink, e.sink > AC.gear.hardSink); this.cockpit.shakeAmt = Math.min(0.06, 0.01 + e.sink * 0.012); this.log('touchdown', `${(e.sink / 0.00508).toFixed(0)} fpm at ${e.distFromThreshold.toFixed(0)} m`); if (this.ctx.gaMode) { this.ctx.gaMode = false; } }
-      else if (e.type === 'spoilers') { this.audio.play('click'); this.log('systems', 'ground spoilers deployed'); }
+      if (e.type === 'touchdown') {
+        c.touchdownSeen = true;
+        this.emit('touchdown', { sink: e.sink, hard: e.sink > AC.gear.hardSink, distFromThreshold: e.distFromThreshold });
+        this.log('touchdown', `${(e.sink / 0.00508).toFixed(0)} fpm at ${e.distFromThreshold.toFixed(0)} m`);
+        if (c.gaMode) c.gaMode = false;
+      } else if (e.type === 'spoilers') { this.emit('spoilers'); this.log('systems', 'ground spoilers deployed'); }
       else if (e.type === 'liftoff') { this.log('bounce', `bounce ${e.bounce}`); }
-      else if (['gearcollapse', 'destroyed', 'bellycontact', 'wingstrike', 'tailstrike', 'enginestrike', 'nosefirst'].includes(e.type)) {
-        this.audio.play('crash'); this.ui.flash(0.9); if (this.haptics) this.haptics.crash(); this.cockpit.shakeAmt = 0.12; this.log('damage', e.reason || e.type);
+      else if (DAMAGE.includes(e.type)) {
+        this.emit('damage', { type: e.type, reason: e.reason });
+        this.log('damage', e.reason || e.type);
         if (e.type === 'destroyed') c.crashSeen = true;
-      }
-      else if (e.type === 'hardlanding') { this.log('damage', 'hard landing'); }
+      } else if (e.type === 'hardlanding') { this.log('damage', 'hard landing'); }
     }
     // excursion / overrun
     if (st.onGround && ac.touchdown) {
@@ -293,7 +260,6 @@ export class Game {
       // flew off (e.g. missed approach and left the area)
       if (st.distToThreshold > 40 * NM || Math.abs(st.z) > 30000) { this.log('abort', 'left the area'); this.finish(); }
     }
-    if (st.onGround && st.groundSpeed > 5 && inp.reverse && st.groundSpeed < 30 * KTS && !this._revHint) { this._revHint = true; }
   }
 
   finish() {
@@ -303,12 +269,10 @@ export class Game {
     this.result = res;
     this.setState('finished');
     this.sim.paused = true;
-    this.audio.setConfigHorn(false); this.audio.stopStickShaker();
-    this.ui.setInstructor('');
-    this.ui.setModeMessage('');
-    this.ui.showResults(res);
+    this.emit('instructor', { html: '' });
+    this.message('');
+    this.emit('finish', { result: res });
     this.log('result', `${res.outcome} ${res.score} ${res.grade} — ${res.headline}`);
-    if (res.success) this.audio.say(res.score >= 78 ? 'Nice landing, Captain' : 'We are down', { priority: 1 }); else this.audio.play('caution');
   }
 
   // ------------------------------------------------------------------ training
@@ -320,7 +284,7 @@ export class Game {
     const aglFt = st.agl / FT, dNm = st.distToThreshold / NM;
     const target = st.vref + 5;
     const hints = [];
-    if (this.demoAp) { this.ui.setInstructor('Watch the demo: notice the small, smooth control inputs and how thrust is used to hold the speed.'); return; }
+    if (this.demoAp) { this.emit('instructor', { html: 'Watch the demo: notice the small, smooth control inputs and how thrust is used to hold the speed.' }); return; }
     if (st.onGround && this.sim.aircraft.touchdown) {
       if (st.groundSpeed > 30 * KTS) hints.push('<b>Rolling out.</b> Reverse thrust: [[reverse]]; brakes: hold [[brakes]]. Keep straight with [[rudder]].');
       else if (st.groundSpeed > 1) hints.push('Stow the reversers below 60 kts ([[reverseStow]]) and brake to a stop.');
@@ -349,40 +313,24 @@ export class Game {
       if (aglFt < 500 && (Math.abs(st.gsDev) > 0.7 || Math.abs(st.locDev) > 1.2 || st.ias > target + 20)) hints.push('<b>Unstable approach — consider a go-around ([[toga]]).</b>');
       if (!hints.length) hints.push(dNm > 2 ? 'Nicely stable. Small corrections only; keep the diamonds centred and the speed on target.' : 'On profile. Look at the runway, keep it steady.');
     }
-    this.ui.setInstructor(hints.slice(0, 2).join('<br>'));
+    this.emit('instructor', { html: hints.slice(0, 2).join('<br>') });
   }
 
-  // ------------------------------------------------------------------ visual sync
-  syncVisual() {
-    const b = this.sim.aircraft.body;
-    this.aircraftGroup.position.set(b.position.x, b.position.y, b.position.z);
-    this.aircraftGroup.quaternion.set(b.quaternion.x, b.quaternion.y, b.quaternion.z, b.quaternion.w);
-  }
-
+  /** Flight director command bars (training only): the attitude the autoland law would fly now. */
   fdCommand() {
-    if (this.mode !== 'training' || !this.fdAp || this.demoAp) return null;
-    const st = this.sim.state, sh = this.shadowInput;
+    const sh = this.controls.shadow;
+    if (this.mode !== 'training' || !this.controls.director || this.demoAp) return null;
+    const st = this.sim.state;
     if (st.onGround) return null;
     return { pitch: st.pitch + clamp(sh.pitch, -1, 1) * 6 * DEG, roll: st.roll + clamp(sh.roll, -1, 1) * 20 * DEG };
   }
 
-  render(frameDt, draw = true) {
+  /** The landing checklist shown in training while airborne (null otherwise). */
+  checklist() {
     const st = this.sim.state, inp = this.sim.aircraft.input;
-    this.cockpit.eyeWorld(this.eye);
-    const papi = this.world.lights.papiWhites(this.eye);
-    const checklist = this.mode === 'training' && !st.onGround ? [
+    if (this.mode !== 'training' || st.onGround) return null;
+    return [
       { text: 'Flaps 30', done: inp.flapIndex >= 4 }, { text: 'Gear down', done: inp.gearDown }, { text: 'Speedbrake armed', done: inp.speedbrakeArmed || st.speedbrake > 0.5 }, { text: 'Autobrake set', done: inp.autobrake > 0 },
-    ] : null;
-    const look = { yaw: this.input.look.yaw, pitch: this.input.look.pitch, down: this.input.look.down ? 1 : (this.schoolLook || 0) };
-    this.ui.setChecklist(this.state === 'flying' ? checklist : null);
-    this.cockpit.update(st, inp, frameDt, {
-      look, fd: this.fdCommand(), targetSpeed: !st.onGround ? st.vref + 5 : null, papi, checklist,
-      gaMode: this.ctx.gaMode, rain: this.world.rain.visible, autothrottle: !!this.demoAp,
-      rollMode: this.demoAp ? 'LOC' : (this.mode === 'training' ? 'FD' : ''), pitchMode: this.demoAp ? 'G/S' : (this.mode === 'training' ? 'FD' : ''),
-    });
-    this.world.update(frameDt, st, this.eye);
-    this.audio.update(frameDt, st, { rain: this.world.rain.visible ? 1 : 0 });
-    if (this.world.lightningFlash > 0.95) { this.ui.flash(0.5); setTimeout(() => this.audio.play('thunder'), 800 + Math.random() * 1500); }
-    if (draw) this.world.render();
+    ];
   }
 }

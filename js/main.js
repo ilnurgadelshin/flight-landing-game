@@ -1,4 +1,8 @@
-// Bootstrap: build the world, cockpit, input, audio, UI and the game loop.
+// Bootstrap: build the pieces, wire them together and run the frame loop.
+//   Game (js/game.js)                 the rules; owns the Simulation (physics + avionics) and the flight controls
+//   GameView (js/view.js)             draws the aircraft, the flight deck and the world from the game's state
+//   Presentation (js/presentation.js) sound, vibration and screens, from the game's events
+//   InputManager + touch, tilt, gamepad: the player's devices
 // Physics runs at a fixed 120 Hz inside Simulation.update(); rendering is
 // whatever requestAnimationFrame gives us.
 import { World } from './world/scene.js';
@@ -8,7 +12,8 @@ import { AudioSystem } from './audio.js';
 import { GPWS } from './gpws.js';
 import { UI } from './ui.js';
 import { Game } from './game.js';
-import { Autopilot } from './autopilot.js';
+import { GameView } from './view.js';
+import { Presentation } from './presentation.js';
 import { SCENARIOS, APPROACH_STARTS } from './config.js';
 import { TouchControls } from './touch.js';
 import { Platform, ResolutionScaler, touchFirst, phone } from './platform.js';
@@ -38,15 +43,17 @@ async function boot() {
   const gpws = new GPWS(audio);
   const haptics = new Haptics();
   const touch = new TouchControls(input, document.getElementById('hud'), haptics);
-  const game = new Game({ world, cockpit, input, audio, gpws, ui, touch });
-  game.haptics = haptics;
+  const game = new Game({ player: input, gpws });
+  const view = new GameView({ game, world, cockpit, look: input.look });
+  const presentation = new Presentation({ game, view, world, ui, audio, gpws, haptics, touch, input });
+  input.onAction((name, arg) => presentation.onAction(name, arg));
   const platform = new Platform({ game, input, world });
   const tilt = new TiltControl(input);
   touch.onCenter = () => tilt.center();
   const pad = new GamepadInput(input);
   haptics.pad = pad;
   // a flight that starts or resumes takes the way the phone is held as level; anything else stops vibrating
-  game.onStateChange = (s) => { platform.onGameState(s); if (s === 'flying') tilt.requestCenter(); else haptics.stop(); };
+  game.on('state', ({ state: s }) => { platform.onGameState(s); if (s === 'flying') tilt.requestCenter(); else haptics.stop(); });
 
   // ---- tilt steering and vibration options (remembered on this device)
   const pref = {
@@ -70,7 +77,7 @@ async function boot() {
     if (on) { tiltMsg.textContent = ''; return; }
     if (st === 'denied' || st === 'nosensor') {
       optTilt.checked = false; pref.set('tilt', '0'); tiltMsg.textContent = TILT_MSG[st];
-      if (game.state === 'flying') { ui.setModeMessage('TILT UNAVAILABLE — fly with the stick', 'ga'); setTimeout(() => ui.setModeMessage(''), 3000); }
+      if (game.state === 'flying') presentation.message('TILT UNAVAILABLE — fly with the stick', 'ga', 3);
     }
   };
   // tilt is switched on from a tap (the option, or Start): iOS only asks for motion access then
@@ -92,11 +99,11 @@ async function boot() {
     if (active) padHint.innerHTML = controlsHtml(PAD_HINT);
     if (connected && !padWas) {
       padMsg.innerHTML = `🎮 ${labels.name} controller connected: <span class="gp">${labels.Menu}</span> or <span class="gp">${labels.A}</span> starts, the left stick flies.`;
-      if (game.state === 'flying') { ui.setModeMessage('CONTROLLER CONNECTED', ''); setTimeout(() => { if (game.state === 'flying') ui.setModeMessage(''); }, 2500); }
+      if (game.state === 'flying') presentation.message('CONTROLLER CONNECTED', '', 2.5);
     } else if (!connected && padWas) {
       padMsg.textContent = '';
       if (game.state === 'flying') game.togglePause();          // the controller in hand is gone: stop the flight
-      ui.setModeMessage(game.state === 'paused' ? 'CONTROLLER DISCONNECTED — paused' : '', 'ga');
+      presentation.message(game.state === 'paused' ? 'CONTROLLER DISCONNECTED — paused' : '', 'ga');
     }
     padWas = connected;
   };
@@ -116,7 +123,7 @@ async function boot() {
   ui.onResume = () => game.togglePause();
   ui.onQuit = () => game.quitToMenu();
   ui.onAgain = () => { platform.enterFullscreen(); tiltFromTap(); game.start(Object.assign({}, game.opts, { skipSchool: true, demo: false })); };
-  ui.onHelp = () => game.onAction('help');
+  ui.onHelp = () => game.action('help');
 
   // ---- main loop
   let last = performance.now();
@@ -137,11 +144,14 @@ async function boot() {
     pad.poll(now / 1000);
     const t0 = performance.now();
     if (game.state !== 'menu') {
-      game.update(dt);
-      game.render(dt, draw);
+      const simDt = game.update(dt);        // controls, physics, rules
+      presentation.frame(dt, simDt);        // vibration, HUD
+      view.update(dt);                      // aircraft, flight deck, world
+      presentation.sound(dt);
+      if (draw) view.draw();
       if (game.state === 'school') ui.updateSchoolHighlight();
     } else if (draw) {
-      world.render();
+      view.draw();
     }
     stats.frameMs = performance.now() - t0;
     stats.frames++;
@@ -152,7 +162,7 @@ async function boot() {
 
   // ---- test / automation hooks
   window.__sim = {
-    game, world, cockpit, inputManager: input, audio, gpws, ui, stats, touch, platform, scaler, tilt, haptics, pad,
+    game, view, presentation, world, cockpit, inputManager: input, audio, gpws, ui, stats, touch, platform, scaler, tilt, haptics, pad,
     tiltRange: { pitch: TILT.pitchRange * 180 / Math.PI, roll: TILT.rollRange * 180 / Math.PI },   // degrees for full deflection
     padDeadZone: PAD.stickDeadZone,
     scenarios: Object.keys(SCENARIOS), starts: Object.keys(APPROACH_STARTS),
@@ -160,7 +170,7 @@ async function boot() {
     state: () => game.sim.state,
     input: () => game.sim.aircraft.input,
     setTimeScale: (s) => { game.sim.timeScale = s; },
-    autopilot: (opts) => { game.demoAp = new Autopilot(game.sim.aircraft, opts || {}); return game.demoAp; },
+    autopilot: (opts) => game.engageAutopilot(opts || {}),
     disengage: () => game.disengageDemo(),
     events: () => game.events,
     gpwsEvents: () => gpws.events,
