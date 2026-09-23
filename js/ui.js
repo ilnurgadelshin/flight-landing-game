@@ -2,20 +2,22 @@
 // pause and results screens.
 import { SCENARIOS, APPROACH_STARTS, AIRCRAFT as AC, FT, KTS, DEG } from './config.js';
 import { fmtOutcome } from './evaluate.js';
-import { controlsHtml, controlsText, getScheme, onSchemeChange } from './controls.js';
+import { controlsHtml, controlsText, getScheme, onSchemeChange, tiltWording } from './controls.js';
 
 const $ = (id) => document.getElementById(id);
 
 // Flight School pages. [[name]] tokens render as the active scheme's controls (js/controls.js);
 // `touch` overrides the anchor (a page element instead of a 3D cockpit part), the camera look
-// and, where the phone layout differs (head-up display instead of the panel), the text.
+// and, where the phone layout differs (head-up display instead of the panel), the text;
+// `touch.tiltBody` is the text when steering by tilting the phone.
 export const SCHOOL_STEPS = [
   { title: 'Welcome aboard', anchor: 'windshield', touch: { anchor: '#hgs' },
     body: `You are in the captain's seat of a Boeing 737-800 on final approach to runway 27. Your job: fly the ILS down the 3° glideslope at <b>Vref + 5 = 147 kts</b>, flare at 30 ft, touch down in the touchdown zone and stop.<ul><li>[[flyWith]]</li><li>Press [[help]] any time to reopen this school.</li></ul>` },
   { title: 'Artificial horizon (attitude)', anchor: 'attitude',
     body: `The blue/brown ball shows pitch and bank. Keep the wings level and the nose about <b>+2°</b> on approach.<ul><li>[[pitch]]: pitch (nose up/down)</li><li>[[roll]]: roll (bank)</li></ul>The aircraft is heavy: make small, smooth inputs and wait for it to respond.`,
-    touch: { title: 'Attitude and the stick', anchor: '#t-stick-zone',
-      body: `Keep the wings level with the horizon outside and the nose about <b>+2°</b> on approach ([[look]] shows the panel's attitude display).<ul><li>[[pitch]]: pitch (nose up/down)</li><li>[[roll]]: roll (bank)</li></ul>The stick appears where your right thumb touches. Let go and it springs back: the aircraft holds its attitude and trims itself. It is heavy: make small, smooth inputs and wait for it to respond.` } },
+    touch: { title: 'Attitude and the stick', tiltTitle: 'Attitude and tilt steering', anchor: '#t-stick-zone',
+      body: `Keep the wings level with the horizon outside and the nose about <b>+2°</b> on approach ([[look]] shows the panel's attitude display).<ul><li>[[pitch]]: pitch (nose up/down)</li><li>[[roll]]: roll (bank)</li></ul>The stick appears where your right thumb touches. Let go and it springs back: the aircraft holds its attitude and trims itself. It is heavy: make small, smooth inputs and wait for it to respond.`,
+      tiltBody: `Keep the wings level with the horizon outside and the nose about <b>+2°</b> on approach ([[look]] shows the panel's attitude display).<ul><li>[[pitch]]: pitch (nose up/down)</li><li>[[roll]]: roll (bank)</li></ul>The way you hold the phone when the flight starts is level flight, and the circle shows your tilt from it. [[center]] makes the way you hold it now level. Back at level, the aircraft holds its attitude and trims itself. It is heavy: make small, smooth movements and wait for it to respond.` } },
   { title: 'Airspeed tape', anchor: 'airspeed',
     body: `Speed in knots. The green <b>REF</b> bug is Vref (142 kts with flaps 30). The red barber pole at the bottom is the stall; the red one at the top is the flap limit.<ul><li>[[thrust]]: throttle up / down. Thrust controls your speed on approach — about <b>60 % N1</b> holds Vref+5.</li></ul>`,
     touch: { title: 'Airspeed', anchor: '#g-spd',
@@ -55,7 +57,8 @@ export const SCHOOL_STEPS = [
 /** A school page as the active control scheme shows it. */
 export function schoolPage(s) {
   const t = getScheme() === 'touch' ? (s.touch || {}) : {};
-  return { title: t.title || s.title, anchor: t.anchor || s.anchor, look: t.anchor ? (t.look || 0) : (s.look || 0), body: controlsHtml(t.body || s.body) };
+  const body = (tiltWording() && t.tiltBody) || t.body || s.body;
+  return { title: (tiltWording() && t.tiltTitle) || t.title || s.title, anchor: t.anchor || s.anchor, look: t.anchor ? (t.look || 0) : (s.look || 0), body: controlsHtml(body) };
 }
 
 export class UI {

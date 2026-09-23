@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- 737 on short final: dusk sky, runway lights, the aircraft head-on. Content stays inside the
+       central circle that Android crops maskable icons to. -->
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0a1422"/>
+      <stop offset="0.52" stop-color="#1e3a5c"/>
+      <stop offset="0.6" stop-color="#e59a3a"/>
+      <stop offset="0.6" stop-color="#1a2417"/>
+      <stop offset="1" stop-color="#0d130c"/>
+    </linearGradient>
+    <linearGradient id="rwy" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3a3f47"/>
+      <stop offset="1" stop-color="#5a606a"/>
+    </linearGradient>
+    <radialGradient id="lamp"><stop offset="0" stop-color="#fff6d8"/><stop offset="0.35" stop-color="#ffd27a"/><stop offset="1" stop-color="#ffb020" stop-opacity="0"/></radialGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#sky)"/>
+  <!-- runway to the horizon -->
+  <polygon points="238,307 274,307 396,512 116,512" fill="url(#rwy)"/>
+  <polygon points="253,318 259,318 262,352 250,352" fill="#e8eef4"/>
+  <polygon points="249,372 263,372 268,420 244,420" fill="#e8eef4"/>
+  <polygon points="244,446 268,446 276,512 236,512" fill="#e8eef4"/>
+  <g fill="#ffb020"><circle cx="238" cy="309" r="2.5"/><circle cx="274" cy="309" r="2.5"/><circle cx="222" cy="340" r="3"/><circle cx="290" cy="340" r="3"/><circle cx="197" cy="385" r="3.5"/><circle cx="315" cy="385" r="3.5"/><circle cx="163" cy="445" r="4"/><circle cx="349" cy="445" r="4"/></g>
+  <!-- 737-800 head-on: wings rising to the tips (dihedral) with winglets, engines under the wings, fin, gear down -->
+  <g transform="translate(256 178)">
+    <g fill="#dfe6ee">
+      <polygon points="-172,4 -18,22 18,22 172,4 172,13 18,34 -18,34 -172,13"/>
+      <polygon points="-172,13 -179,-14 -171,-14 -164,6"/>
+      <polygon points="172,13 179,-14 171,-14 164,6"/>
+      <polygon points="-58,-26 58,-26 58,-19 -58,-19"/>
+      <polygon points="-3.5,-24 3.5,-24 2,-78 -2,-78"/>
+      <ellipse cx="0" cy="8" rx="24" ry="27"/>
+      <ellipse cx="-66" cy="40" rx="17" ry="16"/>
+      <ellipse cx="66" cy="40" rx="17" ry="16"/>
+      <rect x="-3" y="32" width="6" height="30"/>
+      <rect x="-34" y="26" width="5" height="34"/>
+      <rect x="29" y="26" width="5" height="34"/>
+    </g>
+    <g fill="#26303c"><ellipse cx="-66" cy="40" rx="10" ry="9.5"/><ellipse cx="66" cy="40" rx="10" ry="9.5"/><rect x="-14" y="-2" width="28" height="7" rx="3"/></g>
+    <g fill="#1a1f26"><rect x="-6" y="58" width="12" height="9" rx="3"/><rect x="-39" y="57" width="15" height="10" rx="3"/><rect x="24" y="57" width="15" height="10" rx="3"/></g>
+    <circle cx="-44" cy="27" r="14" fill="url(#lamp)"/>
+    <circle cx="44" cy="27" r="14" fill="url(#lamp)"/>
+  </g>
+</svg>

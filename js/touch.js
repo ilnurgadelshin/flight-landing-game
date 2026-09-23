@@ -5,6 +5,8 @@
 //                reverse position below idle on the ground, and a spring-return rudder strip
 //   buttons      gear, flaps −/+, speedbrake arm/extend, autobrake, view, pause, help, plus
 //                BRAKE (hold) on the ground and REPOSITION after a go-around
+// With tilt steering on (body.tilt), the stick's circle shows the tilt instead and a CENTER button
+// makes the way the phone is held now level.
 // The buttons emit the same actions as the keys; the axes go to InputManager.touch.
 import { AIRCRAFT as AC } from './config.js';
 
@@ -42,11 +44,14 @@ const MARKUP = `
     <div id="t-help" class="tbtn" role="button" aria-label="Flight School"><b>?</b></div>
   </div>
   <div id="t-reposition" class="tbtn wide hidden" role="button"><b>REPOSITION</b><small>back on final</small></div>
-  <div id="t-brake" class="tbtn hidden" role="button"><b>BRAKE</b><small>hold</small></div>`;
+  <div id="t-brake" class="tbtn hidden" role="button"><b>BRAKE</b><small>hold</small></div>
+  <div id="t-center" class="tbtn" role="button"><b>CENTER</b><small>tilt</small></div>`;
 
 export class TouchControls {
-  constructor(input, parent) {
+  constructor(input, parent, haptics = null) {
     this.input = input;
+    this.haptics = haptics;
+    this.onCenter = null;              // tilt: make the way the phone is held now level
     this.root = document.createElement('div');
     this.root.id = 'touch';
     this.root.innerHTML = MARKUP;
@@ -59,6 +64,7 @@ export class TouchControls {
       rudder: $('t-rudder'), rudderKnob: this.root.querySelector('#t-rudder .tknob'),
       zone: $('t-stick-zone'), base: this.root.querySelector('.tbase'), knob: this.root.querySelector('.tbase .tknob'),
       view: $('t-view'), pause: $('t-pause'), help: $('t-help'), reposition: $('t-reposition'), brake: $('t-brake'),
+      center: $('t-center'), stickLabel: this.root.querySelector('#t-stick-zone .tlabel'),
     };
     // last rendered text / classes, so a frame only touches what changed (the context buttons start hidden)
     this.shown = { reposition: 'hidden', brakeBtn: 'hidden' };
@@ -75,6 +81,7 @@ export class TouchControls {
     this.tap(this.el.help, emit('help'));
     this.tap(this.el.reposition, emit('reposition'));
     this.tap(this.el.view, () => { input.look.down = !input.look.down; });
+    this.tap(this.el.center, () => { if (this.onCenter) this.onCenter(); });
     this.hold(this.el.brake, (on) => { input.touch.brake = on; });
     this.bindStick();
     this.bindRudder();
@@ -86,7 +93,7 @@ export class TouchControls {
   /** Fires on release over the button (with a little slack), so a thumb sliding off cancels it. */
   tap(el, fn) {
     let id = null;
-    el.addEventListener('pointerdown', (e) => { e.preventDefault(); if (id !== null) return; id = e.pointerId; capture(el, e); el.classList.add('down'); });
+    el.addEventListener('pointerdown', (e) => { e.preventDefault(); if (id !== null) return; id = e.pointerId; capture(el, e); el.classList.add('down'); this.buzz(); });
     const end = (e, fire) => {
       if (e.pointerId !== id) return;
       id = null; el.classList.remove('down');
@@ -101,12 +108,14 @@ export class TouchControls {
   /** Active while pressed. */
   hold(el, fn) {
     let id = null;
-    el.addEventListener('pointerdown', (e) => { e.preventDefault(); if (id !== null) return; id = e.pointerId; capture(el, e); el.classList.add('down'); fn(true); });
+    el.addEventListener('pointerdown', (e) => { e.preventDefault(); if (id !== null) return; id = e.pointerId; capture(el, e); el.classList.add('down'); this.buzz(); fn(true); });
     const end = (e) => { if (e.pointerId !== id) return; id = null; el.classList.remove('down'); fn(false); };
     el.addEventListener('pointerup', end);
     el.addEventListener('pointercancel', end);
     el.addEventListener('lostpointercapture', end);
   }
+
+  buzz() { if (this.haptics) this.haptics.tick(); }
 
   // ------------------------------------------------------------------ flight stick
   bindStick() {
@@ -193,11 +202,13 @@ export class TouchControls {
     leverBody.addEventListener('pointermove', (e) => {
       if (e.pointerId !== id) return;
       let p = p0 - (e.clientY - y0) / h;
+      const wasRev = T.reverse;
       if (p < 0) {
         if (!this.state.onGround && !T.reverse) p = 0;          // the reverse gate only opens on the ground
         else if (p < -gate * 0.8) T.reverse = true;
       }
       if (T.reverse && p > -gate * 0.3) T.reverse = false;       // pushed back up out of REV: stowed
+      if (T.reverse !== wasRev && this.haptics) this.haptics.gate();
       T.throttle = clamp(p, 0, 1);
     });
     const end = (e) => {
@@ -249,6 +260,14 @@ export class TouchControls {
     // thrust lever
     const pct = Math.round(inp.throttle * 100);
     this.text(this.el.handle.firstChild, 'handle', s.reverse ? 'REV' : String(pct));
+    // tilt steering: the stick's circle shows how far the phone is tilted from level
+    const tl = this.input.tilt, tilting = document.body.classList.contains('tilt');
+    this.text(this.el.stickLabel, 'stickLabel', tilting ? (tl.active ? 'TILT' : 'TILT — hold level') : 'STICK');
+    if (tilting) {
+      const R = 56 * scale();
+      const tr = tl.active ? `translate(${(tl.roll * R).toFixed(1)}px, ${(-tl.pitch * R).toFixed(1)}px)` : '';
+      if (this.shown.tiltKnob !== tr) { this.shown.tiltKnob = tr; this.el.knob.style.transform = tr; }
+    } else if (this.shown.tiltKnob) { this.shown.tiltKnob = ''; if (!this.input.touch.stickHeld) this.el.knob.style.transform = ''; }
     const pos = s.reverse ? 0 : inp.throttle;
     if (this.shown.leverPos !== pos) { this.shown.leverPos = pos; this.el.handle.style.bottom = `${(pos * 100).toFixed(1)}%`; this.el.fill.style.height = `${(pos * 100).toFixed(1)}%`; }
     this.cls(this.el.lever, 'leverState', (s.reverse ? 'rev ' : '') + (st.onGround ? 'ground' : ''));

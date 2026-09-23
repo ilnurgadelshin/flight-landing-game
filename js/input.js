@@ -11,7 +11,8 @@
 // Touch (phones, tablets): js/touch.js writes this.touch — a spring-return stick and rudder
 // that share the keyboard axes (so letting go springs back through the same ramp), an
 // absolute thrust lever with a latched reverse position, and a held brake. Its buttons
-// emit the same actions as the keys.
+// emit the same actions as the keys. Tilt steering (js/tilt.js) writes this.tilt: pitch and
+// roll from how the device is held, used like a stick that is always held.
 import { AIRCRAFT as AC } from './config.js';
 
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
@@ -39,6 +40,7 @@ export class InputManager {
     this.touchMode = false;             // the touch scheme is active: taps on the canvas never grab the mouse yoke
     this.touch = {};
     this.resetTouch();
+    this.tilt = { active: false, pitch: 0, roll: 0 };   // -1..1 each, written by TiltControl
     this.bind();
   }
 
@@ -50,6 +52,8 @@ export class InputManager {
   }
   /** The player is flying through the touch controls right now (used to take over from the autoland demo). */
   touchFlying() { const t = this.touch; return t.stickHeld || t.rudderHeld || t.leverHeld; }
+  /** Tilt steering is on and the device is tilted well away from its neutral position. */
+  tiltFlying() { const t = this.tilt; return this.touchMode && t.active && (Math.abs(t.pitch) > 0.3 || Math.abs(t.roll) > 0.3); }
   emit(name, arg) { for (const l of this.listeners) l(name, arg); }
 
   bind() {
@@ -143,11 +147,15 @@ export class InputManager {
     // back to centre like a released key (~0.3 s), which is the stick's spring
     const T = this.touch;
     if (T.stickHeld && pk === 0 && rk === 0) { this.axes.pitch = shape(T.pitch); this.axes.roll = shape(T.roll); }
+    // tilt: the same shaping as the stick; tipping the top edge towards you is always nose up (like
+    // pulling a yoke), so the pitch-style option is undone here (inv * inv = 1)
+    const TL = this.tilt, tilting = TL.active && this.touchMode && !T.stickHeld && pk === 0 && rk === 0;
+    if (tilting) { this.axes.pitch = shape(TL.pitch) * inv; this.axes.roll = shape(TL.roll); }
     if (T.rudderHeld && yk === 0) this.axes.yaw = clamp(T.yaw, -1, 1);
     if (this.touchFlying()) this.lastHumanInputT = this.time;
     let pitch = this.axes.pitch * inv;           // up arrow / stick up = nose up unless inverted
     let roll = this.axes.roll;
-    if (this.mouseEngaged && pk === 0 && rk === 0 && !T.stickHeld) {
+    if (this.mouseEngaged && pk === 0 && rk === 0 && !T.stickHeld && !tilting) {
       const s = this.opts.mouseSensitivity;
       const dz = (v) => (Math.abs(v) < 0.06 ? 0 : (v - Math.sign(v) * 0.06) / 0.94);
       // mouse up (negative y) = nose up unless inverted (pilot style: forward = push = nose down)
