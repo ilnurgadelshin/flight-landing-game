@@ -178,5 +178,80 @@ console.log('\n[T6] Vibration patterns');
   check('without the Vibration API (iPhone) it is silent and never fails', !none.supported && !threw);
 }
 
+console.log('\n[P7] Sound on iPhone and iPad: unlocking, the silent switch, speech');
+{
+  const { AudioSystem, silentWav } = await import('../js/audio.js');
+  // just enough Web Audio for AudioSystem.init()
+  const param = () => ({ value: 0, setTargetAtTime() {}, setValueAtTime() {}, linearRampToValueAtTime() {}, exponentialRampToValueAtTime() {} });
+  class FakeCtx {
+    constructor() { this.state = 'suspended'; this.sampleRate = 48000; this.currentTime = 0; this.destination = {}; this.resumes = 0; this.silent = 0; FakeCtx.last = this; }
+    resume() { this.resumes++; if (FakeCtx.gesture) this.state = 'running'; return Promise.resolve(); }
+    node() { return { connect() {}, start() {}, stop() {}, gain: param(), frequency: param(), Q: param() }; }
+    createGain() { return this.node(); } createOscillator() { return this.node(); } createBiquadFilter() { return this.node(); }
+    createBuffer(ch, n) { return { length: n, getChannelData: () => new Float32Array(n) }; }
+    createBufferSource() { const n = this.node(); n.start = () => { if (n.buffer && n.buffer.length === 1) this.silent++; }; return n; }
+  }
+  const spoken = [];
+  globalThis.window = { AudioContext: FakeCtx, speechSynthesis: { getVoices: () => [], speak: (u) => spoken.push(u), cancel() {} } };
+  globalThis.SpeechSynthesisUtterance = class { constructor(t) { this.text = t; } };
+  const elements = [], docListeners = {};
+  globalThis.document = {
+    visibilityState: 'visible',
+    createElement: () => { const e = { paused: true, attrs: {}, setAttribute(k, v) { this.attrs[k] = v; }, play() { this.paused = false; return Promise.resolve(); }, pause() { this.paused = true; } }; elements.push(e); return e; },
+    addEventListener: (t, fn) => { docListeners[t] = fn; },
+  };
+
+  // Safari with the Audio Session API
+  const session = { type: 'auto' };
+  Object.defineProperty(globalThis, 'navigator', { value: { audioSession: session }, configurable: true, writable: true });
+  FakeCtx.gesture = true;
+  let a = new AudioSystem({ ios: true });
+  a.unlock();
+  let ctx = FakeCtx.last;
+  check('a tap starts the sound: context created and resumed, a silent sample played inside the gesture', ctx && ctx.state === 'running' && ctx.resumes === 1 && ctx.silent === 1);
+  check('the page asks to play like a video (not muted by the silent switch)', session.type === 'playback' && elements.length === 0);
+  check('speech unlocked with one empty, silent utterance', spoken.length === 1 && spoken[0].text.trim() === '' && spoken[0].volume === 0);
+  a.unlock(); a.unlock();
+  check('later taps cost nothing once it runs', ctx.resumes === 1 && ctx.silent === 1 && spoken.length === 1);
+  ctx.state = 'interrupted';         // a phone call, Siri or the app switcher
+  a.unlock();
+  check('after an interruption the next tap restarts it', ctx.state === 'running' && ctx.resumes === 2 && ctx.silent === 2);
+  a.setEnabled(false);
+  check('sound switched off: other apps\' audio is left alone', session.type === 'ambient');
+  a.setEnabled(true);
+  check('and back on', session.type === 'playback');
+  FakeCtx.gesture = false;
+  const b = new AudioSystem({ ios: true });
+  b.unlock();
+  check('a touch that is not a gesture (touch start) leaves it waiting for the next one', FakeCtx.last.state === 'suspended' && FakeCtx.last.resumes === 1);
+  FakeCtx.gesture = true; b.unlock();
+  check('the tap ending then starts it', FakeCtx.last.state === 'running');
+
+  // older iOS: no Audio Session API
+  Object.defineProperty(globalThis, 'navigator', { value: {}, configurable: true, writable: true });
+  a = new AudioSystem({ ios: true });
+  a.unlock();
+  const el = elements[0];
+  check('older iOS: a silent looping media element plays, which takes the sound off the silent switch', el && !el.paused && el.loop === true && /^blob:/.test(el.src) && el.attrs.playsinline === '');
+  document.visibilityState = 'hidden'; docListeners.visibilitychange();
+  check('it stops when the page goes to the background', el.paused);
+  document.visibilityState = 'visible'; a.unlock();
+  check('and starts again with the next tap', !el.paused);
+  a.setEnabled(false);
+  check('it stops when sound is switched off', el.paused && elements.length === 1);
+
+  // a computer: none of that
+  const n0 = elements.length;
+  a = new AudioSystem({ ios: false });
+  a.unlock();
+  check('not an iPhone or iPad: no media element', elements.length === n0 && FakeCtx.last.state === 'running');
+
+  const w = new DataView(silentWav());
+  const tag = (o) => String.fromCharCode(w.getUint8(o), w.getUint8(o + 1), w.getUint8(o + 2), w.getUint8(o + 3));
+  let silent = true; for (let i = 44; i < w.byteLength; i++) if (w.getUint8(i) !== 128) silent = false;
+  check('the silent WAV is a valid half second of 8 kHz silence', tag(0) === 'RIFF' && tag(8) === 'WAVE' && tag(36) === 'data' && w.getUint32(24, true) === 8000 && w.getUint32(40, true) === 4000 && w.byteLength === 4044 && silent);
+  delete globalThis.window; delete globalThis.document; delete globalThis.SpeechSynthesisUtterance; delete globalThis.navigator;
+}
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

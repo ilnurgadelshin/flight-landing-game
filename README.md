@@ -228,6 +228,12 @@ and the buttons, which helps in a crosswind flare.
   screen and locks landscape. iPhone Safari cannot do either, so holding the
   phone upright shows a "rotate to landscape" screen, and the menu suggests
   *Share → Add to Home Screen*, which opens the game without the browser bars.
+- **Sound on iPhone and iPad.** Sound starts with the first tap and, like a
+  video's, plays even with the ring/silent switch set to silent. On older iOS
+  versions a silent media element is kept playing for that. After a phone call
+  or a trip to the app switcher, the next tap brings the sound back. Untick
+  **Sound & voice callouts** to leave other apps' audio (music) alone. Engine
+  rumble is low-pitched and phone speakers barely reproduce it; headphones do.
 - **Interruptions.** Turning the phone upright or switching away from the
   browser pauses the flight. While flying, the screen is kept awake where the
   browser supports it.
@@ -402,8 +408,8 @@ GPU, at about 1–5 rendered frames per second.
 
 | Command | What it checks | Time |
 | --- | --- | --- |
-| `npm test` | Node, no browser: physics (62 checks in 12 groups), phone features (39 checks in 6 groups), game controllers (34 checks in 4 groups), the sky model (12 checks in 3 groups) and the game's rules (34 checks in 6 groups), below | ~4 min |
-| `npm run test:e2e` | The real page in Chromium: 200 checks in 16 groups (below) | 55–75 min |
+| `npm test` | Node, no browser: physics (62 checks in 12 groups), phone features (54 checks in 7 groups), game controllers (34 checks in 4 groups), the sky model (12 checks in 3 groups) and the game's rules (34 checks in 6 groups), below | ~4 min |
+| `npm run test:e2e` | The real page in Chromium: 201 checks in 16 groups (below) | 55–75 min |
 | `node test/e2e.mjs quick` | The same without the slow mouse-yoke, touch, tilt and controller landings (E9, E11, E13, E15) | 20–30 min |
 | `node test/e2e.mjs only=<groups>` | E1 plus the groups listed, comma-separated: `menu`, `keys`, `school`, `land`, `fail`, `ga`, `fps`, `keyboard`, `mobile`, `touchland`, `tilt`, `tiltland`, `gamepad`, `padland`, `graphics` (e.g. `only=tilt,tiltland`) | 1–10 min each |
 | `npm run test:all` | All of them: the Node suites, then the browser suite | 60–80 min |
@@ -472,7 +478,9 @@ controls a player has.
   - tilting to take over from the demo;
   - Flight School's tilt wording;
   - vibration on a tap and at gear lock, and none when switched off;
-  - the manifest and every icon.
+  - the manifest and every icon;
+  - sound on an iPhone (its user agent): tapping Start starts the sound, the
+    silent-switch workaround plays, and speech is unlocked.
 - **E13** lands by tilting the phone, with the thrust lever, rudder, REV gate and
   buttons by touch, and checks the touchdown is felt as a vibration.
 - **E14** uses a simulated controller (`test/gamepad-stub.browser.js`; browsers
@@ -518,7 +526,13 @@ the high tier is about twice as slow.
 4. deflection scales to full at the tilt range and centres when held as at the start;
 5. the browser tests' simulated sensor matches the rotation-matrix phone model;
 6. each vibration pattern and controller rumble, and silence when switched off
-   or on an iPhone.
+   or on an iPhone;
+7. sound on iPhone and iPad, with fake Safari audio: a tap starts it, playing a
+   silent sample inside the gesture. The page asks to play through the silent
+   switch (the Audio Session API, or a silent looping media element on older
+   iOS). Speech is unlocked with an empty utterance. The next tap brings the
+   sound back after an interruption. Switching sound off releases other apps'
+   audio.
 
 `test/sky.test.mjs` checks the atmosphere model in Node:
 

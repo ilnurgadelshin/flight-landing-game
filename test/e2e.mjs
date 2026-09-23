@@ -675,6 +675,20 @@ if (want('tilt')) {
   const perr = await mp.evaluate(() => window.__sim.errors);
   check('no JavaScript errors in the tilt session', perr.length === 0, perr.slice(0, 3).join(' | '));
   await ctx.close();
+
+  // sound on an iPhone (its user agent; Chromium has no Audio Session API, like older iOS): tapping
+  // Start starts the sound and the silent looping media element that takes it off the silent switch
+  const ictx = await browser.newContext({ viewport: { width: 852, height: 393 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true,
+    userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1' });
+  const ip = await ictx.newPage();
+  ip.on('pageerror', (e) => consoleErrors.push(`[iphone pageerror] ${e.message}`));
+  await ip.goto(url + '/?quality=low');
+  await ip.waitForFunction(() => window.__sim, null, { timeout: 180000 });
+  await ip.tap('#btn-start');
+  await ip.waitForFunction(() => window.__sim.audio.ctx && window.__sim.audio.ctx.state === 'running' && window.__sim.audio.keepAlive && !window.__sim.audio.keepAlive.paused, null, { timeout: 30000 }).catch(() => {});
+  const snd = await ip.evaluate(() => { const a = window.__sim.audio; return { ios: document.body.classList.contains('ios'), state: a.ctx && a.ctx.state, keep: !!a.keepAlive && !a.keepAlive.paused && a.keepAlive.loop, speech: a.speechPrimed, err: window.__sim.errors.length }; });
+  check('iPhone: tapping Start starts the sound, with the silent-switch workaround playing and speech unlocked', snd.ios && snd.state === 'running' && snd.keep && snd.speech && snd.err === 0, JSON.stringify(snd));
+  await ictx.close();
 }
 
 // --------------------------------------------------------------------------- phones: a landing flown by tilting the phone
