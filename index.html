@@ -9,6 +9,9 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="737 Landing" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
   <title>737-800 Landing Simulator</title>
   <link rel="stylesheet" href="css/style.css" />
   <script type="importmap">
@@ -96,6 +99,9 @@
         <label><input type="checkbox" id="opt-invert" /> Pilot-style pitch <span class="only-desktop">(push forward = nose down)</span><span class="only-touch">(stick up = nose down)</span></label>
         <label><input type="checkbox" id="opt-night" /> Night</label>
         <label><input type="checkbox" id="opt-sound" checked /> Sound &amp; voice callouts</label>
+        <label class="only-touch"><input type="checkbox" id="opt-tilt" /> Tilt to fly</label>
+        <label class="only-touch vib-only"><input type="checkbox" id="opt-vib" checked /> Vibration</label>
+        <span id="tilt-msg" class="tilt-msg only-touch"></span>
         <label class="only-desktop">Mouse sensitivity <input type="range" id="opt-mouse" min="0.4" max="2" step="0.1" value="1" /></label>
       </div>
 
@@ -103,7 +109,7 @@
         <button id="btn-start" class="primary">Start approach</button>
         <button id="btn-demo">Watch an autoland demo</button>
       </div>
-      <p class="hint only-touch">Right thumb: the stick · left thumb: the thrust lever and the rudder · buttons for gear, flaps, speedbrakes and autobrake. <span class="ios-only">For full screen on iPhone: Share → Add to Home Screen.</span></p>
+      <p class="hint only-touch"><span class="no-tilt">Right thumb: the stick</span><span class="only-tilt">Tilt the phone to fly</span> · left thumb: the thrust lever and the rudder · buttons for gear, flaps, speedbrakes and autobrake. <span class="ios-only">For full screen on iPhone: Share → Add to Home Screen.</span></p>
       <p class="hint only-desktop">Keyboard: ↑↓ pitch · ←→ roll · A/D rudder · W/S throttle · T TOGA · F/V flaps · G gear · Space speedbrake · X arm · B brakes · N autobrake · R reversers · [ ] trim · L look down · H help</p>
     </div>
   </div>

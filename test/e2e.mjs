@@ -1,5 +1,5 @@
 // Browser end-to-end QA: plays the game in headless Chromium (SwiftShader).
-//   node test/e2e.mjs            (all)      node test/e2e.mjs quick   (skip the slow keyboard and touch landings)
+//   node test/e2e.mjs            (all)      node test/e2e.mjs quick   (skip the slow keyboard, touch and tilt landings)
 import { chromium } from 'playwright';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -548,6 +548,150 @@ if (!quick && (!only || only === 'touchland')) {
   check('a landing flown only with the touch controls ends stopped on the runway', done && r.result && r.result.success, r.result ? r.result.headline : 'no result');
   check('the roll-out used the REV gate on the thrust lever, and no mouse yoke', r.log.includes('reverse on') && r.log.includes('reverse off') && !r.mouse);
   await mp.screenshot({ path: path.join(out, 'e2e-phone-landing.png') });
+  await ctx.close();
+}
+
+// --------------------------------------------------------------------------- phones: tilt steering, vibration, home-screen app
+// The motion sensor is simulated (test/tilt-pose.browser.js): readings a phone held in landscape
+// would send, every 16 ms. navigator.vibrate is replaced by a recorder.
+async function tiltPhonePage() {
+  const P = await phonePage();
+  await P.mp.addScriptTag({ path: path.join(root, 'test', 'tilt-pose.browser.js') });
+  await P.mp.evaluate(() => { window.__vib = []; Object.defineProperty(navigator, 'vibrate', { value: (p) => { window.__vib.push(p); return true; }, configurable: true }); });
+  return P;
+}
+
+if (!only || only === 'tilt') {
+  console.log('\n[E12] Tilt steering, vibration and the home-screen app (phone)');
+  const { ctx, mp, mf } = await tiltPhonePage();
+  const MI = () => mp.evaluate(() => Object.assign({}, window.__sim.input()));
+  const TL = () => mp.evaluate(() => Object.assign({}, window.__sim.inputManager.tilt, { status: window.__sim.tilt.status, flip: window.__sim.tilt.flip, neutral: !!window.__sim.tilt.neutral, body: document.body.classList.contains('tilt'), checked: document.getElementById('opt-tilt').checked, msg: document.getElementById('tilt-msg').textContent }));
+  await mf(2);
+  const opts = await mp.evaluate(() => ({ tilt: getComputedStyle(document.getElementById('opt-tilt').parentElement).display !== 'none', vib: getComputedStyle(document.getElementById('opt-vib').parentElement).display !== 'none' }));
+  check('the menu offers Tilt to fly and Vibration on a phone', opts.tilt && opts.vib, JSON.stringify(opts));
+
+  await mp.tap('#opt-tilt'); await mp.waitForTimeout(1900);
+  let t = await TL();
+  check('without a motion sensor, tilt switches itself off and says why', !t.checked && !t.body && t.status === 'nosensor' && /No motion sensor/.test(t.msg), t.msg);
+  await mp.evaluate(() => { window.__asked = 0; DeviceOrientationEvent.requestPermission = () => { window.__asked++; return Promise.resolve('denied'); }; });
+  await mp.tap('#opt-tilt'); await mp.waitForTimeout(300);
+  t = await TL();
+  check('motion access declined: the stick stays on and the menu says how to be asked again', !t.checked && t.status === 'denied' && /declined/.test(t.msg) && await mp.evaluate(() => window.__asked === 1), t.msg);
+  await mp.evaluate(() => { window.__asked = 0; DeviceOrientationEvent.requestPermission = () => { window.__asked++; return Promise.resolve('granted'); }; window.tiltFeed.start({ back: 35 }); });
+  await mp.tap('#opt-tilt'); await mp.waitForTimeout(300);
+  t = await TL();
+  check('motion access asked for from the tap and granted: tilt is on', t.checked && t.body && t.status === 'on' && !t.msg && await mp.evaluate(() => window.__asked === 1), `status ${t.status}`);
+  check('the choice is remembered on this device', await mp.evaluate(() => localStorage.getItem('tilt') === '1'));
+
+  await mp.tap('#btn-start'); await mf(4);
+  t = await TL();
+  const zone = await mp.evaluate(() => ({ label: document.querySelector('#t-stick-zone .tlabel').textContent, pe: getComputedStyle(document.getElementById('t-stick-zone')).pointerEvents, center: getComputedStyle(document.getElementById('t-center')).display }));
+  check('the flight starts level with the phone as it is held; the circle shows TILT and CENTER appears', t.active && t.neutral && Math.abs(t.pitch) < 0.03 && Math.abs(t.roll) < 0.03 && zone.label === 'TILT' && zone.pe === 'none' && zone.center !== 'none', `tilt ${fmt(t.pitch, 2)}/${fmt(t.roll, 2)}, ${JSON.stringify(zone)}`);
+  await mp.evaluate(() => window.tiltFeed.set({ pull: 10 })); await mf(3);
+  let i1 = await MI(); t = await TL();
+  const knob = await mp.evaluate(() => document.querySelector('#t-stick-zone .tknob').style.transform);
+  check('top edge 10° towards you = nose up', t.pitch > 0.4 && i1.pitch > 0.2 && Math.abs(i1.roll) < 0.05, `tilt ${fmt(t.pitch, 2)}, pitch input ${fmt(i1.pitch, 2)}`);
+  check('the circle shows the tilt', /translate\(-?[\d.]+px, -[\d.]+px\)/.test(knob), knob);
+  await mp.evaluate(() => window.tiltFeed.set({ pull: 0, bank: 10 })); await mf(3);
+  i1 = await MI();
+  check('left side 10° down = bank left', i1.roll < -0.15 && Math.abs(i1.pitch) < 0.05, `roll input ${fmt(i1.roll, 2)}`);
+  await mp.evaluate(() => window.tiltFeed.set({ pull: 0, bank: 0 })); await mf(3);
+  i1 = await MI();
+  check('back to how it was held: controls centred', Math.abs(i1.pitch) < 0.02 && Math.abs(i1.roll) < 0.02, `${fmt(i1.pitch, 3)}, ${fmt(i1.roll, 3)}`);
+  await mp.evaluate(() => { window.__sim.inputManager.opts.invertPitch = true; window.tiltFeed.set({ pull: 10 }); }); await mf(3);
+  i1 = await MI();
+  check('pilot-style pitch does not reverse tilt: tipping towards you is always nose up', i1.pitch > 0.2, `pitch input ${fmt(i1.pitch, 2)}`);
+  await mp.evaluate(() => { window.__sim.inputManager.opts.invertPitch = false; window.tiltFeed.set({ pull: -15 }); }); await mf(3);
+  const lean = (await MI()).pitch;
+  await mp.tap('#t-center'); await mf(3);
+  i1 = await MI();
+  check('CENTER makes the way the phone is held now level', lean < -0.3 && Math.abs(i1.pitch) < 0.03, `pitch input ${fmt(lean, 2)} → ${fmt(i1.pitch, 3)}`);
+  await mp.evaluate(() => window.tiltFeed.set({ pull: -5 })); await mf(3);
+  const before = (await TL()).pitch;
+  await mp.tap('#t-pause'); await mf(1); await mp.tap('#btn-resume'); await mf(4);
+  t = await TL();
+  check('resuming after a pause takes the phone\'s position as level again', before > 0.3 && Math.abs(t.pitch) < 0.03, `tilt ${fmt(before, 2)} → ${fmt(t.pitch, 3)}`);
+  await mp.evaluate(() => window.tiltFeed.stop()); await mp.waitForTimeout(1400); await mf(2);
+  t = await TL();
+  const lbl = await mp.evaluate(() => document.querySelector('#t-stick-zone .tlabel').textContent);
+  check('a sensor that stops reporting lets go of the controls', !t.active && t.pitch === 0 && /hold level/.test(lbl), lbl);
+  await mp.evaluate(() => { Object.defineProperty(screen.orientation, 'angle', { get: () => 270, configurable: true }); window.tiltFeed.start({ back: 35, pull: 0, bank: 0 }); });
+  await mf(2); await mp.tap('#t-center'); await mf(3);
+  await mp.evaluate(() => window.tiltFeed.set({ pull: 10, bank: 10 })); await mf(3);
+  t = await TL();
+  check('a browser that reports the screen angle the other way round is corrected at CENTER', t.flip && t.pitch > 0.4 && t.roll < -0.3, `flip ${t.flip}, tilt ${fmt(t.pitch, 2)}/${fmt(t.roll, 2)}`);
+  await mp.evaluate(() => { delete screen.orientation.angle; window.__sim.tilt.flip = false; window.tiltFeed.set({ pull: 0, bank: 0 }); });
+
+  await mp.evaluate(() => window.__sim.start({ scenarioId: 'clear', startId: 'standard', mode: 'game', sound: false, demo: true })); await mf(4);
+  await mp.evaluate(() => window.tiltFeed.set({ pull: 12 })); await mf(3);
+  check('tilting the phone takes over from the autoland demo', await mp.evaluate(() => window.__sim.game.demoAp === null));
+  await mp.evaluate(() => window.tiltFeed.set({ pull: 0 }));
+  await mp.evaluate(() => window.__sim.start({ scenarioId: 'clear', startId: 'short', mode: 'training', sound: false })); await mf(3);
+  const welcome = await mp.evaluate(() => document.getElementById('school-body').textContent);
+  await mp.tap('#school-next'); await mf(2); await mp.waitForTimeout(400); await mf(1);
+  const s2 = await mp.evaluate(() => ({ title: document.getElementById('school-title').textContent, body: document.getElementById('school-body').innerHTML }));
+  check('Flight School explains tilt steering and CENTER', /tilting the phone/.test(welcome) && s2.title === 'Attitude and tilt steering' && s2.body.includes('CENTER') && !s2.body.includes('<kbd>'), s2.title);
+  await mp.screenshot({ path: path.join(out, 'e2e-phone-tilt-school.png') });
+  await mp.tap('#school-skip'); await mf(2);
+
+  await mp.evaluate(() => window.__sim.start({ scenarioId: 'clear', startId: 'standard', mode: 'game', sound: false })); await mf(3);   // gear up at 10 nm
+  await mp.evaluate(() => { window.__vib.length = 0; });
+  await mp.tap('#t-gear'); await mf(1);
+  const v1 = await mp.evaluate(() => window.__vib.slice());
+  check('pressing a touch control gives a short tick', v1.includes(8), JSON.stringify(v1));
+  await mp.waitForFunction(() => window.__sim.state().gearDown, null, { timeout: 120000 }); await mf(2);
+  check('the gear locking down gives a thump', await mp.evaluate(() => window.__vib.includes(25)), JSON.stringify(await mp.evaluate(() => window.__vib.slice(0, 8))));
+  await mp.screenshot({ path: path.join(out, 'e2e-phone-tilt.png') });
+  await mp.evaluate(() => window.__sim.game.quitToMenu()); await mf(2);
+  await mp.tap('#opt-vib'); await mf(1);
+  await mp.evaluate(() => { window.__vib.length = 0; });
+  await mp.tap('#btn-start'); await mf(3); await mp.tap('#t-gear'); await mf(1);
+  check('Vibration switched off: nothing vibrates', await mp.evaluate(() => window.__vib.filter((p) => p !== 0).length === 0 && localStorage.getItem('vibration') === '0'));
+
+  const app = await mp.evaluate(async () => {
+    const link = document.querySelector('link[rel="manifest"]'), apple = document.querySelector('link[rel="apple-touch-icon"]');
+    const m = await (await fetch(link.href)).json();
+    const size = (src) => new Promise((res) => { const im = new Image(); im.onload = () => res(`${im.naturalWidth}x${im.naturalHeight}`); im.onerror = () => res('missing'); im.src = new URL(src, link.href).href; });
+    const icons = [];
+    for (const ic of m.icons) icons.push({ want: ic.sizes, got: await size(ic.src), purpose: ic.purpose });
+    return { display: m.display, orientation: m.orientation, start: m.start_url, icons, apple: await size(apple.getAttribute('href')), capable: !!document.querySelector('meta[name="apple-mobile-web-app-capable"]') };
+  });
+  const iconsOk = app.icons.every((i) => (i.want === 'any' ? i.got !== 'missing' : i.got === i.want));
+  check('home-screen app: full screen, landscape, and every icon loads at its size', app.display === 'fullscreen' && app.orientation === 'landscape' && app.start === './' && iconsOk && app.icons.some((i) => i.purpose === 'maskable') && app.apple === '180x180' && app.capable, `${app.icons.map((i) => i.got).join(', ')}; apple ${app.apple}`);
+  const perr = await mp.evaluate(() => window.__sim.errors);
+  check('no JavaScript errors in the tilt session', perr.length === 0, perr.slice(0, 3).join(' | '));
+  await ctx.close();
+}
+
+// --------------------------------------------------------------------------- phones: a landing flown by tilting the phone
+if (!quick && (!only || only === 'tiltland')) {
+  console.log('\n[E13] Landing flown by tilting the phone (phone, real time)');
+  const { ctx, mp, mf } = await tiltPhonePage();
+  await mp.evaluate(() => window.tiltFeed.start({ back: 35 }));
+  await mp.tap('#opt-tilt'); await mp.waitForTimeout(300);
+  await mp.evaluate(() => window.__sim.start({ scenarioId: 'clear', startId: 'short', mode: 'game', sound: false, seed: 5 }));
+  await mp.waitForTimeout(2500); await mf(3); await mp.waitForTimeout(1000);
+  const fps = await mp.evaluate(() => window.__sim.stats.fps);
+  const scale = Math.max(0.35, Math.min(1, fps / 10));
+  await mp.evaluate((sc) => window.__sim.setTimeScale(sc), scale);
+  console.log(`    render rate ${fmt(fps, 1)} fps -> simulation time scale ${fmt(scale, 2)}`);
+  const ready = await mp.evaluate(() => ({ active: window.__sim.inputManager.tilt.active, tilt: document.body.classList.contains('tilt') }));
+  check('tilt steering is on and centred for the approach', ready.active && ready.tilt, JSON.stringify(ready));
+  await mp.tap('#t-arm'); await mp.tap('#t-autobrake'); await mp.tap('#t-autobrake'); await mp.tap('#t-autobrake'); await mf(1);
+  // the human-like pilot: pitch and roll by tilting the phone, thrust, rudder, reversers and buttons by touch
+  await mp.addScriptTag({ path: path.join(root, 'test', 'human-pilot.browser.js') });
+  await mp.evaluate(() => window.installHumanPilot({ input: 'tilt' }));
+  let done = true;
+  try { await mp.waitForFunction(() => window.__sim.game.state === 'finished', null, { timeout: 600000 }); } catch (e) { done = false; console.log('    (timeout waiting for the landing to finish)'); }
+  await mp.evaluate(() => window.__sim.setTimeScale(1));
+  const r = await mp.evaluate(() => ({ result: window.__sim.result(), log: window.__sim.events().filter((e) => e.type === 'input').map((e) => e.text), vib: window.__vib.slice(), stick: window.__sim.inputManager.touch.stickHeld, trace: (window.__pilot.trace || []).slice(-24).map((x) => JSON.stringify(x)) }));
+  if (!(r.result && r.result.success)) console.log('    trace:\n    ' + r.trace.join('\n    '));
+  console.log(`  tilt landing: ${r.result ? `${r.result.outcome} ${r.result.score} ${r.result.grade} — ${r.result.headline}` : 'not finished'} | inputs: ${r.log.slice(0, 14).join(', ')}`);
+  if (r.result) console.log('    ' + r.result.items.map((it) => `${it.label}: ${it.value}`).join(' · '));
+  check('a landing flown by tilting the phone ends stopped on the runway', done && r.result && r.result.success, r.result ? r.result.headline : 'no result');
+  const td = r.vib.filter((p) => (typeof p === 'number' && p >= 18 && p <= 60 && p !== 20 && p !== 25) || (Array.isArray(p) && p[0] === 70));
+  check('the roll-out used the REV gate, and the touchdown was felt as a vibration', r.log.includes('reverse on') && r.log.includes('reverse off') && td.length > 0 && !r.stick, `touchdown vibration ${JSON.stringify(td[0])}`);
+  await mp.screenshot({ path: path.join(out, 'e2e-phone-tilt-landing.png') });
   await ctx.close();
 }
 

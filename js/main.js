@@ -12,6 +12,9 @@ import { Autopilot } from './autopilot.js';
 import { SCENARIOS, APPROACH_STARTS } from './config.js';
 import { TouchControls } from './touch.js';
 import { Platform, ResolutionScaler, touchFirst, phone } from './platform.js';
+import { TiltControl, TILT } from './tilt.js';
+import { Haptics } from './haptics.js';
+import { setTilt, getScheme } from './controls.js';
 
 const params = new URLSearchParams(location.search);
 // phones get the lighter scene; their resolution then adapts to the frame rate (see ResolutionScaler)
@@ -29,10 +32,47 @@ async function boot() {
   const input = new InputManager(canvas);
   const audio = new AudioSystem();
   const gpws = new GPWS(audio);
-  const touch = new TouchControls(input, document.getElementById('hud'));
+  const haptics = new Haptics();
+  const touch = new TouchControls(input, document.getElementById('hud'), haptics);
   const game = new Game({ world, cockpit, input, audio, gpws, ui, touch });
+  game.haptics = haptics;
   const platform = new Platform({ game, input, world });
-  game.onStateChange = (s) => platform.onGameState(s);
+  const tilt = new TiltControl(input);
+  touch.onCenter = () => tilt.center();
+  // a flight that starts or resumes takes the way the phone is held as level; anything else stops vibrating
+  game.onStateChange = (s) => { platform.onGameState(s); if (s === 'flying') tilt.requestCenter(); else haptics.stop(); };
+
+  // ---- tilt steering and vibration options (remembered on this device)
+  const pref = {
+    get: (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* private browsing: not remembered */ } },
+  };
+  const optTilt = document.getElementById('opt-tilt'), optVib = document.getElementById('opt-vib'), tiltMsg = document.getElementById('tilt-msg');
+  document.body.classList.toggle('can-vibrate', haptics.supported);
+  optVib.checked = pref.get('vibration') !== '0';
+  haptics.enabled = haptics.supported && optVib.checked;
+  optVib.addEventListener('change', () => { haptics.enabled = haptics.supported && optVib.checked; pref.set('vibration', optVib.checked ? '1' : '0'); haptics.tick(); });
+  optTilt.checked = pref.get('tilt') === '1';
+  const TILT_MSG = {
+    denied: 'Motion access was declined, so the stick stays on. On iPhone, close and reopen the tab to be asked again.',
+    nosensor: 'No motion sensor found, so the stick stays on.',
+  };
+  tilt.onStatus = (st) => {
+    const on = st === 'on' || st === 'waiting';
+    document.body.classList.toggle('tilt', on);
+    setTilt(on);
+    if (on) { tiltMsg.textContent = ''; return; }
+    if (st === 'denied' || st === 'nosensor') {
+      optTilt.checked = false; pref.set('tilt', '0'); tiltMsg.textContent = TILT_MSG[st];
+      if (game.state === 'flying') { ui.setModeMessage('TILT UNAVAILABLE — fly with the stick', 'ga'); setTimeout(() => ui.setModeMessage(''), 3000); }
+    }
+  };
+  // tilt is switched on from a tap (the option, or Start): iOS only asks for motion access then
+  optTilt.addEventListener('click', () => {
+    pref.set('tilt', optTilt.checked ? '1' : '0');
+    if (optTilt.checked) tilt.enable(); else tilt.disable();
+  });
+  const tiltFromTap = () => { if (optTilt.checked && !tilt.enabled && getScheme() === 'touch') tilt.enable(); };
   const scaler = new ResolutionScaler(world, { enabled: params.has('drs') ? params.get('drs') !== '0' : touchFirst, start: world.pixelRatio });
   world.applyScenario(SCENARIOS.clear, false);
   ui.hideLoading();
@@ -43,11 +83,11 @@ async function boot() {
   for (const ev of ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown']) window.addEventListener(ev, armAudio);
 
   // starting a flight is a tap: on Android that is the moment full screen and landscape can be requested
-  ui.onStart = (opts) => { armAudio(); platform.enterFullscreen(); game.start(opts); };
-  ui.onDemo = (opts) => { armAudio(); platform.enterFullscreen(); game.start(Object.assign({}, opts, { demo: true })); };
+  ui.onStart = (opts) => { armAudio(); platform.enterFullscreen(); tiltFromTap(); game.start(opts); };
+  ui.onDemo = (opts) => { armAudio(); platform.enterFullscreen(); tiltFromTap(); game.start(Object.assign({}, opts, { demo: true })); };
   ui.onResume = () => game.togglePause();
   ui.onQuit = () => game.quitToMenu();
-  ui.onAgain = () => { platform.enterFullscreen(); game.start(Object.assign({}, game.opts, { skipSchool: true, demo: false })); };
+  ui.onAgain = () => { platform.enterFullscreen(); tiltFromTap(); game.start(Object.assign({}, game.opts, { skipSchool: true, demo: false })); };
   ui.onHelp = () => game.onAction('help');
 
   // ---- main loop
@@ -65,6 +105,7 @@ async function boot() {
     const still = touchFirst && (game.state === 'menu' || game.state === 'paused' || game.state === 'finished');
     const draw = !still || now - lastDraw > 66;
     if (draw) lastDraw = now;
+    if (tilt.enabled) tilt.update();       // a sensor that stops reporting lets go of the controls
     const t0 = performance.now();
     if (game.state !== 'menu') {
       game.update(dt);
@@ -82,7 +123,8 @@ async function boot() {
 
   // ---- test / automation hooks
   window.__sim = {
-    game, world, cockpit, inputManager: input, audio, gpws, ui, stats, touch, platform, scaler,
+    game, world, cockpit, inputManager: input, audio, gpws, ui, stats, touch, platform, scaler, tilt, haptics,
+    tiltRange: { pitch: TILT.pitchRange * 180 / Math.PI, roll: TILT.rollRange * 180 / Math.PI },   // degrees for full deflection
     scenarios: Object.keys(SCENARIOS), starts: Object.keys(APPROACH_STARTS),
     start: (opts) => game.start(Object.assign({ mode: 'game', scenarioId: 'clear', startId: 'standard', sound: false }, opts)),
     state: () => game.sim.state,

@@ -2,13 +2,15 @@
 // 'desktop' (keyboard + mouse) or 'touch' (on-screen stick, thrust lever and buttons).
 // Hint text is written once with [[name]] tokens, so the same sentence reads right on a
 // laptop and on a phone: "Gear down ([[gear]])" -> "Gear down (G)" or "Gear down (GEAR)".
+// With tilt steering on, a control's `tilt` wording (when it has one) replaces its touch wording.
 
 const kbd = (...keys) => keys.map((k) => `<kbd>${k}</kbd>`).join(' / ');
 const chip = (label) => `<span class="tc">${label}</span>`;
 
 export const CONTROLS = {
-  pitch:        { key: `${kbd('↑')}/${kbd('↓')} or mouse`,   touch: `${chip('STICK')} up/down` },
-  roll:         { key: `${kbd('←')}/${kbd('→')} or mouse`,   touch: `${chip('STICK')} left/right` },
+  pitch:        { key: `${kbd('↑')}/${kbd('↓')} or mouse`,   touch: `${chip('STICK')} up/down`, tilt: 'Tip the top edge towards / away from you' },
+  roll:         { key: `${kbd('←')}/${kbd('→')} or mouse`,   touch: `${chip('STICK')} left/right`, tilt: 'Lower the left / right side' },
+  center:       { key: '',                                    touch: chip('CENTER') },
   rudder:       { key: kbd('A', 'D'),                         touch: chip('RUDDER') },
   rudderLeft:   { key: kbd('A'),                              touch: chip('RUDDER ◀') },
   rudderRight:  { key: kbd('D'),                              touch: chip('RUDDER ▶') },
@@ -30,12 +32,14 @@ export const CONTROLS = {
   reposition:   { key: kbd('Backspace'),                      touch: chip('REPOSITION') },
   help:         { key: kbd('H'),                              touch: chip('?') },
   pause:        { key: kbd('P'),                              touch: chip('❚❚') },
-  takeover:     { key: 'press any flight key',                touch: `touch the ${chip('STICK')}` },
+  takeover:     { key: 'press any flight key',                touch: `touch the ${chip('STICK')}`, tilt: 'tilt the phone' },
   flyWith:      { key: 'Click the window to engage the <b>mouse yoke</b>, or fly with the keyboard.',
-                  touch: 'Fly with the <b>stick</b> (right thumb) and the <b>thrust lever</b> (left thumb). The stick springs back to centre when you let go and the aircraft holds its attitude.' },
+                  touch: 'Fly with the <b>stick</b> (right thumb) and the <b>thrust lever</b> (left thumb). The stick springs back to centre when you let go and the aircraft holds its attitude.',
+                  tilt: 'Fly by <b>tilting the phone</b>: tip the top edge towards you to raise the nose, lower a side to bank. The way you hold it when the flight starts is level; [[center]] resets that. The <b>thrust lever</b> is under your left thumb.' },
 };
 
 let scheme = 'desktop';
+let tilt = false;
 const listeners = [];
 export function getScheme() { return scheme; }
 export function setScheme(s) {
@@ -43,14 +47,23 @@ export function setScheme(s) {
   scheme = s;
   for (const fn of listeners) fn(s);
 }
+export function tiltWording() { return scheme === 'touch' && tilt; }
+export function setTilt(on) {
+  if (on === tilt) return;
+  tilt = on;
+  for (const fn of listeners) fn(scheme);
+}
 export function onSchemeChange(fn) { listeners.push(fn); }
 
 /** Replace [[name]] tokens with the active scheme's control markup. */
 export function controlsHtml(text) {
   if (!text || text.indexOf('[[') < 0) return text;
+  const t = tiltWording();
   return text.replace(/\[\[(\w+)\]\]/g, (m, name) => {
     const c = CONTROLS[name];
-    return c ? (scheme === 'touch' ? c.touch : c.key) : m;
+    if (!c) return m;
+    // a wording may itself name controls (the tilt text names CENTER)
+    return scheme === 'touch' ? (t && c.tilt ? controlsHtml(c.tilt) : c.touch) : c.key;
   });
 }
 

@@ -62,15 +62,15 @@ offline and can be hosted on any static host.
 ### GitHub Pages
 
 The live site is served from the `gh-pages` branch, which holds only the game
-files (`index.html`, `css/`, `js/`, `vendor/`) and an empty `.nojekyll` so
+files (`index.html`, `manifest.webmanifest`, `css/`, `icons/`, `js/`, `vendor/`) and an empty `.nojekyll` so
 GitHub serves them as-is. All asset paths are relative, so the game runs from
 the `/flight-landing-game/` sub-path unchanged. To publish the current `main`:
 
 ```bash
 git fetch origin gh-pages
 git worktree add ../flight-landing-game-site gh-pages
-rm -rf ../flight-landing-game-site/css ../flight-landing-game-site/js ../flight-landing-game-site/vendor
-cp -R index.html css js vendor ../flight-landing-game-site/
+rm -rf ../flight-landing-game-site/css ../flight-landing-game-site/icons ../flight-landing-game-site/js ../flight-landing-game-site/vendor
+cp -R index.html manifest.webmanifest css icons js vendor ../flight-landing-game-site/
 git -C ../flight-landing-game-site add -A
 git -C ../flight-landing-game-site commit -m "Publish main $(git rev-parse --short HEAD)"
 git -C ../flight-landing-game-site push origin gh-pages
@@ -128,7 +128,7 @@ thrust lever that stays where it is left for the other.
 
 | Control | Touch |
 | --- | --- |
-| Pitch and roll | **Stick** (right thumb): it appears where the thumb lands in the lower right and springs back to centre when released. The aircraft then holds its attitude and trims itself. Stick up = nose up (tick *Pilot-style pitch* for stick up = nose down) |
+| Pitch and roll | **Stick** (right thumb): it appears where the thumb lands in the lower right and springs back to centre when released. The aircraft then holds its attitude and trims itself. Stick up = nose up (tick *Pilot-style pitch* for stick up = nose down). Or tick **Tilt to fly** (below) |
 | Thrust | **Thrust lever** at the left edge: drag it, and it stays where you leave it. **TO/GA** on top gives go-around thrust |
 | Thrust reversers | On the ground, pull the lever down past idle into **REV**. It stays there until you push it back up |
 | Rudder / nose-wheel steering | **RUDDER** strip next to the lever; springs back to centre |
@@ -143,6 +143,43 @@ against Vref + 5, N1, altitude, radio altitude, vertical speed, wind, the
 localizer and glideslope diamonds, and the flight director in Flight School.
 Flight School and the instructor hints name the touch controls instead of keys,
 and highlight them.
+
+### Tilt to fly
+
+Tick **Tilt to fly** in the menu to steer by tilting the phone, as in mobile
+flight simulators. Both thumbs are then free for the thrust lever, the rudder
+and the buttons, which helps in a crosswind flare.
+
+- **Pitch.** Tip the top edge towards you to raise the nose (like pulling a
+  yoke), away to lower it. The pilot-style option does not reverse this.
+- **Roll.** Lower the left or right side to bank that way.
+- **Level.** The way you hold the phone when a flight starts or resumes counts
+  as level. **CENTER**, where the stick was, makes the way you hold it now
+  level. The stick's circle shows your tilt from level.
+- **Sensitivity.** 20° of tilt is full nose up or down; 25° is full bank.
+- **Permission and fallback.** iPhones (and recent Chrome) ask for motion access
+  when you tick the option or tap Start. If access is declined or the device has
+  no motion sensor, the option switches itself off, says why, and the stick
+  stays on. If the sensor stops reporting mid-flight, tilt lets go of the
+  controls.
+- **Implementation.** Tilt uses only the direction of gravity from the
+  `deviceorientation` event, so turning on the spot never steers.
+  Browsers report the screen angle in different directions; since the picture
+  is always upright in your hands, centring checks which way gravity points and
+  corrects the angle if needed.
+
+### Vibration and the home-screen app
+
+- **Vibration** (Android; iPhone Safari has no vibration API): a tick when a
+  touch control is pressed, a click through the reverse gate, a thump when the
+  gear locks down, a jolt at touchdown that grows with the sink rate, a long
+  shake for a crash, and stick-shaker pulses during a stall warning. Untick
+  **Vibration** in the menu to turn it off.
+- **Home-screen app.** `manifest.webmanifest` and the icons in `icons/` let the
+  game be added to the home screen. It then opens full screen in landscape on
+  Android, and without the browser bars on iPhone. `node tools/make-icons.mjs`
+  renders the PNG icons from `icons/icon.svg`.
+- **Remembered.** The Tilt and Vibration choices are remembered on the device.
 
 - **Orientation and full screen.** On Android, starting a flight goes full
   screen and locks landscape. iPhone Safari cannot do either, so holding the
@@ -233,7 +270,9 @@ The **Night** option in the menu flies any of these after dark.
 | `js/world/` | Terrain, airport, runway textures, airfield lights and PAPI, weather |
 | `js/cockpit/` | 3D flight deck and the canvas-drawn displays |
 | `js/input.js`, `js/audio.js`, `js/gpws.js` | Keyboard, mouse yoke and touch input, synthesised sound and voice, warning system |
-| `js/touch.js`, `js/platform.js`, `js/controls.js` | On-screen touch controls; phone support (orientation, full screen, pausing, wake lock, adaptive resolution); the control glossary that words hints for keys or touch |
+| `js/touch.js`, `js/platform.js`, `js/controls.js` | On-screen touch controls; phone support (orientation, full screen, pausing, wake lock, adaptive resolution); the control glossary that words hints for keys, touch or tilt |
+| `js/tilt.js`, `js/haptics.js` | Tilt steering from the motion sensor; vibration feedback |
+| `manifest.webmanifest`, `icons/`, `tools/make-icons.mjs` | Home-screen app: manifest, icons, and the script that renders the icons |
 | `js/evaluate.js` | Landing grading and outcomes |
 | `js/autopilot.js` | Test pilot used by the tests and the autoland demo |
 | `vendor/` | Three.js and cannon-es (no install needed to play) |
@@ -259,11 +298,11 @@ GPU, at about 1–5 rendered frames per second.
 
 | Command | What it checks | Time |
 | --- | --- | --- |
-| `npm test` | Physics in Node, no browser: 62 checks in 12 groups (below) | ~3 min |
-| `npm run test:e2e` | The real page in Chromium: 133 checks in 11 groups (below) | 30–45 min |
-| `node test/e2e.mjs quick` | The same without the slow mouse-yoke and touch landings (E9, E11) | 15–25 min |
-| `node test/e2e.mjs only=<group>` | E1 plus one group: `menu`, `keys`, `school`, `land`, `fail`, `ga`, `fps`, `keyboard`, `mobile` or `touchland` | 1–10 min |
-| `npm run test:all` | Both suites | 20–30 min |
+| `npm test` | Node, no browser: physics (62 checks in 12 groups) and phone features (38 checks in 6 groups, below) | ~3 min |
+| `npm run test:e2e` | The real page in Chromium: 158 checks in 13 groups (below) | 40–60 min |
+| `node test/e2e.mjs quick` | The same without the slow mouse-yoke, touch and tilt landings (E9, E11, E13) | 15–25 min |
+| `node test/e2e.mjs only=<group>` | E1 plus one group: `menu`, `keys`, `school`, `land`, `fail`, `ga`, `fps`, `keyboard`, `mobile`, `touchland`, `tilt` or `tiltland` | 1–10 min |
+| `npm run test:all` | All three: physics, phone features, then the browser suite | 45–65 min |
 | `node test/robustness.mjs` | 18 short-final autolands, crosswind and storm with 9 gust seeds each; prints each result as a report, not pass/fail | under a minute |
 
 `test/physics.test.mjs` flies the aircraft in Node and checks:
@@ -317,6 +356,32 @@ controls a player has.
   Touches are real multi-finger touch events sent through the DevTools protocol.
 - **E11** lands on the phone screen using only the touch controls: stick,
   thrust lever, rudder strip and buttons. The roll-out uses the REV gate.
+- **E12** checks tilt steering, vibration and the home-screen app on the phone
+  screen, with a simulated motion sensor (`test/tilt-pose.browser.js`). It
+  covers:
+  - the fallbacks: no sensor, and motion access declined;
+  - access asked for from the tap, and the choice remembered;
+  - centring at the start, on resume and with CENTER;
+  - pitch and bank directions, including with the pilot-style option;
+  - a sensor that stops reporting;
+  - a browser with a reversed screen angle;
+  - tilting to take over from the demo;
+  - Flight School's tilt wording;
+  - vibration on a tap and at gear lock, and none when switched off;
+  - the manifest and every icon.
+- **E13** lands by tilting the phone, with the thrust lever, rudder, REV gate and
+  buttons by touch, and checks the touchdown is felt as a vibration.
+
+`test/phone.test.mjs` checks the phone features in Node:
+
+1. the W3C orientation angles give the right gravity in every holding position;
+2. tipping the top edge, lowering a side or turning like a steering wheel gives
+   the right pitch and roll, for both landscape directions and holding angles
+   of 10°, 35° and 60°;
+3. centring corrects a browser that reports the screen angle the other way round;
+4. deflection scales to full at the tilt range and centres when held as at the start;
+5. the browser tests' simulated sensor matches the rotation-matrix phone model;
+6. each vibration pattern, and silence when switched off or on an iPhone.
 
 Screenshots go to `test/output/`.
 

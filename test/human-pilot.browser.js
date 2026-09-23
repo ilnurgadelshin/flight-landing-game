@@ -1,6 +1,8 @@
 // Human-like pilot that runs INSIDE the page and produces only the events a
 // person would: mouse moves for the yoke, key presses for everything else, or
-// (input: 'touch') touches on the on-screen stick, thrust lever, rudder and buttons.
+// (input: 'touch') touches on the on-screen stick, thrust lever, rudder and buttons, or
+// (input: 'tilt') the same touches but pitch and roll by tilting the phone (the simulated
+// sensor in test/tilt-pose.browser.js must be loaded and running).
 // It runs once per rendered frame (like a human reacting to what they see).
 // Used by the browser tests and the playtest harness.
 //   window.installHumanPilot({ input, noGear, noFlare, noBrakes, stallOnFinal, landLong, goAroundAt, targetOffset, ... })
@@ -81,7 +83,17 @@
         touchIO.rudderTo(0); touchIO.brake(false);
       },
     };
-    const IO = o.input === 'touch' ? touchIO : keyIO;
+    // Tilt: pitch and roll are the phone's tilt from where it was held at the start, with a slight
+    // hand tremor; everything else is touched as above
+    const range = (window.__sim && window.__sim.tiltRange) || { pitch: 20, roll: 25 };
+    const tiltIO = Object.assign({}, touchIO, {
+      stick: (rollIn, pitchIn) => {
+        const t = performance.now() / 1000;
+        window.tiltFeed.set({ pull: clamp(pitchIn, -1, 1) * range.pitch + 0.3 * Math.sin(t * 8.1), bank: -clamp(rollIn, -1, 1) * range.roll + 0.3 * Math.sin(t * 6.7 + 1) });
+      },
+      releaseAll: () => { touchIO.rudderTo(0); touchIO.brake(false); window.tiltFeed.set({ pull: 0, bank: 0 }); },
+    });
+    const IO = o.input === 'tilt' ? tiltIO : o.input === 'touch' ? touchIO : keyIO;
     const DEG = Math.PI / 180, NM = 1852;
     const P = { phase: 'approach', prevLat: null, flareT: 0, flarePitch0: 0, flareVs0: -3.7, last: performance.now(), iVs: 0, iSpd: 0, did: {}, log: [], gaT: 0, stopped: false, trace: [] };
     window.__pilot = P;

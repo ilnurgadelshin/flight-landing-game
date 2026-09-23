@@ -14,6 +14,7 @@ export class Game {
   constructor({ world, cockpit, input, audio, gpws, ui, touch }) {
     this.world = world; this.cockpit = cockpit; this.input = input; this.audio = audio; this.gpws = gpws; this.ui = ui;
     this.touch = touch || null;          // on-screen controls (phones, tablets)
+    this.haptics = null;                 // vibration feedback (set by main.js where supported)
     this.onStateChange = null;           // platform hook (wake lock)
     this.sim = new Simulation({ scenarioId: 'clear', startId: 'standard' });
     this.state = 'menu';
@@ -44,6 +45,7 @@ export class Game {
     this.opts = opts;
     this._yokeWasOn = false;   // a new flight never inherits the previous flight's yoke engagement
     this.input.resetTouch();   // nor a held stick or a latched reverse lever
+    if (this.haptics) this.haptics.reset();
     this.mode = opts.mode;
     this.night = !!opts.night;
     this.input.opts.invertPitch = !!opts.invertPitch;
@@ -139,8 +141,8 @@ export class Game {
     }
   }
 
-  /** The player grabbed a flight control (keys, mouse yoke or the touch stick, rudder or lever). */
-  humanTakeover() { return this.input.anyFlightKeyHeld() || this.input.mouseEngaged || this.input.touchFlying(); }
+  /** The player grabbed a flight control (keys, mouse yoke, the touch stick, rudder or lever, or tilted the phone). */
+  humanTakeover() { return this.input.anyFlightKeyHeld() || this.input.mouseEngaged || this.input.touchFlying() || this.input.tiltFlying(); }
 
   disengageDemo() { if (!this.demoAp) return; this.demoAp = null; this.audio.play('apdisc'); this.ui.setModeMessage('AUTOPILOT DISENGAGED — you have control', ''); setTimeout(() => this.ui.setModeMessage(''), 2500); this.log('demo', 'disengaged'); }
 
@@ -197,6 +199,7 @@ export class Game {
       this.time += dt;
       this.ctx.elapsed += dt;
       this.track(dt);
+      if (this.haptics && this.state === 'flying') this.haptics.update(dt, st);
       if (this.state === 'flying' && this.mode === 'training') this.instructor(dt);
     }
     this.syncVisual();
@@ -245,11 +248,11 @@ export class Game {
     }
     // touchdown / crash events -> sounds & flash
     for (const e of ac.events.splice(0)) {
-      if (e.type === 'touchdown') { c.touchdownSeen = true; this.audio.play(e.sink > AC.gear.hardSink ? 'hardlanding' : 'touchdown'); this.cockpit.shakeAmt = Math.min(0.06, 0.01 + e.sink * 0.012); this.log('touchdown', `${(e.sink / 0.00508).toFixed(0)} fpm at ${e.distFromThreshold.toFixed(0)} m`); if (this.ctx.gaMode) { this.ctx.gaMode = false; } }
+      if (e.type === 'touchdown') { c.touchdownSeen = true; this.audio.play(e.sink > AC.gear.hardSink ? 'hardlanding' : 'touchdown'); if (this.haptics) this.haptics.touchdown(e.sink, e.sink > AC.gear.hardSink); this.cockpit.shakeAmt = Math.min(0.06, 0.01 + e.sink * 0.012); this.log('touchdown', `${(e.sink / 0.00508).toFixed(0)} fpm at ${e.distFromThreshold.toFixed(0)} m`); if (this.ctx.gaMode) { this.ctx.gaMode = false; } }
       else if (e.type === 'spoilers') { this.audio.play('click'); this.log('systems', 'ground spoilers deployed'); }
       else if (e.type === 'liftoff') { this.log('bounce', `bounce ${e.bounce}`); }
       else if (['gearcollapse', 'destroyed', 'bellycontact', 'wingstrike', 'tailstrike', 'enginestrike', 'nosefirst'].includes(e.type)) {
-        this.audio.play('crash'); this.ui.flash(0.9); this.cockpit.shakeAmt = 0.12; this.log('damage', e.reason || e.type);
+        this.audio.play('crash'); this.ui.flash(0.9); if (this.haptics) this.haptics.crash(); this.cockpit.shakeAmt = 0.12; this.log('damage', e.reason || e.type);
         if (e.type === 'destroyed') c.crashSeen = true;
       }
       else if (e.type === 'hardlanding') { this.log('damage', 'hard landing'); }
