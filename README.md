@@ -301,7 +301,7 @@ GPU, at about 1–5 rendered frames per second.
 | `npm test` | Node, no browser: physics (62 checks in 12 groups) and phone features (38 checks in 6 groups, below) | ~3 min |
 | `npm run test:e2e` | The real page in Chromium: 158 checks in 13 groups (below) | 40–60 min |
 | `node test/e2e.mjs quick` | The same without the slow mouse-yoke, touch and tilt landings (E9, E11, E13) | 15–25 min |
-| `node test/e2e.mjs only=<group>` | E1 plus one group: `menu`, `keys`, `school`, `land`, `fail`, `ga`, `fps`, `keyboard`, `mobile`, `touchland`, `tilt` or `tiltland` | 1–10 min |
+| `node test/e2e.mjs only=<groups>` | E1 plus the groups listed, comma-separated: `menu`, `keys`, `school`, `land`, `fail`, `ga`, `fps`, `keyboard`, `mobile`, `touchland`, `tilt`, `tiltland` (e.g. `only=tilt,tiltland`) | 1–10 min each |
 | `npm run test:all` | All three: physics, phone features, then the browser suite | 45–65 min |
 | `node test/robustness.mjs` | 18 short-final autolands, crosswind and storm with 9 gust seeds each; prints each result as a report, not pass/fail | under a minute |
 

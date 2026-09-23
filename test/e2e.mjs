@@ -9,6 +9,8 @@ const root = path.resolve(new URL('..', import.meta.url).pathname);
 const out = path.join(root, 'test', 'output'); fs.mkdirSync(out, { recursive: true });
 const quick = process.argv.includes('quick');
 const only = (process.argv.find((a) => a.startsWith('only=')) || '').slice(5);
+const onlyGroups = only ? only.split(',') : null;          // only=tilt,tiltland runs several groups
+const want = (g) => !onlyGroups || onlyGroups.includes(g);
 
 let passed = 0, failed = 0; const failures = [];
 const check = (name, cond, detail = '') => { if (cond) { passed++; console.log(`  ✔ ${name}${detail ? '  (' + detail + ')' : ''}`); } else { failed++; failures.push(name); console.log(`  ✘ ${name}${detail ? '  (' + detail + ')' : ''}`); } };
@@ -43,7 +45,7 @@ check('renderer created and menu visible', gl.renderer && gl.menu, gl.scenarios.
 await shot('e2e-menu');
 
 // --------------------------------------------------------------------------- menu flow
-if (!only || only === 'menu') {
+if (want('menu')) {
   console.log('\n[E2] Menu: choose mode / scenario / start with the mouse, start the approach');
   await page.click('#mode-row .choice[data-mode="game"]');
   await page.click('#scenario-row .choice[data-scenario="crosswind"]');
@@ -65,7 +67,7 @@ if (!only || only === 'menu') {
 }
 
 // --------------------------------------------------------------------------- keyboard & mouse mapping
-if (!only || only === 'keys') {
+if (want('keys')) {
   console.log('\n[E3] Every mapped key drives the right control (real key events)');
   await start({ scenarioId: 'clear', startId: 'standard', mode: 'game', sound: false });
   await page.waitForTimeout(300);
@@ -136,7 +138,7 @@ if (!only || only === 'keys') {
 }
 
 // --------------------------------------------------------------------------- flight school
-if (!only || only === 'school') {
+if (want('school')) {
   console.log('\n[E4] Flight School onboarding (training mode)');
   await page.evaluate(() => window.__sim.game.quitToMenu());
   await page.click('#mode-row .choice[data-mode="training"]');
@@ -188,7 +190,7 @@ async function autoland(scenarioId, startId, apOpts = {}, extra = {}) {
 }
 const said = (r, re) => r.audio.some((a) => a.kind === 'voice' && re.test(a.text));
 
-if (!only || only === 'land') {
+if (want('land')) {
   console.log('\n[E5] Autoland in every scenario, day and night, with GPWS callouts');
   const cases = [['clear', 'short', false], ['tailwind', 'short', false], ['crosswind', 'short', false], ['storm', 'short', true], ['clear', 'standard', true]];
   for (const [sc, st, night] of cases) {
@@ -204,7 +206,7 @@ if (!only || only === 'land') {
 }
 
 // --------------------------------------------------------------------------- failure consequences
-if (!only || only === 'fail') {
+if (want('fail')) {
   console.log('\n[E6] Intentional errors: the simulation reacts with alarms and consequences');
   let r = await autoland('clear', 'short', { noGear: true }, { before: () => { window.__sim.input().gearDown = false; window.__sim.game.sim.aircraft.gearPos = 0; }, shotName: 'e2e-fail-gearup' });
   console.log(`  gear up: ${r.outcome} — ${r.headline}`);
@@ -237,7 +239,7 @@ if (!only || only === 'fail') {
 }
 
 // --------------------------------------------------------------------------- go-around with the keyboard
-if (!only || only === 'ga') {
+if (want('ga')) {
   console.log('\n[E7] Go-around flown with the keyboard from 500 ft, then reposition (Fly the Approach and Flight School)');
   for (const mode of ['game', 'training']) {
     const tag = mode === 'training' ? 'Flight School ' : '';
@@ -272,7 +274,7 @@ if (!only || only === 'ga') {
 }
 
 // --------------------------------------------------------------------------- frame-rate decoupling in the browser
-if (!only || only === 'fps') {
+if (want('fps')) {
   console.log('\n[E8] Physics time is decoupled from the render frame rate');
   await start({ scenarioId: 'clear', startId: 'standard', mode: 'game', sound: false });
   await page.waitForTimeout(300);
@@ -298,7 +300,7 @@ if (!only || only === 'fps') {
 }
 
 // --------------------------------------------------------------------------- mouse-yoke + keyboard landing (human control path, real time)
-if (!quick && (!only || only === 'keyboard')) {
+if (!quick && want('keyboard')) {
   console.log('\n[E9] Landing flown through the mouse yoke and the keyboard (real input events, real time)');
   // software rendering here runs at ~5 fps; a person on a laptop gets 60. Measure the frame rate and, when it is
   // very low, slow the simulation so the pilot still gets a human-like ~10 decisions per simulated second.
@@ -335,10 +337,16 @@ if (!quick && (!only || only === 'keyboard')) {
 async function phonePage() {
   const ctx = await browser.newContext({ viewport: { width: 852, height: 393 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
   const mp = await ctx.newPage();
-  mp.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') consoleErrors.push(`[phone ${m.type()}] ${m.text()}`); });
+  const bootLog = [];
+  mp.on('console', (m) => { bootLog.push(`[${m.type()}] ${m.text()}`); if (m.type() === 'error' || m.type() === 'warning') consoleErrors.push(`[phone ${m.type()}] ${m.text()}`); });
   mp.on('pageerror', (e) => consoleErrors.push(`[phone pageerror] ${e.message}`));
+  // the desktop page stays open for the final error check; shrunk, its software rendering costs little
+  // while the phone groups run (late in a full run, a full-size one slowed the phone page's boot past a minute)
+  await page.setViewportSize({ width: 320, height: 180 });
+  const t0 = Date.now();
   await mp.goto(url + '/');
-  await mp.waitForFunction(() => window.__sim, null, { timeout: 60000 });
+  try { await mp.waitForFunction(() => window.__sim, null, { timeout: 180000 }); } catch (e) { console.log('    phone page did not boot:\n    ' + bootLog.slice(-10).join('\n    ')); throw e; }
+  console.log(`    phone page booted in ${fmt((Date.now() - t0) / 1000, 1)} s`);
   const cdp = await ctx.newCDPSession(mp);
   const pts = new Map();
   // touchStart / touchMove take every finger on the screen; touchEnd takes the fingers lifted
@@ -354,7 +362,7 @@ async function phonePage() {
   return { ctx, mp, fingers, mf, centreOf };
 }
 
-if (!only || only === 'mobile') {
+if (want('mobile')) {
   console.log('\n[E10] Phone in landscape: layout, touch controls, multi-touch, rotation and pausing');
   const { ctx, mp, fingers, mf, centreOf } = await phonePage();
   const SAFE = { l: 59, r: 59, t: 0, b: 21 };
@@ -525,7 +533,7 @@ if (!only || only === 'mobile') {
 }
 
 // --------------------------------------------------------------------------- phones: a landing flown with the touch controls
-if (!quick && (!only || only === 'touchland')) {
+if (!quick && want('touchland')) {
   console.log('\n[E11] Landing flown through the touch controls (phone, real time)');
   const { ctx, mp, mf } = await phonePage();
   await mp.evaluate(() => window.__sim.start({ scenarioId: 'clear', startId: 'short', mode: 'game', sound: false, seed: 5 }));
@@ -561,7 +569,7 @@ async function tiltPhonePage() {
   return P;
 }
 
-if (!only || only === 'tilt') {
+if (want('tilt')) {
   console.log('\n[E12] Tilt steering, vibration and the home-screen app (phone)');
   const { ctx, mp, mf } = await tiltPhonePage();
   const MI = () => mp.evaluate(() => Object.assign({}, window.__sim.input()));
@@ -664,7 +672,7 @@ if (!only || only === 'tilt') {
 }
 
 // --------------------------------------------------------------------------- phones: a landing flown by tilting the phone
-if (!quick && (!only || only === 'tiltland')) {
+if (!quick && want('tiltland')) {
   console.log('\n[E13] Landing flown by tilting the phone (phone, real time)');
   const { ctx, mp, mf } = await tiltPhonePage();
   await mp.evaluate(() => window.tiltFeed.start({ back: 35 }));
