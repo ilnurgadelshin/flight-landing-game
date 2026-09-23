@@ -260,7 +260,7 @@ GPU, at about 1–5 rendered frames per second.
 | Command | What it checks | Time |
 | --- | --- | --- |
 | `npm test` | Physics in Node, no browser: 62 checks in 12 groups (below) | ~3 min |
-| `npm run test:e2e` | The real page in Chromium: 130 checks in 11 groups (below) | 30–45 min |
+| `npm run test:e2e` | The real page in Chromium: 133 checks in 11 groups (below) | 30–45 min |
 | `node test/e2e.mjs quick` | The same without the slow mouse-yoke and touch landings (E9, E11) | 15–25 min |
 | `node test/e2e.mjs only=<group>` | E1 plus one group: `menu`, `keys`, `school`, `land`, `fail`, `ga`, `fps`, `keyboard`, `mobile` or `touchland` | 1–10 min |
 | `npm run test:all` | Both suites | 20–30 min |
@@ -302,7 +302,8 @@ controls a player has.
   insets). It checks:
   - the menu fits the screen;
   - every touch control sits inside the safe area, with no overlaps and targets
-    of at least 34×40 px;
+    of at least 34×40 px, also on an iPhone SE, an iPhone 13 mini and a 640×360
+    Android;
   - the head-up display replaces the readout strip;
   - each button drives its control;
   - two thumbs work at once, the stick and rudder spring back and the lever

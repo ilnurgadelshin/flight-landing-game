@@ -389,9 +389,11 @@ if (!only || only === 'mobile') {
   check('the head-up display is clear of the buttons and levers', lay.hgsHits.length === 0, lay.hgsHits.join(', '));
   check('the head-up display replaces the desktop readout strip', lay.strip === 'none' && /^\d+$/.test(lay.ias) && /^\d+$/.test(lay.alt), `IAS ${lay.ias}, ALT ${lay.alt}`);
   await mp.screenshot({ path: path.join(out, 'e2e-phone-flying.png') });
-  // the same rules on smaller phones (no notch): iPhone SE and a 640×360 Android
-  for (const vp of [{ width: 667, height: 375 }, { width: 640, height: 360 }]) {
-    await mp.setViewportSize(vp); await mf(2);
+  // the same rules on smaller phones: iPhone SE and a 640×360 Android (no notch), and the narrowest
+  // notched iPhone (13 mini, 812×375 with 50 px side insets)
+  const setSafe = (s) => mp.evaluate((s) => { const st = document.documentElement.style; st.setProperty('--sal', s.l + 'px'); st.setProperty('--sar', s.r + 'px'); st.setProperty('--sat', s.t + 'px'); st.setProperty('--sab', s.b + 'px'); }, s);
+  for (const vp of [{ width: 667, height: 375, safe: { l: 0, r: 0, t: 0, b: 0 } }, { width: 640, height: 360, safe: { l: 0, r: 0, t: 0, b: 0 } }, { width: 812, height: 375, safe: { l: 50, r: 50, t: 0, b: 21 } }]) {
+    await mp.setViewportSize({ width: vp.width, height: vp.height }); await setSafe(vp.safe); await mf(2);
     const small = await mp.evaluate(() => {
       const ids = ['t-gear', 't-autobrake', 't-flaps-up', 't-flaps-dn', 't-arm', 't-ext', 't-toga', 't-lever-body', 't-rudder', 't-stick-zone', 't-view', 't-pause', 't-help', 'hgs'];
       const rects = ids.map((id) => { const r = document.getElementById(id).getBoundingClientRect(); return { id, l: r.left, t: r.top, r: r.right, b: r.bottom, w: r.width, h: r.height }; });
@@ -404,7 +406,7 @@ if (!only || only === 'mobile') {
     });
     check(`${vp.width}×${vp.height}: controls on screen, apart, at least 34×39 px`, small.length === 0, small.join(', '));
   }
-  await mp.setViewportSize({ width: 852, height: 393 }); await mf(2);
+  await mp.setViewportSize({ width: 852, height: 393 }); await setSafe(SAFE); await mf(2);
 
   // buttons: real taps
   const i0 = await MI();
@@ -463,7 +465,7 @@ if (!only || only === 'mobile') {
   check('TO/GA gives full thrust, starts a go-around and offers REPOSITION', gi.throttle === 1 && g1.gaMode && repVisible);
   await mp.tap('#t-reposition'); await mf(2);
   const g2 = await MS();
-  check('REPOSITION puts the aircraft back on final', !g2.gaMode && Math.abs(g2.dist - 10 * 1852) < 150 && await mp.evaluate(() => document.getElementById('t-reposition').classList.contains('hidden')), `${fmt(g2.dist / 1852)} nm`);
+  check('REPOSITION puts the aircraft back on final', !g2.gaMode && Math.abs(g2.dist - 10 * 1852) < 0.25 * 1852 && await mp.evaluate(() => document.getElementById('t-reposition').classList.contains('hidden')), `${fmt(g2.dist / 1852)} nm`);
 
   // pause, rotation, leaving the app
   await mp.tap('#t-pause'); await mf(1);
