@@ -32,7 +32,7 @@ export class FlightControls {
 
   enableDirector() {
     this.shadow = Object.assign({}, this.ac.input);
-    this.director = new Autopilot(this.ac, {});
+    this.director = new Autopilot(this.ac, { goAround: false });   // the pilot decides when to go around
     this.director.inputTarget = this.shadow;
   }
 

@@ -166,6 +166,96 @@ console.log('\n[R8] The autoland\'s autothrottle in a storm');
   check('it lands', !!fin && fin.result.success, fin ? `${fin.result.score} ${fin.result.grade}` : 'no result');
 }
 
+console.log('\n[R9] The autoland goes around when an approach or a landing goes bad');
+{
+  const { Autopilot, GO_AROUND } = await import('../js/autopilot.js');
+  const { SCENARIOS } = await import('../js/config.js');
+  // the criteria on made-up states: a stable approach at 800 ft unless told otherwise
+  const stub = (over) => ({ state: Object.assign({ agl: 800 * FT, onGround: false, vs: -3.9, gsDev: 0, locDev: 0, ias: 147, vref: 142, roll: 0, lateralOffset: 0, alongRunway: -3000 }, over), input: {}, touchdown: null, atmosphere: { scenario: SCENARIOS.clear } });
+  const reason = (over, secs, phase = 'approach', opts = {}) => {
+    const ap = new Autopilot(stub(over), opts); ap.phase = phase;
+    let r = '', t = 0;
+    for (; t < secs && !r; t += 0.1) r = ap.canGoAround ? ap.goAroundReason(0.1) : '';
+    return { r, t };
+  };
+  check('a stable approach never goes around', reason({}, 20).r === '');
+  const sink = reason({ vs: -1500 * 0.00508 }, 10);
+  check('sinking at 1500 fpm below 1000 ft for 3 s: go around (a moment is not enough)', /sink rate/.test(sink.r) && sink.t > 2.9 && reason({ vs: -1500 * 0.00508 }, 2.5).r === '', `${sink.r} after ${sink.t.toFixed(1)} s`);
+  check('a glideslope 1° off at 800 ft: go around', /glideslope/.test(reason({ gsDev: 1.0 }, 10).r));
+  check('the localizer 2° off: go around', /localizer/.test(reason({ locDev: 2.0 }, 10).r));
+  check('the gust-filtered speed 8 kt below Vref: go around', /below Vref/.test(reason({ ias: 134 }, 10).r));
+  check('18° of bank at 200 ft: go around', /bank/.test(reason({ agl: 200 * FT, roll: 18 * Math.PI / 180 }, 5).r));
+  check('14 m off the centreline at 80 ft: go around', /lined up/.test(reason({ agl: 80 * FT, lateralOffset: 14 }, 5).r));
+  {
+    const ap = new Autopilot(stub({ agl: 20 * FT, alongRunway: 400 })); ap.phase = 'flare';
+    const seq = [20, 16, 12, 14, 18, 22, 26].map((ft) => { ap.ac.state.agl = ft * FT; return ap.goAroundReason(0.1); });
+    check(`a balloon of more than ${GO_AROUND.balloonFt} ft in the flare: go around (not a smaller one)`, seq.slice(0, 5).every((x) => !x) && /balloon/.test(seq[6]), seq.map((x) => x || '·').join(' '));
+  }
+  check(`still airborne ${GO_AROUND.longM} m past the threshold: go around (long landing)`, /long landing/.test(reason({ agl: 4 * FT, alongRunway: 1100 }, 1, 'flare').r) && reason({ agl: 4 * FT, alongRunway: 800 }, 1, 'flare').r === '');
+  {
+    const ap = new Autopilot(stub({ vs: -2000 * 0.00508 })); ap.ac.touchdown = { t: 1 };
+    let r = ''; for (let t = 0; t < 5; t += 0.1) r = r || ap.goAroundReason(0.1);
+    check('never once the wheels have touched (the landing is committed)', r === '');
+  }
+  check('never for the flight director, the failure tests, or after two go-arounds (a crew would divert)',
+    [{ goAround: false }, { noFlare: true }, { hardLanding: true }, { goAroundsFlown: 2 }].every((o) => reason({ vs: -2000 * 0.00508 }, 10, 'approach', o).r === '') && new FlightControls(stub({}), null).enableDirector() !== false);
+
+  // a go-around forced at 200 ft, flown through the circuit to the next landing
+  const R = rig({ scenarioId: 'clear', startId: 'short', seed: 3 });
+  R.game.engageAutopilot();
+  const ap = R.game.demoAp, st = R.game.sim.state, inp = R.game.sim.aircraft.input, frame = 1 / 30;
+  let tGA = null, h0 = 0, low = 1e9, maxPitch = 0, gearUpVs = null, thr3 = null, level = [], legs = [], modes = new Set(), saidAt = 0;
+  for (let t = 0; t < 2400 && R.game.state !== 'finished'; t += frame) {
+    if (tGA === null && st.agl < 200 * FT) { ap.goAround('forced for the test'); tGA = st.time; h0 = st.agl; saidAt = R.said.length; }
+    const gearWas = inp.gearDown;
+    R.game.update(frame);
+    modes.add(ap.atMode);
+    if (tGA !== null && ap.phase === 'goaround') { low = Math.min(low, st.agl); maxPitch = Math.max(maxPitch, st.pitch); if (thr3 === null && st.time - tGA > 3) thr3 = inp.throttle; }
+    if (gearWas && !inp.gearDown && gearUpVs === null) gearUpVs = st.vs;
+    if (ap.phase === 'missed' && legs[legs.length - 1] !== ap.leg) legs.push(ap.leg);
+    if (ap.leg === 'downwind') level.push(st.alt / FT);
+  }
+  const ga = R.of('goaround')[0], fin = R.of('finish')[0];
+  check('TO/GA: the game announces it with the reason ("Go around, flaps fifteen" follows)', !!ga && ga.reason === 'forced for the test' && R.of('message').some((m) => /AUTOLAND GO-AROUND — forced/.test(m.text)));
+  check('go-around thrust within 3 s, flaps 15, the nose towards 15° (at most 17°)', thr3 >= 0.85 && maxPitch < 17 * Math.PI / 180, `levers ${Math.round(thr3 * 100)} % after 3 s, pitch up to ${(maxPitch * 180 / Math.PI).toFixed(1)}°`);
+  check('it stops the descent within 60 ft and climbs away', h0 - low < 60 * FT, `lost ${((h0 - low) / FT).toFixed(0)} ft`);
+  check('gear up with a positive rate of climb', gearUpVs > 1, `climbing ${(gearUpVs / 0.00508).toFixed(0)} fpm`);
+  check('the autothrottle mode shows GA', modes.has('GA'));
+  check('the missed approach: climb, then a left-hand circuit — crosswind, downwind, base, intercept', legs.join(' ') === 'climb crosswind downwind base intercept', legs.join(' → '));
+  const lv = level.slice(Math.floor(level.length / 3));
+  check('downwind level at 3000 ft', lv.length && Math.max(...lv.map((a) => Math.abs(a - GO_AROUND.missedAltFt))) < 150, `${Math.round(Math.min(...lv))}–${Math.round(Math.max(...lv))} ft`);
+  check('the missed approach message; no "too low" warning during the go-around and the circuit', R.of('message').some((m) => /MISSED APPROACH/.test(m.text)) && !R.said.slice(saidAt).some((x) => /Too low|Don't sink|Pull up/.test(x)));
+  check('another approach from the localizer intercept, and a landing', !!fin && fin.result.success && ap.log.some((l) => /another approach/.test(l.msg)), fin ? `${fin.result.score} ${fin.result.grade}` : 'no result');
+  check('the debrief grades that landing and counts the go-around', fin && fin.result.touchdown.t > tGA + 300 && fin.result.items.some((i) => i.label === 'Go-arounds' && i.value === '1'), fin ? `touchdown at ${fin.result.touchdown.t.toFixed(0)} s, go-around at ${tGA.toFixed(0)} s` : '');
+
+  // the storm: approaches that go bad by themselves
+  const storm = (startId, seed) => {
+    const Q = rig({ scenarioId: 'storm', startId, seed }); Q.game.engageAutopilot();
+    for (let t = 0; t < 2400 && Q.game.state !== 'finished'; t += frame) Q.game.update(frame);
+    const f = Q.of('finish')[0], g = Q.game.events.filter((e) => e.type === 'goaround');
+    return { f, g, gaT: g.length ? g[0].t : null };
+  };
+  const b = storm('standard', 21);
+  check('storm: a balloon in the flare — it goes around, and lands from the next approach', b.g.length && /balloon/.test(b.g[0].text) && b.f && b.f.result.success && b.f.result.touchdown.sink < 3.05, b.f ? `${b.g.map((e) => e.text).join('; ')} → ${(b.f.result.touchdown.sink / 0.00508).toFixed(0)} fpm` : 'no result');
+  const l = storm('short', 8);
+  check('storm: floating past the touchdown zone — it goes around; the touch-and-go is not the landing graded', l.g.some((e) => /long landing/.test(e.text)) && l.g.some((e) => /touch-and-go/.test(e.text)) && l.f && l.f.result.success && l.f.result.touchdown.alongRunway < 1000 && l.f.result.touchdown.flapDeg === 30, l.f ? `graded touchdown ${l.f.result.touchdown.alongRunway.toFixed(0)} m past the threshold, flaps ${l.f.result.touchdown.flapDeg}` : 'no result');
+  const n = storm('short', 11);
+  check('storm: an approach that stays within the limits lands without a go-around', n.g.length === 0 && n.f && n.f.result.success);
+
+  // a reposition during the go-around: the autoland starts the new approach and keeps count
+  const P = rig({ scenarioId: 'clear', startId: 'short', seed: 3 });
+  P.game.engageAutopilot();
+  let repositioned = false;
+  for (let t = 0; t < 900 && P.game.state !== 'finished'; t += frame) {
+    const a = P.game.demoAp;
+    if (a && a.phase === 'approach' && !a.goArounds && P.game.sim.state.agl < 300 * FT) a.goAround('forced for the test');
+    if (!repositioned && a && a.phase === 'missed') { P.game.action('reposition'); repositioned = true; }
+    P.game.update(frame);
+  }
+  const pf = P.of('finish')[0];
+  check('repositioned on final during the go-around: the autoland flies the new approach and lands (one go-around counted)', repositioned && P.game.demoAp && P.game.demoAp.goArounds === 1 && pf && pf.result.success && P.game.ctx.goArounds === 1, pf ? `${pf.result.score} ${pf.result.grade}` : 'no result');
+}
+
 console.log('\n[R7] Every phrase the game speaks has a recording');
 {
   // the phrases in the code: the strings on the lines that speak (say, announce, the height callouts)

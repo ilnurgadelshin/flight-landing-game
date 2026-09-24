@@ -14,7 +14,7 @@
 //   message      { text, kind, duration }             the mode line; duration in s (0: until replaced)
 //   instructor   { html }                             training hint ('' clears it)
 //   control      { name, value }                      a discrete control moved (gear, flaps, TO/GA …)
-//   goaround     { manual }
+//   goaround     { manual, reason }                  reason: why the autoland went around ('' otherwise)
 //   reposition   { distanceNm }
 //   demo         { engaged }                          the autoland demo handed over
 //   touchdown    { sink, hard, distFromThreshold }
@@ -76,7 +76,13 @@ export class Game {
     this.sim = new Simulation({ scenarioId: opts.scenarioId, startId: opts.startId, seed: opts.seed || (Date.now() % 1000) + 1 });
     this.controls = new FlightControls(this.sim.aircraft, this.player);
     if (this.mode === 'training') this.controls.enableDirector();
-    this.sim.preStep = (dt) => { if (this.controls.step(dt)) this.announceTakeover(); };
+    this.sim.preStep = (dt) => {
+      if (this.controls.step(dt)) this.announceTakeover();
+      // the autoland decided to go around: announced like TO/GA pressed, before the GPWS looks at
+      // the flaps coming up to 15
+      const ap = this.demoAp;
+      if (ap && ap.gaPending) { ap.gaPending = false; this.beginGoAround(true, ap.gaReason); }
+    };
     this.sim.postStep = (dt) => { if (this.state === 'flying' && this.gpws) this.gpws.update(dt, this.sim.state, { gaMode: this.ctx.gaMode, gaAltitudeLoss: this.ctx.gaMaxAgl - this.sim.state.agl, terrainAhead: this.terrainAhead() }); };
     if (this.gpws) this.gpws.reset();
     this.ctx = this.newCtx();
@@ -171,19 +177,23 @@ export class Game {
 
   reposition() {
     this.sim.reposition();
-    this.ctx.gaMode = false; this.ctx.wasLow = false; this.ctx.gaTimer = 0;
+    this.ctx.gaMode = false; this.ctx.wasLow = false; this.ctx.gaTimer = 0; this.ctx.touchAndGo = false;
+    // the autoland flies the new approach from the start (it keeps count of its go-arounds)
+    const ap = this.controls.autopilot;
+    if (ap) this.controls.engageAutopilot(Object.assign({}, ap.opts, { goAroundsFlown: ap.goArounds }));
     if (this.gpws) this.gpws.reset();
     this.message(`REPOSITIONED — ${this.sim.start.distanceNm} nm final`, 'ga', 2.5);
     this.emit('reposition', { distanceNm: this.sim.start.distanceNm });
     this.log('reposition', 'back on final');
   }
 
-  beginGoAround(manual) {
+  /** A go-around: TO/GA pressed (manual), detected from the flying, or the autoland's (with its reason). */
+  beginGoAround(manual, reason = '') {
     if (this.ctx.gaMode) return;
     this.ctx.gaMode = true; this.ctx.gaTimer = 0; this.ctx.goArounds++; this.ctx.gaMaxAgl = this.sim.state.agl; this.ctx.gaStartAgl = this.sim.state.agl;
-    this.message('GO-AROUND — pitch up, gear up, flaps 15. [[reposition]]: back on final', 'ga');
-    this.emit('goaround', { manual });
-    this.log('goaround', manual ? 'TOGA pressed' : 'detected');
+    this.message(reason ? `AUTOLAND GO-AROUND — ${reason}. [[reposition]]: back on final` : 'GO-AROUND — pitch up, gear up, flaps 15. [[reposition]]: back on final', 'ga');
+    this.emit('goaround', { manual, reason });
+    this.log('goaround', reason ? `autoland: ${reason}` : (manual ? 'TOGA pressed' : 'detected'));
   }
 
   // ------------------------------------------------------------------ per frame
@@ -216,6 +226,7 @@ export class Game {
     if (st.speedbrake > 0.5 && st.onGround) c.usedSpeedbrake = true;
     c.maxBrake = Math.max(c.maxBrake, st.brake);
     if (!st.onGround) c.minAglOnApproach = Math.min(c.minAglOnApproach, st.agl);
+    const ap = this.demoAp;
     // go-around detection: was low, then full thrust + climbing
     if (!st.onGround && st.agl < 1500 * FT && st.distToThreshold > -200) c.wasLow = true;
     // automatic detection: full thrust held for 2 s while climbing away (a sloppy approach that
@@ -225,7 +236,15 @@ export class Game {
     if (!c.gaMode && c.wasLow && !st.onGround && c.togaT > 2 && st.vs > 2 && st.agl - c.togaMinAgl > 15 && !ac.touchdown) this.beginGoAround(false);
     if (c.gaMode) {
       c.gaTimer += dt; c.gaMaxAgl = Math.max(c.gaMaxAgl, st.agl);
-      if (c.gaTimer > 8 && st.agl > 900 * FT && inp.gearDown === false && !this._gaHint) { this._gaHint = true; this.message('GO-AROUND complete — press [[reposition]] to reposition on final, or fly a visual circuit', 'ga'); }
+      if (c.gaTimer > 8 && st.agl > 900 * FT && inp.gearDown === false && !this._gaHint) {
+        this._gaHint = true;
+        this.message(ap ? 'MISSED APPROACH — climbing to 3000 ft, then vectors for another approach. [[reposition]]: back on final'
+          : 'GO-AROUND complete — press [[reposition]] to reposition on final, or fly a visual circuit', 'ga');
+      }
+      // climbing away after a touch-and-go: that contact is not the landing to grade
+      if (!st.onGround && st.agl > 50 * FT && (ac.touchdown || (ac.landingTouches && ac.landingTouches.length))) {
+        ac.forgetTouchdown(); c.touchAndGo = false; c.touchdownSeen = false;
+      }
       // the go-around ends if the pilot is back on a stabilised approach below 1000 ft
       if (c.gaTimer > 30 && st.agl < 1000 * FT && st.vs < 0 && inp.throttle < 0.8) { c.gaMode = false; this._gaHint = false; this.message(''); this.log('goaround', 'ended, approach resumed'); }
     }
@@ -235,7 +254,10 @@ export class Game {
         c.touchdownSeen = true;
         this.emit('touchdown', { sink: e.sink, hard: e.sink > AC.gear.hardSink, distFromThreshold: e.distFromThreshold });
         this.log('touchdown', `${(e.sink / 0.00508).toFixed(0)} fpm at ${e.distFromThreshold.toFixed(0)} m`);
-        if (c.gaMode) c.gaMode = false;
+        // the wheels on the runway in the first seconds of a go-around, or with go-around thrust
+        // set: a touch-and-go, not the landing
+        if (c.gaMode && (inp.throttle > 0.8 || c.gaTimer < 8)) { c.touchAndGo = true; this.log('goaround', 'touch-and-go: the wheels touched during the go-around'); }
+        else if (c.gaMode) c.gaMode = false;
       } else if (e.type === 'spoilers') { this.emit('spoilers'); this.log('systems', 'ground spoilers deployed'); }
       else if (e.type === 'liftoff') { this.log('bounce', `bounce ${e.bounce}`); }
       else if (DAMAGE.includes(e.type)) {

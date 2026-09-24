@@ -372,11 +372,52 @@ modelled on a 737's in speed mode.
   the flare gets thrust again as the speed decays. If the speed has decayed
   below Vref − 5, the thrust stays in to the ground.
 - The flight mode annunciator on the flight deck's primary flight display
-  shows MCP SPD, RETARD and ARM.
+  shows MCP SPD, RETARD and ARM, and GA in a go-around.
 
 In the storm the levers move a few percent at a time, as a real 737's do,
 between about 45 and 70 %. Before this model they swung between idle and full
 several times a second, chasing every gust.
+
+**Go-around** (`js/autopilot.js`, the autoland demo and the test pilot): when
+an approach or a landing goes bad, the autoland goes around, as Boeing's
+stabilised-approach criteria and rejected-landing guidance ask. Each limit must
+hold for a moment, so a single gust does not trigger it:
+
+| Goes around when | Limit |
+| --- | --- |
+| off the glideslope, 1000–200 ft | more than 0.7° (about 2 dots), for 3 s |
+| off the localizer, 1000–200 ft | more than 1.25° (about 1 dot), for 3 s |
+| sinking fast, 1000–100 ft | more than 1400 fpm, for 3 s |
+| slow or fast, below 1000 ft | the gust-filtered speed 5 kt below Vref for 3 s, or 15 kt above the approach speed for 5 s below 500 ft |
+| banked, below 300 ft | more than 15°, for 1 s |
+| not lined up, 150–40 ft | more than 10 m off the centreline, for 1 s |
+| a balloon in the flare | climbing back more than 12 ft above the flare's lowest height |
+| the speed decaying in the flare | 10 kt below Vref above 15 ft, for 1 s |
+| a long landing | still airborne 1000 m past the threshold, beyond the touchdown zone |
+
+Once the wheels are on the runway the landing is committed. The go-around:
+
+- **TO/GA:** the game announces it with the reason ("Go around, flaps fifteen").
+  The levers go full forward until the aircraft climbs at 1500 fpm, then back to
+  a reduced go-around thrust, as a 737's autothrottle does in GA mode. Flaps go
+  to 15, and the speedbrakes and autobrake are disarmed.
+- **Pitch:** the nose comes up at about 3°/s towards 15° (8° until clear of the
+  runway, where more would strike the tail). Once climbing, the pitch flies
+  Vref + 15, never letting the speed fall below the approach's Vref.
+- **Gear:** up with a positive rate of climb.
+- **At 1000 ft:** flaps 5, then a climb at up to 2000 fpm and 180 kt to 3000 ft.
+- **The circuit:** radar vectors round a left-hand circuit: a left turn at
+  2000 ft onto the crosswind leg (heading 180), downwind (090) 4 nm abeam,
+  base (360) 11 nm out, and a 30° intercept (300) onto the localizer. Then a
+  normal approach: flaps 15, gear and flaps 30 on the usual schedule.
+- **Touch-and-go:** if the wheels touch during the go-around, that touch is
+  not the landing the debrief grades. The debrief counts the go-arounds.
+
+The go-around from 200 ft loses about 30 ft before climbing. The circuit and
+the second approach take about 14 minutes; REPOSITION puts the aircraft back
+on final at once, and the autoland flies that approach. After two go-arounds a
+crew would divert; the autoland then lands. The Flight School flight director
+never goes around by itself: that is the pilot's decision.
 
 **World** (`js/world/`): terrain, an airport with a 3000 m × 45 m runway with
 ICAO markings, ALSF-2 approach lights with sequenced flashers, threshold,
@@ -566,7 +607,7 @@ draws every scenario by day and night on both graphics tiers.
 
 | Command | What it checks | Time |
 | --- | --- | --- |
-| `npm test` | Node, no browser: physics (71 checks in 13 groups), phone features (59 checks in 7 groups), game controllers (40 checks in 6 groups), the sky model (12 checks in 3 groups), the head-up display (23 checks in 5 groups) and the game's rules (43 checks in 8 groups), below | ~5 s |
+| `npm test` | Node, no browser: physics (71 checks in 13 groups), phone features (59 checks in 7 groups), game controllers (40 checks in 6 groups), the sky model (12 checks in 3 groups), the head-up display (23 checks in 5 groups) and the game's rules (68 checks in 9 groups), below | ~5 s |
 | `npm run test:e2e` | The real page in Chromium: 238 checks in 16 groups (below), run in 3 parallel processes (`test/e2e-parallel.mjs`) | ~11–15 min |
 | `npm run test:e2e:quick` | The same without the four landings flown in real time (E9, E11, E13, E15) | ~6 min |
 | `node test/e2e.mjs only=<groups>` | E1 plus the groups listed, in one process, comma-separated: `menu`, `keys`, `school`, `land`, `fail`, `ga`, `fps`, `keyboard`, `mobile`, `touchland`, `tilt`, `tiltland`, `gamepad`, `padland`, `graphics` (e.g. `only=tilt,tiltland`) | 10 s – 3 min each |
@@ -640,7 +681,18 @@ Over 80 autolands (the four windy and clear scenarios, both final starts,
 10 turbulence seeds each), every one lands on the runway. The average
 touchdown is about 100 fpm in clear weather, 250 fpm in the tailwind, 330 fpm
 in the crosswind and 400 fpm in the storm. The storm's firmest touchdowns are
-about 600 fpm.
+about 600 fpm. Only one of the 80 goes around (a float past the touchdown zone
+in the storm), and it lands from the next approach.
+
+Over 80 more storm approaches (seeds 11–50):
+
+- **Go-arounds:** the autoland goes around 7 times: 2 balloons and 5 floats
+  past the touchdown zone. Each lands from the next approach, at 200–430 fpm;
+  one needs two go-arounds.
+- **Hard landings:** the go-around cannot help when a downdraft sets in below
+  about 60 ft, too late for one. The firmest touchdowns are then 670–840 fpm,
+  and in one approach of the 80 (short final, seed 32) the gear collapses at
+  940 fpm.
 
 `test/e2e.mjs` drives the real page:
 
@@ -807,7 +859,22 @@ a camera placed like the game's:
      times a minute, and never reach idle or full on the approach;
    - the controlled speed changes at under half the airspeed's rate (gusts filtered), with
      Vref + 20 held on average;
-   - the flight mode annunciator shows MCP SPD → RETARD → ARM, and the landing succeeds.
+   - the flight mode annunciator shows MCP SPD → RETARD → ARM, and the landing succeeds;
+9. the autoland goes around when an approach or a landing goes bad:
+   - each limit on made-up states: the sink rate (not before 3 s), the glideslope, the localizer,
+     a low speed, the bank, the lateral offset, a balloon of more than 12 ft (not a smaller one)
+     and a long landing; never once the wheels have touched, and never for the flight director,
+     the failure tests or after two go-arounds;
+   - a go-around forced at 200 ft, through the game:
+     - announced with its reason;
+     - go-around thrust within 3 s and the pitch at most 17°, losing under 60 ft;
+     - gear up with a positive climb, and GA on the mode annunciator;
+     - the circuit's legs in order, downwind level at 3000 ft, and no "too low" warnings;
+     - the second approach lands, and the debrief grades that landing and counts the go-around;
+   - in the storm, a balloon and a float past the touchdown zone each go around and land from the
+     next approach; the float's touch-and-go is not the landing graded; an approach within the
+     limits does not go around;
+   - repositioned on final during the go-around, the autoland flies the new approach and lands.
 
 `test/gamepad.test.mjs` checks the controller module against a fake
 `navigator.getGamepads()`, and InputManager's controller thrust:
