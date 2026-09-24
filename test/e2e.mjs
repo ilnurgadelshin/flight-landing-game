@@ -403,7 +403,17 @@ if (want('maps')) {
     const box = (id) => { const e = document.getElementById(id), q = e.getBoundingClientRect(); return { l: q.left, t: q.top, r: q.right, b: q.bottom, w: q.width, h: q.height, on: q.width > 0 && getComputedStyle(e).visibility !== 'hidden' }; };
     return { on: v.ndView, settled: v.ndSettled, shown, r: { x: r.left, y: r.top, w: r.width, h: r.height }, proj, backing: c.width, dpr: devicePixelRatio, lit, deck: s.world.drawCockpit, view: v.shown,
       bar: box('efis-bar'), rng: document.getElementById('efis-rng').textContent, btns: ['efis-rng-dn', 'efis-rng-up', 'efis-mode', 'efis-close'].map(box), map: document.getElementById('t-map') ? box('t-map') : null,
-      spd: box('g-spd'), alt: box('g-alt'), hgsStyle: document.getElementById('hgs').style.cssText, shade: getComputedStyle(c).boxShadow, efis: Object.assign({}, s.game.efis), copies: document.querySelectorAll('canvas').length };
+      spd: box('g-spd'), alt: box('g-alt'), hgsStyle: document.getElementById('hgs').style.cssText, efis: Object.assign({}, s.game.efis), copies: document.querySelectorAll('canvas').length,
+      // what covers the other displays (the PFD, the standby instruments): the backdrop, or the flight deck itself
+      // (the backdrop takes no pointer events, so this is read from its geometry and its stacking: it lies
+      // in #hud, over the 3D view, and under the sharp ND drawn after it)
+      shade: (() => {
+        const sh = document.getElementById('nd-shade'), cs = getComputedStyle(sh), sr = sh.getBoundingClientRect();
+        const visible = cs.visibility === 'visible' && Number(cs.opacity) > 0.99;
+        const over = (a) => (visible && a && a.x >= sr.left && a.x <= sr.right && a.y >= sr.top && a.y <= sr.bottom ? 'nd-shade' : 'gl');
+        const stacked = sh.parentElement.id === 'hud' && Number(getComputedStyle(sh.parentElement).zIndex) > 0 && !!(sh.compareDocumentPosition(c) & Node.DOCUMENT_POSITION_FOLLOWING);
+        return { visible: visible && stacked, colour: cs.backgroundColor, pfd: over(v.anchorFor('pfd')), standby: over({ x: r.right + 60, y: r.top + r.height * 0.3 }) };
+      })() };
   });
   const settle = (p) => p.waitForFunction(() => window.__sim.view.ndSettled && document.body.classList.contains('nd-ready'), null, { timeout: 60000 });
   const back = (p) => p.waitForFunction(() => !window.__sim.view.ndView && window.__sim.cockpit.focus === 0, null, { timeout: 60000 }).then(() => p.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))));
@@ -415,7 +425,7 @@ if (want('maps')) {
   await tap('KeyJ'); await settle(page); await frames(3);
   const v1 = await ndv(page);
   check('J leans in to the ND: its sharp copy lies exactly on the 3D screen, at the screen\'s own resolution, drawn', v1.settled && v1.shown && aligned(v1) && v1.backing === Math.round(v1.r.w * v1.dpr) && v1.lit > 100 && v1.r.h > 0.6 * VH, `${Math.round(v1.r.w)} px square at ${Math.round(v1.r.x)},${Math.round(v1.r.y)}; ${v1.lit} lit samples`);
-  check('the EFIS buttons sit below it with the range', v1.bar.on && v1.bar.t >= v1.r.y + v1.r.h && v1.rng === '20 NM' && v1.btns.every((b) => b.on));
+  check('the EFIS buttons sit below it with the range; on a computer the flight deck stays around it (no backdrop), as in an instrument view', v1.bar.on && v1.bar.t >= v1.r.y + v1.r.h && v1.rng === '20 NM' && v1.btns.every((b) => b.on) && !v1.shade.visible && v1.shade.pfd === 'gl', `PFD's place: ${v1.shade.pfd}`);
   await shot('e2e-nd-view');
   await page.click('#efis-rng-up'); await frames(6); const v2 = await ndv(page);
   await page.click('#efis-mode'); await frames(6); const v3 = await ndv(page);
@@ -495,7 +505,10 @@ if (want('maps')) {
   const hit = (a, b) => a.l < b.r - 0.5 && b.l < a.r - 0.5 && a.t < b.b - 0.5 && b.t < a.b - 0.5;
   const ndBox = { l: w1.r.x, t: w1.r.y, r: w1.r.x + w1.r.w, b: w1.r.y + w1.r.h };
   const clash = [['ND', ndBox], ['speed', w1.spd], ['altitude', w1.alt], ['EFIS buttons', w1.bar]].flatMap(([n, a]) => ctl.filter((c) => hit(a, c)).map((c) => `${n}/${c.id}`));
-  check('phone: MAP leans in to the ND: sharp at the phone\'s full resolution, on its 3D screen, the rest of the flight deck shaded', w1.settled && aligned(w1) && w1.backing === Math.round(w1.r.w * w1.dpr) && w1.lit > 100 && /rgba\(6, 10, 15/.test(w1.shade) && !w1.map.on, `${Math.round(w1.r.w)} px square (${w1.backing} px backing), MAP hidden`);
+  check('phone: MAP leans in to the ND: sharp at the phone\'s full resolution, on its 3D screen', w1.settled && aligned(w1) && w1.backing === Math.round(w1.r.w * w1.dpr) && w1.lit > 100 && !w1.map.on, `${Math.round(w1.r.w)} px square (${w1.backing} px backing), MAP hidden`);
+  check('phone: MAP shows only the map: an opaque backdrop hides the PFD and the standby instruments around it', w1.shade.visible && w1.shade.colour === 'rgb(6, 10, 15)' && w1.shade.pfd === 'nd-shade' && w1.shade.standby === 'nd-shade', `over the PFD: ${w1.shade.pfd}, right of the ND: ${w1.shade.standby}`);
+  const viewLabel = await mp.evaluate(() => document.getElementById('t-view-mode').textContent);
+  check('phone: VIEW reads MAP while it is open', viewLabel === 'MAP', viewLabel);
   check('phone: the ND, the speed and altitude beside it, and the EFIS buttons in the bottom row, all clear of the controls', clash.length === 0 && w1.spd.r <= ndBox.l && w1.alt.l >= ndBox.r && w1.bar.t >= ndBox.b && w1.btns.filter((b) => b.on).every((b) => b.w >= 34 && b.h >= 39), clash.join(', ') || `speed ${Math.round(w1.spd.l)}–${Math.round(w1.spd.r)}, ND ${Math.round(ndBox.l)}–${Math.round(ndBox.r)}, altitude ${Math.round(w1.alt.l)}–${Math.round(w1.alt.r)} px`);
   await snap(mp, 'e2e-phone-nd-view');
   await mp.tap('#efis-rng-up'); await mf(6); const e1 = (await ndv(mp)).efis;
@@ -503,7 +516,7 @@ if (want('maps')) {
   await mp.tap('#efis-rng-dn'); await mf(6); const e3 = (await ndv(mp)).efis;
   check('phone: its buttons: + (40 nm), the mode (APP), − (20 nm)', e1.range === 40 && !e1.auto && e2.mode === 'APP' && e3.range === 20, `${e1.range} nm → ${e2.mode} → ${e3.range} nm`);
   await mp.tap('#t-view'); await back(mp); const w2 = await ndv(mp);
-  check('phone: VIEW (reading ND) leans back out; MAP and the head-up readouts return to their places', !w2.on && !w2.shown && w2.view === 'cockpit' && w2.map.on && w2.hgsStyle === '' && w2.spd.on);
+  check('phone: VIEW leans back out: the backdrop goes, MAP and the head-up readouts return to their places', !w2.on && !w2.shown && w2.view === 'cockpit' && w2.map.on && w2.hgsStyle === '' && w2.spd.on && !w2.shade.visible && w2.shade.pfd === 'gl');
   await mp.tap('#t-pause'); await mf(2); await mp.tap('#btn-chart'); await mf(3);
   const pc = () => mp.evaluate(() => ({ open: window.__sim.presentation.chart.open, zoom: document.getElementById('chart').classList.contains('zoom'), w: document.getElementById('chart-canvas').getBoundingClientRect().width }));
   const q1 = await pc(); await mp.tap('#chart-canvas'); await mf(2); const q2 = await pc();

@@ -240,7 +240,7 @@ thrust lever that stays where it is left for the other.
 | Wheel brakes | **BRAKE** (hold): appears on the ground, above the stick's area |
 | Reposition on final | **REPOSITION**: appears during a go-around |
 | Look around / views | Drag on the windshield (lets go straight ahead) · **VIEW** steps cockpit → panel → head-up, and names the one shown |
-| Navigation display | **MAP** (between the rudder strip and the stick) leans in to the flight deck's ND, from the cockpit or the head-up view: the ND fills the space between the controls, the speed and the altitude beside it. **−** / **+** set its range and the mode button (MAP, APP, PLN) its mode, in the bottom row. **✕** or **VIEW** (it reads ND) goes back |
+| Navigation display | **MAP** (between the rudder strip and the stick) leans in to the flight deck's ND, from the cockpit or the head-up view: the ND fills the space between the controls, the speed and the altitude beside it. **−** / **+** set its range and the mode button (MAP, APP, PLN) its mode, in the bottom row. **✕** or **VIEW** (it reads MAP) goes back |
 | Approach chart | **❚❚**, then **Approach chart**. A tap zooms it to full size (then drag to move it); **✕** closes it |
 | Pause / Flight School | **❚❚** / **?** at the top right |
 
@@ -491,10 +491,14 @@ head-up view. So:
   camera is there, the ND is drawn again at the screen's full resolution,
   exactly over its 3D screen.
 - **Phone layout.** The display takes the largest square the touch controls
-  leave free. The rest of the flight deck is shaded, the speed and the altitude
-  sit either side, and the buttons use the gap between the rudder strip and the
-  stick, where MAP is. On the smallest screens the ✕ is left out and VIEW goes
-  back.
+  leave free. A dark backdrop fades in over the rest of the flight deck while the
+  camera leans in, so MAP shows only the map: the PFD and the standby
+  instruments beside it do not show through. The speed and the altitude sit
+  either side (the head-up readouts), and the buttons use the gap between the
+  rudder strip and the stick, where MAP is. VIEW reads MAP while it is open. On
+  the smallest screens the ✕ is left out and VIEW goes back.
+- **On a computer** (`J`) there is no backdrop: the flight deck stays around the
+  display, as in Microsoft Flight Simulator's instrument views.
 - **The approach chart** is the separate page (the electronic flight bag's),
   and the **debrief map** is on the results screen.
 
@@ -708,7 +712,7 @@ draws every scenario by day and night on both graphics tiers.
 | Command | What it checks | Time |
 | --- | --- | --- |
 | `npm test` | Node, no browser: physics (71 checks in 13 groups), phone features (59 checks in 7 groups), game controllers (40 checks in 6 groups), the sky model (12 checks in 3 groups), the head-up display (23 checks in 5 groups), navigation (57 checks in 4 groups) and the game's rules (99 checks in 10 groups), below | ~10 s |
-| `npm run test:e2e` | The real page in Chromium: 268 checks in 17 groups (below), run in 3 parallel processes (`test/e2e-parallel.mjs`) | ~13–17 min |
+| `npm run test:e2e` | The real page in Chromium: 270 checks in 17 groups (below), run in 3 parallel processes (`test/e2e-parallel.mjs`) | ~13–17 min |
 | `npm run test:e2e:quick` | The same without the four landings flown in real time (E9, E11, E13, E15) | ~6 min |
 | `node test/e2e.mjs only=<groups>` | E1 plus the groups listed, in one process, comma-separated: `menu`, `keys`, `school`, `land`, `fail`, `ga`, `maps`, `fps`, `keyboard`, `mobile`, `touchland`, `tilt`, `tiltland`, `gamepad`, `padland`, `graphics` (e.g. `only=tilt,tiltland`) | 10 s – 3 min each |
 | `npm run test:e2e:serial` | All browser groups in one process | ~25 min |
@@ -911,7 +915,7 @@ Over 80 more storm approaches (seeds 11–50):
   - the debrief map on the results screen, drawn in its colours;
   - on a phone: the head-up display's ILS diamonds for exactly the signals received; no copy of
     the ND in the cockpit view; MAP leaning in, with the ND at the phone's full resolution on its
-    3D screen and the rest shaded, and the display, the speed, the altitude and the buttons clear
+    3D screen, the backdrop hiding the other displays (VIEW reading MAP), and the display, the speed, the altitude and the buttons clear
     of the controls; the buttons; VIEW leaning back out; and the chart from the pause menu,
     zoomed by a tap and closed with ✕.
 

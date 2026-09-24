@@ -235,8 +235,12 @@ body.touch #gpws-caption { font-size: 16px; }
    beside it; on a phone the speed and the altitude sit either side of it */
 #nd-view { display: none; position: absolute; pointer-events: none; }
 body.nd-ready #nd-view { display: block; }
-/* on a phone the rest of the flight deck is shaded, so the readouts and the controls over it stay clear */
-body.touch.nd-ready #nd-view { box-shadow: 0 0 0 200vmax rgba(6, 10, 15, 0.66); }
+/* on a phone MAP shows only the map: a dark backdrop fades in over the rest of the flight deck while
+   the camera leans in (a computer's J keeps the flight deck around the display, like an instrument view) */
+#nd-shade { position: absolute; inset: 0; background: rgb(6, 10, 15); opacity: 0; visibility: hidden; pointer-events: none; transition: opacity .45s ease, visibility 0s linear .45s; }
+body.touch.nd-view #nd-shade { opacity: 1; visibility: visible; transition: opacity .45s ease, visibility 0s; }
+/* on the dark backdrop, a thin display-unit bezel keeps the screen's edge */
+body.touch.nd-ready #nd-view { border-radius: 3px; box-shadow: 0 0 0 1px rgba(255,255,255,0.16), 0 0 0 7px #161c24, 0 0 0 8px rgba(255,255,255,0.1); }
 body.touch.nd-ready #t-stick-zone:not(.active) .tbase { opacity: 0; }
 body.nd-view #t-map { visibility: hidden; }
 body.nd-view #hgs { display: none !important; }

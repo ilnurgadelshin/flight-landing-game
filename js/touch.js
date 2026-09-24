@@ -265,7 +265,7 @@ export class TouchControls {
     this.cls(this.el.arm, 'arm', inp.speedbrakeArmed ? 'on' : '');
     this.cls(this.el.ext, 'ext', st.speedbrake > 0.05 ? 'on' : '');
     // VIEW names the view shown: the cockpit, its panel, or the head-up view
-    const view = ctx.view === 'hud' ? 'HEAD-UP' : (ctx.view === 'nd' ? 'ND' : (this.input.look.down ? 'PANEL' : 'COCKPIT'));
+    const view = ctx.view === 'hud' ? 'HEAD-UP' : (ctx.view === 'nd' ? 'MAP' : (this.input.look.down ? 'PANEL' : 'COCKPIT'));
     this.text(this.el.viewMode, 'viewMode', view);
     this.cls(this.el.view, 'view', view === 'COCKPIT' ? '' : 'on');
     this.cls(this.el.reposition, 'reposition', ctx.gaMode ? '' : 'hidden');
