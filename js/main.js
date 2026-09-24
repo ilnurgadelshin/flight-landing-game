@@ -35,6 +35,7 @@ async function boot() {
   await new Promise((r) => setTimeout(r, 30));
   const canvas = document.getElementById('gl');
   const world = new World(canvas, { lowDetail, quality, pixelRatio: touchFirst ? Math.min(window.devicePixelRatio || 1, 1.5) : undefined });
+  await world.assetsReady;
   ui.hideLoading('Building the flight deck…');
   await new Promise((r) => setTimeout(r, 10));
   const cockpit = new Cockpit(world.camera);

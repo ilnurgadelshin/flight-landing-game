@@ -125,14 +125,12 @@ export function makeTaxiwayTexture(anisotropy, lengthM, widthM, centreline = tru
   return makeTexture(c, { anisotropy });
 }
 
-/** Patchwork of fields, hedgerows and roads for the ground. Tiled every 2 km. */
-export function makeGroundTexture(anisotropy, night = false) {
+/** Patchwork of fields, hedgerows and roads: the ground until the aerial texture has loaded (or if it cannot). */
+export function makeGroundTexture(anisotropy) {
   const S = 1024;
   const c = canvas(S, S); const g = c.getContext('2d');
   const rng = makeRng(3);
-  const palette = night
-    ? ['#0d1a12', '#101d14', '#141f13', '#0c1810', '#171f14', '#121a10']
-    : ['#557a38', '#63883f', '#728f48', '#868c48', '#9a9457', '#5e6f36', '#7d6c40', '#587337', '#93a05a', '#6f7d44'];
+  const palette = ['#557a38', '#63883f', '#728f48', '#868c48', '#9a9457', '#5e6f36', '#7d6c40', '#587337', '#93a05a', '#6f7d44'];
   // base
   g.fillStyle = palette[0]; g.fillRect(0, 0, S, S);
   // irregular fields: random rectangles rotated a little
@@ -152,12 +150,12 @@ export function makeGroundTexture(anisotropy, night = false) {
   }
   g.globalAlpha = 1;
   // hedgerows / tree lines
-  g.strokeStyle = night ? '#08120a' : '#3d5a2a'; g.lineWidth = 3;
+  g.strokeStyle = '#3d5a2a'; g.lineWidth = 3;
   for (let i = 0; i < 60; i++) {
     g.beginPath(); const x = rng() * S, y = rng() * S; g.moveTo(x, y); g.lineTo(x + (rng() - 0.5) * 300, y + (rng() - 0.5) * 300); g.stroke();
   }
   // roads: a few winding lanes (drawn wrapped so the tile stays seamless)
-  g.strokeStyle = night ? '#1b1b1b' : '#8a877e'; g.lineWidth = 3; g.lineCap = 'round';
+  g.strokeStyle = '#8a877e'; g.lineWidth = 3; g.lineCap = 'round';
   for (let i = 0; i < 5; i++) {
     let x = rng() * S, y = rng() * S, a = rng() * Math.PI * 2;
     for (let k = 0; k < 60; k++) {
@@ -169,7 +167,7 @@ export function makeGroundTexture(anisotropy, night = false) {
   // small villages
   for (let v = 0; v < 5; v++) {
     const vx = rng() * S, vy = rng() * S;
-    for (let i = 0; i < 40; i++) { g.fillStyle = night ? '#3a2f1a' : (rng() < 0.5 ? '#9a6b4a' : '#b0b0b0'); g.fillRect(vx + (rng() - 0.5) * 80, vy + (rng() - 0.5) * 80, 3 + rng() * 4, 3 + rng() * 4); }
+    for (let i = 0; i < 40; i++) { g.fillStyle = rng() < 0.5 ? '#9a6b4a' : '#b0b0b0'; g.fillRect(vx + (rng() - 0.5) * 80, vy + (rng() - 0.5) * 80, 3 + rng() * 4, 3 + rng() * 4); }
   }
   // fine noise
   const img = g.getImageData(0, 0, S, S);
@@ -266,10 +264,27 @@ export function makeBuildingTexture(night) {
 }
 
 export function makeTreeTexture() {
-  const c = canvas(64, 64); const g = c.getContext('2d');
-  g.clearRect(0, 0, 64, 64);
-  g.fillStyle = '#2e5a25'; g.beginPath(); g.moveTo(32, 2); g.lineTo(58, 50); g.lineTo(6, 50); g.closePath(); g.fill();
-  g.fillStyle = '#3f6e2c'; g.beginPath(); g.moveTo(32, 12); g.lineTo(52, 44); g.lineTo(12, 44); g.closePath(); g.fill();
-  g.fillStyle = '#5a3a1a'; g.fillRect(29, 48, 6, 14);
+  const c = canvas(256, 256); const g = c.getContext('2d'), rng = makeRng(83);
+  g.clearRect(0, 0, 256, 256);
+  g.strokeStyle = '#514d3e'; g.lineWidth = 9;
+  g.beginPath(); g.moveTo(128, 255); g.lineTo(125, 100); g.stroke();
+  for (let i = 0; i < 18; i++) {
+    const y = 100 + rng() * 100;
+    g.lineWidth = 2 + rng() * 3; g.beginPath();g.moveTo(126, y);g.lineTo(126+(rng()-.5)*145,y-35-rng()*40);g.stroke();
+  }
+  // Irregular broadleaf crown: overlapping shaded clusters with a broken silhouette.
+  const clusters = [[88,105,60],[151,87,65],[127,52,42],[181,130,46],[68,147,40],[126,151,63]];
+  for (const [x,y,r] of clusters) {
+    const grad=g.createRadialGradient(x-r*.3,y-r*.3,0,x,y,r);
+    grad.addColorStop(0,'#66714c');grad.addColorStop(.65,'#43593b');grad.addColorStop(1,'rgba(36,54,30,0)');
+    g.fillStyle=grad;g.fillRect(x-r,y-r,r*2,r*2);
+    for(let i=0;i<260;i++){
+      const a=rng()*Math.PI*2, d=Math.sqrt(rng())*r*.92;
+      const px=x+Math.cos(a)*d, py=y+Math.sin(a)*d;
+      const v=Math.floor(39+rng()*35+(1-py/220)*16);
+      g.fillStyle=`rgba(${v},${v+12},${Math.floor(v*.65)},${.5+rng()*.5})`;
+      g.beginPath();g.ellipse(px,py,2+rng()*5,2+rng()*3,rng()*3,0,Math.PI*2);g.fill();
+    }
+  }
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.needsUpdate = true; return t;
 }
