@@ -96,8 +96,12 @@ deployment" in the Actions tab).
    correct only the speed trend.
 4. Configure on the way down: flaps 5 → 15 → 30, gear down at glideslope
    intercept, arm the speedbrakes, set the autobrake.
-5. At "thirty" raise the nose 2–3°, close the throttles, touch down in the
-   touchdown zone, reversers, brakes, stop.
+5. Below 100 ft, hold the approach attitude: the glideslope is too sensitive
+   to chase that low, and in gusts the nose should not chase the vertical
+   speed either. At "thirty" raise the nose 2–3°, close the throttles, touch
+   down in the touchdown zone, reversers, brakes, stop. If a gust balloons
+   you in the flare, hold the attitude and add a little thrust. Never push
+   the nose down to regain the runway.
 6. Not stable below 500 ft? **Go around**: TOGA, pitch up, gear up, flaps 15,
    then reposition on final or fly a visual circuit.
 
@@ -323,10 +327,34 @@ strikes. The physics runs at a fixed 120 Hz through a frame-time accumulator,
 so it is independent of the rendering frame rate.
 
 **Atmosphere** (`js/physics/atmosphere.js`): ISA density, a wind boundary
-layer, gusts and Dryden-style turbulence; each scenario sets these directly.
-In the storm, the gusts along the flight path average about 6 kt and last
-about 4–5 s, like the MIL-F-8785C (Dryden) low-altitude model's moderate to
-severe turbulence at approach heights.
+layer, and continuous turbulence from the Dryden model of MIL-F-8785C /
+MIL-HDBK-1797. That model is the standard that flight simulators are
+qualified against.
+
+- The gusts are a frozen field the aircraft flies through. Along the track
+  they have a first-order spectrum; across it and vertically they have
+  second-order spectra. Each has a time scale of L / V (length scale over
+  airspeed).
+- Below 1000 ft the length scales and intensities follow the low-altitude
+  formulas. The vertical scale L_w is the height itself;
+  L_u = L_v = h / (0.177 + 0.000823 h)^1.2 (in ft). σ_w is 0.1 × W20, the
+  wind at 20 ft, and σ_u = σ_v = σ_w / (0.177 + 0.000823 h)^0.4. Between
+  1000 and 2000 ft they blend into the medium-altitude values.
+- Close to the ground, the gusts along the track are therefore stronger and
+  quicker. At 50 ft in the storm they are about 6 kt rms and last about 1.3 s;
+  at 500 ft, about 4 kt and 4 s. The vertical gusts get quicker towards the
+  ground too, and the wingspan averages much of them out there: about 1.3 kt
+  rms at 50 ft, against 2.6 kt at 500 ft.
+- The wingspan averages out the smallest lateral and vertical gusts
+  (MIL-F-8785C's gust penetration lag, 4 b / (π V)). The fuselage averages
+  out along-track eddies shorter than about 10 m.
+- The turbulence is what makes a scenario's reported gusts; there is no
+  separate gust model. W20 is raised where the report needs more: a wind
+  gusting G kt above its mean needs W20 ≈ 2.4 G for the peak 3-second gusts
+  at a 20 ft anemometer to reach G. This gives light turbulence in the
+  tailwind (W20 12 kt), light to moderate in the crosswind (19 kt), and
+  moderate to severe in the storm (34 kt, from "22 kt gusting 36"). Clear
+  weather has smooth air.
 
 **Autothrottle** (`js/autopilot.js`, the autoland demo and the test pilot):
 modelled on a 737's in speed mode.
@@ -339,13 +367,16 @@ modelled on a 737's in speed mode.
 - A servo moves the levers at up to 8 % of their travel per second when
   adding thrust, and 4 % when taking it off: Boeing's gust protection, which
   keeps the average thrust a little high in gusts.
-- From 27 ft, RETARD brings the levers to idle over about 2 s.
+- From 27 ft, RETARD brings the levers to idle over about 2 s. Above 27 ft
+  the speed mode stays on, so a gust that balloons the aircraft back up in
+  the flare gets thrust again as the speed decays. If the speed has decayed
+  below Vref − 5, the thrust stays in to the ground.
 - The flight mode annunciator on the flight deck's primary flight display
   shows MCP SPD, RETARD and ARM.
 
-In the storm the levers move a few percent at a time, as a real 737's do.
-Before this model they swung between idle and full several times a second,
-chasing every gust.
+In the storm the levers move a few percent at a time, as a real 737's do,
+between about 45 and 70 %. Before this model they swung between idle and full
+several times a second, chasing every gust.
 
 **World** (`js/world/`): terrain, an airport with a 3000 m × 45 m runway with
 ICAO markings, ALSF-2 approach lights with sequenced flashers, threshold,
@@ -519,7 +550,7 @@ draws every scenario by day and night on both graphics tiers.
 
 | Command | What it checks | Time |
 | --- | --- | --- |
-| `npm test` | Node, no browser: physics (62 checks in 12 groups), phone features (59 checks in 7 groups), game controllers (40 checks in 6 groups), the sky model (12 checks in 3 groups), the head-up display (23 checks in 5 groups) and the game's rules (43 checks in 8 groups), below | ~5 s |
+| `npm test` | Node, no browser: physics (71 checks in 13 groups), phone features (59 checks in 7 groups), game controllers (40 checks in 6 groups), the sky model (12 checks in 3 groups), the head-up display (23 checks in 5 groups) and the game's rules (43 checks in 8 groups), below | ~5 s |
 | `npm run test:e2e` | The real page in Chromium: 238 checks in 16 groups (below), run in 3 parallel processes (`test/e2e-parallel.mjs`) | ~11–15 min |
 | `npm run test:e2e:quick` | The same without the four landings flown in real time (E9, E11, E13, E15) | ~6 min |
 | `node test/e2e.mjs only=<groups>` | E1 plus the groups listed, in one process, comma-separated: `menu`, `keys`, `school`, `land`, `fail`, `ga`, `fps`, `keyboard`, `mobile`, `touchland`, `tilt`, `tiltland`, `gamepad`, `padland`, `graphics` (e.g. `only=tilt,tiltland`) | 10 s – 3 min each |
@@ -567,10 +598,33 @@ queued when a flight starts can hold frames back for up to a second some time la
 11. hands off in a crosswind the aircraft weathervanes into the wind, and pedal
     inputs hold the roll-out within 2° of the runway heading;
 12. the Flight School flight director computes its guidance on its own copy of
-    the controls and never moves the aircraft's, from the approach to the stop.
+    the controls and never moves the aircraft's, from the approach to the stop;
+13. the turbulence follows the Dryden model. At 50 and 500 ft it checks the
+    along-track and lateral intensities and the along-track gusts' time scale
+    L_u / V against the specification, and the vertical intensity at 500 ft.
+    It checks that near the ground the vertical gusts are quicker and
+    averaged out by the wingspan, and the along-track ones stronger and
+    shorter. It checks that the storm's peak 3-second gusts at a 20 ft
+    anemometer come within 5 kt of its reported 14, and that clear weather is
+    smooth.
 
 The autolands are flown by a test pilot (`js/autopilot.js`) that uses only the
-controls a player has.
+controls a player has. It flies as a pilot does:
+
+- From 150 ft down it gradually stops chasing the glideslope (it has stopped
+  by 50 ft). Below 100 ft it holds the approach's average attitude, with only
+  a small correction for the sink rate.
+- It removes the crab with rudder between 25 and 5 ft. It holds the
+  centreline with a wing-low sideslip into the steady crosswind, with the
+  bank limited to 6° and brought back towards 4° at the ground.
+- In a balloon it holds the attitude and never pushes the nose down through
+  it. In the last 6 ft it holds the attitude it has reached.
+
+Over 80 autolands (the four windy and clear scenarios, both final starts,
+10 turbulence seeds each), every one lands on the runway. The average
+touchdown is about 100 fpm in clear weather, 250 fpm in the tailwind, 330 fpm
+in the crosswind and 400 fpm in the storm. The storm's firmest touchdowns are
+about 600 fpm.
 
 `test/e2e.mjs` drives the real page:
 
