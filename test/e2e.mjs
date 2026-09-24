@@ -395,14 +395,40 @@ if (want('maps')) {
   check('K: APP, with the ILS ident, course and DME; the mode knob turns', n3.mode === 'APP' && n3.ils && n3.ils[0] === 'IWH 110.30' && /^DME \d/.test(n3.ils[2]) && n3.knob !== n0.knob, n3.ils ? n3.ils.join(' · ') : '');
   await tap('KeyK'); await frames(4); const n4 = await nd(); await tap('KeyK'); await frames(4); const n5 = await nd();
   check('K again: PLN, then MAP', n4.mode === 'PLN' && n5.mode === 'MAP');
+  // the ND view: the camera leans in to the flight deck's ND; nothing copies it over the view
+  const ndv = (p) => p.evaluate(() => {
+    const s = window.__sim, v = s.view, c = document.getElementById('nd-view'), r = c.getBoundingClientRect(), el = s.world.renderer.domElement;
+    const proj = v.cockpit.ndScreenRect(el.clientWidth, el.clientHeight), shown = getComputedStyle(c).display !== 'none';
+    let lit = 0; if (shown) { const d = window.__pixels(c); for (let i = 0; i < d.length; i += 64) if (d[i] + d[i + 1] + d[i + 2] > 150) lit++; }
+    const box = (id) => { const e = document.getElementById(id), q = e.getBoundingClientRect(); return { l: q.left, t: q.top, r: q.right, b: q.bottom, w: q.width, h: q.height, on: q.width > 0 && getComputedStyle(e).visibility !== 'hidden' }; };
+    return { on: v.ndView, settled: v.ndSettled, shown, r: { x: r.left, y: r.top, w: r.width, h: r.height }, proj, backing: c.width, dpr: devicePixelRatio, lit, deck: s.world.drawCockpit, view: v.shown,
+      bar: box('efis-bar'), rng: document.getElementById('efis-rng').textContent, btns: ['efis-rng-dn', 'efis-rng-up', 'efis-mode', 'efis-close'].map(box), map: document.getElementById('t-map') ? box('t-map') : null,
+      spd: box('g-spd'), alt: box('g-alt'), hgsStyle: document.getElementById('hgs').style.cssText, shade: getComputedStyle(c).boxShadow, efis: Object.assign({}, s.game.efis), copies: document.querySelectorAll('canvas').length };
+  });
+  const settle = (p) => p.waitForFunction(() => window.__sim.view.ndSettled && document.body.classList.contains('nd-ready'), null, { timeout: 60000 });
+  const back = (p) => p.waitForFunction(() => !window.__sim.view.ndView && window.__sim.cockpit.focus === 0, null, { timeout: 60000 }).then(() => p.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))));
+  await start({ scenarioId: 'clear', startId: 'standard', mode: 'game', sound: false, seed: 3 });     // the EFIS panel as a flight starts
+  await frames(4);
+  const aligned = (x) => x.proj && Math.abs(x.r.x - x.proj.x) < 1 && Math.abs(x.r.y - x.proj.y) < 1 && Math.abs(x.r.w - x.proj.w) < 1 && Math.abs(x.r.h - x.proj.h) < 1;
+  const v0 = await ndv(page);
+  check('the cockpit view: the flight deck\'s ND is the only one (no copy over the view)', !v0.on && !v0.shown && v0.view === 'cockpit', `${v0.copies} canvases on the page`);
+  await tap('KeyJ'); await settle(page); await frames(3);
+  const v1 = await ndv(page);
+  check('J leans in to the ND: its sharp copy lies exactly on the 3D screen, at the screen\'s own resolution, drawn', v1.settled && v1.shown && aligned(v1) && v1.backing === Math.round(v1.r.w * v1.dpr) && v1.lit > 100 && v1.r.h > 0.6 * VH, `${Math.round(v1.r.w)} px square at ${Math.round(v1.r.x)},${Math.round(v1.r.y)}; ${v1.lit} lit samples`);
+  check('the EFIS buttons sit below it with the range', v1.bar.on && v1.bar.t >= v1.r.y + v1.r.h && v1.rng === '20 NM' && v1.btns.every((b) => b.on));
+  await shot('e2e-nd-view');
+  await page.click('#efis-rng-up'); await frames(6); const v2 = await ndv(page);
+  await page.click('#efis-mode'); await frames(6); const v3 = await ndv(page);
+  await page.click('#efis-rng-dn'); await page.click('#efis-mode'); await page.click('#efis-mode'); await frames(6); const v4 = await ndv(page);
+  check('its buttons: + to 40 nm, the mode to APP, − back to 20, the mode round to MAP', v2.efis.range === 40 && v2.rng === '40 NM' && v3.efis.mode === 'APP' && v4.efis.range === 20 && v4.efis.mode === 'MAP', `${v2.rng}, ${v3.efis.mode}, ${v4.efis.range} nm ${v4.efis.mode}`);
+  await page.click('#efis-close'); await back(page); const v5 = await ndv(page);
+  check('✕ leans back out to the cockpit view', !v5.on && !v5.shown && v5.view === 'cockpit' && !v5.bar.on);
   await tap('KeyC'); await frames(4);
-  const inset = () => page.evaluate(() => { const c = document.getElementById('nd-inset'), r = c.getBoundingClientRect(); const d = window.__pixels(c); let lit = 0; for (let i = 0; i < d.length; i += 64) if (d[i] + d[i + 1] + d[i + 2] > 150) lit++; return { shown: getComputedStyle(c).display !== 'none' && r.width > 100, lit }; });
-  const in1 = await inset();
-  check('the head-up view shows the ND as an inset, drawn', in1.shown && in1.lit > 50, `${in1.lit} lit samples`);
-  await tap('KeyJ'); await frames(3); const in2 = await inset(); await tap('KeyJ'); await frames(3); const in3 = await inset();
-  check('J hides the inset and shows it again', !in2.shown && in3.shown);
+  await tap('Comma'); await settle(page); await frames(3); const v6 = await ndv(page);
+  check('in the head-up view (no flight deck): the range key leans in to the flight deck\'s ND first, leaving the range', v6.settled && v6.deck && aligned(v6) && v6.efis.range === 20, `range ${v6.efis.range}`);
+  await tap('KeyJ'); await back(page); const v7 = await ndv(page);
+  check('J again: back to the head-up view, the flight deck hidden again', !v7.on && v7.view === 'hud' && !v7.deck && !v7.shown);
   await tap('KeyC'); await frames(3);
-  check('no inset in the cockpit view (the flight deck has its own ND)', !(await inset()).shown);
   const chart = () => page.evaluate(() => { const p = window.__sim.presentation, c = document.getElementById('chart'); return { open: p.chart.open, shown: !c.classList.contains('hidden'), state: window.__sim.game.state, own: p.lastChart ? p.lastChart.own : null }; });
   await tap('KeyE'); await frames(3); const c1 = await chart();
   check('E opens the approach chart over the flight (it flies on), with the aircraft on the plan and the profile', c1.open && c1.shown && c1.state === 'flying' && c1.own && c1.own.plan.inside && !!c1.own.profile, c1.own ? `${fmt(c1.own.distNm)} nm, ${fmt(c1.own.altFt, 0)} ft` : '');
@@ -453,22 +479,31 @@ if (want('maps')) {
   check('the results show the debrief map: the approaches blue, the go-around and circuit amber, the roll-out green', res.shown && res.ga === 1 && res.td === 1 && res.blue > 300 && res.amber > 300 && res.green > 30, `${res.blue} blue, ${res.amber} amber, ${res.green} green px; profile to ${res.farNm} nm`);
   await shot('e2e-debrief-map');
 
-  // a phone: the MAP panel and the chart by touch
+  // a phone: the ND view by touch, and the chart
   const { ctx, mp, mf } = await phonePage();
   await mp.evaluate(pixelsHelper);
+  await mp.evaluate(() => { const st = document.documentElement.style; st.setProperty('--sal', '59px'); st.setProperty('--sar', '59px'); st.setProperty('--sab', '21px'); });
   await mp.evaluate(() => window.__sim.start({ scenarioId: 'clear', startId: 'standard', mode: 'game', sound: false, seed: 3 }));
   await mf(3);
-  const panel = () => mp.evaluate(() => { const c = document.getElementById('t-map-panel'), r = c.getBoundingClientRect(), g = window.__sim.game; const d = window.__pixels(c); let lit = 0; for (let i = 0; i < d.length; i += 64) if (d[i] + d[i + 1] + d[i + 2] > 150) lit++; return { open: document.body.classList.contains('map-open'), shown: r.width > 90, hgs: getComputedStyle(document.getElementById('hgs')).display, lit, efis: Object.assign({}, g.efis), r: { x: r.left, y: r.top, w: r.width, h: r.height } }; });
   const hgsIls = await mp.evaluate(() => { const c = document.getElementById('hgs').className, i = window.__sim.state().ils; return { loc: /\bloc\b/.test(c), gs: /\bgs\b/.test(c), locValid: i.locValid, gsValid: i.gsValid }; });
   check('phone: the head-up display\'s ILS diamonds show exactly the signals received', hgsIls.loc === hgsIls.locValid && hgsIls.gs === hgsIls.gsValid && hgsIls.loc, JSON.stringify(hgsIls));
-  await mp.tap('#t-map'); await mf(4); const p1 = await panel();
-  check('phone: MAP opens the navigation display in the head-up display\'s place, drawn', p1.open && p1.shown && p1.hgs === 'none' && p1.lit > 50, `${Math.round(p1.r.w)} px, ${p1.lit} lit samples`);
-  const third = async (f) => { await mp.touchscreen.tap(p1.r.x + p1.r.w * f, p1.r.y + p1.r.h / 2); await mf(3); return (await panel()).efis; };
-  const e1 = await third(0.85), e2 = await third(0.5), e3 = await third(0.15);
-  check('phone: taps on its right third, middle and left third: range up, mode, range down', e1.range === 40 && !e1.auto && e2.mode === 'APP' && e3.range === 20, `${e1.range} nm → ${e2.mode} → ${e3.range} nm`);
-  await snap(mp, 'e2e-phone-map');
-  await mp.tap('#t-map'); await mf(3); const p2 = await panel();
-  check('phone: MAP again closes it and the head-up display returns', !p2.open && !p2.shown && p2.hgs !== 'none');
+  const w0 = await ndv(mp);
+  check('phone, cockpit view: no copy of the ND over the view', !w0.on && !w0.shown && w0.map && w0.map.on);
+  await mp.tap('#t-map'); await settle(mp); await mf(3);
+  const w1 = await ndv(mp);
+  const ctl = await mp.evaluate(() => [...document.querySelectorAll('#touch .tbtn, #t-lever-body, #t-rudder')].map((e) => { const q = e.getBoundingClientRect(); return { id: e.id, l: q.left, t: q.top, r: q.right, b: q.bottom, w: q.width }; }).filter((q) => q.w > 0 && q.id !== 't-map'));
+  const hit = (a, b) => a.l < b.r - 0.5 && b.l < a.r - 0.5 && a.t < b.b - 0.5 && b.t < a.b - 0.5;
+  const ndBox = { l: w1.r.x, t: w1.r.y, r: w1.r.x + w1.r.w, b: w1.r.y + w1.r.h };
+  const clash = [['ND', ndBox], ['speed', w1.spd], ['altitude', w1.alt], ['EFIS buttons', w1.bar]].flatMap(([n, a]) => ctl.filter((c) => hit(a, c)).map((c) => `${n}/${c.id}`));
+  check('phone: MAP leans in to the ND: sharp at the phone\'s full resolution, on its 3D screen, the rest of the flight deck shaded', w1.settled && aligned(w1) && w1.backing === Math.round(w1.r.w * w1.dpr) && w1.lit > 100 && /rgba\(6, 10, 15/.test(w1.shade) && !w1.map.on, `${Math.round(w1.r.w)} px square (${w1.backing} px backing), MAP hidden`);
+  check('phone: the ND, the speed and altitude beside it, and the EFIS buttons in the bottom row, all clear of the controls', clash.length === 0 && w1.spd.r <= ndBox.l && w1.alt.l >= ndBox.r && w1.bar.t >= ndBox.b && w1.btns.filter((b) => b.on).every((b) => b.w >= 34 && b.h >= 39), clash.join(', ') || `speed ${Math.round(w1.spd.l)}–${Math.round(w1.spd.r)}, ND ${Math.round(ndBox.l)}–${Math.round(ndBox.r)}, altitude ${Math.round(w1.alt.l)}–${Math.round(w1.alt.r)} px`);
+  await snap(mp, 'e2e-phone-nd-view');
+  await mp.tap('#efis-rng-up'); await mf(6); const e1 = (await ndv(mp)).efis;
+  await mp.tap('#efis-mode'); await mf(6); const e2 = (await ndv(mp)).efis;
+  await mp.tap('#efis-rng-dn'); await mf(6); const e3 = (await ndv(mp)).efis;
+  check('phone: its buttons: + (40 nm), the mode (APP), − (20 nm)', e1.range === 40 && !e1.auto && e2.mode === 'APP' && e3.range === 20, `${e1.range} nm → ${e2.mode} → ${e3.range} nm`);
+  await mp.tap('#t-view'); await back(mp); const w2 = await ndv(mp);
+  check('phone: VIEW (reading ND) leans back out; MAP and the head-up readouts return to their places', !w2.on && !w2.shown && w2.view === 'cockpit' && w2.map.on && w2.hgsStyle === '' && w2.spd.on);
   await mp.tap('#t-pause'); await mf(2); await mp.tap('#btn-chart'); await mf(3);
   const pc = () => mp.evaluate(() => ({ open: window.__sim.presentation.chart.open, zoom: document.getElementById('chart').classList.contains('zoom'), w: document.getElementById('chart-canvas').getBoundingClientRect().width }));
   const q1 = await pc(); await mp.tap('#chart-canvas'); await mf(2); const q2 = await pc();
@@ -619,28 +654,47 @@ if (want('mobile')) {
     await mp.setViewportSize({ width: vp.width, height: vp.height }); await setSafe(vp.safe); await mf(3);
     const bad = await mp.evaluate((S) => {
       const bad = [];
-      for (const state of ['air', 'go-around', 'ground', 'tilt', 'map']) {
+      for (const state of ['air', 'go-around', 'ground', 'tilt']) {
         const show = (id, on) => document.getElementById(id).classList.toggle('hidden', !on);
         show('t-reposition', state === 'go-around'); show('t-brake', state === 'ground'); document.body.classList.toggle('tilt', state === 'tilt');
-        document.body.classList.toggle('map-open', state === 'map');      // the MAP panel in the head-up display's place
-        const ids = ['t-gear', 't-autobrake', 't-flaps-up', 't-flaps-dn', 't-arm', 't-ext', 't-toga', 't-lever-body', 't-rudder', 't-stick-zone', 't-view', 't-pause', 't-help', 't-reposition', 't-brake', 't-center', 't-map', 'hgs', 't-map-panel'];
+        const ids = ['t-gear', 't-autobrake', 't-flaps-up', 't-flaps-dn', 't-arm', 't-ext', 't-toga', 't-lever-body', 't-rudder', 't-stick-zone', 't-view', 't-pause', 't-help', 't-reposition', 't-brake', 't-center', 't-map', 'hgs'];
         const rects = ids.map((id) => { const r = document.getElementById(id).getBoundingClientRect(); return { id, l: r.left, t: r.top, r: r.right, b: r.bottom, w: r.width, h: r.height }; }).filter((r) => r.w > 0);
         const hit = (a, b) => a.l < b.r - 0.5 && b.l < a.r - 0.5 && a.t < b.b - 0.5 && b.t < a.b - 0.5;
-        // the head-up display (or the MAP panel) and CENTER may lie over the stick's area (it has no drawn edge)
-        const allowed = (a, b) => [a, b].includes('t-stick-zone') && ([a, b].includes('hgs') || [a, b].includes('t-map-panel') || [a, b].includes('t-center'));
-        for (const r of rects) if (r.id !== 'hgs' && r.id !== 't-map-panel' && (r.l < S.l - 0.5 || r.t < S.t - 0.5 || r.r > innerWidth - S.r + 0.5 || r.b > innerHeight - S.b + 0.5)) bad.push(`${state}: ${r.id} outside the safe area`);
+        // the head-up display and CENTER may lie over the stick's area (it has no drawn edge)
+        const allowed = (a, b) => [a, b].includes('t-stick-zone') && ([a, b].includes('hgs') || [a, b].includes('t-center'));
+        for (const r of rects) if (r.id !== 'hgs' && (r.l < S.l - 0.5 || r.t < S.t - 0.5 || r.r > innerWidth - S.r + 0.5 || r.b > innerHeight - S.b + 0.5)) bad.push(`${state}: ${r.id} outside the safe area`);
         for (let i = 0; i < rects.length; i++) for (let j = i + 1; j < rects.length; j++) if (!allowed(rects[i].id, rects[j].id) && hit(rects[i], rects[j])) bad.push(`${state}: ${rects[i].id}/${rects[j].id}`);
-        for (const r of rects) if (!['hgs', 't-stick-zone', 't-map-panel'].includes(r.id) && (r.w < 34 || r.h < 39)) bad.push(`${state}: ${r.id} ${Math.round(r.w)}×${Math.round(r.h)}`);
-        if (state === 'map' && !rects.some((r) => r.id === 't-map-panel' && r.h > 90)) bad.push('map: the MAP panel is not shown (or under 90 px)');
+        for (const r of rects) if (!['hgs', 't-stick-zone'].includes(r.id) && (r.w < 34 || r.h < 39)) bad.push(`${state}: ${r.id} ${Math.round(r.w)}×${Math.round(r.h)}`);
         // the thrust lever keeps a usable travel
         const tr = document.querySelector('#t-lever .ttrack').getBoundingClientRect().height;
         if (tr < 80) bad.push(`${state}: lever travel ${Math.round(tr)} px`);
       }
-      document.getElementById('t-reposition').classList.add('hidden'); document.getElementById('t-brake').classList.add('hidden'); document.body.classList.remove('tilt', 'map-open');
+      document.getElementById('t-reposition').classList.add('hidden'); document.getElementById('t-brake').classList.add('hidden'); document.body.classList.remove('tilt');
       return bad;
     }, vp.safe);
+    // the ND view (MAP): the display, the speed and altitude beside it and the EFIS buttons, clear of
+    // every control and inside the safe area; the display at least 140 px
+    await mp.evaluate(() => window.__sim.inputManager.emit('ndView'));
+    await mp.waitForFunction(() => window.__sim.view.ndSettled && document.body.classList.contains('nd-ready'), null, { timeout: 60000 });
+    await mf(3);
+    bad.push(...await mp.evaluate((S) => {
+      const out = [], q = (e) => { const r = e.getBoundingClientRect(); return { id: e.id, l: r.left, t: r.top, r: r.right, b: r.bottom, w: r.width, h: r.height }; };
+      const ctl = [...document.querySelectorAll('#touch .tbtn, #t-lever-body, #t-rudder')].map(q).filter((r) => r.w > 0 && r.id !== 't-map');
+      const mine = [q(document.getElementById('nd-view')), q(document.getElementById('g-spd')), q(document.getElementById('g-alt')), ...[...document.querySelectorAll('#efis-bar button')].map(q).filter((r) => r.w > 0)];
+      const hit = (a, b) => a.l < b.r - 0.5 && b.l < a.r - 0.5 && a.t < b.b - 0.5 && b.t < a.b - 0.5;
+      for (const m of mine) {
+        for (const c of ctl) if (hit(m, c)) out.push(`ND view: ${m.id}/${c.id}`);
+        if (m.l < S.l - 0.5 || m.t < S.t - 0.5 || m.r > innerWidth - S.r + 0.5 || m.b > innerHeight - S.b + 0.5) out.push(`ND view: ${m.id} outside the safe area`);
+        if (m.id.startsWith('efis') && (m.w < 34 || m.h < 39)) out.push(`ND view: ${m.id} ${Math.round(m.w)}×${Math.round(m.h)}`);
+      }
+      if (mine[0].w < 140) out.push(`ND view: the display only ${Math.round(mine[0].w)} px`);
+      return out;
+    }, vp.safe));
+    const ndPx = await mp.evaluate(() => Math.round(document.getElementById('nd-view').getBoundingClientRect().width));
+    await mp.evaluate(() => window.__sim.inputManager.emit('ndView'));
+    await mp.waitForFunction(() => window.__sim.cockpit.focus === 0, null, { timeout: 60000 }); await mf(2);
     const compact = await mp.evaluate(() => document.body.classList.contains('compact'));
-    check(`${vp.width}×${vp.height}${vp.name ? ` (${vp.name})` : ''}: controls inside the safe area, apart, at least 34×39 px, lever travel ≥ 80 px, in every state`, bad.length === 0, bad.join(', ') || (compact ? 'compact layout' : 'full layout'));
+    check(`${vp.width}×${vp.height}${vp.name ? ` (${vp.name})` : ''}: controls inside the safe area, apart, at least 34×39 px, lever travel ≥ 80 px, in every state and in the ND view`, bad.length === 0, bad.join(', ') || `${compact ? 'compact' : 'full'} layout, ND ${ndPx} px`);
     if (vp.width === 932 && vp.height === 320) await snap(mp, 'e2e-phone-safari-toolbars');
   }
   await mp.setViewportSize({ width: 852, height: 393 }); await setSafe(SAFE); await mf(2);
@@ -1049,6 +1103,18 @@ if (want('gamepad')) {
   const padHud = await pp.evaluate(() => window.__sim.view.mode);
   await tapPad('R3');
   check('pressing it again: the head-up view, then the cockpit again', padHud === 'hud' && await pp.evaluate(() => window.__sim.view.mode === 'cockpit' && !window.__sim.inputManager.look.down), padHud);
+  // the left stick press: the ND's range in the cockpit view; in the head-up view it leans in to the ND first
+  const r0 = await pp.evaluate(() => window.__sim.cockpit.nd.last.range);
+  await tapPad('L3'); await pf(4);
+  const r1 = await pp.evaluate(() => ({ range: window.__sim.game.efis.range, auto: window.__sim.game.efis.auto }));
+  await tapPad('R3'); await tapPad('R3'); await pf(2);                      // the panel, then the head-up view
+  await tapPad('L3'); await pp.waitForFunction(() => window.__sim.view.ndSettled, null, { timeout: 60000 });
+  const r2 = await pp.evaluate(() => ({ range: window.__sim.game.efis.range, shown: window.__sim.view.shown }));
+  await tapPad('R3'); await pp.waitForFunction(() => window.__sim.cockpit.focus === 0, null, { timeout: 60000 });
+  const r3 = await pp.evaluate(() => window.__sim.view.shown);
+  await tapPad('R3'); await pf(2);                                          // back to the cockpit
+  check('left stick press: the next ND range in the cockpit view; in the head-up view it leans in to the ND first; the right stick press leans back out',
+    !r1.auto && r1.range !== r0 && r2.shown === 'nd' && r2.range === r1.range && r3 === 'hud', `${r0} → ${r1.range} nm; head-up: ${r2.shown}, then ${r3}`);
   // gear up, and once it is moving (both taps between two polls of the pad would be one press), down again
   await pp.evaluate(() => { window.__rumble.length = 0; }); await tapPad('Y');
   await pp.waitForFunction(() => !window.__sim.state().gearDown, null, { timeout: 30000 }); await tapPad('Y');

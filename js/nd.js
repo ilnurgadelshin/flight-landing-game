@@ -8,7 +8,8 @@
 // far out, 20 nm from 12 nm (and in a go-around's circuit), 10 nm inside 4 nm.
 //
 // ndModel() is pure (state and settings in, shapes in the 512 px canvas out; test/nav.test.mjs);
-// drawND() paints them. The flight deck's ND and the phone / head-up inset draw the same model.
+// drawND() paints them. The flight deck's ND and the ND view's sharp copy over it (js/view.js) draw
+// the same model.
 import { RUNWAY, NM, KTS, DEG } from './config.js';
 import { AIRPORT, ILS27, FIXES, onCentreline, missedPath } from './nav.js';
 
@@ -62,7 +63,6 @@ export function ndModel(st, efis, opts = {}) {
     mode, range, auto: !!efis.auto, up, S, geo,
     topLabel: mode === 'APP' ? `HDG ${String(Math.round(hdg) % 360).padStart(3, '0')}` : (mode === 'MAP' ? `TRK ${String(Math.round(trk) % 360).padStart(3, '0')}` : 'PLN'),
     gs: Math.round(st.groundSpeed / KTS), tas: Math.round(st.tasKts || 0),
-    ias: Math.round(st.ias), altFt: Math.round(st.alt / 0.3048 / 10) * 10,
     wind: { dir: Math.round(norm360(st.windDirDeg)), kts: Math.round(st.windKts), rel: wrap180(st.windDirDeg + 180 - up) },
     rings: [0.5, 1].map((f) => ({ r: geo.r * f, label: `${range * f}` })),
     hdgBug: opts.hdgBug === undefined || opts.hdgBug === null ? null : wrap180(opts.hdgBug - up),
@@ -101,15 +101,10 @@ export function ndModel(st, efis, opts = {}) {
 }
 
 const MAGENTA = '#ff4dff', CYAN = '#3fe0ff', GREEN = '#3cff6a', WHITE = '#ffffff', GREY = '#4a4a55';
-const FONT_M = 'bold 22px "DejaVu Sans Mono", Consolas, monospace', FONT_SM = 'bold 16px "DejaVu Sans Mono", Consolas, monospace';
+const FONT = 'bold 22px "DejaVu Sans Mono", Consolas, monospace', FONT_S = 'bold 16px "DejaVu Sans Mono", Consolas, monospace';
 
-/**
- * Paint a model on a 512 × 512 canvas context. `big`: a small screen's version (the phone's panel,
- * about 110–170 px across): larger text, fewer labels, and the speed and altitude on top, because
- * the panel stands in for the head-up readouts while it is open.
- */
-export function drawND(g, m, { big = false } = {}) {
-  const FONT = big ? 'bold 40px "DejaVu Sans Mono", Consolas, monospace' : FONT_M, FONT_S = big ? 'bold 34px "DejaVu Sans Mono", Consolas, monospace' : FONT_SM;
+/** Paint a model on a 512 × 512 canvas context (or one scaled to it with setTransform). */
+export function drawND(g, m) {
   g.save();
   g.fillStyle = '#000'; g.fillRect(0, 0, S, S);
   const { cx, cy, r } = m.geo;
@@ -125,7 +120,7 @@ export function drawND(g, m, { big = false } = {}) {
     if (m.mode !== 'PLN' && Math.abs(wrap180(d - m.up)) > 58) continue;
     const s = Math.sin(a), c = Math.cos(a), len = d % 10 === 0 ? 14 : 7;
     g.beginPath(); g.moveTo(cx + s * r, cy - c * r); g.lineTo(cx + s * (r - len), cy - c * (r - len)); g.stroke();
-    if (d % (big ? 90 : 30) === 0 && m.mode !== 'PLN') g.fillText(String(d / 10), cx + s * (r - (big ? 40 : 28)), cy - c * (r - (big ? 40 : 28)));
+    if (d % 30 === 0 && m.mode !== 'PLN') g.fillText(String(d / 10), cx + s * (r - 28), cy - c * (r - 28));
   }
   if (m.mode === 'PLN') for (const [t, d] of [['N', 0], ['E', 90], ['S', 180], ['W', 270]]) g.fillText(t, cx + Math.sin(d * DEG) * (r + 16), cy - Math.cos(d * DEG) * (r + 16));
   // range rings
@@ -137,7 +132,7 @@ export function drawND(g, m, { big = false } = {}) {
   // runway, airport
   g.fillStyle = '#d8d8d8'; g.beginPath(); m.runway.forEach((p, i) => (i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y))); g.closePath(); g.fill();
   g.strokeStyle = CYAN; g.lineWidth = 2; g.beginPath(); g.arc(m.airport.x, m.airport.y, 9, 0, 2 * Math.PI); g.stroke();
-  g.fillStyle = CYAN; g.font = FONT_S; g.textAlign = 'left'; if (!big) g.fillText(m.airport.name, m.airport.x + 12, m.airport.y + 14);
+  g.fillStyle = CYAN; g.font = FONT_S; g.textAlign = 'left'; g.fillText(m.airport.name, m.airport.x + 12, m.airport.y + 14);
   if (m.route) {
     const line = (pts, color, dash) => { g.strokeStyle = color; g.lineWidth = 3; g.setLineDash(dash || []); g.beginPath(); pts.forEach((p, i) => (i ? g.lineTo(p.x, p.y) : g.moveTo(p.x, p.y))); g.stroke(); g.setLineDash([]); };
     line(m.route.pts, m.route.active ? MAGENTA : WHITE, m.route.active ? null : [10, 8]);
@@ -147,7 +142,7 @@ export function drawND(g, m, { big = false } = {}) {
       g.beginPath(); for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2; g.moveTo(f.x, f.y); g.lineTo(f.x + Math.sin(a) * 9, f.y - Math.cos(a) * 9); } g.stroke();
       g.fillStyle = f.active ? MAGENTA : WHITE; g.font = FONT_S; g.textAlign = 'left';
       const ly = f.y + (i % 2 ? 24 : -12);                                             // alternate sides so close fixes stay legible
-      if ((!big || f.active) && ly < S - 34) g.fillText(f.name, f.x + 10, ly);
+      if (ly < S - 34) g.fillText(f.name, f.x + 10, ly);
     });
   }
   if (m.course) {
@@ -187,19 +182,6 @@ export function drawND(g, m, { big = false } = {}) {
   }
   // readouts
   g.textBaseline = 'alphabetic'; g.font = FONT_S; g.textAlign = 'left'; g.fillStyle = WHITE;
-  if (big) {
-    // the phone's panel: speed and altitude, the next fix (or the ILS DME), the mode and range, and
-    // what a tap does in each third
-    g.textAlign = 'center'; g.fillStyle = GREEN; g.font = FONT; g.fillText(`${m.ias} KT  ${m.altFt} FT`, S / 2, 44);
-    g.font = FONT_S; g.textAlign = 'left';
-    if (m.active) { g.fillStyle = MAGENTA; g.fillText(`${m.active.name} ${m.active.nm.toFixed(1)}`, 10, 86); }
-    if (m.ilsText) { g.fillStyle = GREEN; g.fillText(m.ilsText[2], 10, 86); }
-    g.textAlign = 'right'; g.fillStyle = GREEN; g.fillText(`${m.mode} ${m.range}`, S - 10, 86);
-    g.fillStyle = 'rgba(255,255,255,0.55)'; g.textAlign = 'center';
-    g.fillText('−', S / 6, S - 14); g.fillText('MODE', S / 2, S - 14); g.fillText('+', S * 5 / 6, S - 14);
-    g.restore();
-    return;
-  }
   g.fillText(`GS ${m.gs}  TAS ${m.tas}`, 8, 20);
   g.fillText(`${String(m.wind.dir).padStart(3, '0')}°/${m.wind.kts}`, 8, 40);
   // the wind arrow points where the wind blows, relative to the top of the display
@@ -211,4 +193,30 @@ export function drawND(g, m, { big = false } = {}) {
   g.textAlign = 'left'; g.fillStyle = GREEN; g.fillText(`${m.mode} ${m.range} NM`, 8, S - 12);
   if (m.offset !== null && m.mode === 'MAP') { g.textAlign = 'center'; g.fillStyle = MAGENTA; g.fillText(`${Math.abs(m.offset).toFixed(0)} m ${m.offset > 0 ? 'R' : 'L'} of C/L`, cx, S - 12); }
   g.restore();
+}
+
+/**
+ * Where the ND view puts the display among a phone's controls (all px): the largest square from
+ * `top` down to at most `bottom` (and at most `maxSize`) that no obstacle overlaps, as near the
+ * middle of the screen as it can be. With `cols` ({ w, h, at }), it also leaves a column `w` wide
+ * on each side, level with `at` of the display's height, clear of the obstacles (the phone's speed
+ * and altitude). An obstacle left of the screen's middle bounds the display on the left, one right
+ * of it on the right. Returns { x, y, size }, or null when nothing fits.
+ */
+export function ndViewLayout({ W, top, bottom, maxSize = Infinity, obstacles = [], cols = null, gap = 8, left = 0, right = W }) {
+  const across = (o, y0, y1) => o.t < y1 - 0.5 && o.b > y0 + 0.5;
+  const bounds = (y0, y1) => {
+    let lo = left, hi = right;
+    for (const o of obstacles) if (across(o, y0, y1)) { if ((o.l + o.r) / 2 < W / 2) lo = Math.max(lo, o.r + gap); else hi = Math.min(hi, o.l - gap); }
+    return [lo, hi];
+  };
+  for (let size = Math.floor(Math.min(bottom - top, maxSize)); size >= 60; size -= 2) {
+    let [lo, hi] = bounds(top, top + size);
+    if (cols) {
+      const c0 = top + size * cols.at, [clo, chi] = bounds(c0, c0 + cols.h);
+      lo = Math.max(lo, clo + cols.w + gap); hi = Math.min(hi, chi - cols.w - gap);
+    }
+    if (hi - lo >= size) return { x: Math.min(Math.max(W / 2 - size / 2, lo), hi - size), y: top, size };
+  }
+  return null;
 }

@@ -96,7 +96,7 @@ export class InputManager {
         case 'Comma': this.emit('ndRange', -1); break;        // the EFIS range knob
         case 'Period': this.emit('ndRange', 1); break;
         case 'KeyK': this.emit('ndMode'); break;              // the EFIS mode selector: MAP → APP → PLN
-        case 'KeyJ': this.emit('ndInset'); break;             // the navigation display over the head-up view
+        case 'KeyJ': this.emit('ndView'); break;              // lean in to the navigation display
         case 'KeyE': this.emit('chart'); break;               // the approach chart (electronic flight bag)
         case 'Enter': this.emit('enter'); break;
         default: break;

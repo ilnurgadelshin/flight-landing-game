@@ -159,7 +159,7 @@ flight deck.
 | Look down at the pedestal | `L` (hold) · right-mouse drag to look around |
 | View: cockpit / head-up | `C` |
 | Navigation display: range, mode | `,` / `.` shorter / longer range · `K` MAP → APP → PLN |
-| Navigation display over the head-up view | `J` (on by default) |
+| ND view: lean in to the navigation display (from either view) | `J` · its buttons (or `,` `.` `K`) set the range and mode · `J`, ✕ or `C` goes back |
 | Approach chart | `E` (also in the pause menu) · `Esc` closes it |
 | Reposition on final (after a go-around) | `Backspace` |
 | Pause / Flight School / menu | `P` / `H` / `Esc` |
@@ -193,7 +193,7 @@ own buttons throughout the game.
 | Trim | D-pad ↑ nose down / ↓ nose up |
 | TO/GA | View; pressed again during the go-around, it puts you back on final |
 | Look around / views | Right stick (lets go straight ahead) · press it for the next view: cockpit → panel → head-up |
-| Navigation display | Left stick press: tap for the next range, hold for the next mode (MAP → APP → PLN) |
+| Navigation display | Left stick press: tap for the next range, hold for the next mode (MAP → APP → PLN). In the head-up view it first leans in to the ND (the ND view); the right stick press goes back |
 | Approach chart | Y in the pause menu; A, B or Y closes it |
 | Pause, menus | Menu: start the approach from the menu, pause and resume, skip Flight School, fly again. In menus A confirms and B goes back; in Flight School A / B turn the pages |
 
@@ -240,7 +240,7 @@ thrust lever that stays where it is left for the other.
 | Wheel brakes | **BRAKE** (hold): appears on the ground, above the stick's area |
 | Reposition on final | **REPOSITION**: appears during a go-around |
 | Look around / views | Drag on the windshield (lets go straight ahead) · **VIEW** steps cockpit → panel → head-up, and names the one shown |
-| Navigation display | **MAP** (between the rudder strip and the stick): the map in the head-up display's place, with the speed and altitude on top. Tap its left third for a shorter range, its right third for a longer one, its middle for the mode. **MAP** again brings the head-up display back |
+| Navigation display | **MAP** (between the rudder strip and the stick) leans in to the flight deck's ND, from the cockpit or the head-up view: the ND fills the space between the controls, the speed and the altitude beside it. **−** / **+** set its range and the mode button (MAP, APP, PLN) its mode, in the bottom row. **✕** or **VIEW** (it reads ND) goes back |
 | Approach chart | **❚❚**, then **Approach chart**. A tap zooms it to full size (then drag to move it); **✕** closes it |
 | Pause / Flight School | **❚❚** / **?** at the top right |
 
@@ -472,8 +472,31 @@ glareshield, whose knobs turn:
   crew would pick: 40 nm beyond 12 nm, 20 nm inside that and in a go-around's
   circuit, 10 nm inside 4 nm.
 
-The same display appears in the head-up view as an inset (`J`). On a phone the
-**MAP** button puts it in the head-up display's place, with bigger text.
+**Where the map is shown.** There is one navigation display, the flight deck's,
+and nothing copies it over the view. Simulators handle this the same way.
+Microsoft Flight Simulator reads a cockpit display through *instrument views*:
+camera positions that frame one display. It keeps its moving map on a separate
+page, the tablet's Map page in MSFS 2024. X-Plane Mobile opens its map from the
+head-up view. So:
+
+- **The cockpit view** shows the ND where it is, on the panel.
+- **The ND view** (`J`, **MAP**, or the controller's left stick press in the
+  head-up view) is this game's instrument view. The camera leans in over
+  0.45 s until it looks square at the captain's ND, which then fills most of
+  the screen, and the EFIS range and mode buttons appear beside it. It works
+  from the head-up view too: the flight deck comes back while you look at it,
+  and the head-up view returns when you lean back out.
+- **Sharp on phones.** A phone renders the 3D view at 1.5 times its pixels or
+  fewer (less when it is busy), too soft for the ND's small print. Once the
+  camera is there, the ND is drawn again at the screen's full resolution,
+  exactly over its 3D screen.
+- **Phone layout.** The display takes the largest square the touch controls
+  leave free. The rest of the flight deck is shaded, the speed and the altitude
+  sit either side, and the buttons use the gap between the rudder strip and the
+  stick, where MAP is. On the smallest screens the ✕ is left out and VIEW goes
+  back.
+- **The approach chart** is the separate page (the electronic flight bag's),
+  and the **debrief map** is on the results screen.
 
 The **approach chart** is the ILS 27 plate an electronic flight bag shows. It
 has the aircraft's own position on its plan view, and its height against the
@@ -794,8 +817,10 @@ Over 80 more storm approaches (seeds 11–50):
     Android;
   - the same on short screens (iPhones with Safari's toolbars at 265–320 px, and
     Android Chrome at 304 px), where the compact layout is used. Each size is
-    checked with BRAKE, REPOSITION, tilt's CENTER and the MAP panel shown, and the
-    thrust lever must keep at least 80 px of travel;
+    checked with BRAKE, REPOSITION and tilt's CENTER shown, and in the ND view
+    (the display, the speed and altitude beside it, and the EFIS buttons clear of
+    every control, the display at least 140 px). The thrust lever must keep at
+    least 80 px of travel;
   - the head-up display replaces the readout strip;
   - each button drives its control;
   - two thumbs work at once, the stick and rudder spring back and the lever
@@ -832,6 +857,8 @@ Over 80 more storm approaches (seeds 11–50):
   - the stick with and without pilot-style pitch;
   - the triggers, thrust, gear, flaps, autobrake, speedbrakes (tap and hold),
     trim, brakes and look-around, and the right stick press stepping through the views;
+  - the left stick press: the ND's range, and in the head-up view the ND view, left with the
+    right stick press;
   - rumble at gear lock;
   - View for TO/GA, then back on final;
   - pause and resume, and a resume that adds no thrust;
@@ -873,15 +900,20 @@ Over 80 more storm approaches (seeds 11–50):
 
 - **E17** checks the maps in the page:
   - the flight deck's ND and its knobs with `,` `.` and `K`;
-  - the inset in the head-up view and `J`, and no inset in the cockpit view;
+  - that the cockpit view shows only the flight deck's ND, and the ND view with `J`. Once leaning
+    in, the sharp copy lies exactly on the 3D screen at the screen's resolution, and its buttons
+    set the range and the mode. ✕ goes back. From the head-up view, the range key leans in first,
+    and `J` returns to the head-up view;
   - the chart with `E`, its moving own-ship, and the pause menu's button with `Esc`;
   - an autoland go-around at 200 ft flown round the circuit to a landing, with the PFD's FMA, the
     MCP and the ND read at each stage: before it, in TO/GA, on each of the five legs and back on
     the ILS;
   - the debrief map on the results screen, drawn in its colours;
-  - on a phone: the head-up display's ILS diamonds for exactly the signals received, the MAP
-    panel and its three tap zones, and the chart from the pause menu, zoomed by a tap and closed
-    with ✕.
+  - on a phone: the head-up display's ILS diamonds for exactly the signals received; no copy of
+    the ND in the cockpit view; MAP leaning in, with the ND at the phone's full resolution on its
+    3D screen and the rest shaded, and the display, the speed, the altitude and the buttons clear
+    of the controls; the buttons; VIEW leaning back out; and the chart from the pause menu,
+    zoomed by a tap and closed with ✕.
 
 The other browser groups run on the fast low tier with the 3D drawing off.
 
