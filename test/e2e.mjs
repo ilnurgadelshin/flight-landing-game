@@ -945,7 +945,9 @@ if (want('gamepad')) {
   const padHud = await pp.evaluate(() => window.__sim.view.mode);
   await tapPad('R3');
   check('pressing it again: the head-up view, then the cockpit again', padHud === 'hud' && await pp.evaluate(() => window.__sim.view.mode === 'cockpit' && !window.__sim.inputManager.look.down), padHud);
-  await pp.evaluate(() => { window.__rumble.length = 0; }); await tapPad('Y'); await tapPad('Y');   // gear up then down again
+  // gear up, and once it is moving (both taps between two polls of the pad would be one press), down again
+  await pp.evaluate(() => { window.__rumble.length = 0; }); await tapPad('Y');
+  await pp.waitForFunction(() => !window.__sim.state().gearDown, null, { timeout: 30000 }); await tapPad('Y');
   await pp.waitForFunction(() => window.__sim.state().gearDown, null, { timeout: 120000 }); await pf(2);
   const rum = await pp.evaluate(() => window.__rumble.slice());
   check('the gear locking down rumbles the controller; the Vibration option is offered', rum.some((r) => r.type === 'dual-rumble' && r.duration === 120) && await pp.evaluate(() => getComputedStyle(document.getElementById('opt-vib').parentElement).display !== 'none'), JSON.stringify(rum.slice(0, 2)));
