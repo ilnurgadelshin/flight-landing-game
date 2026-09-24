@@ -5,6 +5,7 @@
 import { Game } from '../js/game.js';
 import { GPWS } from '../js/gpws.js';
 import { FlightControls } from '../js/flightcontrols.js';
+import { FT } from '../js/config.js';
 import fs from 'node:fs';
 
 let passed = 0, failed = 0;
@@ -128,6 +129,41 @@ console.log('\n[R6] One owner of the controls');
   const thr = inp.throttle, pitch = inp.pitch;
   for (let i = 0; i < 240; i++) fc.step(1 / 120);
   check('the flight director never moves the aircraft\'s controls', inp.throttle === thr && inp.pitch === pitch && fc.shadow.pitch !== 0);
+}
+
+console.log('\n[R8] The autoland\'s autothrottle in a storm');
+{
+  const { AUTOTHROTTLE, windAdditive } = await import('../js/autopilot.js');
+  const { SCENARIOS } = await import('../js/config.js');
+  const add = Object.fromEntries(Object.keys(SCENARIOS).map((k) => [k, windAdditive(SCENARIOS[k])]));
+  check('approach speed: Vref + half the steady headwind + the gust, between 5 and 20 kt', add.clear === 5 && add.tailwind === 5 && Math.abs(add.crosswind - 10.4) < 0.1 && add.storm === 20, JSON.stringify(Object.fromEntries(Object.entries(add).map(([k, v]) => [k, +v.toFixed(1)]))));
+  const R = rig({ scenarioId: 'storm', startId: 'standard', seed: 3 });
+  R.game.engageAutopilot();
+  const ap = R.game.demoAp, st = R.game.sim.state, inp = R.game.sim.aircraft.input, frame = 1 / 30;
+  const L = [], modes = [];
+  let prev = inp.throttle;
+  for (let t = 0; t < 600 && R.game.state !== 'finished'; t += frame) {
+    R.game.update(frame);
+    const m = ap.atMode; if (modes[modes.length - 1] !== m) modes.push(m);
+    if (ap.phase === 'approach' && st.agl < 1500 * FT && st.agl > 50 * FT) L.push({ lever: inp.throttle, rate: (inp.throttle - prev) / frame, ias: st.ias, filtered: ap.at.speed, vref: st.vref });
+    prev = inp.throttle;
+  }
+  const up = Math.max(...L.map((x) => x.rate)), down = -Math.min(...L.map((x) => x.rate));
+  check('the servo moves the levers no faster than its rates: 8 %/s up, 4 %/s down', up <= AUTOTHROTTLE.rateUp * 100 / 100 + 1e-6 && down <= AUTOTHROTTLE.rateDown + 1e-6, `up ${(up * 100).toFixed(1)} %/s, down ${(down * 100).toFixed(1)} %/s`);
+  let rev = 0, dir = 0, ext = L[0].lever;
+  for (const x of L) { if (Math.abs(x.lever - ext) > 0.03) { const s = Math.sign(x.lever - ext); if (dir && s !== dir) rev++; dir = s; ext = x.lever; } }
+  const minutes = L.length * frame / 60;
+  check('no pumping: under 15 reversals a minute, never at idle or full', rev / minutes < 15 && L.every((x) => x.lever > 0.02 && x.lever < 0.98), `${(rev / minutes).toFixed(1)} reversals/min, lever ${Math.round(Math.min(...L.map((x) => x.lever)) * 100)}–${Math.round(Math.max(...L.map((x) => x.lever)) * 100)} %`);
+  const m = (a) => a.reduce((s, x) => s + x, 0) / a.length, sd = (a) => { const k = m(a); return Math.sqrt(m(a.map((x) => (x - k) ** 2))); };
+  // the gusts' quick changes of airspeed are what the filter keeps from the levers
+  const rate = (k) => L.slice(1).map((x, i) => (x[k] - L[i][k]) / frame);
+  const rIas = sd(rate('ias')), rFil = sd(rate('filtered'));
+  check('the gusts are filtered out of the speed it controls (it changes at under half the airspeed\'s rate)', rFil < 0.5 * rIas, `airspeed ${rIas.toFixed(2)} kt/s, filtered ${rFil.toFixed(2)} kt/s (σ)`);
+  const over = m(L.map((x) => x.ias - x.vref));
+  check('and it holds Vref + 20 on average', Math.abs(over - 20) < 3, `Vref + ${over.toFixed(1)}`);
+  check('the flight mode annunciator: MCP SPD, RETARD from 27 ft, ARM after touchdown', modes.join(' ') === 'MCP SPD RETARD ARM', modes.join(' → '));
+  const fin = R.of('finish')[0];
+  check('it lands', !!fin && fin.result.success, fin ? `${fin.result.score} ${fin.result.grade}` : 'no result');
 }
 
 console.log('\n[R7] Every phrase the game speaks has a recording');

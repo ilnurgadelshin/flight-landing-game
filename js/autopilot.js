@@ -2,9 +2,32 @@
 // same input channels a human uses (pitch, roll, yaw, throttle, flaps, gear,
 // speedbrake, brakes, reversers). Used by the automated tests and by the
 // "watch a demo landing" option in Flight School.
+//
+// Its thrust is a 737-style autothrottle (see throttleForSpeed): command speed Vref + 5, the
+// speed filtered with the aircraft's inertial acceleration so gusts do not reach the levers, and
+// the levers moved by a rate-limited servo that adds thrust faster than it takes it off.
 import { RUNWAY, KTS, FT, DEG } from './config.js';
 
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+
+/**
+ * The approach speed's wind additive (kt) for a reported wind: half the steady headwind component
+ * plus the full gust increment, between 5 and 20 kt (no credit for a tailwind).
+ */
+export function windAdditive(scenario) {
+  if (!scenario) return 5;
+  const head = scenario.windKts * Math.cos((scenario.windDirDeg - RUNWAY.headingDeg) * DEG);
+  return clamp(Math.max(0, head) / 2 + (scenario.gustKts || 0), 5, 20);
+}
+
+/** The autothrottle's speed mode (fractions of the thrust lever's travel). */
+export const AUTOTHROTTLE = {
+  filterTime: 5,        // s: the complementary filter's time constant (autothrottles use 2–5 s)
+  rateUp: 0.08,         // lever travel per second, adding thrust: quick when slow...
+  rateDown: 0.04,       // ...and half as quick taking it off (Boeing's gust protection)
+  deadband: 0.005,      // the servo ignores smaller corrections
+  retard: 0.25,         // lever travel per second in RETARD (from 27 ft): idle about 2 s later
+};
 
 export class Autopilot {
   constructor(aircraft, opts = {}) {
@@ -15,7 +38,7 @@ export class Autopilot {
       targetSpeedOffset: 0, flareHeight: 9.5, autobrake: 3, useReversers: true, idleAt: 6,
     }, opts);
     this.phase = 'approach';
-    this.iPitch = 0; this.iSpeed = 0; this.iRoll = 0;
+    this.iPitch = 0; this.iRoll = 0;
     this.prevGsDev = 0; this.prevLoc = 0;
     this.flareStartT = -1;
     this.t = 0;
@@ -37,9 +60,10 @@ export class Autopilot {
       if (distThr < 11 * 1852 && inp.flapIndex < 3 && st.ias < 195) { inp.flapIndex = 3; this.note('flaps 15'); }
       if (distThr < 9.5 * 1852 && !inp.gearDown && !o.noGear && st.ias < 190) { inp.gearDown = true; this.note('gear down'); }
       if (distThr < 8 * 1852 && inp.flapIndex < 4 && st.ias < 170) { inp.flapIndex = 4; this.note('flaps 30'); inp.speedbrakeArmed = true; inp.autobrake = o.autobrake; }
-      // target speed: Vref+5 when configured, else a schedule by flap
-      const gust = (ac.atmosphere.scenario && ac.atmosphere.scenario.gustKts) || 0;
-      let target = vref + 5 + Math.min(gust / 2, 15) + o.targetSpeedOffset;
+      // approach speed: Vref + the wind additive, as Boeing describes it and airlines fly it: half
+      // the reported steady headwind plus the full gust, at least 5 and at most 20 kt; else a
+      // schedule by flap
+      let target = vref + windAdditive(ac.atmosphere.scenario) + o.targetSpeedOffset;
       if (inp.flapIndex < 4) target = Math.max(target, [210, 190, 180, 160][inp.flapIndex] || 160);
       this.targetIas = target;
 
@@ -96,7 +120,10 @@ export class Autopilot {
       const cmd = (pitchTarget - st.pitch) * 8 - st.q * 1.5 + 0.08 + (this.flareBias || 0);
       inp.pitch = clamp(cmd, -0.3, 0.7);
       if (o.hardLanding) inp.pitch = -0.6;
-      inp.throttle = o.hardLanding ? 0 : Math.max(0, inp.throttle - dt * 0.35);
+      // the autothrottle's RETARD: from 27 ft the levers come back to idle, reaching it about as
+      // the wheels touch (above 27 ft in the flare they stay where they are)
+      if (o.hardLanding) inp.throttle = 0;
+      else if (agl < 27 * FT) inp.throttle = Math.max(0, inp.throttle - dt * AUTOTHROTTLE.retard);
       void tf;
       // decrab with rudder and hold the centreline with a wing-low sideslip INTO the wind
       // (crosswind + = from the right -> right bank), plus drift feedback
@@ -130,6 +157,14 @@ export class Autopilot {
     }
   }
 
+  /** The autothrottle's mode as a 737's flight mode annunciator shows it. */
+  get atMode() {
+    const st = this.ac.state;
+    if (this.phase === 'approach') return 'MCP SPD';
+    if (this.phase === 'flare' && !st.onGround) return st.agl < 27 * FT ? 'RETARD' : 'MCP SPD';
+    return 'ARM';
+  }
+
   /** The controls this autopilot writes: the aircraft's, or the flight director's shadow copy. */
   target() { return this.inputTarget || this.ac.input; }
 
@@ -141,13 +176,33 @@ export class Autopilot {
     inp.pitch = clamp(err * 0.10 + this.iPitch - st.q * 3.0, -0.7, 0.7);
   }
 
+  /**
+   * The autothrottle's speed mode, as a 737's works.
+   *  - The speed it controls is the indicated airspeed blended with the aircraft's inertial
+   *    acceleration along its path (a complementary filter): a gust that changes the airspeed for
+   *    a few seconds barely moves it, a real change of speed shows at once. Airspeed alone would
+   *    have the levers chase every gust (in the storm the airspeed changes by several kt/s).
+   *  - A servo moves the levers at a limited rate, adding thrust twice as fast as it takes it off:
+   *    in gusts the average thrust, and so the average speed, stays a little above the command
+   *    speed (Boeing's gust protection with the autothrottle engaged).
+   * Pilots flying by hand in turbulence do the same: set the thrust, do not chase the airspeed,
+   * correct only its trend.
+   */
   throttleForSpeed(targetKts, dt) {
-    const st = this.ac.state, inp = this.target();
-    const err = targetKts - st.ias;
-    this.iSpeed = clamp(this.iSpeed + err * dt * 0.004, -0.25, 0.25);
-    const accel = this.prevIas === undefined ? 0 : (st.ias - this.prevIas) / dt;
-    this.prevIas = st.ias;
-    inp.throttle = clamp(0.55 + err * 0.025 + this.iSpeed - accel * 0.15, 0, 1);
+    const st = this.ac.state, inp = this.target(), A = AUTOTHROTTLE;
+    const at = this.at || (this.at = { speed: st.ias, accel: 0, v: null, i: 0 });
+    // inertial acceleration along the flight path (kt/s), lightly smoothed
+    const v = Math.hypot(st.vx, st.vy, st.vz);
+    if (at.v !== null && dt > 0) at.accel += ((v - at.v) / dt / KTS - at.accel) * Math.min(1, dt / 0.3);
+    at.v = v;
+    // complementary filter: inertial acceleration for the quick part, airspeed for the slow part
+    at.speed += (at.accel + (st.ias - at.speed) / A.filterTime) * dt;
+    const err = targetKts - at.speed;
+    at.i = clamp(at.i + err * dt * 0.004, -0.25, 0.25);
+    // where the levers should be; the servo moves them there at its rates
+    const want = clamp(0.55 + err * 0.02 + at.i - at.accel * 0.12, 0, 1);
+    const d = want - inp.throttle;
+    if (Math.abs(d) > A.deadband) inp.throttle = clamp(inp.throttle + clamp(d, -A.rateDown * dt, A.rateUp * dt), 0, 1);
   }
 
   note(msg) { this.log.push({ t: this.t, msg }); }

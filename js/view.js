@@ -104,7 +104,7 @@ export class GameView {
     this.world.drawCockpit = !hud;
     this.cockpit.update(st, inp, frameDt, {
       look, fd: g.fdCommand(), targetSpeed: !st.onGround ? st.vref + 5 : null, papi: this.world.lights.papiWhites(this.eye), checklist: g.checklist(),
-      gaMode: g.ctx.gaMode, rain: this.raining, autothrottle: demo,
+      gaMode: g.ctx.gaMode, rain: this.raining, autothrottle: demo ? g.demoAp.atMode : '',
       rollMode: demo ? 'LOC' : (g.mode === 'training' ? 'FD' : ''), pitchMode: demo ? 'G/S' : (g.mode === 'training' ? 'FD' : ''),
       hidden: hud, viewPitch: hud ? HUD_PITCH : COCKPIT_PITCH,
     });

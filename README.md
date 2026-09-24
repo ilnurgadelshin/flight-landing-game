@@ -90,7 +90,10 @@ deployment" in the Actions tab).
    final fully configured, 10 nm standard final, or a 26 nm full approach).
 3. Fly the ILS: keep the magenta localizer and glideslope diamonds centred,
    the airspeed at Vref + 5 (147 kts with flaps 30), and the PAPI showing two
-   white and two red lights.
+   white and two red lights. In strong or gusty wind, add half the steady
+   headwind plus the full gust, up to Vref + 20. Keep the gust part to
+   touchdown. In turbulence, don't chase the airspeed: set the thrust and
+   correct only the speed trend.
 4. Configure on the way down: flaps 5 → 15 → 30, gear down at glideslope
    intercept, arm the speedbrakes, set the autobrake.
 5. At "thirty" raise the nose 2–3°, close the throttles, touch down in the
@@ -321,6 +324,28 @@ so it is independent of the rendering frame rate.
 
 **Atmosphere** (`js/physics/atmosphere.js`): ISA density, a wind boundary
 layer, gusts and Dryden-style turbulence; each scenario sets these directly.
+In the storm, the gusts along the flight path average about 6 kt and last
+about 4–5 s, like the MIL-F-8785C (Dryden) low-altitude model's moderate to
+severe turbulence at approach heights.
+
+**Autothrottle** (`js/autopilot.js`, the autoland demo and the test pilot):
+modelled on a 737's in speed mode.
+
+- The approach speed is Vref plus the wind additive: half the steady headwind
+  plus the full gust, between 5 and 20 kt.
+- The speed it controls is the airspeed blended with the aircraft's inertial
+  acceleration (a 5 s complementary filter). Gusts barely reach the thrust
+  levers, while a real change of speed shows at once.
+- A servo moves the levers at up to 8 % of their travel per second when
+  adding thrust, and 4 % when taking it off: Boeing's gust protection, which
+  keeps the average thrust a little high in gusts.
+- From 27 ft, RETARD brings the levers to idle over about 2 s.
+- The flight mode annunciator on the flight deck's primary flight display
+  shows MCP SPD, RETARD and ARM.
+
+In the storm the levers move a few percent at a time, as a real 737's do.
+Before this model they swung between idle and full several times a second,
+chasing every gust.
 
 **World** (`js/world/`): terrain, an airport with a 3000 m × 45 m runway with
 ICAO markings, ALSF-2 approach lights with sequenced flashers, threshold,
@@ -379,7 +404,8 @@ code, add it to the list and run the tool; `test/game.test.mjs` fails while a
 spoken phrase has no recording.
 
 **Evaluation** (`js/evaluate.js`): touchdown point, vertical speed, centreline,
-speed, alignment (crab and bank), configuration and stopping are scored;
+speed (in gusts, Vref plus the gust increment carried to touchdown),
+alignment (crab and bank), configuration and stopping are scored;
 failures produce the matching outcome (crash, gear collapse, belly landing,
 runway excursion, overrun, landed short, missed the runway).
 
@@ -493,7 +519,7 @@ draws every scenario by day and night on both graphics tiers.
 
 | Command | What it checks | Time |
 | --- | --- | --- |
-| `npm test` | Node, no browser: physics (62 checks in 12 groups), phone features (59 checks in 7 groups), game controllers (40 checks in 6 groups), the sky model (12 checks in 3 groups), the head-up display (23 checks in 5 groups) and the game's rules (36 checks in 7 groups), below | ~5 s |
+| `npm test` | Node, no browser: physics (62 checks in 12 groups), phone features (59 checks in 7 groups), game controllers (40 checks in 6 groups), the sky model (12 checks in 3 groups), the head-up display (23 checks in 5 groups) and the game's rules (43 checks in 8 groups), below | ~5 s |
 | `npm run test:e2e` | The real page in Chromium: 238 checks in 16 groups (below), run in 3 parallel processes (`test/e2e-parallel.mjs`) | ~11–15 min |
 | `npm run test:e2e:quick` | The same without the four landings flown in real time (E9, E11, E13, E15) | ~6 min |
 | `node test/e2e.mjs only=<groups>` | E1 plus the groups listed, in one process, comma-separated: `menu`, `keys`, `school`, `land`, `fail`, `ga`, `fps`, `keyboard`, `mobile`, `touchland`, `tilt`, `tiltland`, `gamepad`, `padland`, `graphics` (e.g. `only=tilt,tiltland`) | 10 s – 3 min each |
@@ -704,7 +730,14 @@ a camera placed like the game's:
 6. one owner of the controls: actions report what changed; the flight director never moves the
    aircraft's controls;
 7. every phrase the game speaks is in the voice phrase list, the list has nothing else, and each
-   phrase has its MP3 file.
+   phrase has its MP3 file;
+8. the autoland's autothrottle in the storm:
+   - the approach speed is Vref plus the wind additive;
+   - the levers move no faster than the servo's 8 %/s up and 4 %/s down, reverse fewer than 15
+     times a minute, and never reach idle or full on the approach;
+   - the controlled speed changes at under half the airspeed's rate (gusts filtered), with
+     Vref + 20 held on average;
+   - the flight mode annunciator shows MCP SPD → RETARD → ARM, and the landing succeeds.
 
 `test/gamepad.test.mjs` checks the controller module against a fake
 `navigator.getGamepads()`, and InputManager's controller thrust:
