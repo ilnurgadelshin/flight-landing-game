@@ -279,13 +279,38 @@ export class Cockpit {
   }
 
   // ------------------------------------------------------------------ per frame
+  /** The eye: look offsets, shake, and the head sinking under g. */
+  updateCamera(st, dt, extra) {
+    const look = extra.look || {};
+    const targetDown = typeof look.down === 'number' ? look.down : (look.down ? 1 : 0);
+    this.lookDown += (targetDown - this.lookDown) * Math.min(1, dt * 6);
+    this.lookYaw += ((look.yaw || 0) - this.lookYaw) * Math.min(1, dt * 8);
+    this.lookPitch += ((look.pitch || 0) - this.lookPitch) * Math.min(1, dt * 8);
+    // shake: g-load deviation, rough ground, touchdown
+    const rough = st.onGround ? (st.surface === 'grass' ? 0.02 : 0.004) * Math.min(1, st.groundSpeed / 30) : 0;
+    const gdev = Math.abs(st.gLoad - 1) * 0.008;
+    this.shakeAmt = Math.max(this.shakeAmt * (1 - dt * 3), rough + gdev + (extra.shake || 0));
+    const sh = this.shakeAmt;
+    this.shake.set((Math.random() - 0.5) * sh, (Math.random() - 0.5) * sh, 0);
+    this.camera.position.copy(this.shake);
+    // head moves slightly under lateral/vertical acceleration (feels heavy)
+    this.camera.position.y -= clamp((st.gLoad - 1) * 0.02, -0.04, 0.04);
+    const base = extra.viewPitch === undefined ? this.basePitch : extra.viewPitch;
+    this.camera.rotation.set(base - this.lookDown * 40 * DEG + this.lookPitch, this.lookYaw, 0, 'YXZ');
+  }
+
   /**
+   * Per frame: the camera, then the levers, yokes and displays.
    * @param st aircraft state
    * @param input aircraft input
    * @param dt seconds
-   * @param extra { look: {yaw,pitch,down}, fd, targetSpeed, papi, checklist, gaMode, rain }
+   * @param extra { look: {yaw,pitch,down}, fd, targetSpeed, papi, checklist, gaMode, rain,
+   *   hidden: the head-up view, where none of the flight deck is drawn (only the camera moves),
+   *   viewPitch: how far below the nose the eye looks (rad; default the cockpit's −15°, which shows the panel) }
    */
   update(st, input, dt, extra = {}) {
+    this.updateCamera(st, dt, extra);
+    if (extra.hidden) return;
     // levers
     this.throttles.forEach((t) => {
       t.piv.rotation.x = 0.55 - input.throttle * 1.1;
@@ -305,22 +330,6 @@ export class Cockpit {
     // wipers
     if (extra.rain) { this.wiperT = (this.wiperT || 0) + dt * 2.2; const a = (Math.sin(this.wiperT) * 0.5 + 0.5) * 1.1; this.wipers[0].rotation.z = 1.25 - a; this.wipers[1].rotation.z = -1.25 + a; }
     else { this.wipers[0].rotation.z = 1.25; this.wipers[1].rotation.z = -1.25; }
-    // camera: look offsets + shake
-    const look = extra.look || {};
-    const targetDown = typeof look.down === 'number' ? look.down : (look.down ? 1 : 0);
-    this.lookDown += (targetDown - this.lookDown) * Math.min(1, dt * 6);
-    this.lookYaw += ((look.yaw || 0) - this.lookYaw) * Math.min(1, dt * 8);
-    this.lookPitch += ((look.pitch || 0) - this.lookPitch) * Math.min(1, dt * 8);
-    // shake: g-load deviation, rough ground, touchdown
-    const rough = st.onGround ? (st.surface === 'grass' ? 0.02 : 0.004) * Math.min(1, st.groundSpeed / 30) : 0;
-    const gdev = Math.abs(st.gLoad - 1) * 0.008;
-    this.shakeAmt = Math.max(this.shakeAmt * (1 - dt * 3), rough + gdev + (extra.shake || 0));
-    const sh = this.shakeAmt;
-    this.shake.set((Math.random() - 0.5) * sh, (Math.random() - 0.5) * sh, 0);
-    this.camera.position.copy(this.shake);
-    // head moves slightly under lateral/vertical acceleration (feels heavy)
-    this.camera.position.y -= clamp((st.gLoad - 1) * 0.02, -0.04, 0.04);
-    this.camera.rotation.set(this.basePitch - this.lookDown * 40 * DEG + this.lookPitch, this.lookYaw, 0, 'YXZ');
     // displays
     this.pfd.fdEnabled = !!extra.fd;
     if (extra.fd) this.pfd.fd = extra.fd;

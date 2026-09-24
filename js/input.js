@@ -6,6 +6,7 @@
 //   Speedbrake Space (toggle), X = arm        Brakes     B (hold), N = autobrake cycle
 //   Reversers  R (hold, ground only)          Trim       [ / ]  or PageUp / PageDown
 //   Look down  L (hold), right-drag = look    Mouse yoke click canvas / M, Esc releases
+//   View       C: cockpit / head-up
 //   Pause P · Help H · Reposition Backspace · Menu Esc
 //
 // Touch (phones, tablets): js/touch.js writes this.touch — a spring-return stick and rudder
@@ -91,6 +92,7 @@ export class InputManager {
         case 'Backspace': this.emit('reposition'); break;
         case 'Escape': if (this.mouseEngaged) this.setMouse(false); else this.emit('menu'); break;
         case 'KeyL': this.look.down = true; break;
+        case 'KeyC': this.emit('camera', 'toggle'); break;
         case 'Enter': this.emit('enter'); break;
         default: break;
       }

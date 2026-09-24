@@ -83,6 +83,7 @@ export class Presentation {
   /** An action from a device: menu navigation here, everything else to the rules. */
   onAction(name, arg) {
     if (name === 'padButton') { this.padButton(arg); return; }
+    if (name === 'camera') { this.view.camera(arg); return; }            // the view is not the rules' business
     if (name === 'enter') { if (this.game.state === 'finished' && this.ui.onAgain) this.ui.onAgain(); return; }
     this.game.action(name, arg);
   }
@@ -105,8 +106,10 @@ export class Presentation {
     const g = this.game, st = g.sim.state, inp = g.sim.aircraft.input;
     if (this.haptics && simDt > 0 && g.state === 'flying') this.haptics.update(simDt, st);
     const configWarning = this.gpws && this.gpws.hornOn ? 'GEAR NOT DOWN' : (st.destroyed ? 'CRASHED' : '');
-    this.ui.updateHUD(st, { mouse: this.input.mouseEngaged, pad: this.input.pad.active, configWarning, fd: g.fdCommand() });
-    if (this.touch) this.touch.sync(st, inp, { gaMode: g.ctx.gaMode });
+    const view = this.view.shown;
+    this.ui.setView(view);
+    this.ui.updateHUD(st, { mouse: this.input.mouseEngaged, pad: this.input.pad.active, configWarning, fd: g.fdCommand(), headUp: view === 'hud' });
+    if (this.touch) this.touch.sync(st, inp, { gaMode: g.ctx.gaMode, view });
     if (this.gpws) this.ui.setCaption(this.gpws.caption, this.gpws.captionKind);
     this.ui.setChecklist(g.state === 'flying' ? g.checklist() : null);
   }
