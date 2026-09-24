@@ -3,9 +3,10 @@
 // speedbrake, brakes, reversers). Used by the automated tests and by the
 // "watch a demo landing" option in Flight School.
 //
-// Its thrust is a 737-style autothrottle (see throttleForSpeed): command speed Vref + 5, the
-// speed filtered with the aircraft's inertial acceleration so gusts do not reach the levers, and
-// the levers moved by a rate-limited servo that adds thrust faster than it takes it off.
+// Its thrust is a 737-style autothrottle (see throttleForSpeed): command speed Vref + the wind
+// additive (windAdditive), the speed filtered with the aircraft's inertial acceleration so gusts
+// do not reach the levers, and the levers moved by a rate-limited servo that adds thrust faster
+// than it takes it off.
 import { RUNWAY, KTS, FT, DEG } from './config.js';
 
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
@@ -51,6 +52,8 @@ export class Autopilot {
     this.t += dt;
     const agl = st.agl;
     const distThr = st.distToThreshold;  // + before the threshold
+    // the steady crosswind, as a pilot feels it (not each gust)
+    this.xwF = this.xwF === undefined ? st.crosswind : this.xwF + (st.crosswind - this.xwF) * Math.min(1, dt / 4);
 
     // ---- configuration schedule (distance/altitude based, like a real crew)
     if (this.phase === 'approach') {
@@ -94,15 +97,33 @@ export class Autopilot {
       } else if (gsAltErr < -40 && distThr > 4000) {
         vsTarget = 0; // level, wait for the glideslope
       } else {
+        // the glidepath's descent rate, corrected towards the glideslope; the correction fades out
+        // from 150 ft to 50 ft, where the beam is too sensitive to chase
         const gsVs = -st.groundSpeed * Math.tan(RUNWAY.glideslopeDeg * DEG);
-        vsTarget = gsVs - clamp(gsAltErr * 0.12, -4, 4);
+        const gsGain = clamp((agl - 50 * FT) / (100 * FT), 0, 1);
+        vsTarget = gsVs - clamp(gsAltErr * 0.12, -4, 4) * gsGain;
       }
-      this.pitchForVs(vsTarget, dt);
+      if (agl < 100 * FT && !o.noFlare && this.pitchAvg !== undefined) {
+        // below 100 ft fly the approach's attitude (its average over the last few seconds above
+        // 100 ft) with only a small correction for the sink rate, as autoland and pilots do:
+        // the gusts near the ground are not chased with the nose
+        const want = this.pitchAvg + clamp((vsTarget - st.vs) * 0.4, -1.5, 1.5) * DEG;
+        this.pitchForAttitude(Math.max(want, -1 * DEG));
+      } else {
+        // close to the ground the nose never goes more than 1° below the horizon on a 3° approach
+        this.pitchForVs(vsTarget, dt, agl < 200 * FT ? -1 * DEG : -Infinity);
+        if (agl >= 100 * FT) {
+          const k = Math.min(1, dt / 6);
+          if (this.pitchAvg === undefined) { this.pitchAvg = st.pitch; this.pitchInAvg = inp.pitch; }
+          this.pitchAvg += (st.pitch - this.pitchAvg) * k; this.pitchInAvg += (inp.pitch - this.pitchInAvg) * k;
+        }
+      }
       this.throttleForSpeed(target, dt);
 
       // a steeper approach (tailwind: higher ground speed) needs the flare to start a little higher
-      const flareH = o.flareHeight * clamp(Math.abs(st.vs) / 3.7, 0.9, 1.35);
-      if (agl < flareH && !o.noFlare) { this.phase = 'flare'; this.flareStartT = this.t; this.flarePitch0 = st.pitch; this.flareVs0 = st.vs; this.flareBias = clamp(inp.pitch, -0.3, 0.3); this.note('flare'); }
+      // (the deliberate push into the runway begins at 40 ft)
+      const flareH = o.hardLanding ? 40 * FT : o.flareHeight * clamp(Math.abs(st.vs) / 3.7, 0.9, 1.35);
+      if (agl < flareH && !o.noFlare) { this.phase = 'flare'; this.flareStartT = this.t; this.flarePitch0 = st.pitch; this.flareVs0 = st.vs; this.flareBias = clamp(inp.pitch, -0.3, 0.3); this.crab0 = st.crabDeg; this.note('flare'); }
       if (o.noFlare && agl < 3) { this.phase = 'rollout'; }
     }
 
@@ -113,25 +134,46 @@ export class Autopilot {
       // ~4 s exponential flare from 30 ft to ~200 fpm at touchdown; never asks for more sink than the approach had
       const vsTarget = o.hardLanding ? -8 : -Math.min(0.6 + agl * 0.42, Math.abs(this.flareVs0 || 3.6));
       const err = vsTarget - st.vs;
-      const corr = clamp(err * 1.1, -3, 3) * DEG;
+      // sinking too fast: raise the nose more; floating or ballooning: ease it a little, but never
+      // push it down through the flare attitude (hold it and let the aircraft settle)
+      const corr = clamp(err * 1.1, -1.5, 3) * DEG;
       const ff = 3.0 * clamp(Math.abs(this.flareVs0 || 3.7) / 3.7, 0.9, 1.4);
-      let pitchTarget = this.flarePitch0 + clamp(tf / 1.5, 0, 1) * ff * DEG + corr;
+      const ramp = clamp(tf / 1.5, 0, 1);
+      let pitchTarget = this.flarePitch0 + ramp * ff * DEG + corr;
+      // (the attitude reference: the flare's entry attitude, or the approach's average when a
+      // gust had the nose low as the flare began)
+      const floor0 = this.pitchAvg === undefined ? this.flarePitch0 : Math.max(this.flarePitch0, this.pitchAvg);
+      pitchTarget = Math.max(pitchTarget, floor0 + ramp * 0.5 * ff * DEG);
+      // in the last few feet hold the attitude reached (lowering the nose there only drops the
+      // wheels onto the runway)
+      if (agl < 6 * FT) pitchTarget = Math.max(pitchTarget, st.pitch);
       pitchTarget = Math.min(pitchTarget, this.flarePitch0 + 4.5 * DEG, 6.0 * DEG); // tail-strike protection
       const cmd = (pitchTarget - st.pitch) * 8 - st.q * 1.5 + 0.08 + (this.flareBias || 0);
       inp.pitch = clamp(cmd, -0.3, 0.7);
       if (o.hardLanding) inp.pitch = -0.6;
       // the autothrottle's RETARD: from 27 ft the levers come back to idle, reaching it about as
-      // the wheels touch (above 27 ft in the flare they stay where they are)
+      // the wheels touch; above 27 ft it still holds the speed, so a gust that balloons the
+      // aircraft back up gets thrust again as the speed decays (Boeing: in a balloon hold the
+      // attitude and add thrust as needed) instead of an idle float that ends in a drop; and
+      // with the speed decayed below Vref the thrust stays in to the ground
       if (o.hardLanding) inp.throttle = 0;
-      else if (agl < 27 * FT) inp.throttle = Math.max(0, inp.throttle - dt * AUTOTHROTTLE.retard);
+      else if (agl < 27 * FT) { if (st.ias > st.vref - 5) inp.throttle = Math.max(0, inp.throttle - dt * AUTOTHROTTLE.retard); }
+      else this.throttleForSpeed(this.targetIas, dt);
       void tf;
-      // decrab with rudder and hold the centreline with a wing-low sideslip INTO the wind
-      // (crosswind + = from the right -> right bank), plus drift feedback
+      // decrab with rudder as the wheels near the runway (the crab is gone by 5 ft; a balloon
+      // brings it back), and hold the centreline with a wing-low sideslip INTO the steady
+      // crosswind (+ = from the right -> right bank) plus drift feedback; the bank comes off
+      // towards the ground to keep the engine nacelles clear
       const drift = this.prevLatF === undefined ? 0 : (st.lateralOffset - this.prevLatF) / dt;  // m/s, + = drifting right
       this.prevLatF = st.lateralOffset;
-      let bankCmd = o.noDecrab ? 0 : clamp((st.crosswind * 0.24 - st.lateralOffset * 0.4 - drift * 1.4) * DEG, -6 * DEG, 6 * DEG);
-      inp.roll = clamp((bankCmd - st.roll) * 2.5 - st.p * 1.2, -1, 1);
-      inp.yaw = o.noDecrab ? 0 : clamp(-st.crabDeg * 0.12 - st.r * 0.8, -1, 1);
+      const aglFt = agl / FT, keep = clamp((aglFt - 5) / 20, 0, 1);
+      const crabTarget = (this.crab0 || 0) * keep;
+      const bankLimit = (4 + 2 * clamp((aglFt - 5) / 15, 0, 1)) * DEG;
+      const bankCmd = o.noDecrab ? 0 : clamp((this.xwF * 0.24 * (1 - keep) - st.lateralOffset * 0.3 - drift * 1.6) * DEG, -bankLimit, bankLimit);
+      const rollErrF = bankCmd - st.roll;
+      this.iRoll = clamp(this.iRoll + rollErrF * dt * 1.5, -0.3, 0.3);
+      inp.roll = clamp(rollErrF * 5 - st.p * 1.5 + this.iRoll, -1, 1);
+      inp.yaw = o.noDecrab ? 0 : clamp(-(st.crabDeg - crabTarget) * 0.12 - st.r * 0.8, -1, 1);
       void vsTarget;
       if (st.onGround && st.mainsOnGround) { this.phase = 'rollout'; this.note('touchdown'); }
       if (st.onGround && this.t - this.flareStartT > 3) this.phase = 'rollout';
@@ -168,12 +210,21 @@ export class Autopilot {
   /** The controls this autopilot writes: the aircraft's, or the flight director's shadow copy. */
   target() { return this.inputTarget || this.ac.input; }
 
-  pitchForVs(vsTarget, dt) {
+  pitchForVs(vsTarget, dt, minPitch = -Infinity) {
     const st = this.ac.state, inp = this.target();
     const err = vsTarget - st.vs;   // m/s
     this.iPitch = clamp(this.iPitch + err * dt * 0.02, -0.4, 0.4);
     // pitch input: proportional on VS error, damping on pitch rate
-    inp.pitch = clamp(err * 0.10 + this.iPitch - st.q * 3.0, -0.7, 0.7);
+    let cmd = err * 0.10 + this.iPitch - st.q * 3.0;
+    // an attitude floor: below it, pull back towards it instead
+    if (st.pitch < minPitch + 0.5 * DEG) cmd = Math.max(cmd, (minPitch + 0.5 * DEG - st.pitch) * 8 - st.q * 1.5);
+    inp.pitch = clamp(cmd, -0.7, 0.7);
+  }
+
+  /** Hold a pitch attitude, from the elevator the vertical speed law used on the approach. */
+  pitchForAttitude(pitchTarget) {
+    const st = this.ac.state, inp = this.target();
+    inp.pitch = clamp(this.pitchInAvg + (pitchTarget - st.pitch) * 8 - st.q * 1.5, -0.7, 0.7);
   }
 
   /**
