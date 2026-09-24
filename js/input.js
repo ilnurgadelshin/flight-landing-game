@@ -6,6 +6,7 @@
 //   Speedbrake Space (toggle), X = arm        Brakes     B (hold), N = autobrake cycle
 //   Reversers  R (hold, ground only)          Trim       [ / ]  or PageUp / PageDown
 //   Look down  L (hold), right-drag = look    Mouse yoke click canvas / M, Esc releases
+//   View       C: cockpit / head-up
 //   Pause P · Help H · Reposition Backspace · Menu Esc
 //
 // Touch (phones, tablets): js/touch.js writes this.touch — a spring-return stick and rudder
@@ -60,8 +61,8 @@ export class InputManager {
   padFlying() { const p = this.pad; return p.active && (Math.abs(p.pitch) > 0.3 || Math.abs(p.roll) > 0.3 || Math.abs(p.yaw) > 0.3 || p.thrust !== 0); }
   /** The player is flying through the touch controls right now (used to take over from the autoland demo). */
   touchFlying() { const t = this.touch; return t.stickHeld || t.rudderHeld || t.leverHeld; }
-  /** Tilt steering is on and the device is tilted well away from its neutral position. */
-  tiltFlying() { const t = this.tilt; return this.touchMode && t.active && (Math.abs(t.pitch) > 0.3 || Math.abs(t.roll) > 0.3); }
+  /** Tilt steering is on (and no controller in use) and the device is tilted well away from its neutral position. */
+  tiltFlying() { const t = this.tilt; return this.touchMode && t.active && !this.pad.active && (Math.abs(t.pitch) > 0.3 || Math.abs(t.roll) > 0.3); }
   /** The player is holding a flight control (any device): takes command back from the autoland (js/flightcontrols.js). */
   grabbing() { return this.anyFlightKeyHeld() || this.mouseEngaged || this.touchFlying() || this.tiltFlying() || this.padFlying(); }
   /** Time passes while the autoland flies (the devices do not move the controls). */
@@ -91,6 +92,7 @@ export class InputManager {
         case 'Backspace': this.emit('reposition'); break;
         case 'Escape': if (this.mouseEngaged) this.setMouse(false); else this.emit('menu'); break;
         case 'KeyL': this.look.down = true; break;
+        case 'KeyC': this.emit('camera', 'toggle'); break;
         case 'Enter': this.emit('enter'); break;
         default: break;
       }

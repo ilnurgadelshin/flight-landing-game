@@ -13,6 +13,9 @@ import { AIRCRAFT as AC } from './config.js';
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 const capture = (el, e) => { try { el.setPointerCapture(e.pointerId); } catch (err) { /* synthetic pointer */ } };
 const scale = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--k')) || 1;
+// height of the full layout on the left, in px at --k 1: three rows of configuration buttons
+// (3 × 44 + 2 × 6), a gap, and the thrust lever with TO/GA (206)
+const FULL_HEIGHT = 144 + 6 + 206;
 
 const MARKUP = `
   <div id="t-config">
@@ -39,7 +42,7 @@ const MARKUP = `
   <div id="t-rudder"><span>◀ RUDDER ▶</span><div class="tknob"></div></div>
   <div id="t-stick-zone"><div class="tbase"><div class="tknob"></div></div><span class="tlabel">STICK</span></div>
   <div id="t-sys">
-    <div id="t-view" class="tbtn" role="button"><b>VIEW</b></div>
+    <div id="t-view" class="tbtn" role="button"><b>VIEW</b><small id="t-view-mode">COCKPIT</small></div>
     <div id="t-pause" class="tbtn" role="button" aria-label="Pause"><b>❚❚</b></div>
     <div id="t-help" class="tbtn" role="button" aria-label="Flight School"><b>?</b></div>
   </div>
@@ -63,7 +66,7 @@ export class TouchControls {
       track: this.root.querySelector('.ttrack'), fill: this.root.querySelector('.tfill'), handle: this.root.querySelector('.thandle'), rev: this.root.querySelector('.trev'),
       rudder: $('t-rudder'), rudderKnob: this.root.querySelector('#t-rudder .tknob'),
       zone: $('t-stick-zone'), base: this.root.querySelector('.tbase'), knob: this.root.querySelector('.tbase .tknob'),
-      view: $('t-view'), pause: $('t-pause'), help: $('t-help'), reposition: $('t-reposition'), brake: $('t-brake'),
+      view: $('t-view'), viewMode: $('t-view-mode'), pause: $('t-pause'), help: $('t-help'), reposition: $('t-reposition'), brake: $('t-brake'),
       center: $('t-center'), stickLabel: this.root.querySelector('#t-stick-zone .tlabel'),
     };
     // last rendered text / classes, so a frame only touches what changed (the context buttons start hidden)
@@ -80,13 +83,17 @@ export class TouchControls {
     this.tap(this.el.pause, emit('pause'));
     this.tap(this.el.help, emit('help'));
     this.tap(this.el.reposition, emit('reposition'));
-    this.tap(this.el.view, () => { input.look.down = !input.look.down; });
+    this.tap(this.el.view, () => input.emit('camera', 'cycle'));       // cockpit → panel → head-up
     this.tap(this.el.center, () => { if (this.onCenter) this.onCenter(); });
     this.hold(this.el.brake, (on) => { input.touch.brake = on; });
     this.bindStick();
     this.bindRudder();
     this.bindLever();
     this.bindLook(input.canvas);
+    // a short screen (Safari's toolbars in landscape leave an iPhone 265–330 px) gets the compact
+    // layout (body.compact, css/style.css) when the full one does not fit the controls' height
+    this.layout = () => { const h = this.root.clientHeight; if (h > 0) document.body.classList.toggle('compact', h < FULL_HEIGHT * scale()); };
+    if (typeof ResizeObserver !== 'undefined') new ResizeObserver(this.layout).observe(this.root);
   }
 
   // ------------------------------------------------------------------ buttons
@@ -254,7 +261,10 @@ export class TouchControls {
     this.cls(this.el.flaps, 'flaps', Math.abs(st.flapDeg - detent) > 0.3 ? 'warn' : '');
     this.cls(this.el.arm, 'arm', inp.speedbrakeArmed ? 'on' : '');
     this.cls(this.el.ext, 'ext', st.speedbrake > 0.05 ? 'on' : '');
-    this.cls(this.el.view, 'view', this.input.look.down ? 'on' : '');
+    // VIEW names the view shown: the cockpit, its panel, or the head-up view
+    const view = ctx.view === 'hud' ? 'HEAD-UP' : (this.input.look.down ? 'PANEL' : 'COCKPIT');
+    this.text(this.el.viewMode, 'viewMode', view);
+    this.cls(this.el.view, 'view', view === 'COCKPIT' ? '' : 'on');
     this.cls(this.el.reposition, 'reposition', ctx.gaMode ? '' : 'hidden');
     this.cls(this.el.brake, 'brakeBtn', st.onGround ? (this.input.touch.brake ? 'down' : '') : 'hidden');
     // thrust lever

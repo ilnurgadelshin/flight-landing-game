@@ -1,5 +1,6 @@
 // Game controller support in Node, no browser: the controller module (js/gamepad.js) against a
-// fake navigator.getGamepads(), and InputManager's controller thrust, reverse and hold-off.
+// fake navigator.getGamepads(), InputManager's controller thrust, reverse and hold-off, and
+// controllers as Safari on iPhone reports them.
 //   node test/gamepad.test.mjs
 import { GamepadInput, labelsFor, radial, BUTTONS, PAD } from '../js/gamepad.js';
 
@@ -65,8 +66,9 @@ console.log('\n[G2] Standard controller: sticks, triggers, buttons');
   R.actions.length = 0;
   R.set('Right', 1); R.poll(0.016); R.poll(0.9); R.set('Right', 0); R.poll();
   check('a quick tap that spans a slow frame still arms (fewer than 3 reads)', R.actions.includes('armSpeedbrake') && !R.actions.includes('speedbrake'), R.actions.join(', '));
+  R.actions.length = 0;
   R.set('R3', 1); R.poll(); R.set('R3', 0); R.poll();
-  check('pressing the right stick toggles the panel view', R.input.look.down === true);
+  check('pressing the right stick steps to the next view (cockpit → panel → head-up)', R.actions.includes('camera:cycle'), R.actions.join(', '));
   R.pad.axes[2] = -0.8; R.poll();
   check('right stick = look around', R.input.pad.lookX < -0.6);
   R.pad.axes[2] = 0;
@@ -132,6 +134,38 @@ console.log('\n[G4] InputManager: controller thrust, reverse and hold-off');
   im.opts.invertPitch = false;
   P.active = false; P.pitch = 0.8; im.update(0.1, inp, air); im.update(0.5, inp, air);
   check('a controller not in use drives nothing', inp.pitch === 0 && inp.roll === 0, `pitch ${inp.pitch}`);
+}
+
+console.log('\n[G5] Safari on iPhone and iPad (controllers as WebKit reports them)');
+{
+  // WebKit names a controller "<its name> Extended Gamepad" (no vendor number), maps it to the
+  // standard layout with the PS / Home button as button 16, and has no rumble on iOS
+  const ids = { 'DualSense Wireless Controller Extended Gamepad': '✕', 'DUALSHOCK 4 Wireless Controller Extended Gamepad': '✕', 'Xbox Wireless Controller Extended Gamepad': 'A', 'Pro Controller Extended Gamepad': 'B', 'Joy-Con (L/R) Extended Gamepad': 'B', 'Backbone One - PlayStation Edition Extended Gamepad': '✕' };
+  const wrong = Object.entries(ids).filter(([id, a]) => labelsFor(id).A !== a);
+  check('each family is recognised by the name Safari gives it (PS5, PS4, Xbox, Switch Pro, Joy-Con, Backbone)', !wrong.length, wrong.map(([id]) => id).join(', '));
+  const R = rig({ id: 'DualSense Wireless Controller Extended Gamepad', rumble: false });
+  R.poll();
+  check('a PS5 controller in Safari: standard layout, PlayStation button names, no rumble', R.g.standard && R.g.labels.name === 'PlayStation' && R.g.labels.Menu === 'Options' && R.g.labels.View === 'Create' && !R.g.canRumble);
+  R.set('Menu', 1); R.poll(); R.set('Menu', 0); R.poll();
+  R.set('View', 1); R.poll(); R.set('View', 0); R.poll();
+  check('Options (button 9) is Menu, Create (button 8) is TO/GA', R.actions.includes('padButton:Menu') && R.actions.includes('togaOrReposition'), R.actions.join(', '));
+  R.actions.length = 0;
+  R.pad.buttons[16].pressed = true; R.pad.buttons[16].value = 1; R.poll(); R.pad.buttons[16].pressed = false; R.pad.buttons[16].value = 0; R.poll();
+  check('the PS button (button 16) does nothing in the game', R.actions.every((a) => a === 'padButton:button16'), R.actions.join(', '));
+  let threw = false;
+  try { R.g.rumble(100, 1, 1); } catch (e) { threw = true; }
+  check('rumble without a vibration actuator is skipped quietly', !threw && !R.effects.length);
+}
+
+console.log('\n[G6] Tilt steering and a controller together');
+{
+  const { InputManager } = await import('../js/input.js');
+  const im = new InputManager({ addEventListener() {}, getBoundingClientRect: () => ({ left: 0, top: 0, width: 800, height: 450 }) });
+  im.touchMode = true;
+  Object.assign(im.tilt, { active: true, pitch: 0.6, roll: 0 });
+  const tiltAlone = im.grabbing();
+  im.pad.active = true;
+  check('with a controller in use, the phone tilted in its clip does not take over from the autoland demo', tiltAlone && !im.grabbing());
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

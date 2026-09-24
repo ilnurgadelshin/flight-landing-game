@@ -63,15 +63,15 @@ offline and can be hosted on any static host.
 ### GitHub Pages
 
 The live site is served from the `gh-pages` branch, which holds only the game
-files (`index.html`, `manifest.webmanifest`, `assets/`, `css/`, `icons/`, `js/`, `vendor/`) and an empty `.nojekyll` so
+files (`index.html`, `manifest.webmanifest`, `assets/`, `audio/`, `css/`, `icons/`, `js/`, `vendor/`) and an empty `.nojekyll` so
 GitHub serves them as-is. All asset paths are relative, so the game runs from
 the `/flight-landing-game/` sub-path unchanged. To publish the current `main`:
 
 ```bash
 git fetch origin gh-pages
 git worktree add ../flight-landing-game-site gh-pages
-rm -rf ../flight-landing-game-site/assets ../flight-landing-game-site/css ../flight-landing-game-site/icons ../flight-landing-game-site/js ../flight-landing-game-site/vendor
-cp -R index.html manifest.webmanifest assets css icons js vendor ../flight-landing-game-site/
+rm -rf ../flight-landing-game-site/assets ../flight-landing-game-site/audio ../flight-landing-game-site/css ../flight-landing-game-site/icons ../flight-landing-game-site/js ../flight-landing-game-site/vendor
+cp -R index.html manifest.webmanifest assets audio css icons js vendor ../flight-landing-game-site/
 git -C ../flight-landing-game-site add -A
 git -C ../flight-landing-game-site commit -m "Publish main $(git rev-parse --short HEAD)"
 git -C ../flight-landing-game-site push origin gh-pages
@@ -90,13 +90,57 @@ deployment" in the Actions tab).
    final fully configured, 10 nm standard final, or a 26 nm full approach).
 3. Fly the ILS: keep the magenta localizer and glideslope diamonds centred,
    the airspeed at Vref + 5 (147 kts with flaps 30), and the PAPI showing two
-   white and two red lights.
+   white and two red lights. In strong or gusty wind, add half the steady
+   headwind plus the full gust, up to Vref + 20. Keep the gust part to
+   touchdown. In turbulence, don't chase the airspeed: set the thrust and
+   correct only the speed trend.
 4. Configure on the way down: flaps 5 → 15 → 30, gear down at glideslope
    intercept, arm the speedbrakes, set the autobrake.
-5. At "thirty" raise the nose 2–3°, close the throttles, touch down in the
-   touchdown zone, reversers, brakes, stop.
+5. Below 100 ft, hold the approach attitude: the glideslope is too sensitive
+   to chase that low, and in gusts the nose should not chase the vertical
+   speed either. At "thirty" raise the nose 2–3°, close the throttles, touch
+   down in the touchdown zone, reversers, brakes, stop. If a gust balloons
+   you in the flare, hold the attitude and add a little thrust. Never push
+   the nose down to regain the runway.
 6. Not stable below 500 ft? **Go around**: TOGA, pitch up, gear up, flaps 15,
    then reposition on final or fly a visual circuit.
+
+### Views
+
+Both views are first-person, from the captain's eye point, so the runway
+looks the same in each. The choice is remembered on the device.
+
+- **Cockpit**: the 737 flight deck around you, with its displays and levers.
+  The panel look tilts down to the displays and the pedestal.
+- **Head-up** (`C`, **VIEW**, or the controller's right stick press): the
+  flight deck is hidden and a head-up display is drawn over the outside world,
+  like X-Plane's "forward with HUD" or a 737 flown on its head-up guidance
+  system (HGS). It suits phones, where the flight deck takes half the screen,
+  and it is lighter to draw.
+
+The head-up display's symbols are conformal: each is drawn where it lies in
+the world.
+
+- **Horizon line**, with heading marks, and a **pitch ladder** every 5°
+  (dashed below the horizon).
+- **Aircraft reference** (the small gull wing): where the nose points.
+- **Flight path marker** (the circle with wings): where the aircraft is
+  actually going, including the wind's drift. To land, put it on the
+  touchdown zone and keep it there.
+- **−3° line**: on a normal approach the flight path marker sits on it.
+- **Speed error tape** on the marker's left wing, in the landing
+  configuration. It rises when fast and hangs below when slow; full length is
+  15 kt. The **acceleration caret** beside it sits level with the wing when
+  the speed is steady.
+- **Runway outline** on the approach, useful in fog or rain.
+- **Guidance cue** (Flight School's flight director): fly the marker into the
+  circle.
+- **FLARE** below 50 ft.
+
+The speed, altitude, radio altitude, vertical speed, wind and ILS scales are
+shown at the sides, as on a phone. The display leaves the view when you look
+away. Flight School always shows the cockpit, because its pages point at the
+flight deck.
 
 ### Controls (laptop keyboard + mouse)
 
@@ -113,6 +157,7 @@ deployment" in the Actions tab).
 | Thrust reversers | `R` (hold, ground only) |
 | Trim | `[` / `]` or `PageUp` / `PageDown` (a trim follow-up also runs the stabiliser after a sustained input) |
 | Look down at the pedestal | `L` (hold) · right-mouse drag to look around |
+| View: cockpit / head-up | `C` |
 | Reposition on final (after a go-around) | `Backspace` |
 | Pause / Flight School / menu | `P` / `H` / `Esc` |
 
@@ -144,7 +189,7 @@ own buttons throughout the game.
 | Autobrake | D-pad ← cycles OFF/1/2/3/MAX |
 | Trim | D-pad ↑ nose down / ↓ nose up |
 | TO/GA | View; pressed again during the go-around, it puts you back on final |
-| Look around / at the panel | Right stick (lets go straight ahead) · press it for the panel |
+| Look around / views | Right stick (lets go straight ahead) · press it for the next view: cockpit → panel → head-up |
 | Pause, menus | Menu: start the approach from the menu, pause and resume, skip Flight School, fly again. In menus A confirms and B goes back; in Flight School A / B turn the pages |
 
 - **Switching devices.** The controller is in use from its first press until a
@@ -154,11 +199,22 @@ own buttons throughout the game.
   flight does nothing until it is released, so the A that resumes does not also
   add thrust.
 - **Unplugging.** Unplugging the controller mid-flight pauses the game.
-- **Rumble** (Chrome and Edge): the controller rumbles for the gear locking down,
-  the touchdown (harder for a harder landing), a crash and the stick shaker.
-  *Vibration* in the menu turns it off.
+- **Rumble** (Chrome and Edge, and Safari on a Mac): the controller rumbles for
+  the gear locking down, the touchdown (harder for a harder landing), a crash and
+  the stick shaker. *Vibration* in the menu turns it off.
 - **Phones.** With a controller in use, the touch controls are hidden and the
-  head-up display stays.
+  head-up display stays. Tilt steering, if it is on, waits while the controller
+  is in use, so a phone tilted in a controller clip does not fly the aircraft.
+- **iPhone and iPad** (a PS5 DualSense, PS4, Xbox, Switch Pro or MFi controller
+  paired in Bluetooth settings). Safari reports these controllers in the
+  standard layout, and the PlayStation ones are worded with their own buttons
+  (✕ ○ □ △, Options, Create). The controller's first press counts as a tap in
+  Safari. It starts the sound and keeps the screen awake while a controller is
+  connected, so the game can be played without touching the screen. After a
+  phone call or a trip to another app, the sound needs a tap on the screen,
+  and the game says so. There is no rumble: Safari supports it only on a Mac.
+  Safari keeps the PS button from iOS, and the game gives it nothing to do.
+  Controllers do not work in Lockdown Mode.
 - **Joysticks with their own layout.** They fly pitch and roll with their stick;
   use the keyboard for the rest.
 
@@ -172,13 +228,13 @@ thrust lever that stays where it is left for the other.
 | Control | Touch |
 | --- | --- |
 | Pitch and roll | **Stick** (right thumb): it appears where the thumb lands in the lower right and springs back to centre when released. The aircraft then holds its attitude and trims itself. Stick up = nose up (tick *Pilot-style pitch* for stick up = nose down). Or tick **Tilt to fly** (below) |
-| Thrust | **Thrust lever** at the left edge: drag it, and it stays where you leave it. **TO/GA** on top gives go-around thrust |
+| Thrust | **Thrust lever** at the left edge: drag it, and it stays where you leave it. **TO/GA** on top (beside it on short screens) gives go-around thrust |
 | Thrust reversers | On the ground, pull the lever down past idle into **REV**. It stays there until you push it back up |
 | Rudder / nose-wheel steering | **RUDDER** strip next to the lever; springs back to centre |
 | Gear, flaps, speedbrakes, autobrake | **GEAR**, **FLAPS − / +**, **ARM** and **EXT** (speedbrakes), **A/BRK** buttons at the top left. Each shows its current setting |
-| Wheel brakes | **BRAKE** (hold): appears on the ground |
+| Wheel brakes | **BRAKE** (hold): appears on the ground, above the stick's area |
 | Reposition on final | **REPOSITION**: appears during a go-around |
-| Look around / at the panel | Drag on the windshield (lets go straight ahead) · **VIEW** toggles the panel |
+| Look around / views | Drag on the windshield (lets go straight ahead) · **VIEW** steps cockpit → panel → head-up, and names the one shown |
 | Pause / Flight School | **❚❚** / **?** at the top right |
 
 The head-up display in the windshield shows what is needed to land: speed
@@ -186,6 +242,14 @@ against Vref + 5, N1, altitude, radio altitude, vertical speed, wind, the
 localizer and glideslope diamonds, and the flight director in Flight School.
 Flight School and the instructor hints name the touch controls instead of keys,
 and highlight them.
+
+**Short screens.** In landscape, Safari's address and tab bars leave an
+iPhone's page only 265–330 px tall (Chrome on Android about 300). When the
+full layout does not fit, a compact one takes over. The gear, autobrake,
+flaps and speedbrake buttons sit in two rows of three, and TO/GA moves beside
+the thrust lever, above the rudder strip. The lever takes the height that is
+left. Added to the Home Screen, the game has the whole screen. On short
+screens the menu and results scroll.
 
 ### Tilt to fly
 
@@ -232,8 +296,12 @@ and the buttons, which helps in a crosswind flare.
   video's, plays even with the ring/silent switch set to silent. On older iOS
   versions a silent media element is kept playing for that. After a phone call
   or a trip to the app switcher, the next tap brings the sound back. Untick
-  **Sound & voice callouts** to leave other apps' audio (music) alone. Engine
-  rumble is low-pitched and phone speakers barely reproduce it; headphones do.
+  **Sound & voice callouts** to leave other apps' audio (music) alone. The
+  voice callouts and warnings are recordings played the same way as the engine,
+  so whenever the engine is heard, so are they. Engine rumble is low-pitched and
+  phone speakers barely reproduce it (headphones do), so touchdowns and impacts
+  also carry a tyre chirp, crunch and scrape pitched where a phone speaker
+  plays them.
 - **Interruptions.** Turning the phone upright or switching away from the
   browser pauses the flight. While flying, the screen is kept awake where the
   browser supports it.
@@ -259,7 +327,56 @@ strikes. The physics runs at a fixed 120 Hz through a frame-time accumulator,
 so it is independent of the rendering frame rate.
 
 **Atmosphere** (`js/physics/atmosphere.js`): ISA density, a wind boundary
-layer, gusts and Dryden-style turbulence; each scenario sets these directly.
+layer, and continuous turbulence from the Dryden model of MIL-F-8785C /
+MIL-HDBK-1797. That model is the standard that flight simulators are
+qualified against.
+
+- The gusts are a frozen field the aircraft flies through. Along the track
+  they have a first-order spectrum; across it and vertically they have
+  second-order spectra. Each has a time scale of L / V (length scale over
+  airspeed).
+- Below 1000 ft the length scales and intensities follow the low-altitude
+  formulas. The vertical scale L_w is the height itself;
+  L_u = L_v = h / (0.177 + 0.000823 h)^1.2 (in ft). σ_w is 0.1 × W20, the
+  wind at 20 ft, and σ_u = σ_v = σ_w / (0.177 + 0.000823 h)^0.4. Between
+  1000 and 2000 ft they blend into the medium-altitude values.
+- Close to the ground, the gusts along the track are therefore stronger and
+  quicker. At 50 ft in the storm they are about 6 kt rms and last about 1.3 s;
+  at 500 ft, about 4 kt and 4 s. The vertical gusts get quicker towards the
+  ground too, and the wingspan averages much of them out there: about 1.3 kt
+  rms at 50 ft, against 2.6 kt at 500 ft.
+- The wingspan averages out the smallest lateral and vertical gusts
+  (MIL-F-8785C's gust penetration lag, 4 b / (π V)). The fuselage averages
+  out along-track eddies shorter than about 10 m.
+- The turbulence is what makes a scenario's reported gusts; there is no
+  separate gust model. W20 is raised where the report needs more: a wind
+  gusting G kt above its mean needs W20 ≈ 2.4 G for the peak 3-second gusts
+  at a 20 ft anemometer to reach G. This gives light turbulence in the
+  tailwind (W20 12 kt), light to moderate in the crosswind (19 kt), and
+  moderate to severe in the storm (34 kt, from "22 kt gusting 36"). Clear
+  weather has smooth air.
+
+**Autothrottle** (`js/autopilot.js`, the autoland demo and the test pilot):
+modelled on a 737's in speed mode.
+
+- The approach speed is Vref plus the wind additive: half the steady headwind
+  plus the full gust, between 5 and 20 kt.
+- The speed it controls is the airspeed blended with the aircraft's inertial
+  acceleration (a 5 s complementary filter). Gusts barely reach the thrust
+  levers, while a real change of speed shows at once.
+- A servo moves the levers at up to 8 % of their travel per second when
+  adding thrust, and 4 % when taking it off: Boeing's gust protection, which
+  keeps the average thrust a little high in gusts.
+- From 27 ft, RETARD brings the levers to idle over about 2 s. Above 27 ft
+  the speed mode stays on, so a gust that balloons the aircraft back up in
+  the flare gets thrust again as the speed decays. If the speed has decayed
+  below Vref − 5, the thrust stays in to the ground.
+- The flight mode annunciator on the flight deck's primary flight display
+  shows MCP SPD, RETARD and ARM.
+
+In the storm the levers move a few percent at a time, as a real 737's do,
+between about 45 and 70 %. Before this model they swung between idle and full
+several times a second, chasing every gust.
 
 **World** (`js/world/`): terrain, an airport with a 3000 m × 45 m runway with
 ICAO markings, ALSF-2 approach lights with sequenced flashers, threshold,
@@ -295,6 +412,9 @@ also draws fair-weather cumulus as ray-marched 3D density volumes with self-shad
 the low tier uses the lighter sprite clouds. Cloud-deck visibility and storm physics are shared.
 Asset provenance and the generation prompt are in `assets/README.md`.
 
+**Head-up view** (`js/hud.js`, `js/view.js`): the flight deck hidden and a
+conformal head-up display modelled on the 737's HGS (see *Views* above).
+
 **Cockpit** (`js/cockpit/`): a first-person 737 flight deck with a PFD
 (attitude, airspeed and altitude tapes, vertical speed, ILS deviation,
 heading, flight director), navigation display, engine display (N1, EGT, flap
@@ -306,10 +426,25 @@ yokes and windshield wipers.
 wind, rain and rolling sounds; altitude callouts (2500 … 10), "approaching
 minimums", "minimums", "sink rate", "pull up", "too low gear / flaps /
 terrain", "glideslope", "bank angle", "terrain", stall warning with a stick
-shaker, gear configuration horn, flap overspeed.
+shaker, gear configuration horn, flap overspeed. Touchdowns, hard landings and
+crashes have their own impact sounds (tyre chirp, thump, crunch, metal and
+scrape), and thunder follows lightning. The warnings and impacts are pitched
+and set so that a phone speaker, which plays almost nothing below 400 Hz, still
+plays them well above the engines.
+
+The voice is a set of short recordings in `audio/voice/` (26 phrases, about
+220 KB), played through Web Audio like every other sound. Browsers' built-in
+speech sounds different on each device and often stays silent on iPhone, so it
+is used only for a phrase whose recording failed to load. The phrase list is
+`audio/voice/phrases.json`. `tools/make-voice.py` renders the clips with the
+open Kokoro text-to-speech model (Apache-2.0; its docstring has the setup), and
+band-limits them like a flight-deck speaker. After changing a phrase in the
+code, add it to the list and run the tool; `test/game.test.mjs` fails while a
+spoken phrase has no recording.
 
 **Evaluation** (`js/evaluate.js`): touchdown point, vertical speed, centreline,
-speed, alignment (crab and bank), configuration and stopping are scored;
+speed (in gusts, Vref plus the gust increment carried to touchdown),
+alignment (crab and bank), configuration and stopping are scored;
 failures produce the matching outcome (crash, gear collapse, belly landing,
 runway excursion, overrun, landed short, missed the runway).
 
@@ -381,13 +516,15 @@ a module to what it uses; nothing points back up.
 | `js/game.js` | The rules: state machine, actions, go-around detection, finish and grading, instructor hints; emits events |
 | `js/flightcontrols.js` | The one owner of the aircraft's controls: player or autoland in command, discrete actions, the flight director's copy |
 | `js/avionics.js` | Runway-relative geometry, ILS deviations, Vref, terrain ahead |
-| `js/presentation.js`, `js/view.js` | Sound, vibration and screens from the game's events; the 3D view from the game's state |
+| `js/presentation.js`, `js/view.js` | Sound, vibration and screens from the game's events; the 3D view from the game's state, and the cockpit and head-up views |
+| `js/hud.js` | The head-up view's display: conformal geometry (tested in Node) and its drawing |
 | `js/sim.js` | Fixed 120 Hz simulation loop and approach placement |
 | `js/config.js` | Aircraft data, runway, scenarios and starting points |
 | `js/physics/` | Flight model and landing gear (`aircraft.js`), atmosphere and wind, terrain |
 | `js/world/` | Terrain, airport, runway textures, airfield lights and PAPI, weather; the sky and haze model (`sky.js`); lighting, shadows and post-processing (`scene.js`) |
 | `js/cockpit/` | 3D flight deck and the canvas-drawn displays |
-| `js/input.js`, `js/audio.js`, `js/gpws.js` | Keyboard, mouse yoke and touch input, synthesised sound and voice, warning system |
+| `js/input.js`, `js/audio.js`, `js/gpws.js` | Keyboard, mouse yoke and touch input, synthesised sound and the recorded voice, warning system |
+| `audio/voice/`, `tools/make-voice.py` | The voice callouts and warnings (MP3 clips and their phrase list), and the script that records them |
 | `js/touch.js`, `js/platform.js`, `js/controls.js` | On-screen touch controls; phone support (orientation, full screen, pausing, wake lock, adaptive resolution); the control glossary that words hints for keys, touch or tilt |
 | `js/tilt.js`, `js/haptics.js`, `js/gamepad.js` | Tilt steering from the motion sensor; vibration and controller rumble; game controllers |
 | `manifest.webmanifest`, `icons/`, `tools/make-icons.mjs` | Home-screen app: manifest, icons, and the script that renders the icons |
@@ -421,8 +558,8 @@ draws every scenario by day and night on both graphics tiers.
 
 | Command | What it checks | Time |
 | --- | --- | --- |
-| `npm test` | Node, no browser: physics (62 checks in 12 groups), phone features (54 checks in 7 groups), game controllers (34 checks in 4 groups), the sky model (12 checks in 3 groups) and the game's rules (34 checks in 6 groups), below | ~5 s |
-| `npm run test:e2e` | The real page in Chromium: 204 checks in 16 groups (below), run in 3 parallel processes (`test/e2e-parallel.mjs`) | ~11–15 min |
+| `npm test` | Node, no browser: physics (71 checks in 13 groups), phone features (59 checks in 7 groups), game controllers (40 checks in 6 groups), the sky model (12 checks in 3 groups), the head-up display (23 checks in 5 groups) and the game's rules (43 checks in 8 groups), below | ~5 s |
+| `npm run test:e2e` | The real page in Chromium: 238 checks in 16 groups (below), run in 3 parallel processes (`test/e2e-parallel.mjs`) | ~11–15 min |
 | `npm run test:e2e:quick` | The same without the four landings flown in real time (E9, E11, E13, E15) | ~6 min |
 | `node test/e2e.mjs only=<groups>` | E1 plus the groups listed, in one process, comma-separated: `menu`, `keys`, `school`, `land`, `fail`, `ga`, `fps`, `keyboard`, `mobile`, `touchland`, `tilt`, `tiltland`, `gamepad`, `padland`, `graphics` (e.g. `only=tilt,tiltland`) | 10 s – 3 min each |
 | `npm run test:e2e:serial` | All browser groups in one process | ~25 min |
@@ -469,19 +606,46 @@ queued when a flight starts can hold frames back for up to a second some time la
 11. hands off in a crosswind the aircraft weathervanes into the wind, and pedal
     inputs hold the roll-out within 2° of the runway heading;
 12. the Flight School flight director computes its guidance on its own copy of
-    the controls and never moves the aircraft's, from the approach to the stop.
+    the controls and never moves the aircraft's, from the approach to the stop;
+13. the turbulence follows the Dryden model. At 50 and 500 ft it checks the
+    along-track and lateral intensities and the along-track gusts' time scale
+    L_u / V against the specification, and the vertical intensity at 500 ft.
+    It checks that near the ground the vertical gusts are quicker and
+    averaged out by the wingspan, and the along-track ones stronger and
+    shorter. It checks that the storm's peak 3-second gusts at a 20 ft
+    anemometer come within 5 kt of its reported 14, and that clear weather is
+    smooth.
 
 The autolands are flown by a test pilot (`js/autopilot.js`) that uses only the
-controls a player has.
+controls a player has. It flies as a pilot does:
+
+- From 150 ft down it gradually stops chasing the glideslope (it has stopped
+  by 50 ft). Below 100 ft it holds the approach's average attitude, with only
+  a small correction for the sink rate.
+- It removes the crab with rudder between 25 and 5 ft. It holds the
+  centreline with a wing-low sideslip into the steady crosswind, with the
+  bank limited to 6° and brought back towards 4° at the ground.
+- In a balloon it holds the attitude and never pushes the nose down through
+  it. In the last 6 ft it holds the attitude it has reached.
+
+Over 80 autolands (the four windy and clear scenarios, both final starts,
+10 turbulence seeds each), every one lands on the runway. The average
+touchdown is about 100 fpm in clear weather, 250 fpm in the tailwind, 330 fpm
+in the crosswind and 400 fpm in the storm. The storm's firmest touchdowns are
+about 600 fpm.
 
 `test/e2e.mjs` drives the real page:
 
 - **E1** loads the page with a working WebGL renderer and no errors, and draws a frame.
 - **E2** chooses the mode, conditions and start with the mouse and starts the approach.
-- **E3** presses every mapped key and checks the control it drives.
+- **E3** presses every mapped key and checks the control it drives, and `C` switching to the head-up view and back.
 - **E4** walks through every Flight School step.
-- **E5** autolands in every scenario by day and night and checks the callouts and sounds.
-- **E6** provokes the failures and checks the warnings and outcomes.
+- **E5** autolands in every scenario by day and night and checks the callouts and sounds. The
+  voice recordings load after the first key press, and in one landing with sound on every callout
+  plays its recording, with none left to the browser's speech.
+- **E6** provokes the failures and checks the warnings and outcomes. It also renders sounds offline
+  and checks that, between 400 Hz and 8 kHz (what a phone speaker plays), a touchdown, a hard
+  landing, a crash, a voice warning and the stick shaker are clearly louder than the engines.
 - **E7** flies a keyboard-only go-around from 500 ft and repositions, in Fly the Approach and in Flight School.
 - **E8** checks that simulated time matches the frame time the game loop hands the physics, at any frame rate, and that the 4× time scale runs the physics 4× as fast.
 - **E9** lands with real mouse-yoke and keyboard events.
@@ -491,12 +655,16 @@ controls a player has.
   - every touch control sits inside the safe area, with no overlaps and targets
     of at least 34×40 px, also on an iPhone SE, an iPhone 13 mini and a 640×360
     Android;
+  - the same on short screens (iPhones with Safari's toolbars at 265–320 px, and
+    Android Chrome at 304 px), where the compact layout is used. Each size is
+    checked with BRAKE, REPOSITION and tilt's CENTER shown, and the thrust lever
+    must keep at least 80 px of travel;
   - the head-up display replaces the readout strip;
   - each button drives its control;
   - two thumbs work at once, the stick and rudder spring back and the lever
     stays put;
   - the reverse gate stays shut in the air;
-  - look-around, VIEW, TO/GA and REPOSITION work;
+  - look-around, VIEW (cockpit → panel → head-up), TO/GA and REPOSITION work;
   - rotating the phone or leaving the browser pauses the flight;
   - touching the stick takes over from the autoland demo;
   - Flight School and the instructor name the touch controls and highlight them.
@@ -526,7 +694,7 @@ controls a player has.
   - the connection message, and Menu starting the approach;
   - the stick with and without pilot-style pitch;
   - the triggers, thrust, gear, flaps, autobrake, speedbrakes (tap and hold),
-    trim, brakes and look-around;
+    trim, brakes and look-around, and the right stick press stepping through the views;
   - rumble at gear lock;
   - View for TO/GA, then back on final;
   - pause and resume, and a resume that adds no thrust;
@@ -536,7 +704,14 @@ controls a player has.
   - PlayStation button names;
   - unplugging mid-flight;
   - a joystick with its own layout;
-  - the touch controls hiding on a phone.
+  - the touch controls hiding on a phone;
+  - an iPhone with a PS5 controller, as Safari reports it ("… Extended
+    Gamepad", no rumble, the PS button as button 16) and with Safari's wake
+    lock rule (granted only to a request made in a gesture). Its first press
+    (Safari's gamepadconnected gesture) starts the sound and keeps the screen
+    awake; Options starts the flight; there is no Vibration option. After the
+    sound is interrupted, "Tap the screen for sound" shows until a tap brings
+    it back. Without the controller, the screen may sleep again.
 - **E15** lands with the controller only: stick, A/B thrust, triggers, buttons,
   reverse by holding B, stowed with A. It checks the touchdown rumble.
 - **E16** checks the graphics tiers, and draws every scenario by day and night on both tiers
@@ -550,7 +725,14 @@ controls a player has.
     with the sun off, because sunlight comes in through the windows.
 
   It also checks sunshine above a cloud deck and overcast light inside and
-  below it, and stars, moonlight and glowing lights at night.
+  below it, and stars, moonlight and glowing lights at night. In the head-up
+  view it checks:
+  - the flight deck is not drawn (fewer draw calls) and the land shows where
+    the panel was;
+  - the head-up display is drawn;
+  - on short final the flight path marker is on the −3° line and the runway;
+  - Flight School switches to the cockpit and back;
+  - the choice survives a reload.
 
 The other browser groups run on the fast low tier with the 3D drawing off.
 
@@ -570,7 +752,9 @@ The other browser groups run on the fast low tier with the 3D drawing off.
    switch (the Audio Session API, or a silent looping media element on older
    iOS). Speech is unlocked with an empty utterance. The next tap brings the
    sound back after an interruption. Switching sound off releases other apps'
-   audio.
+   audio. The voice recordings load after the first tap. A callout plays its
+   recording rather than the browser's speech, one at a time, and an urgent
+   warning cuts in. A phrase without a recording falls back to speech.
 
 `test/sky.test.mjs` checks the atmosphere model in Node:
 
@@ -581,6 +765,18 @@ The other browser groups run on the fast low tier with the 3D drawing off.
    sunlight and the sky is dark. Under an overcast the sky and its light are
    one grey;
 3. colours given as they should look on screen tone-map back to themselves.
+
+`test/hud.test.mjs` checks the head-up display's geometry in Node, against the exact projection of
+a camera placed like the game's:
+
+1. the horizon is 6° above the middle in level flight and drops as the nose rises; the ladder
+   rungs are at their angles, dashed below the horizon; the heading marks put "27" ahead;
+2. in a 20° bank the horizon and the rungs tilt 20°;
+3. on a 3° path the flight path marker is on the −3° line and on the aiming point it heads for,
+   inside the runway outline. It is 5° left of the nose when crabbed 5° into a crosswind. There
+   is no outline on the ground and no marker when stopped;
+4. the speed error tape, the acceleration caret, the guidance cue and the FLARE cue;
+5. the field of view is about 100° across on a computer screen and on a wide phone.
 
 `test/game.test.mjs` runs the game's rules in Node, with no browser, recording their events:
 
@@ -594,7 +790,16 @@ The other browser groups run on the fast low tier with the 3D drawing off.
 5. training: Flight School before and during the flight, the flight director, the checklist, the
    instructor;
 6. one owner of the controls: actions report what changed; the flight director never moves the
-   aircraft's controls.
+   aircraft's controls;
+7. every phrase the game speaks is in the voice phrase list, the list has nothing else, and each
+   phrase has its MP3 file;
+8. the autoland's autothrottle in the storm:
+   - the approach speed is Vref plus the wind additive;
+   - the levers move no faster than the servo's 8 %/s up and 4 %/s down, reverse fewer than 15
+     times a minute, and never reach idle or full on the approach;
+   - the controlled speed changes at under half the airspeed's rate (gusts filtered), with
+     Vref + 20 held on average;
+   - the flight mode annunciator shows MCP SPD → RETARD → ARM, and the landing succeeds.
 
 `test/gamepad.test.mjs` checks the controller module against a fake
 `navigator.getGamepads()`, and InputManager's controller thrust:
@@ -606,7 +811,10 @@ The other browser groups run on the fast low tier with the 3D drawing off.
 3. joysticks with their own layout: stick only;
 4. thrust at the keyboard's rate; the hold-off after a start; reverse only on
    the ground after 0.4 s of B at idle; stowing with A without added thrust;
-   pilot-style pitch; a controller not in use drives nothing.
+   pilot-style pitch; a controller not in use drives nothing;
+5. controllers as Safari on iPhone and iPad reports them: each family by its name, a PS5 controller's
+   Options and Create, the PS button doing nothing, no rumble;
+6. tilt steering does not take over from the autoland demo while a controller is in use.
 
 Screenshots go to `test/output/`.
 

@@ -290,5 +290,46 @@ console.log('\n[12] Flight School flight director: computes guidance on its own 
   check('the aircraft, flown only by the player, lands and stops', !!sim.aircraft.touchdown && sim.state.groundSpeed < 0.5, `ground speed ${fmt(sim.state.groundSpeed, 1)} m/s`);
 }
 
+console.log('\n[13] Turbulence: the Dryden model of MIL-F-8785C at low altitude');
+{
+  const { Atmosphere } = await import('../js/physics/atmosphere.js');
+  const { SCENARIOS } = await import('../js/config.js');
+  const dt = 1 / 120, V = 75, hdg = 270 * DEG;
+  // a long flight at a fixed height and airspeed, heading 270: u along −X, v along −Z, w up
+  const sample = (scenario, aglFt, seconds = 1500, seed = 3, speed = V) => {
+    const a = new Atmosphere(scenario, seed), u = [], v = [], w = [];
+    for (let i = 0; i < seconds / dt; i++) {
+      a.step(dt, { agl: aglFt * FT, tas: speed, heading: hdg });
+      if (i % 4 === 0) { u.push(-a.turb[0]); v.push(-a.turb[2]); w.push(a.turb[1]); }
+    }
+    return { a, u, v, w, dt: dt * 4 };
+  };
+  const sd = (x) => { const m = x.reduce((p, q) => p + q, 0) / x.length; return Math.sqrt(x.reduce((p, q) => p + (q - m) ** 2, 0) / x.length); };
+  const corrTime = (x, step) => { const m = x.reduce((p, q) => p + q, 0) / x.length, var0 = x.reduce((p, q) => p + (q - m) ** 2, 0) / x.length;
+    for (let lag = 1; lag < 2000; lag++) { let c = 0; for (let i = 0; i + lag < x.length; i++) c += (x[i] - m) * (x[i + lag] - m); if (c / (x.length - lag) / var0 < 1 / Math.E) return lag * step; } return Infinity; };
+  const storm = SCENARIOS.storm;
+  for (const h of [50, 500]) {
+    const r = sample(storm, h), S = r.a.drydenScales(h * FT);
+    check(`${h} ft: along-track and lateral intensities as specified (σu = σv = σw / (0.177 + 0.000823 h)^0.4)`, Math.abs(sd(r.u) / S.su - 1) < 0.15 && Math.abs(sd(r.v) / S.sv - 1) < 0.25, `σu ${fmt(sd(r.u) / KTS)} kt (spec ${fmt(S.su / KTS)}), σv ${fmt(sd(r.v) / KTS)} kt`);
+    const tu = corrTime(r.u, r.dt);
+    check(`${h} ft: along-track gusts last L_u / V (${fmt(S.Lu / V)} s)`, Math.abs(tu / (S.Lu / V) - 1) < 0.3, `${fmt(tu)} s`);
+    if (h === 500) check('500 ft: vertical intensity σw = 0.1 W20 (the span barely averages gusts this large)', Math.abs(sd(r.w) / S.sw - 1) < 0.25, `σw ${fmt(sd(r.w) / KTS)} kt (spec ${fmt(S.sw / KTS)})`);
+    if (h === 50) {
+      const r500 = sample(storm, 500);
+      check('near the ground the vertical gusts are quicker and the wingspan averages them out', sd(r.w) < 0.8 * sd(r500.w) && corrTime(r.w, r.dt) < corrTime(r500.w, r500.dt), `σw ${fmt(sd(r.w) / KTS)} kt at 50 ft, ${fmt(sd(r500.w) / KTS)} kt at 500 ft`);
+      check('and the along-track gusts stronger and shorter than at 500 ft', sd(r.u) > sd(r500.u) && tu < corrTime(r500.u, r500.dt), `σu ${fmt(sd(r.u) / KTS)} vs ${fmt(sd(r500.u) / KTS)} kt`);
+    }
+  }
+  // the storm is reported 22 kt gusting 36: the peak 3-second gust in each 10 minutes at a fixed
+  // anemometer 20 ft up, which the air passes at the wind speed
+  const w20 = new Atmosphere(storm).meanWind(20 * FT, [0, 0, 0]);
+  const g = sample(storm, 20, 3000, 3, Math.hypot(w20[0], w20[2])), win = Math.round(3 / g.dt), per = Math.round(600 / g.dt), peaks = [];
+  for (let s0 = 0; s0 + per <= g.u.length; s0 += per) { let best = -Infinity; for (let i = s0; i + win <= s0 + per; i += 2) { let m = 0; for (let j = i; j < i + win; j++) m += g.u[j]; best = Math.max(best, m / win); } peaks.push(best / KTS); }
+  const peak = peaks.reduce((p, q) => p + q, 0) / peaks.length;
+  check('the storm\'s turbulence makes its reported gusts: 3-second peaks about 14 kt above the mean', Math.abs(peak - storm.gustKts) < 5, `${fmt(peak)} kt above the mean (reported ${storm.gustKts})`);
+  const calm = sample(SCENARIOS.clear, 200, 60);
+  check('clear weather: smooth air', sd(calm.u) === 0 && sd(calm.w) === 0);
+}
+
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failed) { console.log('Failed: ' + results.join(' | ')); process.exit(1); }

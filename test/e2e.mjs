@@ -156,6 +156,11 @@ if (want('keys')) {
   check('A applies left rudder', ya.r < -0.005 || ya.beta > 0.5 * Math.PI / 180, `r=${fmt(ya.r * 57.3)}°/s beta=${fmt(ya.beta * 57.3)}°`);
   await page.keyboard.down('KeyL'); await frames(8); const camL = await page.evaluate(() => window.__sim.world.camera.rotation.x); await page.keyboard.up('KeyL');
   check('L looks down at the pedestal', camL < -0.5, `cam pitch ${fmt(camL * 57.3)}°`);
+  const viewNow = () => page.evaluate(() => { const w = window.__sim.world; return { mode: window.__sim.view.shown, body: document.body.classList.contains('view-hud'), deck: w.drawCockpit !== false, fov: +w.camera.fov.toFixed(1), pitch: +(w.camera.rotation.x * 57.3).toFixed(1) }; });
+  const settled = () => page.waitForFunction(() => window.__sim.cockpit.lookDown < 0.005, null, { timeout: 30000 });   // the look eases back from L
+  await settled(); await tap('KeyC'); await frames(3); const hv = await viewNow();
+  await tap('KeyC'); await frames(3); const cv = await viewNow();
+  check('C switches to the head-up view (no flight deck, the eye 6° below the nose) and back', hv.mode === 'hud' && hv.body && !hv.deck && Math.abs(hv.pitch + 6) < 0.5 && cv.mode === 'cockpit' && !cv.body && cv.deck && cv.fov === 70 && Math.abs(cv.pitch + 15) < 0.5, `head-up ${JSON.stringify(hv)}, cockpit ${JSON.stringify(cv)}`);
   // mouse yoke
   await page.mouse.click(VW / 2, VH / 2); await frames(2);
   check('click engages the mouse yoke', await page.evaluate(() => window.__sim.inputManager.mouseEngaged));
@@ -238,10 +243,17 @@ async function autoland(scenarioId, startId, apOpts = {}, extra = {}) {
 const said = (r, re) => r.audio.some((a) => a.kind === 'voice' && re.test(a.text));
 
 if (want('land')) {
-  section('E5', 'Autoland in every scenario, day and night, with GPWS callouts');
+  section('E5', 'Autoland in every scenario, day and night, with GPWS callouts in the recorded voice');
+  // the voice is recorded clips played through Web Audio like the engines (an iPhone plays nothing
+  // else reliably); they load after the first key press or tap
+  await page.keyboard.press('Shift');
+  const clips = await page.evaluate(async () => { const a = window.__sim.audio; return { n: await a.clipsReady, state: a.ctx && a.ctx.state }; });
+  const nPhrases = JSON.parse(fs.readFileSync(path.join(root, 'audio', 'voice', 'phrases.json'), 'utf8')).phrases.length;
+  check(`the voice recordings load after the first key press (${nPhrases} phrases)`, clips.n === nPhrases, `${clips.n} decoded, sound ${clips.state}`);
   const cases = [['clear', 'short', false], ['tailwind', 'short', false], ['crosswind', 'short', false], ['storm', 'short', true], ['clear', 'standard', true]];
   for (const [sc, st, night] of cases) {
-    const r = await autoland(sc, st, {}, { shotName: `e2e-land-${sc}${night ? '-night' : ''}`, night });
+    const sound = sc === 'clear' && st === 'short';   // one landing with the sound on
+    const r = await autoland(sc, st, {}, { shotName: `e2e-land-${sc}${night ? '-night' : ''}`, night, startOpts: { sound } });
     const td = r.result && r.result.touchdown;
     console.log(`  ${sc}/${st}${night ? ' night' : ''}: ${r.result ? `${r.result.outcome} ${r.result.score} ${r.result.grade} — ${r.result.headline}` : 'no result'} | td ${td ? `${fmt(td.sink / 0.00508, 0)} fpm @ ${fmt(td.distFromThreshold, 0)} m` : '-'}`);
     check(`${sc}: results screen shown with a successful landing`, r.resultsVisible && r.result && r.result.success, r.headline);
@@ -249,6 +261,11 @@ if (want('land')) {
     check(`${sc}: "Minimums" called`, said(r, /Minimums/));
     check(`${sc}: touchdown sound played`, r.audio.some((a) => a.kind === 'sound' && /touchdown|hardlanding/.test(a.text)));
     check(`${sc}: no GPWS warnings during a good approach`, !r.gpws.some((e) => e.type === 'warning'), r.gpws.filter((e) => e.type !== 'callout').map((e) => e.text).join(', '));
+    if (sound) {
+      // at 16× time many callouts are dropped as stale; the ones spoken must all be recordings
+      const spoken = r.audio.filter((a) => a.kind === 'voice' && a.via), fallbacks = await page.evaluate(() => window.__sim.audio.fallbacks);
+      check(`${sc}: the callouts play the recordings, none left to the browser's speech`, spoken.length >= 3 && spoken.every((a) => a.via === 'clip') && !fallbacks.length, `${spoken.map((a) => `${a.text} (${a.via})`).join(', ').slice(0, 140)}${fallbacks.length ? ' | fallbacks: ' + fallbacks.join(', ') : ''}`);
+    }
   }
 }
 
@@ -260,6 +277,46 @@ if (want('fail')) {
   check('gear-up: "Too low, gear" warning and the configuration horn', said(r, /Too low, gear/) && r.gpws.some((e) => e.type === 'horn'), r.gpws.map((e) => e.text).join(', ').slice(0, 100));
   check('gear-up: belly landing outcome on the results screen', r.result && r.result.outcome === 'belly' && /BELLY/.test(r.outcome));
   check('gear-up: crash sound and screen flash', r.audio.some((a) => a.text === 'crash') && r.events.some((e) => e.type === 'damage'));
+  // a phone speaker plays little below 400 Hz, so a thud is not enough: each sound rendered offline
+  // and its loudest 200 ms between 400 Hz and 8 kHz compared with the engines' (dBFS)
+  const band = await page.evaluate(async () => {
+    const { AudioSystem } = await import(new URL('js/audio.js', location.href).href);
+    const fft = (re, im) => {
+      const n = re.length;
+      for (let i = 1, j = 0; i < n; i++) { let bit = n >> 1; for (; j & bit; bit >>= 1) j ^= bit; j ^= bit; if (i < j) { [re[i], re[j]] = [re[j], re[i]]; [im[i], im[j]] = [im[j], im[i]]; } }
+      for (let len = 2; len <= n; len <<= 1) {
+        const a = -2 * Math.PI / len, wr = Math.cos(a), wi = Math.sin(a);
+        for (let i = 0; i < n; i += len) for (let k = 0, cr = 1, ci = 0; k < len / 2; k++) {
+          const p = i + k, q = p + len / 2, vr = re[q] * cr - im[q] * ci, vi = re[q] * ci + im[q] * cr;
+          re[q] = re[p] - vr; im[q] = im[p] - vi; re[p] += vr; im[p] += vi;
+          const t = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = t;
+        }
+      }
+    };
+    const st = (n1, kts, onGround) => ({ n1: [n1, n1], reverser: 0, tasKts: kts, speedbrake: 0, gearDown: true, groundSpeed: kts * 0.514, onGround, surface: 'runway', skidding: false, stallWarning: false });
+    const out = {};
+    for (const name of ['approach', 'rollout', 'touchdown', 'hardlanding', 'crash', 'voice', 'shaker']) {
+      const fs = 48000, N = 1 << 18, ctx = new OfflineAudioContext(1, N, fs), a = new AudioSystem();
+      a.init(ctx);
+      if (name === 'approach') a.update(0.016, st(0.55, 145, false), {}); else if (name === 'rollout') a.update(0.016, st(0.3, 110, true), {});
+      else if (name === 'voice') { await a.loadClips(); a.say('Sink rate', { priority: 2 }); } else if (name === 'shaker') a.startStickShaker(); else a.play(name);
+      const re = Float64Array.from((await ctx.startRendering()).getChannelData(0)), im = new Float64Array(N);
+      fft(re, im);
+      for (let k = 0; k < N; k++) { const f = Math.min(k, N - k) * fs / N; if (f < 400 || f > 8000) { re[k] = 0; im[k] = 0; } im[k] = -im[k]; }
+      fft(re, im);
+      const w = fs * 0.2; let acc = 0, best = 0;
+      for (let i = 0; i < N; i++) { const y = re[i] / N, z = i >= w ? re[i - w] / N : 0; acc += y * y - z * z; best = Math.max(best, acc); }
+      out[name] = 10 * Math.log10(best / w + 1e-12);
+    }
+    return out;
+  });
+  const dB = (k) => `${fmt(band[k])} dB`;
+  console.log(`  phone band: approach ${dB('approach')}, roll-out ${dB('rollout')}, touchdown ${dB('touchdown')}, hard landing ${dB('hardlanding')}, crash ${dB('crash')}, "Sink rate" ${dB('voice')}, stick shaker ${dB('shaker')}`);
+  check('on a phone speaker a touchdown is heard over the roll-out (≥ 5 dB)', band.touchdown - band.rollout >= 5, fmt(band.touchdown - band.rollout) + ' dB');
+  check('a hard landing clearly over it (≥ 10 dB)', band.hardlanding - band.rollout >= 10, fmt(band.hardlanding - band.rollout) + ' dB');
+  check('a crash over the engines on approach (≥ 8 dB)', band.crash - band.approach >= 8, fmt(band.crash - band.approach) + ' dB');
+  check('the voice warnings over the engines on approach (≥ 8 dB)', band.voice - band.approach >= 8, fmt(band.voice - band.approach) + ' dB');
+  check('the stick shaker over them too (≥ 4 dB)', band.shaker - band.approach >= 4, fmt(band.shaker - band.approach) + ' dB');
 
   r = await autoland('clear', 'short', { noFlare: true }, {});
   console.log(`  no flare: ${r.outcome} — ${r.headline}`);
@@ -444,22 +501,43 @@ if (want('mobile')) {
   check('the head-up display is clear of the buttons and levers', lay.hgsHits.length === 0, lay.hgsHits.join(', '));
   check('the head-up display replaces the desktop readout strip', lay.strip === 'none' && /^\d+$/.test(lay.ias) && /^\d+$/.test(lay.alt), `IAS ${lay.ias}, ALT ${lay.alt}`);
   await snap(mp, 'e2e-phone-flying');
-  // the same rules on smaller phones: iPhone SE and a 640×360 Android (no notch), and the narrowest
-  // notched iPhone (13 mini, 812×375 with 50 px side insets)
+  // the same rules on other phones, in each state that shows other buttons (BRAKE on the ground,
+  // REPOSITION in a go-around, CENTER with tilt): iPhone SE and a 640×360 Android (no notch), the
+  // narrowest notched iPhone (13 mini, 812×375 with 50 px side insets), and short screens, where
+  // Safari's address and tab bars in landscape leave 265–330 px (the compact layout)
   const setSafe = (s) => mp.evaluate((s) => { const st = document.documentElement.style; st.setProperty('--sal', s.l + 'px'); st.setProperty('--sar', s.r + 'px'); st.setProperty('--sat', s.t + 'px'); st.setProperty('--sab', s.b + 'px'); }, s);
-  for (const vp of [{ width: 667, height: 375, safe: { l: 0, r: 0, t: 0, b: 0 } }, { width: 640, height: 360, safe: { l: 0, r: 0, t: 0, b: 0 } }, { width: 812, height: 375, safe: { l: 50, r: 50, t: 0, b: 21 } }]) {
-    await mp.setViewportSize({ width: vp.width, height: vp.height }); await setSafe(vp.safe); await mf(2);
-    const small = await mp.evaluate(() => {
-      const ids = ['t-gear', 't-autobrake', 't-flaps-up', 't-flaps-dn', 't-arm', 't-ext', 't-toga', 't-lever-body', 't-rudder', 't-stick-zone', 't-view', 't-pause', 't-help', 'hgs'];
-      const rects = ids.map((id) => { const r = document.getElementById(id).getBoundingClientRect(); return { id, l: r.left, t: r.top, r: r.right, b: r.bottom, w: r.width, h: r.height }; });
-      const hit = (a, b) => a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b;
+  const N0 = { l: 0, r: 0, t: 0, b: 0 };
+  const SIZES = [
+    { width: 667, height: 375, safe: N0 }, { width: 640, height: 360, safe: N0 }, { width: 812, height: 375, safe: { l: 50, r: 50, t: 0, b: 21 } },
+    { width: 932, height: 320, safe: SAFE, name: 'iPhone Pro Max, Safari with tab bar' }, { width: 852, height: 283, safe: SAFE, name: 'iPhone 15, Safari with tab bar' },
+    { width: 812, height: 265, safe: { l: 50, r: 50, t: 0, b: 21 }, name: 'iPhone 13 mini, Safari with tab bar' }, { width: 667, height: 265, safe: N0, name: 'iPhone SE, Safari with tab bar' },
+    { width: 640, height: 304, safe: N0, name: 'Android, Chrome' },
+  ];
+  for (const vp of SIZES) {
+    await mp.setViewportSize({ width: vp.width, height: vp.height }); await setSafe(vp.safe); await mf(3);
+    const bad = await mp.evaluate((S) => {
       const bad = [];
-      for (const r of rects) if (r.l < 0 || r.t < 0 || r.r > innerWidth || r.b > innerHeight) bad.push(r.id + ' off screen');
-      for (let i = 0; i < rects.length; i++) for (let j = i + 1; j < rects.length; j++) if (!(rects[i].id === 'hgs' && rects[j].id === 't-stick-zone') && !(rects[j].id === 'hgs' && rects[i].id === 't-stick-zone') && hit(rects[i], rects[j])) bad.push(rects[i].id + '/' + rects[j].id);
-      for (const r of rects) if (r.id !== 'hgs' && (r.w < 34 || r.h < 39)) bad.push(`${r.id} ${Math.round(r.w)}×${Math.round(r.h)}`);
+      for (const state of ['air', 'go-around', 'ground', 'tilt']) {
+        const show = (id, on) => document.getElementById(id).classList.toggle('hidden', !on);
+        show('t-reposition', state === 'go-around'); show('t-brake', state === 'ground'); document.body.classList.toggle('tilt', state === 'tilt');
+        const ids = ['t-gear', 't-autobrake', 't-flaps-up', 't-flaps-dn', 't-arm', 't-ext', 't-toga', 't-lever-body', 't-rudder', 't-stick-zone', 't-view', 't-pause', 't-help', 't-reposition', 't-brake', 't-center', 'hgs'];
+        const rects = ids.map((id) => { const r = document.getElementById(id).getBoundingClientRect(); return { id, l: r.left, t: r.top, r: r.right, b: r.bottom, w: r.width, h: r.height }; }).filter((r) => r.w > 0);
+        const hit = (a, b) => a.l < b.r - 0.5 && b.l < a.r - 0.5 && a.t < b.b - 0.5 && b.t < a.b - 0.5;
+        // the head-up display and CENTER may lie over the stick's area (it has no drawn edge)
+        const allowed = (a, b) => [a, b].includes('t-stick-zone') && ([a, b].includes('hgs') || [a, b].includes('t-center'));
+        for (const r of rects) if (r.id !== 'hgs' && (r.l < S.l - 0.5 || r.t < S.t - 0.5 || r.r > innerWidth - S.r + 0.5 || r.b > innerHeight - S.b + 0.5)) bad.push(`${state}: ${r.id} outside the safe area`);
+        for (let i = 0; i < rects.length; i++) for (let j = i + 1; j < rects.length; j++) if (!allowed(rects[i].id, rects[j].id) && hit(rects[i], rects[j])) bad.push(`${state}: ${rects[i].id}/${rects[j].id}`);
+        for (const r of rects) if (!['hgs', 't-stick-zone'].includes(r.id) && (r.w < 34 || r.h < 39)) bad.push(`${state}: ${r.id} ${Math.round(r.w)}×${Math.round(r.h)}`);
+        // the thrust lever keeps a usable travel
+        const tr = document.querySelector('#t-lever .ttrack').getBoundingClientRect().height;
+        if (tr < 80) bad.push(`${state}: lever travel ${Math.round(tr)} px`);
+      }
+      document.getElementById('t-reposition').classList.add('hidden'); document.getElementById('t-brake').classList.add('hidden'); document.body.classList.remove('tilt');
       return bad;
-    });
-    check(`${vp.width}×${vp.height}: controls on screen, apart, at least 34×39 px`, small.length === 0, small.join(', '));
+    }, vp.safe);
+    const compact = await mp.evaluate(() => document.body.classList.contains('compact'));
+    check(`${vp.width}×${vp.height}${vp.name ? ` (${vp.name})` : ''}: controls inside the safe area, apart, at least 34×39 px, lever travel ≥ 80 px, in every state`, bad.length === 0, bad.join(', ') || (compact ? 'compact layout' : 'full layout'));
+    if (vp.width === 932 && vp.height === 320) await snap(mp, 'e2e-phone-safari-toolbars');
   }
   await mp.setViewportSize({ width: 852, height: 393 }); await setSafe(SAFE); await mf(2);
 
@@ -508,10 +586,11 @@ if (want('mobile')) {
   await fingers.up(5); await mf(1);
   const lk2 = await mp.evaluate(() => window.__sim.inputManager.look.yaw);
   check('dragging on the windshield looks around and lets go straight ahead', Math.abs(lk) > 0.3 && lk2 === 0, `look yaw ${fmt(lk, 2)} → ${lk2}`);
-  await mp.tap('#t-view'); await mf(1);
-  const v1 = await mp.evaluate(() => window.__sim.inputManager.look.down);
-  await mp.tap('#t-view'); await mf(1);
-  check('VIEW toggles the panel view', v1 === true && !(await mp.evaluate(() => window.__sim.inputManager.look.down)));
+  const vstate = () => mp.evaluate(() => ({ down: window.__sim.inputManager.look.down, mode: window.__sim.view.mode, label: document.getElementById('t-view-mode').textContent }));
+  await mp.tap('#t-view'); await mf(2); const v1 = await vstate();
+  await mp.tap('#t-view'); await mf(2); const v2 = await vstate();
+  await mp.tap('#t-view'); await mf(2); const v3 = await vstate();
+  check('VIEW cycles cockpit → panel → head-up → cockpit, and says which', v1.down && v1.mode === 'cockpit' && v1.label === 'PANEL' && !v2.down && v2.mode === 'hud' && v2.label === 'HEAD-UP' && !v3.down && v3.mode === 'cockpit' && v3.label === 'COCKPIT', JSON.stringify([v1, v2, v3]));
 
   // go-around and reposition through the buttons
   await mp.tap('#t-toga'); await mf(2);
@@ -772,8 +851,26 @@ if (!quick && want('tiltland')) {
 // --------------------------------------------------------------------------- game controller
 // Browsers cannot emulate a controller: test/gamepad-stub.browser.js replaces navigator.getGamepads()
 // with a standard-layout controller that the test presses (held until the game has read it).
-async function padPage({ phone = false } = {}) {
-  const ctx = await browser.newContext(phone ? { viewport: { width: 852, height: 393 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true } : { viewport: { width: 1024, height: 576 } });
+const IPHONE_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1';
+// iphone: Safari's rules where Chromium differs. No navigator.vibrate, and a screen wake lock
+// granted only to a request made during a gesture (then to any; WebKit's WakeLock::request).
+// window.__gesture marks the test's stand-in for a gesture; requests and releases go to __locks.
+async function padPage({ phone = false, iphone = false } = {}) {
+  const ctx = await browser.newContext(phone ? { viewport: { width: 852, height: 393 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true, ...(iphone ? { userAgent: IPHONE_UA } : {}) } : { viewport: { width: 1024, height: 576 } });
+  if (iphone) await ctx.addInitScript(() => {
+    delete Navigator.prototype.vibrate;
+    window.__gesture = false; window.__locks = []; let authorized = false;
+    const request = (type) => {
+      const granted = window.__gesture || authorized;
+      if (window.__gesture) authorized = true;
+      window.__locks.push({ type, gesture: window.__gesture, granted });
+      if (!granted) return Promise.reject(new DOMException('Permission was denied', 'NotAllowedError'));
+      const s = new EventTarget();
+      s.release = () => { window.__locks.push({ release: true }); s.dispatchEvent(new Event('release')); return Promise.resolve(); };
+      return Promise.resolve(s);
+    };
+    Object.defineProperty(navigator, 'wakeLock', { configurable: true, value: { request } });
+  });
   const pp = await ctx.newPage();
   pp.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') consoleErrors.push(`[pad ${m.type()}] ${m.text()}`); });
   pp.on('pageerror', (e) => consoleErrors.push(`[pad pageerror] ${e.message}`));
@@ -841,6 +938,9 @@ if (want('gamepad')) {
   s = await PS();
   check('right stick looks around and lets go; pressing it shows the panel', lookOn > 0.5 && s.look.yaw === 0 && s.look.down === true, `look ${fmt(lookOn, 2)} → ${s.look.yaw}, panel ${s.look.down}`);
   await tapPad('R3');
+  const padHud = await pp.evaluate(() => window.__sim.view.mode);
+  await tapPad('R3');
+  check('pressing it again: the head-up view, then the cockpit again', padHud === 'hud' && await pp.evaluate(() => window.__sim.view.mode === 'cockpit' && !window.__sim.inputManager.look.down), padHud);
   await pp.evaluate(() => { window.__rumble.length = 0; }); await tapPad('Y'); await tapPad('Y');   // gear up then down again
   await pp.waitForFunction(() => window.__sim.state().gearDown, null, { timeout: 120000 }); await pf(2);
   const rum = await pp.evaluate(() => window.__rumble.slice());
@@ -921,6 +1021,37 @@ if (want('gamepad')) {
   const shown = await P2.pp.evaluate(() => getComputedStyle(document.getElementById('touch')).display !== 'none');
   check('phone with a controller: touch controls hidden (head-up display kept); a touch brings them back', hidden && shown);
   await P2.ctx.close();
+
+  // an iPhone with a PS5 controller, as Safari reports it (WebKit's GameController bridge): named
+  // "... Extended Gamepad" with no vendor number, no rumble, the PS button as button 16. The page
+  // first sees it at a press, in a gamepadconnected event that Safari counts as a gesture: the only
+  // one a player who never touches the screen gives
+  const P3 = await padPage({ phone: true, iphone: true });
+  await P3.pp.evaluate(() => { const a = window.__sim.audio, u = a.unlock.bind(a); window.__unlocks = []; a.unlock = () => { window.__unlocks.push(window.__gesture); return u(); }; });
+  await P3.pp.evaluate(() => { window.__gesture = true; window.fakePad.connect({ id: 'DualSense Wireless Controller Extended Gamepad', rumble: false }); window.__gesture = false; });
+  await P3.pf(3);
+  let ip = await P3.pp.evaluate(() => ({ msg: document.getElementById('pad-msg').textContent, unlocks: window.__unlocks, locks: window.__locks, held: !!window.__sim.platform.wakeLock, sound: window.__sim.audio.running }));
+  check('iPhone + PS5 controller: announced with its own buttons ("Options or ✕ starts")', /PlayStation controller connected.*Options or ✕ starts/.test(ip.msg), ip.msg);
+  check('iPhone: the controller\'s first press (Safari\'s gesture) starts the sound and keeps the screen awake', ip.unlocks[0] === true && ip.sound && ip.locks.length >= 1 && ip.locks.some((l) => l.gesture && l.granted) && ip.held, JSON.stringify({ unlocks: ip.unlocks, locks: ip.locks }));
+  await P3.tapPad('Menu'); await P3.pf(3);
+  await P3.tapPad('Home'); await P3.pf(2);
+  ip = await P3.pp.evaluate(() => ({ state: window.__sim.game.state, held: !!window.__sim.platform.wakeLock, touch: getComputedStyle(document.getElementById('touch')).display, vib: getComputedStyle(document.getElementById('opt-vib').parentElement).display, hint: document.getElementById('pad-hint').textContent }));
+  check('Options starts the flight with the screen still kept awake; the PS button does nothing', ip.state === 'flying' && ip.held, JSON.stringify({ state: ip.state, held: ip.held }));
+  check('iPhone: touch controls hidden, controls worded for PlayStation, no Vibration option (no rumble or vibration there)', ip.touch === 'none' && /△/.test(ip.hint) && ip.vib === 'none', JSON.stringify({ touch: ip.touch, vib: ip.vib }));
+  // after a phone call iOS interrupts the sound; the controller cannot restart it, so the screen says how
+  await P3.pp.evaluate(() => window.__sim.audio.ctx.suspend());
+  await P3.pp.evaluate(() => window.fakePad.stick('left', 0.5, 0)); await simWaitOn(P3.pp, 0.3);
+  await P3.pp.waitForFunction(() => !document.getElementById('sound-hint').classList.contains('hidden'), null, { timeout: 30000 }).catch(() => {});
+  const note = await P3.pp.evaluate(() => ({ text: document.getElementById('sound-hint').textContent, shown: getComputedStyle(document.getElementById('sound-hint')).display !== 'none' }));
+  await P3.pp.evaluate(() => window.fakePad.stick('left', 0, 0));
+  await P3.pp.touchscreen.tap(430, 200); await P3.pf(3);
+  await P3.pp.waitForFunction(() => window.__sim.audio.running, null, { timeout: 10000 }).catch(() => {});
+  const after = await P3.pp.evaluate(() => ({ sound: window.__sim.audio.running, shown: !document.getElementById('sound-hint').classList.contains('hidden') }));
+  check('sound interrupted while flying with the controller: "Tap the screen for sound", and a tap brings it back', note.shown && /Tap the screen for sound/.test(note.text) && after.sound && !after.shown, JSON.stringify({ note, after }));
+  await P3.pp.evaluate(() => { window.fakePad.disconnect(); window.__sim.game.quitToMenu(); }); await P3.pf(3);
+  const released = await P3.pp.evaluate(() => ({ held: !!window.__sim.platform.wakeLock, last: window.__locks[window.__locks.length - 1] }));
+  check('controller gone and back in the menu: the screen may sleep again', !released.held && released.last.release === true, JSON.stringify(released));
+  await P3.ctx.close();
 }
 
 // --------------------------------------------------------------------------- a landing flown with the controller
@@ -1039,6 +1170,51 @@ if (want('graphics')) {
     const r = await drawAll(p);
     check(`${tier} tier: every scenario draws by day and night without errors`, r.every((x) => x.range > 30 && x.errors === 0), r.map((x) => `${x.sc} ${x.range}`).join(', '));
   }
+  // the head-up view: the world without the flight deck, and the head-up display over it
+  await gp.evaluate(() => { window.__sim.start({ scenarioId: 'clear', startId: 'short', mode: 'game', sound: false, seed: 5 }); window.__sim.setTimeScale(0); document.getElementById('hud').style.visibility = ''; });
+  await gf(2);
+  const shot = (mode) => gp.evaluate(async (mode) => {
+    const S = window.__sim, w = S.world, info = w.renderer.info;
+    S.view.setMode(mode);
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));   // the view updates the camera
+    info.autoReset = false; info.reset(); S.drawNow(); const calls = info.render.calls; info.autoReset = true;
+    const cv = document.createElement('canvas'); cv.width = 96; cv.height = 54;
+    const g = cv.getContext('2d'); g.drawImage(w.renderer.domElement, 0, 0, 96, 54);
+    const d = g.getImageData(0, 36, 96, 18).data; let l = 0;                            // the lower third
+    for (let i = 0; i < d.length; i += 4) l += 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2];
+    const hc = document.getElementById('hud-canvas'), hd = hc.width ? hc.getContext('2d').getImageData(0, 0, hc.width, hc.height).data : []; let green = 0;   // hidden: no size
+    for (let i = 0; i < hd.length; i += 4) if (hd[i + 3] > 200 && hd[i + 1] > 200 && hd[i] < 190) green++;
+    const h = S.view.hud.last;
+    return { calls, lower: l / (d.length / 4), green, fpv: h && h.fpv, gs: h && h.gsRef[Math.floor(h.gsRef.length / 2)], runway: h && h.runway, ppd: h && h.pxPerDeg };
+  }, mode);
+  const ck = await shot('cockpit'), hu = await shot('hud');
+  check('head-up view: the flight deck is not drawn (fewer draw calls)', hu.calls < ck.calls * 0.8, `${ck.calls} → ${hu.calls} draw calls`);
+  check('the lower third shows the land ahead instead of the dark panel', hu.lower > ck.lower + 20, `luminance ${fmt(ck.lower, 0)} → ${fmt(hu.lower, 0)}`);
+  check('the head-up display is drawn (green symbols), and none in the cockpit view', hu.green > 300 && ck.green === 0, `${ck.green} → ${hu.green} green pixels`);
+  // how far the marker is from the runway outline (0 inside it); 4 nm out the runway is a few pixels wide
+  const offRwy = (R, p) => {
+    let s = 0; for (let i = 0; i < 4; i++) { const a = R[i], b = R[(i + 1) % 4]; s += Math.sign((b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x)); }
+    if (Math.abs(s) === 4) return 0;
+    let d = Infinity;
+    for (let i = 0; i < 4; i++) { const a = R[i], b = R[(i + 1) % 4], vx = b.x - a.x, vy = b.y - a.y, t = Math.max(0, Math.min(1, ((p.x - a.x) * vx + (p.y - a.y) * vy) / (vx * vx + vy * vy))); d = Math.min(d, Math.hypot(a.x + t * vx - p.x, a.y + t * vy - p.y)); }
+    return d;
+  };
+  const off = hu.fpv && hu.runway ? offRwy(hu.runway, hu.fpv) / hu.ppd : Infinity;
+  check('short final: the flight path marker is on the −3° line and on the runway outline (within 0.5°)', hu.fpv && Math.abs(hu.fpv.y - hu.gs.y) < 0.5 * hu.ppd && off < 0.5, hu.fpv ? `${fmt((hu.fpv.y - hu.gs.y) / hu.ppd, 2)}° off the line, ${fmt(off, 2)}° from the runway` : 'no marker');
+  await snap(gp, 'e2e-headup-day');
+  const school = await gp.evaluate(async () => {
+    const S = window.__sim;
+    S.start({ scenarioId: 'clear', startId: 'standard', mode: 'training', sound: false, seed: 5 });
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    const during = { shown: S.view.shown, deck: S.world.drawCockpit };
+    S.game.schoolDone(true);
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    return { during, after: { shown: S.view.shown, deck: S.world.drawCockpit }, stored: localStorage.getItem('view') };
+  });
+  check('Flight School shows the cockpit (its pages point at the flight deck), then the head-up view again', school.during.shown === 'cockpit' && school.during.deck && school.after.shown === 'hud' && school.after.deck === false, JSON.stringify(school));
+  await gp.reload(); await gp.waitForFunction(() => window.__sim, null, { timeout: 180000 }); await drawOff(gp);
+  check('the chosen view is remembered on this device', school.stored === 'hud' && await gp.evaluate(() => window.__sim.view.mode === 'hud'));
+  await gp.evaluate(() => window.__sim.view.setMode('cockpit'));
   // night: stars and airfield lights bright enough to glow through the bloom pass
   await gp.evaluate(() => { window.__sim.start({ scenarioId: 'clear', night: true, startId: 'short', mode: 'game', sound: false, seed: 5 }); window.__sim.setTimeScale(0); });
   await gf(2);

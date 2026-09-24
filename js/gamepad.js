@@ -1,7 +1,7 @@
 // Game controllers through the Gamepad API. Xbox, PlayStation, Switch Pro and most Bluetooth
 // controllers are mapped by the browser to the W3C "standard" layout; the layout below follows
 // Microsoft Flight Simulator's default controller scheme where it has one:
-//   left stick  pitch / roll                 right stick  look around (press it: panel view)
+//   left stick  pitch / roll                 right stick  look around (press it: next view)
 //   LT / RT     rudder left / right          A / B        thrust up / down (hold)
 //   X           wheel brakes (hold)          Y            landing gear
 //   LB / RB     flaps up / down              D-pad ↑ / ↓  trim nose down / nose up
@@ -10,6 +10,9 @@
 // On the ground at idle, keeping B held selects reverse thrust, which stays until A (like pulling
 // the reverse levers). Other controllers (joysticks with their own layout) fly pitch and roll with
 // their first two axes. Browsers only reveal a controller once one of its buttons is pressed.
+// Safari on iPhone and iPad names a controller "<its name> Extended Gamepad" (no vendor number),
+// e.g. "DualSense Wireless Controller Extended Gamepad", in the standard layout with the PS / Home
+// button as button 16; it has no rumble there (only on a Mac).
 //
 // This module reads the controller once per frame, writes the analog state to InputManager.pad and
 // emits button presses as actions; InputManager.update applies them like the keyboard's.
@@ -123,7 +126,7 @@ export class GamepadInput {
       case BUTTONS.Left: I.emit('autobrake'); break;
       case BUTTONS.Right: this.rightSince = now; this.rightPolls = 0; this.rightFired = false; break;
       case BUTTONS.View: I.emit('togaOrReposition'); break;
-      case BUTTONS.R3: I.look.down = !I.look.down; break;
+      case BUTTONS.R3: I.emit('camera', 'cycle'); break;              // cockpit → panel → head-up
       default: break;
     }
     I.emit('padButton', name);   // menus, pause, Flight School and results use A, B and Menu

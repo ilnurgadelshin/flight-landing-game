@@ -1,6 +1,10 @@
-// Web Audio: synthesised engines, wind, rain, rolling, one-shot effects and
-// voice callouts (speechSynthesis with a tone fallback). Everything is
-// generated procedurally — no audio files needed.
+// Web Audio: synthesised engines, wind, rain, rolling and one-shot effects, and the cockpit voice
+// (altitude callouts, GPWS warnings, crew lines) from recorded clips in audio/voice/ (made by
+// tools/make-voice.py), played through the same Web Audio graph. A phrase without a clip falls
+// back to the browser's speech (speechSynthesis), then to an attention tone.
+//
+// The one-shot effects are made to be heard on a phone speaker too, which plays little below
+// ~400 Hz: every impact has a thump for headphones and a chirp, crunch or clank above it.
 //
 // Browsers only let a page start sound from a user gesture, so main.js calls unlock() on every
 // tap, click and key press. iPhones and iPads need more (see unlock() and setSession()): the
@@ -28,6 +32,9 @@ export class AudioSystem {
     this.keepAlive = null;         // older iOS: a silent looping media element (see setSession)
     this.primed = false;           // a sound has been started inside a gesture
     this.speechPrimed = false;     // an utterance has been spoken from a gesture
+    this.clips = new Map();        // phrase -> AudioBuffer (audio/voice/)
+    this.clipBase = opts.clipBase || 'audio/voice/';
+    this.fallbacks = [];           // phrases that had to use the browser's speech (no clip loaded)
     this.ctx = null;
     this.enabled = true;
     this.master = null;
@@ -42,14 +49,22 @@ export class AudioSystem {
     this.config = { engine: true };
   }
 
-  /** Must be called from a user gesture. */
-  init() {
+  /** Must be called from a user gesture. `context`: render somewhere else (tests: an OfflineAudioContext). */
+  init(context) {
     if (this.ctx) return;
     const AC = window.AudioContext || window.webkitAudioContext;
-    if (!AC) return;
-    const ctx = new AC();
+    if (!AC && !context) return;
+    const ctx = context || new AC();
     this.ctx = ctx;
-    this.master = ctx.createGain(); this.master.gain.value = this.enabled ? 0.8 : 0; this.master.connect(ctx.destination);
+    this.master = ctx.createGain(); this.master.gain.value = this.enabled ? 0.8 : 0;
+    // a soft clipper at the end: linear up to 0.7, then rounding off peaks (up to 3× full scale)
+    // instead of hard clipping; unlike a compressor it adds no make-up gain, so impacts keep their
+    // contrast with the engines
+    const pre = ctx.createGain(); pre.gain.value = 1 / 3;
+    const clip = ctx.createWaveShaper(); const n = 2048, curve = new Float32Array(n);
+    for (let i = 0; i < n; i++) { const x = (i / (n - 1) * 2 - 1) * 3, a = Math.abs(x); curve[i] = Math.sign(x) * (a < 0.7 ? a : 0.7 + 0.3 * Math.tanh((a - 0.7) / 0.3)); }
+    clip.curve = curve;
+    this.master.connect(pre); pre.connect(clip); clip.connect(ctx.destination);
     const noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 2, ctx.sampleRate);
     const d = noiseBuf.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
@@ -76,14 +91,28 @@ export class AudioSystem {
     this.rain = noise('highpass', 3000, 0.4, 0);
     this.roll = noise('lowpass', 70, 0.7, 0);
     this.skid = noise('bandpass', 2200, 6, 0);
-    if (window.speechSynthesis) {
+    if (!context && window.speechSynthesis) {
       const pick = () => {
         const vs = window.speechSynthesis.getVoices();
         this.voice = vs.find((v) => /en[-_]US/i.test(v.lang) && /male|david|mark|daniel/i.test(v.name)) || vs.find((v) => /^en/i.test(v.lang)) || vs[0] || null;
       };
       pick(); window.speechSynthesis.onvoiceschanged = pick;
     }
+    if (!context) this.loadClips();
   }
+
+  /** Fetch and decode the voice clips (in the background; until one is ready its phrase is spoken by the browser). */
+  loadClips() {
+    const slug = (t) => t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const decode = (data) => new Promise((res, rej) => { const p = this.ctx.decodeAudioData(data, res, rej); if (p && p.then) p.then(res, rej); });
+    this.clipsReady = fetch(this.clipBase + 'phrases.json').then((r) => r.json()).then((spec) => Promise.all(spec.phrases.map((text) =>
+      fetch(this.clipBase + slug(text) + '.mp3').then((r) => r.arrayBuffer()).then(decode).then((buf) => { this.clips.set(text, buf); }).catch(() => { /* this phrase is spoken by the browser */ }))))
+      .then(() => this.clips.size, () => 0);
+    return this.clipsReady;
+  }
+
+  /** The sound is playing (not waiting for a gesture, or interrupted by a call on iOS). */
+  get running() { return !!this.ctx && this.ctx.state === 'running'; }
 
   setEnabled(on) {
     this.enabled = on;
@@ -174,6 +203,7 @@ export class AudioSystem {
     this.pumpSpeech();
   }
 
+  /** The stall warning: the shaker motor's 22 Hz buzz (headphones) and the column's rattle, noise gated by the motor (phone speakers). */
   startStickShaker() {
     if (!this.ctx) return;
     const ctx = this.ctx;
@@ -182,11 +212,17 @@ export class AudioSystem {
     const lg = ctx.createGain(); lg.gain.value = 0.25; lfo.connect(lg);
     const g = ctx.createGain(); g.gain.value = 0.25; lg.connect(g.gain);
     const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 300;
-    osc.connect(f); f.connect(g); g.connect(this.master); osc.start(); lfo.start();
-    this.stickShaker = { osc, lfo };
+    osc.connect(f); f.connect(g); g.connect(this.master);
+    const src = ctx.createBufferSource(); src.buffer = this.noiseBuf; src.loop = true;
+    const bf = ctx.createBiquadFilter(); bf.type = 'bandpass'; bf.frequency.value = 1500; bf.Q.value = 0.8;
+    const rg = ctx.createGain(); rg.gain.value = 1.2;                 // 0 or 2.4 as the motor turns
+    const mg = ctx.createGain(); mg.gain.value = 1.2; osc.connect(mg); mg.connect(rg.gain);
+    src.connect(bf); bf.connect(rg); rg.connect(g);
+    osc.start(); lfo.start(); src.start();
+    this.stickShaker = { osc, lfo, src };
     this.log.push({ t: this.time, kind: 'sound', text: 'stick shaker' });
   }
-  stopStickShaker() { if (this.stickShaker) { this.stickShaker.osc.stop(); this.stickShaker.lfo.stop(); this.stickShaker = null; } }
+  stopStickShaker() { if (this.stickShaker) { for (const n of ['osc', 'lfo', 'src']) this.stickShaker[n].stop(); this.stickShaker = null; } }
 
   setConfigHorn(on) {
     if (!this.ctx) return;
@@ -215,21 +251,64 @@ export class AudioSystem {
     const g = ctx.createGain(); g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
     src.connect(f); f.connect(g); g.connect(this.master); src.start(t); src.stop(t + dur + 0.05);
   }
+  /** A band of noise from `t0` (s from now): instant attack, exponential decay; the band can sweep to `to` Hz. */
+  noise(t0, dur, freq, gain, { type = 'bandpass', q = 1, to = null } = {}) {
+    if (!this.ctx) return;
+    const ctx = this.ctx, t = ctx.currentTime + t0;
+    const src = ctx.createBufferSource(); src.buffer = this.noiseBuf; src.loop = true;
+    const f = ctx.createBiquadFilter(); f.type = type; f.Q.value = q; f.frequency.setValueAtTime(freq, t);
+    if (to) f.frequency.exponentialRampToValueAtTime(to, t + dur);
+    const g = ctx.createGain(); g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    src.connect(f); f.connect(g); g.connect(this.master);
+    src.start(t, Math.random() * 1.5); src.stop(t + dur + 0.05);
+  }
+  /** A struck metal part: inharmonic partials ringing down. */
+  clank(t0, gain, base = 480) {
+    for (const [ratio, g, d] of [[1, 1, 0.5], [2.41, 0.6, 0.35], [3.93, 0.45, 0.25], [5.4, 0.3, 0.18]]) this.tone(base * ratio, d, 'sine', gain * g, t0);
+  }
+  /**
+   * A thump: a falling low sine through soft clipping. Headphones get the low end; the clipping's
+   * harmonics carry it on a phone speaker, which plays almost nothing below ~400 Hz.
+   */
+  thump(t0, gain, freq = 60, dur = 0.4) {
+    if (!this.ctx) return;
+    const ctx = this.ctx, t = ctx.currentTime + t0;
+    const o = ctx.createOscillator(); o.type = 'sine';
+    o.frequency.setValueAtTime(freq * 1.6, t); o.frequency.exponentialRampToValueAtTime(freq, t + 0.08);
+    if (!this.driveCurve) { const n = 1024, c = new Float32Array(n); for (let i = 0; i < n; i++) { const x = i / (n - 1) * 2 - 1; c[i] = Math.tanh(x * 4) / Math.tanh(4); } this.driveCurve = c; }
+    const sh = ctx.createWaveShaper(); sh.curve = this.driveCurve;
+    const g = ctx.createGain(); g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
+    o.connect(sh); sh.connect(g); g.connect(this.master); o.start(t); o.stop(t + dur + 0.05);
+  }
   play(name) {
     this.log.push({ t: this.time, kind: 'sound', text: name });
+    const r = Math.random;
     switch (name) {
-      case 'touchdown': this.burst(0.5, 0.9, 180); this.tone(60, 0.4, 'sine', 0.5); break;
-      case 'hardlanding': this.burst(0.9, 1.4, 250); this.tone(45, 0.7, 'sine', 0.8); break;
-      case 'crash': this.burst(2.5, 2.0, 400); this.tone(35, 1.5, 'sawtooth', 0.6); this.burst(1.5, 1.2, 1200, 'bandpass'); break;
-      case 'gear': this.burst(1.6, 0.12, 900, 'bandpass'); this.tone(90, 1.4, 'triangle', 0.05); break;
-      case 'flaps': this.tone(140, 1.0, 'triangle', 0.05); break;
+      case 'touchdown':      // tyre chirps (left and right mains), the thump, a rumble
+        this.noise(0, 0.16, 2600, 1.3, { q: 2, to: 1500 }); this.noise(0.035, 0.13, 2300, 0.95, { q: 2, to: 1300 });
+        this.thump(0, 0.7, 60, 0.35); this.noise(0, 0.5, 350, 0.6, { type: 'lowpass' });
+        break;
+      case 'hardlanding':    // louder, longer chirps, a heavy thump, the gear's crunch and a clank
+        this.noise(0, 0.25, 2600, 1.6, { q: 1.6, to: 1200 }); this.noise(0.03, 0.2, 2200, 1.1, { q: 1.6, to: 1100 });
+        this.thump(0, 1.0, 48, 0.6); this.noise(0.01, 0.35, 1200, 1.1, { q: 0.7 }); this.clank(0.02, 0.22, 430);
+        this.noise(0, 0.9, 300, 0.9, { type: 'lowpass' });
+        break;
+      case 'crash':          // impact, crunching, clanks, a long metal scrape and the rumble
+        this.noise(0, 0.9, 1400, 3.0, { q: 0.6 }); this.thump(0, 1.5, 42, 1.2);
+        for (let i = 0; i < 9; i++) this.noise(0.05 + i * 0.12 + r() * 0.05, 0.12, 700 + r() * 1800, 1.2, { q: 1.5 });
+        this.clank(0.1, 0.3, 380); this.clank(0.45, 0.22, 610); this.clank(0.95, 0.16, 520);
+        this.noise(0.3, 2.0, 2400, 0.9, { q: 4, to: 700 });
+        this.noise(0, 2.5, 300, 1.2, { type: 'lowpass' });
+        break;
+      case 'gear': this.burst(1.6, 0.3, 900, 'bandpass'); this.tone(90, 1.4, 'triangle', 0.05); this.tone(460, 1.2, 'triangle', 0.03); break;
+      case 'flaps': this.tone(140, 1.0, 'triangle', 0.05); this.tone(420, 1.0, 'triangle', 0.05); break;
       case 'click': this.tone(1800, 0.04, 'square', 0.05); break;
-      case 'caution': this.tone(660, 0.18, 'square', 0.15); this.tone(660, 0.18, 'square', 0.15, 0.25); break;
+      case 'caution': this.tone(660, 0.18, 'square', 0.6); this.tone(660, 0.18, 'square', 0.6, 0.25); break;
       case 'chime': this.tone(880, 0.3, 'sine', 0.15); this.tone(1320, 0.4, 'sine', 0.12, 0.15); break;
-      case 'apdisc': for (let i = 0; i < 4; i++) this.tone(520, 0.15, 'square', 0.12, i * 0.22); break;
+      case 'apdisc': for (let i = 0; i < 4; i++) this.tone(520, 0.15, 'square', 0.5, i * 0.22); break;
       case 'whoop': this.whoop(); break;
-      case 'thunder': this.burst(3.0, 0.8, 120); break;
-      case 'overspeed': for (let i = 0; i < 8; i++) this.tone(1200, 0.05, 'square', 0.1, i * 0.1); break;
+      case 'thunder': this.noise(0, 0.25, 1800, 0.6, { q: 0.5 }); this.noise(0.05, 3.0, 250, 0.9, { type: 'lowpass' }); this.noise(0.1, 2.5, 600, 0.5, { q: 0.6 }); break;
+      case 'overspeed': for (let i = 0; i < 8; i++) this.tone(1200, 0.05, 'square', 0.6, i * 0.1); break;
       case 'altalert': this.tone(1000, 0.5, 'sine', 0.12); break;
       default: break;
     }
@@ -256,14 +335,22 @@ export class AudioSystem {
     const last = this.lastSaid.get(key);
     if (last !== undefined && this.time - last < gap) return false;
     this.lastSaid.set(key, this.time);
-    this.log.push({ t: this.time, kind: 'voice', text });
+    const entry = { t: this.time, kind: 'voice', text };
+    this.log.push(entry);
     const pr = opts.priority || 0;
     // higher priority flushes lower priority queue entries
     this.speechQueue = this.speechQueue.filter((q) => q.priority >= pr);
-    this.speechQueue.push({ text, priority: pr, t: this.time });
-    if (pr >= 2 && this.speaking && window.speechSynthesis && this.speakingPriority < pr) { window.speechSynthesis.cancel(); this.speaking = false; }
+    this.speechQueue.push({ text, priority: pr, t: this.time, entry });
+    if (pr >= 2 && this.speaking && this.speakingPriority < pr) this.stopSpeaking();
     this.pumpSpeech();
     return true;
+  }
+
+  /** Cut off the phrase being spoken (a more urgent one is waiting). */
+  stopSpeaking() {
+    if (this.clipSource) { try { this.clipSource.onended = null; this.clipSource.stop(); } catch (e) { /* ended */ } this.clipSource = null; }
+    if (typeof window !== 'undefined' && window.speechSynthesis) window.speechSynthesis.cancel();
+    this.speaking = false;
   }
 
   pumpSpeech() {
@@ -271,20 +358,32 @@ export class AudioSystem {
     const item = this.speechQueue.shift();
     if (this.time - item.t > 4) return this.pumpSpeech();   // stale
     if (!this.enabled) return;
-    const synth = window.speechSynthesis;
+    const done = () => { this.speaking = false; this.clipSource = null; this.pumpSpeech(); };
+    const clip = this.ctx && this.clips.get(item.text);
+    if (clip) {
+      // the recorded voice, through Web Audio like every other sound
+      const src = this.ctx.createBufferSource(); src.buffer = clip;
+      src.connect(this.master); src.onended = done; src.start();
+      this.speaking = true; this.speakingPriority = item.priority; this.clipSource = src;
+      item.entry.via = 'clip';
+      return;
+    }
+    this.fallbacks.push(item.text);
+    const synth = typeof window !== 'undefined' ? window.speechSynthesis : null;
     if (synth && typeof SpeechSynthesisUtterance !== 'undefined') {
       const u = new SpeechSynthesisUtterance(item.text);
       if (this.voice) u.voice = this.voice;
       u.rate = 1.15; u.pitch = 0.85; u.volume = 1;
       this.speaking = true; this.speakingPriority = item.priority;
-      const done = () => { this.speaking = false; this.pumpSpeech(); };
       u.onend = done; u.onerror = done;
       // safety: if the engine never fires onend (headless browsers), release after a timeout
       setTimeout(() => { if (this.speaking && this.speakingUtter === u) done(); }, 1200 + item.text.length * 70);
       this.speakingUtter = u;
+      item.entry.via = 'speech';
       try { synth.speak(u); } catch (e) { done(); }
     } else {
       // fallback: attention tone
+      item.entry.via = 'tone';
       this.tone(item.priority >= 2 ? 900 : 700, 0.12, 'square', 0.1);
     }
   }

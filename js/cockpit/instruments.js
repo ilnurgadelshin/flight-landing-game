@@ -200,7 +200,7 @@ export class PFD {
 
     // ---- flight mode annunciator (top)
     g.font = FONT_S; g.textAlign = 'center';
-    const fma = [['A/T', extra.autothrottle ? 'ARM' : ''], ['ROLL', extra.rollMode || ''], ['PITCH', extra.pitchMode || '']];
+    const fma = [['A/T', extra.autothrottle || ''], ['ROLL', extra.rollMode || ''], ['PITCH', extra.pitchMode || '']];
     fma.forEach(([lbl, val], i) => { const x = 130 + i * 120; g.fillStyle = '#888'; g.fillText(lbl, x, 14); g.fillStyle = GREEN; g.font = FONT; g.fillText(val, x, 36); g.font = FONT_S; });
     if (st.stallWarning) { g.fillStyle = RED; g.font = FONT_L; g.fillText('STALL', cx, cy - 60); }
     if (extra.gaMode) { g.fillStyle = GREEN; g.font = FONT; g.fillText('GO-AROUND', cx, 60); }

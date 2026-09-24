@@ -19,9 +19,9 @@ export const SCHOOL_STEPS = [
       body: `Keep the wings level with the horizon outside and the nose about <b>+2°</b> on approach ([[look]] shows the panel's attitude display).<ul><li>[[pitch]]: pitch (nose up/down)</li><li>[[roll]]: roll (bank)</li></ul>The stick appears where your right thumb touches. Let go and it springs back: the aircraft holds its attitude and trims itself. It is heavy: make small, smooth inputs and wait for it to respond.`,
       tiltBody: `Keep the wings level with the horizon outside and the nose about <b>+2°</b> on approach ([[look]] shows the panel's attitude display).<ul><li>[[pitch]]: pitch (nose up/down)</li><li>[[roll]]: roll (bank)</li></ul>The way you hold the phone when the flight starts is level flight, and the circle shows your tilt from it. [[center]] makes the way you hold it now level. Back at level, the aircraft holds its attitude and trims itself. It is heavy: make small, smooth movements and wait for it to respond.` } },
   { title: 'Airspeed tape', anchor: 'airspeed',
-    body: `Speed in knots. The green <b>REF</b> bug is Vref (142 kts with flaps 30). The red barber pole at the bottom is the stall; the red one at the top is the flap limit.<ul><li>[[thrust]]: throttle up / down. Thrust controls your speed on approach — about <b>60 % N1</b> holds Vref+5.</li></ul>`,
+    body: `Speed in knots. The green <b>REF</b> bug is Vref (142 kts with flaps 30). The red barber pole at the bottom is the stall; the red one at the top is the flap limit.<ul><li>[[thrust]]: throttle up / down. Thrust controls your speed on approach — about <b>60 % N1</b> holds Vref+5.</li><li>In gusts the needle jumps: don't chase it. Hold the thrust and correct only a steady trend, with small changes.</li></ul>`,
     touch: { title: 'Airspeed', anchor: '#g-spd',
-      body: `Speed in knots, in the left box of the head-up display. Below it: the target <b>REF+5</b> (Vref + 5 = 147 kts with flaps 30) and the engines' N1. With landing flaps the box turns green on target and amber when fast or slow; it turns red at the stall.<ul><li>[[thrust]]: thrust controls your speed on approach — about <b>60 % N1</b> holds Vref+5.</li></ul>` } },
+      body: `Speed in knots, in the left box of the head-up display. Below it: the target <b>REF+5</b> (Vref + 5 = 147 kts with flaps 30) and the engines' N1. With landing flaps the box turns green on target and amber when fast or slow; it turns red at the stall.<ul><li>[[thrust]]: thrust controls your speed on approach — about <b>60 % N1</b> holds Vref+5.</li><li>In gusts the speed jumps: don't chase it. Hold the thrust and correct only a steady trend, with small changes.</li></ul>` } },
   { title: 'Altimeter & vertical speed', anchor: 'altimeter',
     body: `Barometric altitude in feet with the radio altitude below the horizon under 2500 ft. The vertical-speed needle on the right should sit near <b>−750 fpm</b> on the glideslope.<ul><li>Pitch controls the descent rate. High on the glideslope → lower the nose a little; low → raise it.</li></ul>`,
     touch: { anchor: '#g-alt',
@@ -51,7 +51,7 @@ export const SCHOOL_STEPS = [
   { title: 'Trim & go-around', anchor: 'trim', look: 1, touch: { anchor: '#t-toga' },
     body: `The trim wheels relieve the control force so the aircraft holds its attitude hands-off.<ul><li>[[trim]]</li></ul>If the approach is not stable below 500 ft: <b>go around</b>. Press [[toga]] for full thrust, pitch up to +12°, gear up when climbing, flaps 15. Then press [[reposition]] to reposition on final, or fly a visual circuit.` },
   { title: 'Landing criteria', anchor: 'pfd', touch: { anchor: '#hgs' },
-    body: `You will be graded on:<ul><li><b>Touchdown zone</b>: 150–900 m past the threshold (aim for the big white blocks)</li><li><b>Sink rate</b> under 300 fpm is smooth; over 600 fpm is a hard landing; 900+ collapses the gear</li><li><b>Centreline</b> and <b>alignment</b> (less than 3° crab, wings level)</li><li><b>Speed</b> near Vref, <b>flaps 30</b> and gear down</li><li>Stop before the end of the runway</li></ul>Callouts: "Fifty, forty, thirty, twenty, ten" — start the flare at <b>thirty</b>. Good luck, Captain.` },
+    body: `You will be graded on:<ul><li><b>Touchdown zone</b>: 150–900 m past the threshold (aim for the big white blocks)</li><li><b>Sink rate</b> under 300 fpm is smooth; over 600 fpm is a hard landing; 900+ collapses the gear</li><li><b>Centreline</b> and <b>alignment</b> (less than 3° crab, wings level)</li><li><b>Speed</b> near Vref, <b>flaps 30</b> and gear down</li><li>Stop before the end of the runway</li></ul>Callouts: "Fifty, forty, thirty, twenty, ten" — start the flare at <b>thirty</b>.<br>[[view]] steps through the views to the <b>head-up view</b>: no flight deck, and a head-up display in the windshield. Keep its flight path marker (the circle with wings) on the touchdown zone. Good luck, Captain.` },
 ];
 
 /** A school page as the active control scheme shows it. */
@@ -174,7 +174,14 @@ export class UI {
     this.el.stall.classList.toggle('hidden', !st.stallWarning);
     this.el.config.classList.toggle('hidden', !extra.configWarning);
     if (extra.configWarning) this.el.config.textContent = extra.configWarning;
-    if (getScheme() === 'touch') this.updateHGS(st, extra);
+    if (getScheme() === 'touch' || extra.headUp) this.updateHGS(st, extra);
+  }
+
+  /** The view shown ('cockpit' | 'hud'): the head-up view shows the #hgs readouts on every device. */
+  setView(view) {
+    if (view === this._view) return;
+    this._view = view;
+    document.body.classList.toggle('view-hud', view === 'hud');
   }
 
   /** Touch devices: the head-up display with the numbers needed to land (DOM writes only on change). */
@@ -214,6 +221,8 @@ export class UI {
   /** Landing checklist overlay (training mode): [{ text, done }] or null to hide. */
   setChecklist(items) { const e = this.el.checklist; if (!items) { e.classList.add('hidden'); return; } e.classList.remove('hidden'); const html = items.map((c) => `<div class="${c.done ? 'done' : 'todo'}">${c.done ? '✓' : '□'} ${c.text}</div>`).join(''); if (e.innerHTML !== html) e.innerHTML = html; }
   setInstructor(text) { const e = this.el.instructor; if (!text) { e.classList.add('hidden'); this._instr = ''; return; } e.classList.remove('hidden'); const h = controlsHtml(text); if (this._instr !== h) { this._instr = h; e.innerHTML = h; } }
+  /** The sound waits for a tap, click or key (a controller in use cannot start it). */
+  setSoundHint(on) { const e = document.getElementById('sound-hint'); e.textContent = on ? (getScheme() === 'touch' ? '🔇 Tap the screen for sound' : '🔇 Click or press a key for sound') : ''; e.classList.toggle('hidden', !on); }
   setCaption(text, kind) { const e = this.el.caption; if (!text) { e.classList.remove('show'); return; } e.textContent = text; e.className = 'show ' + (kind === 'warning' ? 'warning' : (kind === 'caution' ? 'caution' : 'info')); }
   flash(strength = 1) { const e = this.el.crashFlash; e.style.transition = 'none'; e.style.opacity = String(Math.min(1, strength)); requestAnimationFrame(() => { e.style.transition = 'opacity 1.2s'; e.style.opacity = '0'; }); }
   setRain(on) { this.el.rain.style.opacity = '0'; void on; }

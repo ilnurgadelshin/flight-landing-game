@@ -58,7 +58,7 @@ export class Simulation {
 
   stepOnce() {
     if (this.preStep) this.preStep(this.fixedDt);
-    this.atmosphere.step(this.fixedDt);
+    this.atmosphere.step(this.fixedDt, this.aircraft.state);   // the turbulence scales with height and airspeed
     this.aircraft.step(this.fixedDt);
     this.stepCount++;
     if (this.postStep) this.postStep(this.fixedDt);
