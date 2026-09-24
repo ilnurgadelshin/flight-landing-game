@@ -51,7 +51,7 @@ export const SCHOOL_STEPS = [
   { title: 'Trim & go-around', anchor: 'trim', look: 1, touch: { anchor: '#t-toga' },
     body: `The trim wheels relieve the control force so the aircraft holds its attitude hands-off.<ul><li>[[trim]]</li></ul>If the approach is not stable below 500 ft: <b>go around</b>. Press [[toga]] for full thrust, pitch up to +12°, gear up when climbing, flaps 15. Then press [[reposition]] to reposition on final, or fly a visual circuit.` },
   { title: 'Landing criteria', anchor: 'pfd', touch: { anchor: '#hgs' },
-    body: `You will be graded on:<ul><li><b>Touchdown zone</b>: 150–900 m past the threshold (aim for the big white blocks)</li><li><b>Sink rate</b> under 300 fpm is smooth; over 600 fpm is a hard landing; 900+ collapses the gear</li><li><b>Centreline</b> and <b>alignment</b> (less than 3° crab, wings level)</li><li><b>Speed</b> near Vref, <b>flaps 30</b> and gear down</li><li>Stop before the end of the runway</li></ul>Callouts: "Fifty, forty, thirty, twenty, ten" — start the flare at <b>thirty</b>. Good luck, Captain.` },
+    body: `You will be graded on:<ul><li><b>Touchdown zone</b>: 150–900 m past the threshold (aim for the big white blocks)</li><li><b>Sink rate</b> under 300 fpm is smooth; over 600 fpm is a hard landing; 900+ collapses the gear</li><li><b>Centreline</b> and <b>alignment</b> (less than 3° crab, wings level)</li><li><b>Speed</b> near Vref, <b>flaps 30</b> and gear down</li><li>Stop before the end of the runway</li></ul>Callouts: "Fifty, forty, thirty, twenty, ten" — start the flare at <b>thirty</b>.<br>[[view]] steps through the views to the <b>head-up view</b>: no flight deck, and a head-up display in the windshield. Keep its flight path marker (the circle with wings) on the touchdown zone. Good luck, Captain.` },
 ];
 
 /** A school page as the active control scheme shows it. */
@@ -174,7 +174,14 @@ export class UI {
     this.el.stall.classList.toggle('hidden', !st.stallWarning);
     this.el.config.classList.toggle('hidden', !extra.configWarning);
     if (extra.configWarning) this.el.config.textContent = extra.configWarning;
-    if (getScheme() === 'touch') this.updateHGS(st, extra);
+    if (getScheme() === 'touch' || extra.headUp) this.updateHGS(st, extra);
+  }
+
+  /** The view shown ('cockpit' | 'hud'): the head-up view shows the #hgs readouts on every device. */
+  setView(view) {
+    if (view === this._view) return;
+    this._view = view;
+    document.body.classList.toggle('view-hud', view === 'hud');
   }
 
   /** Touch devices: the head-up display with the numbers needed to land (DOM writes only on change). */

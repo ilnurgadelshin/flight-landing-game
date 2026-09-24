@@ -98,6 +98,43 @@ deployment" in the Actions tab).
 6. Not stable below 500 ft? **Go around**: TOGA, pitch up, gear up, flaps 15,
    then reposition on final or fly a visual circuit.
 
+### Views
+
+Both views are first-person, from the captain's eye point, so the runway
+looks the same in each. The choice is remembered on the device.
+
+- **Cockpit**: the 737 flight deck around you, with its displays and levers.
+  The panel look tilts down to the displays and the pedestal.
+- **Head-up** (`C`, **VIEW**, or the controller's right stick press): the
+  flight deck is hidden and a head-up display is drawn over the outside world,
+  like X-Plane's "forward with HUD" or a 737 flown on its head-up guidance
+  system (HGS). It suits phones, where the flight deck takes half the screen,
+  and it is lighter to draw.
+
+The head-up display's symbols are conformal: each is drawn where it lies in
+the world.
+
+- **Horizon line**, with heading marks, and a **pitch ladder** every 5°
+  (dashed below the horizon).
+- **Aircraft reference** (the small gull wing): where the nose points.
+- **Flight path marker** (the circle with wings): where the aircraft is
+  actually going, including the wind's drift. To land, put it on the
+  touchdown zone and keep it there.
+- **−3° line**: on a normal approach the flight path marker sits on it.
+- **Speed error tape** on the marker's left wing, in the landing
+  configuration. It rises when fast and hangs below when slow; full length is
+  15 kt. The **acceleration caret** beside it sits level with the wing when
+  the speed is steady.
+- **Runway outline** on the approach, useful in fog or rain.
+- **Guidance cue** (Flight School's flight director): fly the marker into the
+  circle.
+- **FLARE** below 50 ft.
+
+The speed, altitude, radio altitude, vertical speed, wind and ILS scales are
+shown at the sides, as on a phone. The display leaves the view when you look
+away. Flight School always shows the cockpit, because its pages point at the
+flight deck.
+
 ### Controls (laptop keyboard + mouse)
 
 | Control | Keys |
@@ -113,6 +150,7 @@ deployment" in the Actions tab).
 | Thrust reversers | `R` (hold, ground only) |
 | Trim | `[` / `]` or `PageUp` / `PageDown` (a trim follow-up also runs the stabiliser after a sustained input) |
 | Look down at the pedestal | `L` (hold) · right-mouse drag to look around |
+| View: cockpit / head-up | `C` |
 | Reposition on final (after a go-around) | `Backspace` |
 | Pause / Flight School / menu | `P` / `H` / `Esc` |
 
@@ -144,7 +182,7 @@ own buttons throughout the game.
 | Autobrake | D-pad ← cycles OFF/1/2/3/MAX |
 | Trim | D-pad ↑ nose down / ↓ nose up |
 | TO/GA | View; pressed again during the go-around, it puts you back on final |
-| Look around / at the panel | Right stick (lets go straight ahead) · press it for the panel |
+| Look around / views | Right stick (lets go straight ahead) · press it for the next view: cockpit → panel → head-up |
 | Pause, menus | Menu: start the approach from the menu, pause and resume, skip Flight School, fly again. In menus A confirms and B goes back; in Flight School A / B turn the pages |
 
 - **Switching devices.** The controller is in use from its first press until a
@@ -189,7 +227,7 @@ thrust lever that stays where it is left for the other.
 | Gear, flaps, speedbrakes, autobrake | **GEAR**, **FLAPS − / +**, **ARM** and **EXT** (speedbrakes), **A/BRK** buttons at the top left. Each shows its current setting |
 | Wheel brakes | **BRAKE** (hold): appears on the ground, above the stick's area |
 | Reposition on final | **REPOSITION**: appears during a go-around |
-| Look around / at the panel | Drag on the windshield (lets go straight ahead) · **VIEW** toggles the panel |
+| Look around / views | Drag on the windshield (lets go straight ahead) · **VIEW** steps cockpit → panel → head-up, and names the one shown |
 | Pause / Flight School | **❚❚** / **?** at the top right |
 
 The head-up display in the windshield shows what is needed to land: speed
@@ -310,6 +348,9 @@ the **low** tier: the same sky, haze and lighting, drawn straight to the screen,
 without shadows or bloom. Add `?quality=high` or `?quality=low` to the address
 to choose.
 
+**Head-up view** (`js/hud.js`, `js/view.js`): the flight deck hidden and a
+conformal head-up display modelled on the 737's HGS (see *Views* above).
+
 **Cockpit** (`js/cockpit/`): a first-person 737 flight deck with a PFD
 (attitude, airspeed and altitude tapes, vertical speed, ILS deviation,
 heading, flight director), navigation display, engine display (N1, EGT, flap
@@ -410,7 +451,8 @@ a module to what it uses; nothing points back up.
 | `js/game.js` | The rules: state machine, actions, go-around detection, finish and grading, instructor hints; emits events |
 | `js/flightcontrols.js` | The one owner of the aircraft's controls: player or autoland in command, discrete actions, the flight director's copy |
 | `js/avionics.js` | Runway-relative geometry, ILS deviations, Vref, terrain ahead |
-| `js/presentation.js`, `js/view.js` | Sound, vibration and screens from the game's events; the 3D view from the game's state |
+| `js/presentation.js`, `js/view.js` | Sound, vibration and screens from the game's events; the 3D view from the game's state, and the cockpit and head-up views |
+| `js/hud.js` | The head-up view's display: conformal geometry (tested in Node) and its drawing |
 | `js/sim.js` | Fixed 120 Hz simulation loop and approach placement |
 | `js/config.js` | Aircraft data, runway, scenarios and starting points |
 | `js/physics/` | Flight model and landing gear (`aircraft.js`), atmosphere and wind, terrain |
@@ -451,8 +493,8 @@ draws every scenario by day and night on both graphics tiers.
 
 | Command | What it checks | Time |
 | --- | --- | --- |
-| `npm test` | Node, no browser: physics (62 checks in 12 groups), phone features (59 checks in 7 groups), game controllers (40 checks in 6 groups), the sky model (12 checks in 3 groups) and the game's rules (36 checks in 7 groups), below | ~5 s |
-| `npm run test:e2e` | The real page in Chromium: 230 checks in 16 groups (below), run in 3 parallel processes (`test/e2e-parallel.mjs`) | ~11–15 min |
+| `npm test` | Node, no browser: physics (62 checks in 12 groups), phone features (59 checks in 7 groups), game controllers (40 checks in 6 groups), the sky model (12 checks in 3 groups), the head-up display (23 checks in 5 groups) and the game's rules (36 checks in 7 groups), below | ~5 s |
+| `npm run test:e2e` | The real page in Chromium: 238 checks in 16 groups (below), run in 3 parallel processes (`test/e2e-parallel.mjs`) | ~11–15 min |
 | `npm run test:e2e:quick` | The same without the four landings flown in real time (E9, E11, E13, E15) | ~6 min |
 | `node test/e2e.mjs only=<groups>` | E1 plus the groups listed, in one process, comma-separated: `menu`, `keys`, `school`, `land`, `fail`, `ga`, `fps`, `keyboard`, `mobile`, `touchland`, `tilt`, `tiltland`, `gamepad`, `padland`, `graphics` (e.g. `only=tilt,tiltland`) | 10 s – 3 min each |
 | `npm run test:e2e:serial` | All browser groups in one process | ~25 min |
@@ -508,7 +550,7 @@ controls a player has.
 
 - **E1** loads the page with a working WebGL renderer and no errors, and draws a frame.
 - **E2** chooses the mode, conditions and start with the mouse and starts the approach.
-- **E3** presses every mapped key and checks the control it drives.
+- **E3** presses every mapped key and checks the control it drives, and `C` switching to the head-up view and back.
 - **E4** walks through every Flight School step.
 - **E5** autolands in every scenario by day and night and checks the callouts and sounds. The
   voice recordings load after the first key press, and in one landing with sound on every callout
@@ -534,7 +576,7 @@ controls a player has.
   - two thumbs work at once, the stick and rudder spring back and the lever
     stays put;
   - the reverse gate stays shut in the air;
-  - look-around, VIEW, TO/GA and REPOSITION work;
+  - look-around, VIEW (cockpit → panel → head-up), TO/GA and REPOSITION work;
   - rotating the phone or leaving the browser pauses the flight;
   - touching the stick takes over from the autoland demo;
   - Flight School and the instructor name the touch controls and highlight them.
@@ -564,7 +606,7 @@ controls a player has.
   - the connection message, and Menu starting the approach;
   - the stick with and without pilot-style pitch;
   - the triggers, thrust, gear, flaps, autobrake, speedbrakes (tap and hold),
-    trim, brakes and look-around;
+    trim, brakes and look-around, and the right stick press stepping through the views;
   - rumble at gear lock;
   - View for TO/GA, then back on final;
   - pause and resume, and a resume that adds no thrust;
@@ -595,7 +637,14 @@ controls a player has.
     with the sun off, because sunlight comes in through the windows.
 
   It also checks sunshine above a cloud deck and overcast light inside and
-  below it, and stars, moonlight and glowing lights at night.
+  below it, and stars, moonlight and glowing lights at night. In the head-up
+  view it checks:
+  - the flight deck is not drawn (fewer draw calls) and the land shows where
+    the panel was;
+  - the head-up display is drawn;
+  - on short final the flight path marker is on the −3° line and the runway;
+  - Flight School switches to the cockpit and back;
+  - the choice survives a reload.
 
 The other browser groups run on the fast low tier with the 3D drawing off.
 
@@ -628,6 +677,18 @@ The other browser groups run on the fast low tier with the 3D drawing off.
    sunlight and the sky is dark. Under an overcast the sky and its light are
    one grey;
 3. colours given as they should look on screen tone-map back to themselves.
+
+`test/hud.test.mjs` checks the head-up display's geometry in Node, against the exact projection of
+a camera placed like the game's:
+
+1. the horizon is 6° above the middle in level flight and drops as the nose rises; the ladder
+   rungs are at their angles, dashed below the horizon; the heading marks put "27" ahead;
+2. in a 20° bank the horizon and the rungs tilt 20°;
+3. on a 3° path the flight path marker is on the −3° line and on the aiming point it heads for,
+   inside the runway outline. It is 5° left of the nose when crabbed 5° into a crosswind. There
+   is no outline on the ground and no marker when stopped;
+4. the speed error tape, the acceleration caret, the guidance cue and the FLARE cue;
+5. the field of view is about 100° across on a computer screen and on a wide phone.
 
 `test/game.test.mjs` runs the game's rules in Node, with no browser, recording their events:
 

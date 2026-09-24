@@ -156,6 +156,11 @@ if (want('keys')) {
   check('A applies left rudder', ya.r < -0.005 || ya.beta > 0.5 * Math.PI / 180, `r=${fmt(ya.r * 57.3)}°/s beta=${fmt(ya.beta * 57.3)}°`);
   await page.keyboard.down('KeyL'); await frames(8); const camL = await page.evaluate(() => window.__sim.world.camera.rotation.x); await page.keyboard.up('KeyL');
   check('L looks down at the pedestal', camL < -0.5, `cam pitch ${fmt(camL * 57.3)}°`);
+  const viewNow = () => page.evaluate(() => { const w = window.__sim.world; return { mode: window.__sim.view.shown, body: document.body.classList.contains('view-hud'), deck: w.drawCockpit !== false, fov: +w.camera.fov.toFixed(1), pitch: +(w.camera.rotation.x * 57.3).toFixed(1) }; });
+  const settled = () => page.waitForFunction(() => window.__sim.cockpit.lookDown < 0.005, null, { timeout: 30000 });   // the look eases back from L
+  await settled(); await tap('KeyC'); await frames(3); const hv = await viewNow();
+  await tap('KeyC'); await frames(3); const cv = await viewNow();
+  check('C switches to the head-up view (no flight deck, the eye 6° below the nose) and back', hv.mode === 'hud' && hv.body && !hv.deck && Math.abs(hv.pitch + 6) < 0.5 && cv.mode === 'cockpit' && !cv.body && cv.deck && cv.fov === 70 && Math.abs(cv.pitch + 15) < 0.5, `head-up ${JSON.stringify(hv)}, cockpit ${JSON.stringify(cv)}`);
   // mouse yoke
   await page.mouse.click(VW / 2, VH / 2); await frames(2);
   check('click engages the mouse yoke', await page.evaluate(() => window.__sim.inputManager.mouseEngaged));
@@ -581,10 +586,11 @@ if (want('mobile')) {
   await fingers.up(5); await mf(1);
   const lk2 = await mp.evaluate(() => window.__sim.inputManager.look.yaw);
   check('dragging on the windshield looks around and lets go straight ahead', Math.abs(lk) > 0.3 && lk2 === 0, `look yaw ${fmt(lk, 2)} → ${lk2}`);
-  await mp.tap('#t-view'); await mf(1);
-  const v1 = await mp.evaluate(() => window.__sim.inputManager.look.down);
-  await mp.tap('#t-view'); await mf(1);
-  check('VIEW toggles the panel view', v1 === true && !(await mp.evaluate(() => window.__sim.inputManager.look.down)));
+  const vstate = () => mp.evaluate(() => ({ down: window.__sim.inputManager.look.down, mode: window.__sim.view.mode, label: document.getElementById('t-view-mode').textContent }));
+  await mp.tap('#t-view'); await mf(2); const v1 = await vstate();
+  await mp.tap('#t-view'); await mf(2); const v2 = await vstate();
+  await mp.tap('#t-view'); await mf(2); const v3 = await vstate();
+  check('VIEW cycles cockpit → panel → head-up → cockpit, and says which', v1.down && v1.mode === 'cockpit' && v1.label === 'PANEL' && !v2.down && v2.mode === 'hud' && v2.label === 'HEAD-UP' && !v3.down && v3.mode === 'cockpit' && v3.label === 'COCKPIT', JSON.stringify([v1, v2, v3]));
 
   // go-around and reposition through the buttons
   await mp.tap('#t-toga'); await mf(2);
@@ -932,6 +938,9 @@ if (want('gamepad')) {
   s = await PS();
   check('right stick looks around and lets go; pressing it shows the panel', lookOn > 0.5 && s.look.yaw === 0 && s.look.down === true, `look ${fmt(lookOn, 2)} → ${s.look.yaw}, panel ${s.look.down}`);
   await tapPad('R3');
+  const padHud = await pp.evaluate(() => window.__sim.view.mode);
+  await tapPad('R3');
+  check('pressing it again: the head-up view, then the cockpit again', padHud === 'hud' && await pp.evaluate(() => window.__sim.view.mode === 'cockpit' && !window.__sim.inputManager.look.down), padHud);
   await pp.evaluate(() => { window.__rumble.length = 0; }); await tapPad('Y'); await tapPad('Y');   // gear up then down again
   await pp.waitForFunction(() => window.__sim.state().gearDown, null, { timeout: 120000 }); await pf(2);
   const rum = await pp.evaluate(() => window.__rumble.slice());
@@ -1161,6 +1170,51 @@ if (want('graphics')) {
     const r = await drawAll(p);
     check(`${tier} tier: every scenario draws by day and night without errors`, r.every((x) => x.range > 30 && x.errors === 0), r.map((x) => `${x.sc} ${x.range}`).join(', '));
   }
+  // the head-up view: the world without the flight deck, and the head-up display over it
+  await gp.evaluate(() => { window.__sim.start({ scenarioId: 'clear', startId: 'short', mode: 'game', sound: false, seed: 5 }); window.__sim.setTimeScale(0); document.getElementById('hud').style.visibility = ''; });
+  await gf(2);
+  const shot = (mode) => gp.evaluate(async (mode) => {
+    const S = window.__sim, w = S.world, info = w.renderer.info;
+    S.view.setMode(mode);
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));   // the view updates the camera
+    info.autoReset = false; info.reset(); S.drawNow(); const calls = info.render.calls; info.autoReset = true;
+    const cv = document.createElement('canvas'); cv.width = 96; cv.height = 54;
+    const g = cv.getContext('2d'); g.drawImage(w.renderer.domElement, 0, 0, 96, 54);
+    const d = g.getImageData(0, 36, 96, 18).data; let l = 0;                            // the lower third
+    for (let i = 0; i < d.length; i += 4) l += 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2];
+    const hc = document.getElementById('hud-canvas'), hd = hc.width ? hc.getContext('2d').getImageData(0, 0, hc.width, hc.height).data : []; let green = 0;   // hidden: no size
+    for (let i = 0; i < hd.length; i += 4) if (hd[i + 3] > 200 && hd[i + 1] > 200 && hd[i] < 190) green++;
+    const h = S.view.hud.last;
+    return { calls, lower: l / (d.length / 4), green, fpv: h && h.fpv, gs: h && h.gsRef[Math.floor(h.gsRef.length / 2)], runway: h && h.runway, ppd: h && h.pxPerDeg };
+  }, mode);
+  const ck = await shot('cockpit'), hu = await shot('hud');
+  check('head-up view: the flight deck is not drawn (fewer draw calls)', hu.calls < ck.calls * 0.8, `${ck.calls} → ${hu.calls} draw calls`);
+  check('the lower third shows the land ahead instead of the dark panel', hu.lower > ck.lower + 20, `luminance ${fmt(ck.lower, 0)} → ${fmt(hu.lower, 0)}`);
+  check('the head-up display is drawn (green symbols), and none in the cockpit view', hu.green > 300 && ck.green === 0, `${ck.green} → ${hu.green} green pixels`);
+  // how far the marker is from the runway outline (0 inside it); 4 nm out the runway is a few pixels wide
+  const offRwy = (R, p) => {
+    let s = 0; for (let i = 0; i < 4; i++) { const a = R[i], b = R[(i + 1) % 4]; s += Math.sign((b.x - a.x) * (p.y - a.y) - (b.y - a.y) * (p.x - a.x)); }
+    if (Math.abs(s) === 4) return 0;
+    let d = Infinity;
+    for (let i = 0; i < 4; i++) { const a = R[i], b = R[(i + 1) % 4], vx = b.x - a.x, vy = b.y - a.y, t = Math.max(0, Math.min(1, ((p.x - a.x) * vx + (p.y - a.y) * vy) / (vx * vx + vy * vy))); d = Math.min(d, Math.hypot(a.x + t * vx - p.x, a.y + t * vy - p.y)); }
+    return d;
+  };
+  const off = hu.fpv && hu.runway ? offRwy(hu.runway, hu.fpv) / hu.ppd : Infinity;
+  check('short final: the flight path marker is on the −3° line and on the runway outline (within 0.5°)', hu.fpv && Math.abs(hu.fpv.y - hu.gs.y) < 0.5 * hu.ppd && off < 0.5, hu.fpv ? `${fmt((hu.fpv.y - hu.gs.y) / hu.ppd, 2)}° off the line, ${fmt(off, 2)}° from the runway` : 'no marker');
+  await snap(gp, 'e2e-headup-day');
+  const school = await gp.evaluate(async () => {
+    const S = window.__sim;
+    S.start({ scenarioId: 'clear', startId: 'standard', mode: 'training', sound: false, seed: 5 });
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    const during = { shown: S.view.shown, deck: S.world.drawCockpit };
+    S.game.schoolDone(true);
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    return { during, after: { shown: S.view.shown, deck: S.world.drawCockpit }, stored: localStorage.getItem('view') };
+  });
+  check('Flight School shows the cockpit (its pages point at the flight deck), then the head-up view again', school.during.shown === 'cockpit' && school.during.deck && school.after.shown === 'hud' && school.after.deck === false, JSON.stringify(school));
+  await gp.reload(); await gp.waitForFunction(() => window.__sim, null, { timeout: 180000 }); await drawOff(gp);
+  check('the chosen view is remembered on this device', school.stored === 'hud' && await gp.evaluate(() => window.__sim.view.mode === 'hud'));
+  await gp.evaluate(() => window.__sim.view.setMode('cockpit'));
   // night: stars and airfield lights bright enough to glow through the bloom pass
   await gp.evaluate(() => { window.__sim.start({ scenarioId: 'clear', night: true, startId: 'short', mode: 'game', sound: false, seed: 5 }); window.__sim.setTimeScale(0); });
   await gf(2);

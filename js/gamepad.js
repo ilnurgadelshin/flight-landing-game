@@ -1,7 +1,7 @@
 // Game controllers through the Gamepad API. Xbox, PlayStation, Switch Pro and most Bluetooth
 // controllers are mapped by the browser to the W3C "standard" layout; the layout below follows
 // Microsoft Flight Simulator's default controller scheme where it has one:
-//   left stick  pitch / roll                 right stick  look around (press it: panel view)
+//   left stick  pitch / roll                 right stick  look around (press it: next view)
 //   LT / RT     rudder left / right          A / B        thrust up / down (hold)
 //   X           wheel brakes (hold)          Y            landing gear
 //   LB / RB     flaps up / down              D-pad ↑ / ↓  trim nose down / nose up
@@ -126,7 +126,7 @@ export class GamepadInput {
       case BUTTONS.Left: I.emit('autobrake'); break;
       case BUTTONS.Right: this.rightSince = now; this.rightPolls = 0; this.rightFired = false; break;
       case BUTTONS.View: I.emit('togaOrReposition'); break;
-      case BUTTONS.R3: I.look.down = !I.look.down; break;
+      case BUTTONS.R3: I.emit('camera', 'cycle'); break;              // cockpit → panel → head-up
       default: break;
     }
     I.emit('padButton', name);   // menus, pause, Flight School and results use A, B and Menu

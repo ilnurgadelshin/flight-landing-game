@@ -13,6 +13,7 @@ import { GPWS } from './gpws.js';
 import { UI } from './ui.js';
 import { Game } from './game.js';
 import { GameView } from './view.js';
+import { HeadUpDisplay } from './hud.js';
 import { Presentation } from './presentation.js';
 import { SCENARIOS, APPROACH_STARTS } from './config.js';
 import { TouchControls } from './touch.js';
@@ -44,7 +45,7 @@ async function boot() {
   const haptics = new Haptics();
   const touch = new TouchControls(input, document.getElementById('hud'), haptics);
   const game = new Game({ player: input, gpws });
-  const view = new GameView({ game, world, cockpit, look: input.look });
+  const view = new GameView({ game, world, cockpit, look: input.look, hud: new HeadUpDisplay(document.getElementById('hud-canvas')) });
   const presentation = new Presentation({ game, view, world, ui, audio, gpws, haptics, touch, input });
   input.onAction((name, arg) => presentation.onAction(name, arg));
   const platform = new Platform({ game, input, world });
@@ -66,6 +67,9 @@ async function boot() {
   haptics.enabled = optVib.checked;
   optVib.addEventListener('change', () => { haptics.enabled = optVib.checked; pref.set('vibration', optVib.checked ? '1' : '0'); haptics.tick(); });
   optTilt.checked = pref.get('tilt') === '1';
+  // the view (cockpit or head-up) is remembered on this device
+  if (pref.get('view') === 'hud') view.setMode('hud');
+  view.onMode = (m) => pref.set('view', m);
   const TILT_MSG = {
     denied: 'Motion access was declined, so the stick stays on. On iPhone, close and reopen the tab to be asked again.',
     nosensor: 'No motion sensor found, so the stick stays on.',

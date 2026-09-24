@@ -757,7 +757,9 @@ export class World {
     r.autoClear = true;
     if (this.composer) this.composer.render();
     else r.render(this.scene, this.camera);
-    // the flight deck on top, straight to the screen (its displays keep their exact colours)
+    // the flight deck on top, straight to the screen (its displays keep their exact colours);
+    // the head-up view has none (drawCockpit false)
+    if (this.drawCockpit === false) return;
     r.autoClear = false;
     r.clearDepth();
     r.render(this.cockpitScene, this.camera);
