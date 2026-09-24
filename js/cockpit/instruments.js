@@ -394,9 +394,13 @@ export function makeMCPTexture() {
 export function makePanelTexture() {
   const c = document.createElement('canvas'); c.width = 1024; c.height = 512;
   const g = c.getContext('2d');
-  g.fillStyle = '#26282d'; g.fillRect(0, 0, 1024, 512);
-  // screw heads and labels
-  g.fillStyle = '#3a3d44'; for (let x = 12; x < 1024; x += 64) for (let y = 12; y < 512; y += 64) { g.beginPath(); g.arc(x, y, 3, 0, 7); g.fill(); }
+  g.fillStyle = '#606a70'; g.fillRect(0, 0, 1024, 512);
+  // Soft cavity shading around each display; the bezels and fasteners are actual geometry.
+  for (const x of [200, 307, 512, 717, 824]) {
+    const grad = g.createRadialGradient(x, 122, 36, x, 122, 80);
+    grad.addColorStop(0, 'rgba(6,10,7,0.65)'); grad.addColorStop(1, 'rgba(6,10,7,0)');
+    g.fillStyle = grad; g.fillRect(x - 80, 42, 160, 160);
+  }
   g.fillStyle = '#cfd3d8'; g.font = '11px sans-serif'; g.textAlign = 'center';
   const lbl = (x, y, t) => g.fillText(t, x, y);
   lbl(180, 60, 'CAPT PFD'); lbl(370, 60, 'CAPT ND'); lbl(512, 60, 'ENG PRIMARY'); lbl(654, 60, 'F/O ND'); lbl(844, 60, 'F/O PFD');

@@ -63,15 +63,15 @@ offline and can be hosted on any static host.
 ### GitHub Pages
 
 The live site is served from the `gh-pages` branch, which holds only the game
-files (`index.html`, `manifest.webmanifest`, `css/`, `icons/`, `js/`, `vendor/`) and an empty `.nojekyll` so
+files (`index.html`, `manifest.webmanifest`, `assets/`, `css/`, `icons/`, `js/`, `vendor/`) and an empty `.nojekyll` so
 GitHub serves them as-is. All asset paths are relative, so the game runs from
 the `/flight-landing-game/` sub-path unchanged. To publish the current `main`:
 
 ```bash
 git fetch origin gh-pages
 git worktree add ../flight-landing-game-site gh-pages
-rm -rf ../flight-landing-game-site/css ../flight-landing-game-site/icons ../flight-landing-game-site/js ../flight-landing-game-site/vendor
-cp -R index.html manifest.webmanifest css icons js vendor ../flight-landing-game-site/
+rm -rf ../flight-landing-game-site/assets ../flight-landing-game-site/css ../flight-landing-game-site/icons ../flight-landing-game-site/js ../flight-landing-game-site/vendor
+cp -R index.html manifest.webmanifest assets css icons js vendor ../flight-landing-game-site/
 git -C ../flight-landing-game-site add -A
 git -C ../flight-landing-game-site commit -m "Publish main $(git rev-parse --short HEAD)"
 git -C ../flight-landing-game-site push origin gh-pages
@@ -286,6 +286,14 @@ sun, glints, the lights at night) before tone mapping. Phones and tablets get
 the **low** tier: the same sky, haze and lighting, drawn straight to the screen,
 without shadows or bloom. Add `?quality=high` or `?quality=low` to the address
 to choose.
+
+The terrain uses a bundled aerial countryside texture with close-range ground detail and a
+separate maintained-grass surface around the airport. Both tiers include rounded cockpit
+surfaces, recessed display bezels, panel fittings, broadleaf vegetation, pitched town roofs,
+terminal glazing, jet bridges, ramp vehicles and irregular water boundaries. The high tier
+also draws fair-weather cumulus as ray-marched 3D density volumes with self-shadowing;
+the low tier uses the lighter sprite clouds. Cloud-deck visibility and storm physics are shared.
+Asset provenance and the generation prompt are in `assets/README.md`.
 
 **Cockpit** (`js/cockpit/`): a first-person 737 flight deck with a PFD
 (attitude, airspeed and altitude tapes, vertical speed, ILS deviation,

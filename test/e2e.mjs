@@ -1051,7 +1051,11 @@ if (want('graphics')) {
 
 // --------------------------------------------------------------------------- wrap up
 const errs = await page.evaluate(() => window.__sim.errors);
-const realConsole = consoleErrors.filter((e) => !/favicon|Autoplay|speech/i.test(e));
+// Chromium/SwiftShader reports a synchronous GPU readback when our screenshots
+// inspect canvas pixels. This is a driver performance notice, not a shader or JS error.
+const screenshotReadbackNotice = /\[warning\]|\[\w+ warning\]/;
+const realConsole = consoleErrors.filter((e) => !/favicon|Autoplay|speech/i.test(e)
+  && !(screenshotReadbackNotice.test(e) && /GL Driver Message \(OpenGL, Performance, [^)]*\): GPU stall due to ReadPixels/.test(e)));
 check('no JavaScript errors during the whole session', errs.length === 0 && realConsole.length === 0, [...errs, ...realConsole].slice(0, 5).join(' | '));
 const last = sections[sections.length - 1];
 if (last) last.s = (Date.now() - last.t0) / 1000;

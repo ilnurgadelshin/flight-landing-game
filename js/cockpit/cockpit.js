@@ -6,6 +6,7 @@
 import * as THREE from 'three';
 import { AIRCRAFT as AC, DEG } from '../config.js';
 import { PFD, ND, UpperDU, LowerDU, makeMCPTexture, makePanelTexture, makeOverheadTexture } from './instruments.js';
+import { surfaceGrain, rounded, detailFlightDeck } from './finish.js';
 
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 
@@ -35,10 +36,11 @@ export class Cockpit {
     this.shakeAmt = 0;
 
     // "Boeing grey" plastics; lit by the hemisphere/sun plus the interior lights below
+    const grain = surfaceGrain();
     this.mat = {
-      dark: new THREE.MeshStandardMaterial({ color: 0x5d6168, roughness: 0.9, metalness: 0.0 }),
-      frame: new THREE.MeshStandardMaterial({ color: 0x33363b, roughness: 0.8, metalness: 0.1 }),
-      panel: new THREE.MeshStandardMaterial({ color: 0x3a3d44, roughness: 0.9 }),
+      dark: new THREE.MeshStandardMaterial({ color: 0x33383b, roughness: 0.86, metalness: 0.0, bumpMap: grain, bumpScale: 0.0012 }),
+      frame: new THREE.MeshStandardMaterial({ color: 0x737e83, roughness: 0.6, metalness: 0.18, bumpMap: grain, bumpScale: 0.0005 }),
+      panel: new THREE.MeshStandardMaterial({ color: 0x606a70, roughness: 0.77, bumpMap: grain, bumpScale: 0.0006 }),
       grey: new THREE.MeshStandardMaterial({ color: 0x8a8d94, roughness: 0.7 }),
       white: new THREE.MeshStandardMaterial({ color: 0xe0e0d8, roughness: 0.6 }),
       black: new THREE.MeshStandardMaterial({ color: 0x1a1b1e, roughness: 0.6 }),
@@ -52,11 +54,13 @@ export class Cockpit {
     this.buildPanel();
     this.buildPedestal();
     this.buildYokes();
+    detailFlightDeck(this);
     this.buildLights();
   }
 
   box(w, h, d, x, y, z, mat, parent = this.root) {
-    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+    const geometry = mat.transparent || Math.min(w, h, d) < 0.012 ? new THREE.BoxGeometry(w, h, d) : rounded(w, h, d);
+    const m = new THREE.Mesh(geometry, mat);
     m.position.set(x, y, z); parent.add(m); return m;
   }
 
@@ -144,7 +148,7 @@ export class Cockpit {
     this.panelGroup.rotation.x = -tilt;   // top edge away from the pilot so the face looks up at the eye
     this.root.add(this.panelGroup);
     const panelTex = makePanelTexture();
-    const panel = new THREE.Mesh(new THREE.BoxGeometry(2.3, 0.53, 0.04), new THREE.MeshStandardMaterial({ map: panelTex, roughness: 0.9, emissive: 0xffffff, emissiveMap: panelTex, emissiveIntensity: 0.12 }));
+    const panel = new THREE.Mesh(rounded(2.3, 0.53, 0.04), new THREE.MeshStandardMaterial({ map: panelTex, roughness: 0.8, bumpMap: this.mat.panel.bumpMap, bumpScale: 0.0006, emissive: 0xffffff, emissiveMap: panelTex, emissiveIntensity: 0.035 }));
     this.panelGroup.add(panel);
     // kick panel below the main panel down to the floor (closes the view to the outside)
     this.box(2.3, 0.80, 0.06, 0, -1.03, -0.52, this.mat.dark);
@@ -152,10 +156,12 @@ export class Cockpit {
     // display units
     this.pfd = new PFD(); this.nd = new ND(); this.upper = new UpperDU(); this.lower = new LowerDU();
     const du = (tex, x, y, size = 0.20) => {
-      const bezel = new THREE.Mesh(new THREE.BoxGeometry(size + 0.03, size + 0.03, 0.02), this.mat.black);
+      const bezel = new THREE.Mesh(rounded(size + 0.035, size + 0.035, 0.026, 0.006), this.mat.black);
       bezel.position.set(x, y, 0.025); this.panelGroup.add(bezel);
+      const inset = new THREE.Mesh(rounded(size + 0.012, size + 0.012, 0.008, 0.003), this.mat.grey);
+      inset.position.set(x, y, 0.034); this.panelGroup.add(inset);
       const screen = new THREE.Mesh(new THREE.PlaneGeometry(size, size), new THREE.MeshBasicMaterial({ map: tex, toneMapped: false }));
-      screen.position.set(x, y, 0.036); this.panelGroup.add(screen);
+      screen.position.set(x, y, 0.039); this.panelGroup.add(screen);
       return screen;
     };
     // Captain side: PFD outboard, ND inboard; centre: upper/lower DU; F/O side mirrored (same textures)
