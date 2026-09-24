@@ -777,6 +777,18 @@ export class Aircraft {
     this._bounces = 0;
   }
 
+  /**
+   * The wheels touched during a go-around and the aircraft flew away again (a touch-and-go):
+   * forget that contact, so the landing that follows is the one recorded and graded.
+   */
+  forgetTouchdown() {
+    this.landingTouches = [];
+    this.touchdown = null;
+    this.landingRollDistance = 0;
+    this.maxG = 1;
+    this._bounces = 0;
+  }
+
   onLiftoffAfterTouchdown() {
     this._bounces += 1;
     this.events.push({ t: this.time, type: 'liftoff', bounce: this._bounces });
