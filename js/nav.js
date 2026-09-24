@@ -57,6 +57,26 @@ export const MISSED = {
   text: 'Climb straight ahead. At 2000 turn LEFT heading 180, climbing to 3000. Radar vectors for a left-hand circuit and another ILS 27.',
 };
 
+/**
+ * The missed approach as the chart and the ND draw it (world x, z): straight ahead to the turn at
+ * 2000 ft (drawn 2.5 nm past the threshold, where a normal go-around reaches it), a left turn at
+ * 180 kt and 25° of bank onto 180, and south to the downwind.
+ */
+export const MISSED_TURN_NM = 2.5;
+export const TURN_RADIUS_M = 1.1 * NM;
+export function missedPath() {
+  const turn = { x: RUNWAY.thresholdX - MISSED_TURN_NM * NM, z: 0 }, R = TURN_RADIUS_M, pts = [{ x: RUNWAY.thresholdX, z: 0 }, turn];
+  for (let a = 10; a <= 90; a += 10) pts.push({ x: turn.x - R * Math.sin(a * DEG), z: R * (1 - Math.cos(a * DEG)) });
+  pts.push({ x: turn.x - R, z: MISSED.downwindNm * NM });
+  return pts;
+}
+/** The radar vectors (typical) from there back to the localizer: downwind, base, the 30° intercept. */
+export function circuitPath() {
+  const M = MISSED, T = RUNWAY.thresholdX, start = missedPath().pop();
+  return [start, { x: T + M.baseNm * NM, z: M.downwindNm * NM }, { x: T + M.baseNm * NM, z: M.interceptNm * NM },
+    { x: T + (M.baseNm - M.interceptNm / Math.tan(30 * DEG)) * NM, z: 0 }];
+}
+
 /** Minimum sector altitude within 25 nm: the highest ground + 1000 ft, up to the next 100 ft. */
 export const MSA_FT = (() => {
   let hi = 0;

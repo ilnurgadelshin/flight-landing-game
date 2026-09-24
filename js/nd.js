@@ -10,7 +10,7 @@
 // ndModel() is pure (state and settings in, shapes in the 512 px canvas out; test/nav.test.mjs);
 // drawND() paints them. The flight deck's ND and the phone / head-up inset draw the same model.
 import { RUNWAY, NM, KTS, DEG } from './config.js';
-import { AIRPORT, ILS27, FIXES, MISSED, onCentreline } from './nav.js';
+import { AIRPORT, ILS27, FIXES, onCentreline, missedPath } from './nav.js';
 
 export const ND_RANGES = [5, 10, 20, 40, 80, 160];
 export const ND_MODES = ['MAP', 'APP', 'PLN'];
@@ -18,6 +18,7 @@ export const S = 512;                     // canvas size (px)
 const ARC = { cx: 256, cy: 400, r: 330 }; // MAP / APP: the aircraft and the arc's radius at the selected range
 const PLAN = { cx: 256, cy: 270, r: 200 };
 
+const MISSED_PTS = missedPath();
 const norm360 = (d) => ((d % 360) + 360) % 360;
 const wrap180 = (d) => ((d + 540) % 360) - 180;
 
@@ -81,7 +82,7 @@ export function ndModel(st, efis, opts = {}) {
     // the missed approach straight ahead (cyan dashed until a go-around makes it the active leg)
     const pts = FIXES.map((f) => toScreen(onCentreline(f.distNm).x, 0));
     m.route = { pts, active: !circuit };
-    m.missed = { pts: [toScreen(x0, 0), toScreen(x1 - 3 * NM, 0)], active: circuit };
+    m.missed = { pts: MISSED_PTS.map((p) => toScreen(p.x, p.z)), active: circuit };
     const act = activeFix(st, circuit);
     m.fixes = FIXES.filter((f) => f.role !== 'THR').map((f) => Object.assign(toScreen(onCentreline(f.distNm).x, 0), { name: f.name, active: f.name === act.name }));
     const p = onCentreline(act.distNm);
@@ -145,7 +146,8 @@ export function drawND(g, m, { big = false } = {}) {
       g.strokeStyle = f.active ? MAGENTA : WHITE; g.lineWidth = 2;
       g.beginPath(); for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2; g.moveTo(f.x, f.y); g.lineTo(f.x + Math.sin(a) * 9, f.y - Math.cos(a) * 9); } g.stroke();
       g.fillStyle = f.active ? MAGENTA : WHITE; g.font = FONT_S; g.textAlign = 'left';
-      if (!big || f.active) g.fillText(f.name, f.x + 10, f.y + (i % 2 ? 24 : -12));   // alternate sides so close fixes stay legible
+      const ly = f.y + (i % 2 ? 24 : -12);                                             // alternate sides so close fixes stay legible
+      if ((!big || f.active) && ly < S - 34) g.fillText(f.name, f.x + 10, ly);
     });
   }
   if (m.course) {

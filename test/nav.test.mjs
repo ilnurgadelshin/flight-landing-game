@@ -4,7 +4,7 @@
 //   node test/nav.test.mjs
 import { RUNWAY, NM, FT, DEG, KTS } from '../js/config.js';
 import { TERRAIN } from '../js/physics/terrain.js';
-import { ILS27, FIXES, MISSED, MSA_FT, glidepathFt, glidepathDistNm, onCentreline, ils27, bearingTo } from '../js/nav.js';
+import { ILS27, FIXES, MISSED, MSA_FT, glidepathFt, glidepathDistNm, onCentreline, ils27, bearingTo, missedPath, circuitPath } from '../js/nav.js';
 import { ndModel, autoRange, activeFix, ND_RANGES } from '../js/nd.js';
 import { chartModel, chartStatic, toPlan, toProfile, PLAN, PROFILE } from '../js/chart.js';
 import { debriefModel, BOX } from '../js/debrief.js';
@@ -99,6 +99,14 @@ console.log('\n[N3] The approach chart');
   check('the descent rate for 140 kt on a 3° path is about 740 fpm', c.rodTable.find((r) => r.gs === 140).fpm === 740);
   const ms = c.plan.missed;
   check('the missed approach: from the threshold straight ahead (west), then left onto south', near(ms[0].y, ms[1].y, 1e-9) && ms[1].x < ms[0].x && ms[ms.length - 1].y > ms[1].y && ms[ms.length - 1].x < ms[1].x);
+  const mp = missedPath(), nd = ndModel(at(5, 1600), efis('PLN', 20));
+  check('the chart and the ND draw the same missed approach (js/nav.js), ending on the downwind the autoland flies',
+    c.plan.missed.length === mp.length && mp.every((p, i) => { const q = toPlan(p.x, p.z), r = nd.toScreen(p.x, p.z); return near(c.plan.missed[i].x, q.x, 1e-9) && near(nd.missed.pts[i].x, r.x, 1e-9) && near(nd.missed.pts[i].y, r.y, 1e-9); })
+    && near(mp[mp.length - 1].z, MISSED.downwindNm * NM, 1e-6));
+  const cp = circuitPath();
+  const icptHdg = ((Math.atan2(cp[3].x - cp[2].x, -(cp[3].z - cp[2].z)) / DEG) + 360) % 360;   // heading of the intercept leg
+  check('the radar vectors: downwind, base 13 nm out, the intercept on heading 300 onto the centreline', near(cp[1].x, thrX + MISSED.baseNm * NM, 1e-6) && near(cp[2].z, MISSED.interceptNm * NM, 1e-6) && cp[3].z === 0
+    && near(icptHdg, MISSED.headings.intercept, 1e-6), `${icptHdg.toFixed(1)}°`);
   check('the missed approach text is the autoland\'s procedure', c.missedText === MISSED.text && /2000/.test(c.missedText) && /180/.test(c.missedText) && /3000/.test(c.missedText));
   check('the minimums: CAT I, DA 200 ft', c.minima.title === 'ILS CAT I' && /DA\(H\) 200'/.test(c.minima.lines[0]));
   const onGp = chartModel(at(5, glidepathFt(5)));

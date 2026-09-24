@@ -8,7 +8,7 @@
 // paints them. The fixed parts are computed once; only the own-ship changes from frame to frame.
 import { RUNWAY, NM, FT, DEG } from './config.js';
 import { TERRAIN } from './physics/terrain.js';
-import { AIRPORT, ILS27, FIXES, MISSED, MSA_FT, glidepathFt, glidepathDistNm, onCentreline } from './nav.js';
+import { AIRPORT, ILS27, FIXES, MISSED, MSA_FT, MISSED_TURN_NM, glidepathFt, glidepathDistNm, onCentreline, missedPath, circuitPath } from './nav.js';
 
 export const CW = 1200, CH = 800;
 /** The plan view: its box on the canvas and the world it shows (m; x east, z south), the same scale both ways. */
@@ -16,7 +16,6 @@ export const PLAN = { x: 16, y: 112, w: 700, h: 460, west: RUNWAY.thresholdX - 7
 PLAN.south = PLAN.north + (PLAN.east - PLAN.west) * PLAN.h / PLAN.w;
 /** The profile: its box and the distances (nm before the threshold, − past it) and heights (ft) it shows. */
 export const PROFILE = { x: 732, y: 112, w: 452, h: 290, farNm: 15, nearNm: -3, topFt: 4000 };
-const MISSED_TURN_NM = 2.5;             // where the chart draws the turn at 2000 ft (nm past the threshold)
 
 const thrX = RUNWAY.thresholdX;
 /** Plan view: world (x, z) → canvas px. */
@@ -37,15 +36,9 @@ export function chartStatic() {
   const L = RUNWAY.length, W = RUNWAY.width, far = thrX - L;
   const fixes = FIXES.filter((f) => f.role !== 'THR');
   const M = MISSED;
-  // the missed approach as the chart depicts it: straight ahead to 2000 ft, a left turn onto 180
-  // climbing to 3000, then radar vectors (the circuit the autoland is given, drawn dotted)
-  const turn = { x: thrX - MISSED_TURN_NM * NM, z: 0 };
-  const arc = [];
-  const R = 1.1 * NM;                                     // the turn's radius at 180 kt, about 25° bank
-  for (let a = 0; a <= 90; a += 10) arc.push({ x: turn.x - R * Math.sin(a * DEG), z: R * (1 - Math.cos(a * DEG)) });
-  const south = { x: turn.x - R, z: M.downwindNm * NM };
-  const circuit = [south, { x: thrX + M.baseNm * NM, z: M.downwindNm * NM }, { x: thrX + M.baseNm * NM, z: M.interceptNm * NM },
-    { x: thrX + (M.baseNm - M.interceptNm / Math.tan(30 * DEG)) * NM, z: 0 }];
+  // the missed approach: straight ahead to 2000 ft, a left turn onto 180 climbing to 3000, then
+  // radar vectors (the circuit the autoland is given, drawn dotted)
+  const missed = missedPath(), turn = missed[1], south = missed[missed.length - 1], circuit = circuitPath();
   fixed = {
     header: {
       ident: AIRPORT.ident, name: AIRPORT.name.toUpperCase(), title: `ILS RWY ${Math.round(RUNWAY.headingDeg / 10)}`,
@@ -58,7 +51,7 @@ export function chartStatic() {
       final: [toPlan(PLAN.east, 0), toPlan(thrX, 0)],
       fixes: fixes.map((f) => Object.assign(toPlan(onCentreline(f.distNm).x, 0), { name: f.name, role: f.role, altFt: f.altFt, dme: f.distNm })),
       haven: Object.assign(toPlan(PLAN.east, 0), { text: `${FIXES[0].name} (${FIXES[0].role}) D${FIXES[0].distNm.toFixed(1)} ${FIXES[0].altFt}` }),
-      missed: [toPlan(thrX, 0), toPlan(turn.x, 0), ...arc.map((p) => toPlan(p.x, p.z)), toPlan(south.x, south.z)],
+      missed: missed.map((p) => toPlan(p.x, p.z)),
       turn: Object.assign(toPlan(turn.x, 0), { text: `${M.turnAltFt}` }),
       missedEnd: Object.assign(toPlan(south.x, south.z), { text: `${String(M.headings.crosswind).padStart(3, '0')}° ${M.altFt}` }),
       circuit: circuit.map((p) => toPlan(p.x, p.z)),

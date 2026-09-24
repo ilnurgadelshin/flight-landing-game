@@ -6,7 +6,7 @@ import { Game } from '../js/game.js';
 import { GPWS } from '../js/gpws.js';
 import { FlightControls } from '../js/flightcontrols.js';
 import { FT, DEG } from '../js/config.js';
-import { ndModel, autoRange } from '../js/nd.js';
+import { ndModel, autoRange, activeFix } from '../js/nd.js';
 import { MISSED } from '../js/nav.js';
 import { debriefModel } from '../js/debrief.js';
 import fs from 'node:fs';
@@ -311,8 +311,9 @@ console.log('\n[R10] The navigation display, the FMA and the MCP through a go-ar
   check('the missed approach: every leg shows its heading on the MCP and the ND, with HDG SEL and its line',
     legs.join(' ') === 'climb crosswind downwind base intercept' && all(missed, (s) => s.fma.roll === 'HDG SEL' && s.mcp.hdg === MISSED.headings[s.leg] && s.opts.hdgBug === s.mcp.hdg && s.opts.hdgSel && s.hdgLine),
     legs.map((l) => `${l} ${MISSED.headings[l]}`).join(', '));
-  check('...and 180 kt, 3000 ft on the MCP; LVL CHG climbing, ALT HOLD at 3000 ft',
-    all(missed, (s) => s.mcp.spd === MISSED.speedKts && s.mcp.alt === 3000 && (s.fma.pitch === 'ALT HOLD' ? Math.abs(s.alt - 3000) < 60 : s.fma.pitch === 'LVL CHG')) && missed.some((s) => s.fma.pitch === 'ALT HOLD') && missed.some((s) => s.fma.pitch === 'LVL CHG'));
+  const vmode = (s) => (Math.abs(s.alt - 3000) < 60 ? 'ALT HOLD' : Math.abs(s.alt - 3000) < 400 ? 'ALT ACQ' : 'V/S');
+  check('...and 180 kt, 3000 ft on the MCP; V/S climbing, ALT ACQ levelling off, ALT HOLD at 3000 ft',
+    all(missed, (s) => s.mcp.spd === MISSED.speedKts && s.mcp.alt === 3000 && s.fma.pitch === vmode(s)) && ['V/S', 'ALT ACQ', 'ALT HOLD'].every((v) => missed.some((s) => s.fma.pitch === v)));
   const settled = legs.map((l) => { const x = missed.filter((s) => s.leg === l); return x[x.length - 1]; });
   check('by the end of each leg the aircraft flies the heading: the bug at the top of the track-up map', settled.every((s) => Math.abs(s.bug) < 10), settled.map((s) => `${s.leg} ${s.bug.toFixed(0)}°`).join(', '));
   check('the range stays automatic: 20 nm in the circuit; the ND always shows the range the crew would pick', all(L, (s) => s.range === s.auto) && all([...gaPh, ...missed], (s) => s.range === 20));
@@ -335,6 +336,65 @@ console.log('\n[R10] The navigation display, the FMA and the MCP through a go-ar
   check('the debrief map counts one go-around and one touchdown; its profile reaches the circuit\'s intercept', d.goArounds === 1 && d.touchdowns === 1 && d.profile.farNm >= 10, `profile to ${d.profile.farNm} nm, ${P.samples.length} samples`);
   const tdm = d.runway.marks.find((m) => m.type === 'touchdown');
   check('the runway strip puts the touchdown where the grading measured it', tdm && Math.abs(tdm.alongM - navGA.game.result.touchdown.alongRunway) < 40, tdm ? `${tdm.alongM.toFixed(0)} m vs ${navGA.game.result.touchdown.alongRunway.toFixed(0)} m` : '');
+
+  // every scenario (the storm's approach goes around), and the full approach from 26 nm, which starts
+  // outside the localizer's coverage: what the displays show must agree with the receiver and the
+  // route at every moment
+  const frame = 1 / 30;
+  const sweep = (scenarioId, startId, seed) => {
+    const Q = rig({ scenarioId, startId, seed }); Q.game.engageAutopilot();
+    const g = Q.game, st = g.sim.state, bad = [], seen = { roll: [], pitch: [], range: [], fix: [] };
+    const note = (k, v) => { if (seen[k][seen[k].length - 1] !== v) seen[k].push(v); };
+    let n = 0;
+    for (let t = 0; t < 2400 && g.state !== 'finished'; t += frame) {
+      g.update(frame);
+      const ap = g.demoAp;
+      if (!ap || ++n % 10 || st.onGround) continue;
+      const o = g.ndOpts(), map = ndModel(st, g.efis, o), app = ndModel(st, { mode: 'APP', range: 20, auto: true }, o), f = ap.fma, ils = st.ils;
+      const fail = (why) => { if (bad.length < 5) bad.push(`${st.time.toFixed(0)} s ${ap.phase}: ${why}`); };
+      if (map.range !== autoRange(st, o.circuit)) fail(`range ${map.range}`);
+      if ((app.loc !== null) !== ils.locValid || (app.glide !== null) !== ils.gsValid) fail('APP pointers without the signal (or missing with it)');
+      if (f.roll === 'LOC' && !ils.locValid) fail('LOC without the localizer');
+      if (f.roll === 'LNAV' && ils.locValid) fail('LNAV with the localizer');
+      if (f.pitch === 'G/S' && !ils.gsValid) fail('G/S without the glideslope');
+      if (o.circuit) {
+        if (!map.missed.active || map.route.active || map.active.name !== 'FI27') fail('circuit: not on the missed approach');
+        if (ap.phase === 'missed' && (o.hdgBug !== ap.mcp.hdg || !o.hdgSel)) fail('circuit: heading bug');
+      } else {
+        if (!map.route.active || map.missed.active || o.hdgBug !== 270 || o.hdgSel) fail('approach: route or bug');
+        if (map.active.name !== activeFix(st, false).name) fail(`next fix ${map.active.name}`);
+      }
+      const last = g.path.samples[g.path.samples.length - 1];
+      if (last && last.kind === 'goaround' && !o.circuit && g.path.wait > g.path.period * 0.9) fail('path: go-around colour outside the circuit');
+      if (ap.phase === 'approach') { note('roll', f.roll); note('pitch', f.pitch); note('range', map.range); note('fix', map.active.name); }
+    }
+    return { bad, seen, fin: Q.of('finish')[0], gas: Q.game.ctx.goArounds };
+  };
+  // repositioned on final from the circuit: the ND is back on the route, and the path starts a new line
+  {
+    const Q = rig({ scenarioId: 'clear', startId: 'short', seed: 3 }); Q.game.engageAutopilot();
+    const g = Q.game;
+    for (let t = 0; t < 600 && !(g.demoAp && g.demoAp.phase === 'missed' && g.demoAp.leg === 'crosswind'); t += frame) {
+      if (g.demoAp && g.demoAp.phase === 'approach' && !g.demoAp.goArounds && g.sim.state.agl < 200 * FT) g.demoAp.goAround('forced for the test');
+      g.update(frame);
+    }
+    const before = g.ndOpts().circuit;
+    g.action('reposition'); for (let t = 0; t < 2; t += frame) g.update(frame);
+    const o = g.ndOpts(), m = ndModel(g.sim.state, g.efis, o), segs = new Set(g.path.samples.map((s) => s.seg));
+    check('repositioned from the circuit: the ND back on the route (the next fix ahead, the bug on 270), the path on a new line',
+      before && !o.circuit && m.route.active && !m.missed.active && o.hdgBug === 270 && m.active.name === activeFix(g.sim.state, false).name && segs.size === 2,
+      `next ${m.active.name}, ${segs.size} path segments`);
+  }
+  const full = sweep('clear', 'full', 3);
+  check('full approach from 26 nm: LNAV until the localizer is received, then LOC; VNAV PTH until the glideslope is, then G/S',
+    full.bad.length === 0 && full.seen.roll.join(' ') === 'LNAV LOC' && full.seen.pitch.join(' ').endsWith('VNAV PTH G/S'), `${full.seen.roll.join(' → ')}; ${full.seen.pitch.join(' → ')}${full.bad.length ? '; ' + full.bad.join('; ') : ''}`);
+  check('...the range 40 → 20 → 10 nm and the next fix WESTY → FI27 → RW27 as it comes in, and a landing',
+    full.seen.range.join(' ') === '40 20 10' && full.seen.fix.join(' ') === 'WESTY FI27 RW27' && full.fin && full.fin.result.success, `${full.seen.range.join(' → ')} nm; ${full.seen.fix.join(' → ')}`);
+  for (const [sc, seed] of [['tailwind', 3], ['crosswind', 3], ['storm', 21]]) {
+    const r = sweep(sc, 'standard', seed);
+    check(`${sc}: the ND, the FMA and the MCP agree with the receiver and the route all the way${r.gas ? ' (through its go-around and circuit)' : ''}, and it lands`,
+      r.bad.length === 0 && r.fin && r.fin.result.success && (sc !== 'storm' || r.gas >= 1), r.bad.join('; ') || `${r.gas} go-around${r.gas === 1 ? '' : 's'}, ${r.fin ? r.fin.result.score : '-'} points`);
+  }
 }
 
 console.log('\n[R7] Every phrase the game speaks has a recording');

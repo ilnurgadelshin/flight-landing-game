@@ -181,10 +181,11 @@ export class PFD {
       const gsD = dots(-ils.gsDev, 0.35);    // above the glideslope => needle down
       g.beginPath(); g.moveTo(gsX, cy - gsD * 34 - 9); g.lineTo(gsX + 9, cy - gsD * 34); g.lineTo(gsX, cy - gsD * 34 + 9); g.lineTo(gsX - 9, cy - gsD * 34); g.closePath(); g.fill();
     }
-    // the tuned ILS and its DME, top left of the attitude display
-    g.font = FONT_S; g.textAlign = 'left'; g.fillStyle = ils.locValid ? GREEN : '#888';
-    g.fillText(`${ILS27.ident}/${ILS27.courseDeg}°`, 8, 60);
-    g.fillText(ils.locValid ? `DME ${ils.dmeNm.toFixed(1)}` : 'DME ---', 8, 78);
+    // the tuned ILS and its DME, inside the top left corner of the attitude display (as on a 737),
+    // clear of the selected speed above the speed tape
+    g.font = FONT_S; g.textAlign = 'left'; g.fillStyle = ils.locValid ? '#fff' : '#bbb';
+    g.fillText(`${ILS27.ident}/${ILS27.courseDeg}°`, 106, 130);
+    g.fillText(ils.locValid ? `DME ${ils.dmeNm.toFixed(1)}` : 'DME ---', 106, 148);
 
     // ---- heading strip
     const hdgY = 470;
@@ -211,6 +212,7 @@ export class PFD {
     // ---- flight mode annunciator (top)
     g.font = FONT_S; g.textAlign = 'center';
     const fma = [['A/T', extra.autothrottle || ''], ['ROLL', extra.rollMode || ''], ['PITCH', extra.pitchMode || '']];
+    this.fma = fma.map(([, val]) => val);           // what the annunciator shows (the tests read it)
     fma.forEach(([lbl, val], i) => { const x = 130 + i * 120; g.fillStyle = '#888'; g.fillText(lbl, x, 14); g.fillStyle = GREEN; g.font = FONT; g.fillText(val, x, 36); g.font = FONT_S; });
     if (st.stallWarning) { g.fillStyle = RED; g.font = FONT_L; g.fillText('STALL', cx, cy - 60); }
     if (extra.gaMode) { g.fillStyle = GREEN; g.font = FONT; g.fillText('GO-AROUND', cx, 60); }

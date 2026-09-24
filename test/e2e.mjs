@@ -377,6 +377,108 @@ if (want('ga')) {
   }
 }
 
+// --------------------------------------------------------------------------- maps: the ND, the approach chart, the debrief map
+if (want('maps')) {
+  section('E17', 'Navigation display, approach chart and debrief map (desktop and phone), through a go-around');
+  // a canvas's pixels, read from a throwaway copy (reading one 2D context again and again makes Chrome warn)
+  const pixelsHelper = () => { window.__pixels = (c) => { const t = document.createElement('canvas'); t.width = c.width; t.height = c.height; const g = t.getContext('2d', { willReadFrequently: true }); g.drawImage(c, 0, 0); return g.getImageData(0, 0, c.width, c.height).data; }; };
+  await page.evaluate(pixelsHelper);
+  await start({ scenarioId: 'clear', startId: 'standard', mode: 'game', sound: false, seed: 3 });
+  await frames(4);
+  const nd = () => page.evaluate(() => { const g = window.__sim.game, l = window.__sim.cockpit.nd.last; return { efis: Object.assign({}, g.efis), mode: l.mode, range: l.range, fix: l.active ? l.active.name : null, ils: l.ilsText || null, knob: window.__sim.cockpit.efisKnobs ? window.__sim.cockpit.efisKnobs.mode[0].rotation.z : null }; });
+  const n0 = await nd();
+  check('the flight deck ND starts in MAP on the automatic range (20 nm at 10 nm out), FI27 next', n0.mode === 'MAP' && n0.range === 20 && n0.efis.auto && n0.fix === 'FI27', `${n0.mode} ${n0.range} nm, ${n0.fix}`);
+  await tap('Period'); await frames(4); const n1 = await nd();
+  await tap('Comma'); await tap('Comma'); await frames(4); const n2 = await nd();
+  check('. and , turn the range knob (20 → 40, then 10) and the ND follows', n1.range === 40 && n2.range === 10 && !n2.efis.auto, `${n0.range} → ${n1.range} → ${n2.range}`);
+  await tap('KeyK'); await frames(4); const n3 = await nd();
+  check('K: APP, with the ILS ident, course and DME; the mode knob turns', n3.mode === 'APP' && n3.ils && n3.ils[0] === 'IWH 110.30' && /^DME \d/.test(n3.ils[2]) && n3.knob !== n0.knob, n3.ils ? n3.ils.join(' · ') : '');
+  await tap('KeyK'); await frames(4); const n4 = await nd(); await tap('KeyK'); await frames(4); const n5 = await nd();
+  check('K again: PLN, then MAP', n4.mode === 'PLN' && n5.mode === 'MAP');
+  await tap('KeyC'); await frames(4);
+  const inset = () => page.evaluate(() => { const c = document.getElementById('nd-inset'), r = c.getBoundingClientRect(); const d = window.__pixels(c); let lit = 0; for (let i = 0; i < d.length; i += 64) if (d[i] + d[i + 1] + d[i + 2] > 150) lit++; return { shown: getComputedStyle(c).display !== 'none' && r.width > 100, lit }; });
+  const in1 = await inset();
+  check('the head-up view shows the ND as an inset, drawn', in1.shown && in1.lit > 50, `${in1.lit} lit samples`);
+  await tap('KeyJ'); await frames(3); const in2 = await inset(); await tap('KeyJ'); await frames(3); const in3 = await inset();
+  check('J hides the inset and shows it again', !in2.shown && in3.shown);
+  await tap('KeyC'); await frames(3);
+  check('no inset in the cockpit view (the flight deck has its own ND)', !(await inset()).shown);
+  const chart = () => page.evaluate(() => { const p = window.__sim.presentation, c = document.getElementById('chart'); return { open: p.chart.open, shown: !c.classList.contains('hidden'), state: window.__sim.game.state, own: p.lastChart ? p.lastChart.own : null }; });
+  await tap('KeyE'); await frames(3); const c1 = await chart();
+  check('E opens the approach chart over the flight (it flies on), with the aircraft on the plan and the profile', c1.open && c1.shown && c1.state === 'flying' && c1.own && c1.own.plan.inside && !!c1.own.profile, c1.own ? `${fmt(c1.own.distNm)} nm, ${fmt(c1.own.altFt, 0)} ft` : '');
+  await simWait(4); await frames(12); const c2 = await chart();
+  check('its own-ship moves with the aircraft', c2.own && c2.own.distNm < c1.own.distNm - 0.05, c2.own ? `${fmt(c1.own.distNm, 2)} → ${fmt(c2.own.distNm, 2)} nm` : '');
+  await shot('e2e-chart');
+  await tap('KeyE'); await frames(2);
+  check('E closes it', !(await chart()).shown);
+  await tap('KeyP'); await frames(2); await page.click('#btn-chart'); await frames(2); const c3 = await chart();
+  await page.keyboard.press('Escape'); await frames(2); const c4 = await chart();
+  check('the pause menu opens it; Esc closes the chart first (still paused)', c3.open && c3.state === 'paused' && !c4.open && c4.state === 'paused');
+  await page.click('#btn-resume'); await frames(2);
+
+  // the autoland goes around at 200 ft: what the PFD's FMA, the MCP and the ND show at each stage
+  await start({ scenarioId: 'clear', startId: 'short', mode: 'game', sound: false, seed: 3 });
+  await page.evaluate(() => {
+    const s = window.__sim, g = s.game; s.autopilot(); s.setTimeScale(10);
+    window.__maps = []; clearInterval(window.__mapsIv);
+    window.__mapsIv = setInterval(() => {
+      const a = g.demoAp, c = s.cockpit, l = c.nd.last; if (!a || !l || g.state !== 'flying') return;
+      if (a.phase === 'approach' && !a.goArounds && g.sim.state.agl < 200 * 0.3048) a.goAround('forced for the test');
+      const key = a.phase + (a.leg ? ':' + a.leg : '');
+      if (!window.__maps.length || window.__maps[window.__maps.length - 1].key !== key) window.__maps.push({ key, n: 0 });
+      const r = window.__maps[window.__maps.length - 1]; r.n++;
+      if (r.n >= 3) r.last = { fma: c.pfd.fma.slice(), mcp: c._mcpKey, bug: Math.round(l.hdgBug), route: l.route && l.route.active, missed: l.missed && l.missed.active, fix: l.active && l.active.name, range: l.range };
+    }, 40);
+  });
+  await waitFor(() => window.__sim.game.state === 'finished', 600000, 'the landing after the circuit');
+  const stages = await page.evaluate(() => { clearInterval(window.__mapsIv); return window.__maps.filter((r) => r.last); });
+  const at = (k) => stages.find((r) => r.key === k), ga = at('goaround'), legs = ['climb', 'crosswind', 'downwind', 'base', 'intercept'].map((l) => at('missed:' + l));
+  const second = stages.filter((r) => r.key === 'approach').pop(), first = stages.find((r) => r.key === 'approach');
+  check('before: LOC and G/S on the FMA, the route active, the bug on 270', first && first.last.fma[1] === 'LOC' && first.last.fma[2] === 'G/S' && first.last.route && first.last.mcp.split('|')[1] === '270', first ? `${first.last.fma.join(' ')}, MCP ${first.last.mcp}` : '');
+  check('TO/GA: the FMA reads GA TO/GA TO/GA, the MCP the go-around speed, the ND the missed approach and FI27', ga && ga.last.fma.join(' ') === 'GA TO/GA TO/GA' && ga.last.missed && !ga.last.route && ga.last.fix === 'FI27' && ga.last.range === 20, ga ? `${ga.last.fma.join(' ')}, MCP ${ga.last.mcp}` : '');
+  const legOk = legs.map((r, i) => r && r.last.fma[1] === 'HDG SEL' && r.last.mcp === `180|${[270, 180, 90, 360, 300][i]}|3000` && r.last.missed && r.last.fix === 'FI27');
+  check('every circuit leg: HDG SEL, the MCP at 180 kt, the leg\'s heading and 3000 ft, the ND on the missed approach', legOk.every(Boolean), legs.map((r) => (r ? `${r.key.slice(7)} ${r.last.mcp} ${r.last.fma[2]} bug ${r.last.bug}°` : 'missing')).join(', '));
+  check('the ND\'s heading bug sits at the top by the end of each leg (the heading is flown)', legs.every((r) => r && Math.abs(r.last.bug) <= 10), legs.map((r) => (r ? r.last.bug : '-')).join(' '));
+  check('back on the ILS: LOC and G/S, the route active again, the threshold next', second && second !== first && second.last.fma[1] === 'LOC' && second.last.route && !second.last.missed && second.last.fix === 'RW27', second ? `${second.last.fma.join(' ')}, next ${second.last.fix}` : '');
+  const res = await page.evaluate(() => {
+    const d = window.__sim.presentation.lastDebrief, c = document.getElementById('res-map'), px = window.__pixels(c);
+    let blue = 0, amber = 0, green = 0;
+    for (let i = 0; i < px.length; i += 4) {
+      const r = px[i], g = px[i + 1], b = px[i + 2];
+      if (b > 200 && r < 120 && g > 130 && g < 200) blue++; else if (r > 200 && g > 140 && g < 210 && b < 80) amber++; else if (g > 180 && r < 110 && b > 90 && b < 150) green++;
+    }
+    const r = c.getBoundingClientRect();
+    return { shown: !document.getElementById('results').classList.contains('hidden') && r.width > 300, ga: d.goArounds, td: d.touchdowns, farNm: d.profile.farNm, blue, amber, green };
+  });
+  check('the results show the debrief map: the approaches blue, the go-around and circuit amber, the roll-out green', res.shown && res.ga === 1 && res.td === 1 && res.blue > 300 && res.amber > 300 && res.green > 30, `${res.blue} blue, ${res.amber} amber, ${res.green} green px; profile to ${res.farNm} nm`);
+  await shot('e2e-debrief-map');
+
+  // a phone: the MAP panel and the chart by touch
+  const { ctx, mp, mf } = await phonePage();
+  await mp.evaluate(pixelsHelper);
+  await mp.evaluate(() => window.__sim.start({ scenarioId: 'clear', startId: 'standard', mode: 'game', sound: false, seed: 3 }));
+  await mf(3);
+  const panel = () => mp.evaluate(() => { const c = document.getElementById('t-map-panel'), r = c.getBoundingClientRect(), g = window.__sim.game; const d = window.__pixels(c); let lit = 0; for (let i = 0; i < d.length; i += 64) if (d[i] + d[i + 1] + d[i + 2] > 150) lit++; return { open: document.body.classList.contains('map-open'), shown: r.width > 90, hgs: getComputedStyle(document.getElementById('hgs')).display, lit, efis: Object.assign({}, g.efis), r: { x: r.left, y: r.top, w: r.width, h: r.height } }; });
+  const hgsIls = await mp.evaluate(() => { const c = document.getElementById('hgs').className, i = window.__sim.state().ils; return { loc: /\bloc\b/.test(c), gs: /\bgs\b/.test(c), locValid: i.locValid, gsValid: i.gsValid }; });
+  check('phone: the head-up display\'s ILS diamonds show exactly the signals received', hgsIls.loc === hgsIls.locValid && hgsIls.gs === hgsIls.gsValid && hgsIls.loc, JSON.stringify(hgsIls));
+  await mp.tap('#t-map'); await mf(4); const p1 = await panel();
+  check('phone: MAP opens the navigation display in the head-up display\'s place, drawn', p1.open && p1.shown && p1.hgs === 'none' && p1.lit > 50, `${Math.round(p1.r.w)} px, ${p1.lit} lit samples`);
+  const third = async (f) => { await mp.touchscreen.tap(p1.r.x + p1.r.w * f, p1.r.y + p1.r.h / 2); await mf(3); return (await panel()).efis; };
+  const e1 = await third(0.85), e2 = await third(0.5), e3 = await third(0.15);
+  check('phone: taps on its right third, middle and left third: range up, mode, range down', e1.range === 40 && !e1.auto && e2.mode === 'APP' && e3.range === 20, `${e1.range} nm → ${e2.mode} → ${e3.range} nm`);
+  await snap(mp, 'e2e-phone-map');
+  await mp.tap('#t-map'); await mf(3); const p2 = await panel();
+  check('phone: MAP again closes it and the head-up display returns', !p2.open && !p2.shown && p2.hgs !== 'none');
+  await mp.tap('#t-pause'); await mf(2); await mp.tap('#btn-chart'); await mf(3);
+  const pc = () => mp.evaluate(() => ({ open: window.__sim.presentation.chart.open, zoom: document.getElementById('chart').classList.contains('zoom'), w: document.getElementById('chart-canvas').getBoundingClientRect().width }));
+  const q1 = await pc(); await mp.tap('#chart-canvas'); await mf(2); const q2 = await pc();
+  check('phone: the pause menu opens the chart; a tap zooms it to full size', q1.open && !q1.zoom && q1.w < 852 && q2.zoom && q2.w === 1200, `${Math.round(q1.w)} → ${Math.round(q2.w)} px wide`);
+  await mp.tap('#chart-close'); await mf(2);
+  check('phone: ✕ closes it (the pause menu is still there)', !(await pc()).open && (await mp.evaluate(() => window.__sim.game.state)) === 'paused');
+  await ctx.close();
+  await page.setViewportSize({ width: VW, height: VH });
+}
+
 // --------------------------------------------------------------------------- frame-rate decoupling in the browser
 if (want('fps')) {
   section('E8', 'Physics time is decoupled from the render frame rate');
@@ -482,7 +584,7 @@ if (want('mobile')) {
   check('tapping Start begins the flight', (await MS()).gameState === 'flying');
 
   const lay = await mp.evaluate((S) => {
-    const ids = ['t-gear', 't-autobrake', 't-flaps-up', 't-flaps-dn', 't-arm', 't-ext', 't-toga', 't-lever-body', 't-rudder', 't-stick-zone', 't-view', 't-pause', 't-help'];
+    const ids = ['t-gear', 't-autobrake', 't-flaps-up', 't-flaps-dn', 't-arm', 't-ext', 't-toga', 't-lever-body', 't-rudder', 't-stick-zone', 't-view', 't-pause', 't-help', 't-map'];
     const rects = ids.map((id) => { const r = document.getElementById(id).getBoundingClientRect(); return { id, l: r.left, t: r.top, r: r.right, b: r.bottom, w: r.width, h: r.height }; });
     const W = innerWidth, H = innerHeight;
     const outside = rects.filter((r) => r.w === 0 || r.l < S.l || r.r > W - S.r || r.t < S.t || r.b > H - S.b).map((r) => r.id);
@@ -495,7 +597,7 @@ if (want('mobile')) {
     const hgsHits = rects.filter((r) => r.id !== 't-stick-zone' && hit(r, hgs)).map((r) => r.id);
     return { outside, overlaps, small, hgsHits, strip: getComputedStyle(document.getElementById('hud-bottom')).display, ias: document.getElementById('g-ias').textContent, alt: document.getElementById('g-altv').textContent };
   }, SAFE);
-  check('every touch control sits inside the notch and home-bar safe area', lay.outside.length === 0, lay.outside.join(', ') || '13 controls checked');
+  check('every touch control sits inside the notch and home-bar safe area', lay.outside.length === 0, lay.outside.join(', ') || '14 controls checked');
   check('no two touch controls overlap', lay.overlaps.length === 0, lay.overlaps.join(', '));
   check('touch targets are at least 34×40 px', lay.small.length === 0, lay.small.join(', '));
   check('the head-up display is clear of the buttons and levers', lay.hgsHits.length === 0, lay.hgsHits.join(', '));
@@ -517,22 +619,24 @@ if (want('mobile')) {
     await mp.setViewportSize({ width: vp.width, height: vp.height }); await setSafe(vp.safe); await mf(3);
     const bad = await mp.evaluate((S) => {
       const bad = [];
-      for (const state of ['air', 'go-around', 'ground', 'tilt']) {
+      for (const state of ['air', 'go-around', 'ground', 'tilt', 'map']) {
         const show = (id, on) => document.getElementById(id).classList.toggle('hidden', !on);
         show('t-reposition', state === 'go-around'); show('t-brake', state === 'ground'); document.body.classList.toggle('tilt', state === 'tilt');
-        const ids = ['t-gear', 't-autobrake', 't-flaps-up', 't-flaps-dn', 't-arm', 't-ext', 't-toga', 't-lever-body', 't-rudder', 't-stick-zone', 't-view', 't-pause', 't-help', 't-reposition', 't-brake', 't-center', 'hgs'];
+        document.body.classList.toggle('map-open', state === 'map');      // the MAP panel in the head-up display's place
+        const ids = ['t-gear', 't-autobrake', 't-flaps-up', 't-flaps-dn', 't-arm', 't-ext', 't-toga', 't-lever-body', 't-rudder', 't-stick-zone', 't-view', 't-pause', 't-help', 't-reposition', 't-brake', 't-center', 't-map', 'hgs', 't-map-panel'];
         const rects = ids.map((id) => { const r = document.getElementById(id).getBoundingClientRect(); return { id, l: r.left, t: r.top, r: r.right, b: r.bottom, w: r.width, h: r.height }; }).filter((r) => r.w > 0);
         const hit = (a, b) => a.l < b.r - 0.5 && b.l < a.r - 0.5 && a.t < b.b - 0.5 && b.t < a.b - 0.5;
-        // the head-up display and CENTER may lie over the stick's area (it has no drawn edge)
-        const allowed = (a, b) => [a, b].includes('t-stick-zone') && ([a, b].includes('hgs') || [a, b].includes('t-center'));
-        for (const r of rects) if (r.id !== 'hgs' && (r.l < S.l - 0.5 || r.t < S.t - 0.5 || r.r > innerWidth - S.r + 0.5 || r.b > innerHeight - S.b + 0.5)) bad.push(`${state}: ${r.id} outside the safe area`);
+        // the head-up display (or the MAP panel) and CENTER may lie over the stick's area (it has no drawn edge)
+        const allowed = (a, b) => [a, b].includes('t-stick-zone') && ([a, b].includes('hgs') || [a, b].includes('t-map-panel') || [a, b].includes('t-center'));
+        for (const r of rects) if (r.id !== 'hgs' && r.id !== 't-map-panel' && (r.l < S.l - 0.5 || r.t < S.t - 0.5 || r.r > innerWidth - S.r + 0.5 || r.b > innerHeight - S.b + 0.5)) bad.push(`${state}: ${r.id} outside the safe area`);
         for (let i = 0; i < rects.length; i++) for (let j = i + 1; j < rects.length; j++) if (!allowed(rects[i].id, rects[j].id) && hit(rects[i], rects[j])) bad.push(`${state}: ${rects[i].id}/${rects[j].id}`);
-        for (const r of rects) if (!['hgs', 't-stick-zone'].includes(r.id) && (r.w < 34 || r.h < 39)) bad.push(`${state}: ${r.id} ${Math.round(r.w)}×${Math.round(r.h)}`);
+        for (const r of rects) if (!['hgs', 't-stick-zone', 't-map-panel'].includes(r.id) && (r.w < 34 || r.h < 39)) bad.push(`${state}: ${r.id} ${Math.round(r.w)}×${Math.round(r.h)}`);
+        if (state === 'map' && !rects.some((r) => r.id === 't-map-panel' && r.h > 90)) bad.push('map: the MAP panel is not shown (or under 90 px)');
         // the thrust lever keeps a usable travel
         const tr = document.querySelector('#t-lever .ttrack').getBoundingClientRect().height;
         if (tr < 80) bad.push(`${state}: lever travel ${Math.round(tr)} px`);
       }
-      document.getElementById('t-reposition').classList.add('hidden'); document.getElementById('t-brake').classList.add('hidden'); document.body.classList.remove('tilt');
+      document.getElementById('t-reposition').classList.add('hidden'); document.getElementById('t-brake').classList.add('hidden'); document.body.classList.remove('tilt', 'map-open');
       return bad;
     }, vp.safe);
     const compact = await mp.evaluate(() => document.body.classList.contains('compact'));

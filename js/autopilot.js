@@ -369,13 +369,23 @@ export class Autopilot {
 
   /**
    * The flight mode annunciator as a 737's shows the autoland: autothrottle, roll and pitch modes.
-   * TO/GA in the go-around; HDG SEL with LVL CHG, then ALT HOLD at 3000 ft, in the circuit.
+   * LOC and G/S on the approach (LNAV and VNAV PTH where the ILS is not received yet); TO/GA in
+   * the go-around; HDG SEL with V/S, ALT ACQ and ALT HOLD at 3000 ft in the circuit.
    */
   get fma() {
     const st = this.ac.state, at = this.atMode;
     if (this.phase === 'goaround') return { at, roll: 'TO/GA', pitch: 'TO/GA' };
-    if (this.phase === 'missed') return { at, roll: 'HDG SEL', pitch: Math.abs(MISSED.altFt * FT - st.alt) < 60 * FT ? 'ALT HOLD' : 'LVL CHG' };
-    if (this.phase === 'approach') return { at, roll: 'LOC', pitch: this.vMode || 'G/S' };
+    if (this.phase === 'missed') {
+      // the climb is flown as a vertical speed that eases off into the level-off at 3000 ft
+      const err = Math.abs(MISSED.altFt * FT - st.alt);
+      return { at, roll: 'HDG SEL', pitch: err < 60 * FT ? 'ALT HOLD' : (err < 400 * FT ? 'ALT ACQ' : 'V/S') };
+    }
+    if (this.phase === 'approach') {
+      // what the receiver has: outside the localizer's coverage (the full approach's first miles) the
+      // route is flown in LNAV, and the glidepath beyond the glideslope's 10 nm in VNAV PTH
+      const ils = st.ils, v = this.vMode || 'G/S';
+      return { at, roll: !ils || ils.locValid ? 'LOC' : 'LNAV', pitch: v === 'G/S' && ils && !ils.gsValid ? 'VNAV PTH' : v };
+    }
     if (this.phase === 'flare') return { at, roll: 'LOC', pitch: 'FLARE' };
     return { at, roll: 'ROLLOUT', pitch: '' };
   }

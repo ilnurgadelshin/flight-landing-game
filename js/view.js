@@ -105,7 +105,8 @@ export class GameView {
     if (Math.abs(cam.fov - fov) > 1e-3) { cam.fov = fov; cam.updateProjectionMatrix(); }
     this.world.drawCockpit = !hud;
     this.cockpit.update(st, inp, frameDt, {
-      look, fd: g.fdCommand(), targetSpeed: !st.onGround ? st.vref + 5 : null, papi: this.world.lights.papiWhites(this.eye), checklist: g.checklist(),
+      // the selected speed: the autoland's on its MCP, otherwise the approach's Vref + 5
+      look, fd: g.fdCommand(), targetSpeed: !st.onGround ? (mcp ? mcp.spd : st.vref + 5) : null, papi: this.world.lights.papiWhites(this.eye), checklist: g.checklist(),
       gaMode: g.ctx.gaMode, rain: this.raining, autothrottle: fma ? fma.at : '',
       rollMode: fma ? fma.roll : (g.mode === 'training' ? 'FD' : ''), pitchMode: fma ? fma.pitch : (g.mode === 'training' ? 'FD' : ''),
       mcp, efis: g.efis, nd: g.ndOpts(),

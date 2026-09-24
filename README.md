@@ -158,6 +158,9 @@ flight deck.
 | Trim | `[` / `]` or `PageUp` / `PageDown` (a trim follow-up also runs the stabiliser after a sustained input) |
 | Look down at the pedestal | `L` (hold) · right-mouse drag to look around |
 | View: cockpit / head-up | `C` |
+| Navigation display: range, mode | `,` / `.` shorter / longer range · `K` MAP → APP → PLN |
+| Navigation display over the head-up view | `J` (on by default) |
+| Approach chart | `E` (also in the pause menu) · `Esc` closes it |
 | Reposition on final (after a go-around) | `Backspace` |
 | Pause / Flight School / menu | `P` / `H` / `Esc` |
 
@@ -190,6 +193,8 @@ own buttons throughout the game.
 | Trim | D-pad ↑ nose down / ↓ nose up |
 | TO/GA | View; pressed again during the go-around, it puts you back on final |
 | Look around / views | Right stick (lets go straight ahead) · press it for the next view: cockpit → panel → head-up |
+| Navigation display | Left stick press: tap for the next range, hold for the next mode (MAP → APP → PLN) |
+| Approach chart | Y in the pause menu; A, B or Y closes it |
 | Pause, menus | Menu: start the approach from the menu, pause and resume, skip Flight School, fly again. In menus A confirms and B goes back; in Flight School A / B turn the pages |
 
 - **Switching devices.** The controller is in use from its first press until a
@@ -235,6 +240,8 @@ thrust lever that stays where it is left for the other.
 | Wheel brakes | **BRAKE** (hold): appears on the ground, above the stick's area |
 | Reposition on final | **REPOSITION**: appears during a go-around |
 | Look around / views | Drag on the windshield (lets go straight ahead) · **VIEW** steps cockpit → panel → head-up, and names the one shown |
+| Navigation display | **MAP** (between the rudder strip and the stick): the map in the head-up display's place, with the speed and altitude on top. Tap its left third for a shorter range, its right third for a longer one, its middle for the mode. **MAP** again brings the head-up display back |
+| Approach chart | **❚❚**, then **Approach chart**. A tap zooms it to full size (then drag to move it); **✕** closes it |
 | Pause / Flight School | **❚❚** / **?** at the top right |
 
 The head-up display in the windshield shows what is needed to land: speed
@@ -413,11 +420,79 @@ Once the wheels are on the runway the landing is committed. The go-around:
 - **Touch-and-go:** if the wheels touch during the go-around, that touch is
   not the landing the debrief grades. The debrief counts the go-arounds.
 
+Each turn of the circuit starts early by the distance the turn covers, as
+radar vectors are given, so the legs lie where the approach chart and the
+navigation display draw them: the downwind 4 nm abeam, and the localizer joined
+about 11 nm out, 2 nm before the final approach fix.
+
 The go-around from 200 ft loses about 30 ft before climbing. The circuit and
-the second approach take about 14 minutes; REPOSITION puts the aircraft back
+the second approach take about 13 minutes; REPOSITION puts the aircraft back
 on final at once, and the autoland flies that approach. After two go-arounds a
 crew would divert; the autoland then lands. The Flight School flight director
 never goes around by itself: that is the pilot's decision.
+
+**Navigation** (`js/nav.js`, `js/nd.js`, `js/chart.js`, `js/debrief.js`). One
+set of navigation data for the (fictional) Westhaven International, WHV, feeds
+the navigation display, the approach chart, the debrief map and the autoland's
+missed approach, so they always agree:
+
+- **ILS 27** (IWH 110.30, course 270°, glideslope 3°, decision altitude 200 ft)
+  with the coverage ICAO Annex 10 gives it. The localizer is received within
+  ±10° out to 25 nm and ±35° out to 17 nm, measured from its antenna 300 m
+  beyond the far end, and not behind it. The glideslope is received within ±8°
+  out to 10 nm. Outside that, the PFD, the head-up display and the ND show no
+  pointer at all, as a real receiver does. The DME reads the slant distance to
+  the threshold.
+- **The approach**: HAVEN (26 nm, 7000 ft) → WESTY (13 nm, 3000 ft) → FI27, the
+  final approach fix, where the glideslope meets 3000 ft (9.2 nm). Then the
+  threshold. The minimum sector altitude (4500 ft) is the highest ground within
+  25 nm plus 1000 ft, rounded up.
+- **The mode control panel and the FMA**: the autoland shows what it has
+  selected: its speed, the heading of each circuit leg and 3000 ft. The flight
+  mode annunciator reads LOC and G/S on the approach, then FLARE and ROLLOUT.
+  Where the ILS is not received yet (the full approach's first miles), it
+  reads LNAV and VNAV PTH instead. The PFD's selected speed and its bug show
+  the MCP speed.
+  In a go-around it reads GA, TO/GA, TO/GA. In the circuit it reads HDG SEL with
+  V/S, ALT ACQ and ALT HOLD.
+
+The **navigation display** is a 737's, set from the EFIS panel on the
+glareshield, whose knobs turn:
+
+- **MAP**, track up: the route in magenta with the next fix and its distance.
+  It also shows the missed approach (dashed cyan until a go-around makes it
+  the active leg), the runway, the selected heading's bug (with a dashed line
+  while HDG SEL flies it), the ground speed, true airspeed and wind, and the
+  offset from the centreline on final.
+- **APP**, heading up: the ILS course through the runway, the course
+  deviation bar (1° a dot) and the glideslope pointer (0.35° a dot), with the
+  ILS's ident, course and DME.
+- **PLN**, north up round the airport: the whole approach and circuit.
+- **Ranges 5–160 nm.** Until the pilot turns the knob, the range is the one a
+  crew would pick: 40 nm beyond 12 nm, 20 nm inside that and in a go-around's
+  circuit, 10 nm inside 4 nm.
+
+The same display appears in the head-up view as an inset (`J`). On a phone the
+**MAP** button puts it in the head-up display's place, with bigger text.
+
+The **approach chart** is the ILS 27 plate an electronic flight bag shows. It
+has the aircraft's own position on its plan view, and its height against the
+glidepath on the profile. It also carries the glideslope check heights (D7
+2280 ft … D2 690 ft), the descent rates (740 fpm at 140 kt), the minimums, the
+missed approach and the typical radar vectors. The flight goes on under it, as
+it would for a pilot reading it.
+
+The **debrief map** on the results screen replays the recorded flight (a
+sample every half second) in three views:
+
+- the **track**, north up at one scale, showing any go-around and circuit;
+- the **profile**, the height against the glidepath and the decision altitude
+  on the final approaches and the climb-out;
+- the **runway**, drawn with its width stretched: the touchdown zone, each
+  touchdown and where the aircraft stopped.
+
+The approaches are blue, a go-around and its circuit amber, the roll-out
+green.
 
 **World** (`js/world/`): terrain, an airport with a 3000 m × 45 m runway with
 ICAO markings, ALSF-2 approach lights with sequenced flashers, threshold,
@@ -567,6 +642,8 @@ a module to what it uses; nothing points back up.
 | `js/avionics.js` | Runway-relative geometry, ILS deviations, Vref, terrain ahead |
 | `js/presentation.js`, `js/view.js` | Sound, vibration and screens from the game's events; the 3D view from the game's state, and the cockpit and head-up views |
 | `js/hud.js` | The head-up view's display: conformal geometry (tested in Node) and its drawing |
+| `js/nav.js` | Navigation data (the airport, the ILS 27 and its coverage, the fixes, the missed approach, the MSA) and the ILS signals |
+| `js/nd.js`, `js/chart.js`, `js/debrief.js` | The navigation display, the approach chart and the debrief map: each a pure model (tested in Node) and its drawing |
 | `js/sim.js` | Fixed 120 Hz simulation loop and approach placement |
 | `js/config.js` | Aircraft data, runway, scenarios and starting points |
 | `js/physics/` | Flight model and landing gear (`aircraft.js`), atmosphere and wind, terrain |
@@ -607,10 +684,10 @@ draws every scenario by day and night on both graphics tiers.
 
 | Command | What it checks | Time |
 | --- | --- | --- |
-| `npm test` | Node, no browser: physics (71 checks in 13 groups), phone features (59 checks in 7 groups), game controllers (40 checks in 6 groups), the sky model (12 checks in 3 groups), the head-up display (23 checks in 5 groups) and the game's rules (68 checks in 9 groups), below | ~5 s |
+| `npm test` | Node, no browser: physics (71 checks in 13 groups), phone features (59 checks in 7 groups), game controllers (40 checks in 6 groups), the sky model (12 checks in 3 groups), the head-up display (23 checks in 5 groups), navigation (57 checks in 4 groups) and the game's rules (99 checks in 10 groups), below | ~10 s |
 | `npm run test:e2e` | The real page in Chromium: 238 checks in 16 groups (below), run in 3 parallel processes (`test/e2e-parallel.mjs`) | ~11–15 min |
 | `npm run test:e2e:quick` | The same without the four landings flown in real time (E9, E11, E13, E15) | ~6 min |
-| `node test/e2e.mjs only=<groups>` | E1 plus the groups listed, in one process, comma-separated: `menu`, `keys`, `school`, `land`, `fail`, `ga`, `fps`, `keyboard`, `mobile`, `touchland`, `tilt`, `tiltland`, `gamepad`, `padland`, `graphics` (e.g. `only=tilt,tiltland`) | 10 s – 3 min each |
+| `node test/e2e.mjs only=<groups>` | E1 plus the groups listed, in one process, comma-separated: `menu`, `keys`, `school`, `land`, `fail`, `ga`, `maps`, `fps`, `keyboard`, `mobile`, `touchland`, `tilt`, `tiltland`, `gamepad`, `padland`, `graphics` (e.g. `only=tilt,tiltland`) | 10 s – 3 min each |
 | `npm run test:e2e:serial` | All browser groups in one process | ~25 min |
 | `npm run test:all` | The Node suites, then the browser suite in parallel | ~11–15 min |
 | `node test/robustness.mjs` | 18 short-final autolands, crosswind and storm with 9 gust seeds each; prints each result as a report, not pass/fail | under a minute |
@@ -717,8 +794,8 @@ Over 80 more storm approaches (seeds 11–50):
     Android;
   - the same on short screens (iPhones with Safari's toolbars at 265–320 px, and
     Android Chrome at 304 px), where the compact layout is used. Each size is
-    checked with BRAKE, REPOSITION and tilt's CENTER shown, and the thrust lever
-    must keep at least 80 px of travel;
+    checked with BRAKE, REPOSITION, tilt's CENTER and the MAP panel shown, and the
+    thrust lever must keep at least 80 px of travel;
   - the head-up display replaces the readout strip;
   - each button drives its control;
   - two thumbs work at once, the stick and rudder spring back and the lever
@@ -793,6 +870,18 @@ Over 80 more storm approaches (seeds 11–50):
   - on short final the flight path marker is on the −3° line and the runway;
   - Flight School switches to the cockpit and back;
   - the choice survives a reload.
+
+- **E17** checks the maps in the page:
+  - the flight deck's ND and its knobs with `,` `.` and `K`;
+  - the inset in the head-up view and `J`, and no inset in the cockpit view;
+  - the chart with `E`, its moving own-ship, and the pause menu's button with `Esc`;
+  - an autoland go-around at 200 ft flown round the circuit to a landing, with the PFD's FMA, the
+    MCP and the ND read at each stage: before it, in TO/GA, on each of the five legs and back on
+    the ILS;
+  - the debrief map on the results screen, drawn in its colours;
+  - on a phone: the head-up display's ILS diamonds for exactly the signals received, the MAP
+    panel and its three tap zones, and the chart from the pause menu, zoomed by a tap and closed
+    with ✕.
 
 The other browser groups run on the fast low tier with the 3D drawing off.
 
@@ -875,6 +964,53 @@ a camera placed like the game's:
      next approach; the float's touch-and-go is not the landing graded; an approach within the
      limits does not go around;
    - repositioned on final during the go-around, the autoland flies the new approach and lands.
+10. what the navigation display, the FMA and the MCP show, through that go-around and its circuit:
+   - the EFIS panel: the range knob steps from the range shown and stops at 5 and 160 nm (the
+     controller's tap goes round), the mode selector goes MAP → APP → PLN, the knobs do nothing
+     while paused, and a new flight resets them; the pilot's own TO/GA shows the circuit;
+   - on the approach: LOC and G/S, the route active and the bug on 270;
+   - in TO/GA: GA, TO/GA, TO/GA, the go-around speed, the missed approach as the active leg and
+     FI27 next;
+   - on every circuit leg: HDG SEL with the leg's heading on the MCP and the ND (and its line),
+     180 kt and 3000 ft, V/S, ALT ACQ and ALT HOLD at the right heights, and the bug at the top
+     of the track-up map once the heading is flown;
+   - the range the crew would pick, all the way; back on the localizer, the route again, with
+     FI27 then the threshold next;
+   - the ILS only where it is received: none climbing out past the localizer antenna, only the
+     localizer's wide sector on the downwind, both on the final approach again;
+   - the circuit where the chart draws it (the downwind 4 nm abeam, the localizer joined 2 nm
+     outside FI27);
+   - the recorded path (approach, go-around and circuit, approach, roll-out) and its marks, and
+     the debrief map's counts and touchdown, which match the grading's;
+   - repositioned on final from the circuit: the ND back on the route and the path on a new line;
+   - the full approach from 26 nm: LNAV then LOC as the localizer comes into coverage, VNAV PTH
+     then G/S with the glideslope, the range 40 → 20 → 10 nm and the next fix WESTY → FI27 → RW27;
+   - in the tailwind, the crosswind and the storm (whose approach goes around), at every moment:
+     the automatic range, the APP pointers only with their signals, LOC and G/S only with them,
+     the route or the missed approach active as the phase says, the bug on the MCP heading, and
+     the path's colour.
+
+`test/nav.test.mjs` checks the navigation in Node, each figure against the geometry it should
+show:
+
+1. the ILS 27: zero deviations on the centreline and the glidepath, 1° off the course and 0.35°
+   above the glidepath read as such, the slant DME, the localizer's two coverage sectors from its
+   antenna and nothing behind it, the glideslope's; the final approach fix where the glideslope
+   meets 3000 ft; the MSA clear of the ground within 25 nm by 1000 ft;
+2. the navigation display: in MAP the threshold ahead at its distance on the range's scale and
+   the next fix stepping down the route; the circuit's active leg; the automatic and the pilot's
+   range; MAP track up and APP heading up in a crosswind drift; the heading bug and its line;
+   APP's deviation bar and glideslope pointer, and nothing outside the coverage; PLN north up;
+   the wind, the speeds and the centreline offset;
+3. the approach chart: one scale both ways on the plan, the fixes where the data puts them, the
+   glideslope check heights and descent rates, the missed approach's shape and words (the same
+   path the ND draws, and the radar vectors' legs), the
+   minimums, and the aircraft on the plan and exactly on the profile's glidepath (or off the
+   chart, and saying so);
+4. the debrief map on a made-up flight with a go-around: its runs by colour, the whole circuit on
+   the plan, the profile without the downwind leg but with the climb-out, the touchdown in the
+   touchdown zone on the runway strip, on the correct side of the centreline, a reposition breaking
+   the line, and an empty flight.
 
 `test/gamepad.test.mjs` checks the controller module against a fake
 `navigator.getGamepads()`, and InputManager's controller thrust:
