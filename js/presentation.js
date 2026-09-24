@@ -6,8 +6,14 @@
 // mouse yoke that was engaged comes back after a pause or Flight School, a new flight starts
 // with every control let go, and the controller's buttons work the menus. The devices' actions
 // come in through onAction(): menu navigation is handled here, everything else goes to the rules.
+import { ndModel, drawND } from './nd.js';
+import { chartModel, drawChart } from './chart.js';
+import { debriefModel, drawDebrief } from './debrief.js';
+import { getScheme } from './controls.js';
 
-const CONTROL_SOUNDS = { gear: 'gear', flapsDown: 'flaps', flapsUp: 'flaps', speedbrake: 'click', armSpeedbrake: 'click', autobrake: 'click', toga: 'chime' };
+const CONTROL_SOUNDS = { gear: 'gear', flapsDown: 'flaps', flapsUp: 'flaps', speedbrake: 'click', armSpeedbrake: 'click', autobrake: 'click', toga: 'chime', ndRange: 'click', ndMode: 'click' };
+const ND_PERIOD = 0.1;               // s between redraws of the navigation display over the view
+const CHART_PERIOD = 0.25;           // s between redraws of the approach chart (its own-ship)
 
 export class Presentation {
   constructor({ game, view, world, ui, audio, gpws = null, haptics = null, touch = null, input }) {
@@ -17,6 +23,11 @@ export class Presentation {
     this.msgSeq = 0;
     this.soundWait = 0;              // s the sound has been waiting for a gesture while the controller is in use
     this.soundHintOn = false;
+    // the navigation display over the view: a phone's MAP panel (closed until MAP is tapped) and the
+    // head-up view's inset on a computer (on until J turns it off)
+    this.nav = { panel: false, inset: true, wait: 0, canvas: null };
+    this.chart = { open: false, wait: 0, canvas: null };
+    ui.onChart = (open) => this.setChart(open);
     const on = (type, fn) => game.on(type, fn);
 
     on('start', ({ opts, scenario }) => {
@@ -29,6 +40,7 @@ export class Presentation {
       audio.log.length = 0;
       this.raining = scenario.rain > 0;
       ui.show('menu', false); ui.show('results', false); ui.show('pause', false);
+      this.setChart(false);
       ui.show('hud', true);
       ui.setRain(this.raining);
     });
@@ -47,6 +59,7 @@ export class Presentation {
       }
       ui.show('pause', s === 'paused');
       if (s === 'menu') { ui.showMenu(); audio.setConfigHorn(false); audio.stopStickShaker(); }
+      if (s === 'menu' || s === 'school' || s === 'finished') this.setChart(false);
     });
     on('school', () => {
       ui.showSchool((name) => view.anchorFor(name), (look) => { view.schoolLook = look; });
@@ -66,7 +79,8 @@ export class Presentation {
     on('damage', () => { audio.play('crash'); ui.flash(0.9); if (haptics) haptics.crash(); view.shake(0.12); });
     on('finish', ({ result }) => {
       audio.setConfigHorn(false); audio.stopStickShaker();
-      ui.showResults(result);
+      this.lastDebrief = debriefModel(game.path);
+      ui.showResults(result, (ctx) => drawDebrief(ctx, this.lastDebrief));
       if (result.success) audio.say(result.score >= 78 ? 'Nice landing, Captain' : 'We are down', { priority: 1 }); else audio.play('caution');
     });
     // lightning: a flash on the screen, thunder a moment later
@@ -84,13 +98,43 @@ export class Presentation {
   onAction(name, arg) {
     if (name === 'padButton') { this.padButton(arg); return; }
     if (name === 'camera') { this.view.camera(arg); return; }            // the view is not the rules' business
+    if (name === 'chart') { this.setChart(!this.chart.open); return; }
+    if (name === 'menu' && this.chart.open) { this.setChart(false); return; }   // Escape closes the chart first
+    // a controller or keyboard on a phone: the range and mode controls open the MAP panel first
+    if ((name === 'ndRange' || name === 'ndMode') && getScheme() === 'touch' && !this.nav.panel) { this.nav.panel = true; this.nav.wait = 0; this.audio.play('click'); return; }
+    if (name === 'ndInset') {
+      if (getScheme() === 'touch') this.nav.panel = !this.nav.panel; else this.nav.inset = !this.nav.inset;
+      this.nav.wait = 0; this.audio.play('click');
+      return;
+    }
     if (name === 'enter') { if (this.game.state === 'finished' && this.ui.onAgain) this.ui.onAgain(); return; }
     this.game.action(name, arg);
   }
 
-  /** Controller buttons outside flying: Menu / A confirm, B goes back, Menu pauses in flight. */
+  /**
+   * The approach chart (js/chart.js), over the flight or the pause menu. The flight goes on under it:
+   * a pilot reads the chart while flying.
+   */
+  setChart(open) {
+    const s = this.game.state;
+    open = !!open && (s === 'flying' || s === 'paused');
+    if (open === this.chart.open) return;
+    this.chart.open = open;
+    this.chart.canvas = this.ui.showChart(open);
+    this.chart.wait = 0;
+    this.audio.play('click');
+    if (open) this.drawChart();
+  }
+  drawChart() {
+    this.lastChart = chartModel(this.game.sim.state);
+    drawChart(this.chart.canvas.getContext('2d'), this.lastChart);
+  }
+
+  /** Controller buttons outside flying: Menu / A confirm, B goes back, Menu pauses in flight. Y: the chart. */
   padButton(b) {
     const ui = this.ui, game = this.game;
+    if (this.chart.open) { if (b === 'A' || b === 'B' || b === 'Y' || b === 'Menu') this.setChart(false); return; }
+    if (game.state === 'paused' && b === 'Y') { this.setChart(true); return; }
     switch (game.state) {
       case 'menu': if (b === 'Menu' || b === 'A') { if (ui.onStart) ui.onStart(ui.getOptions()); } break;
       case 'school': if (b === 'A') ui.schoolStep(1); else if (b === 'B') ui.schoolStep(-1); else if (b === 'Menu') ui.hideSchool(true); break;
@@ -112,6 +156,22 @@ export class Presentation {
     if (this.touch) this.touch.sync(st, inp, { gaMode: g.ctx.gaMode, view });
     if (this.gpws) this.ui.setCaption(this.gpws.caption, this.gpws.captionKind);
     this.ui.setChecklist(g.state === 'flying' ? g.checklist() : null);
+    this.navDisplay(frameDt, view);
+    if (this.chart.open) { this.chart.wait -= frameDt; if (this.chart.wait <= 0) { this.chart.wait = CHART_PERIOD; this.drawChart(); } }
+  }
+
+  /** The navigation display over the view, redrawn ten times a second while shown. */
+  navDisplay(frameDt, view) {
+    const g = this.game, n = this.nav, touch = getScheme() === 'touch';
+    const up = g.state === 'flying' || g.state === 'paused';
+    const kind = !up ? '' : (touch ? (n.panel ? 'panel' : '') : (n.inset && view === 'hud' ? 'inset' : ''));
+    const canvas = this.ui.setNavDisplay(kind);
+    if (!canvas) { n.canvas = null; return; }
+    n.wait -= frameDt;
+    if (canvas === n.canvas && n.wait > 0) return;
+    n.canvas = canvas; n.wait = ND_PERIOD;
+    this.lastNd = ndModel(g.sim.state, g.efis, g.ndOpts());
+    drawND(canvas.getContext('2d'), this.lastNd, { big: touch });
   }
 
   /**

@@ -47,6 +47,7 @@ const MARKUP = `
     <div id="t-help" class="tbtn" role="button" aria-label="Flight School"><b>?</b></div>
   </div>
   <div id="t-reposition" class="tbtn wide hidden" role="button"><b>REPOSITION</b><small>back on final</small></div>
+  <div id="t-map" class="tbtn" role="button" aria-label="Navigation display"><b>MAP</b><small>ND</small></div>
   <div id="t-brake" class="tbtn hidden" role="button"><b>BRAKE</b><small>hold</small></div>
   <div id="t-center" class="tbtn" role="button"><b>CENTER</b><small>tilt</small></div>`;
 
@@ -68,6 +69,7 @@ export class TouchControls {
       zone: $('t-stick-zone'), base: this.root.querySelector('.tbase'), knob: this.root.querySelector('.tbase .tknob'),
       view: $('t-view'), viewMode: $('t-view-mode'), pause: $('t-pause'), help: $('t-help'), reposition: $('t-reposition'), brake: $('t-brake'),
       center: $('t-center'), stickLabel: this.root.querySelector('#t-stick-zone .tlabel'),
+      map: $('t-map'), mapPanel: document.getElementById('t-map-panel'),
     };
     // last rendered text / classes, so a frame only touches what changed (the context buttons start hidden)
     this.shown = { reposition: 'hidden', brakeBtn: 'hidden' };
@@ -85,6 +87,17 @@ export class TouchControls {
     this.tap(this.el.reposition, emit('reposition'));
     this.tap(this.el.view, () => input.emit('camera', 'cycle'));       // cockpit → panel → head-up
     this.tap(this.el.center, () => { if (this.onCenter) this.onCenter(); });
+    this.tap(this.el.map, emit('ndInset'));
+    // the MAP panel: its left third shortens the range, the right third lengthens it, the middle
+    // changes the mode (MAP → APP → PLN)
+    if (this.el.mapPanel) {
+      this.el.mapPanel.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); });
+      this.el.mapPanel.addEventListener('pointerup', (e) => {
+        const r = this.el.mapPanel.getBoundingClientRect(), f = (e.clientX - r.left) / r.width;
+        this.buzz();
+        if (f < 1 / 3) input.emit('ndRange', -1); else if (f > 2 / 3) input.emit('ndRange', 1); else input.emit('ndMode');
+      });
+    }
     this.hold(this.el.brake, (on) => { input.touch.brake = on; });
     this.bindStick();
     this.bindRudder();

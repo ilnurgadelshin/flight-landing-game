@@ -8,6 +8,7 @@
 // reader (displays, GPWS, grading, the test pilot) finds these fields in the same state object.
 import { AIRCRAFT as AC, RUNWAY, DEG } from './config.js';
 import { TERRAIN } from './physics/terrain.js';
+import { ils27 } from './nav.js';
 
 /** Vref for the flap lever position (kts): the approach speed is Vref + 5. */
 export function referenceSpeed(flapIndex) {
@@ -49,6 +50,9 @@ export function deriveApproach(st, runway = RUNWAY) {
   st.onRunwayStrip = Math.abs(st.z) <= runway.width / 2 && Math.abs(st.x) <= runway.length / 2;
   st.beyondRunwayEnd = st.alongRunway > runway.length;
   st.vref = referenceSpeed(st.flapIndex);
+  // what the ILS 27 receivers show, wherever the aircraft is (the displays read these; the fields
+  // above follow the landing direction for the rules)
+  st.ils = runway === RUNWAY ? ils27(st) : null;
   return st;
 }
 

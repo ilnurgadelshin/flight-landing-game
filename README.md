@@ -408,7 +408,7 @@ Once the wheels are on the runway the landing is committed. The go-around:
 - **At 1000 ft:** flaps 5, then a climb at up to 2000 fpm and 180 kt to 3000 ft.
 - **The circuit:** radar vectors round a left-hand circuit: a left turn at
   2000 ft onto the crosswind leg (heading 180), downwind (090) 4 nm abeam,
-  base (360) 11 nm out, and a 30° intercept (300) onto the localizer. Then a
+  base (360) 13 nm out, and a 30° intercept (300) onto the localizer. Then a
   normal approach: flaps 15, gear and flaps 30 on the usual schedule.
 - **Touch-and-go:** if the wheels touch during the go-around, that touch is
   not the landing the debrief grades. The debrief counts the go-arounds.

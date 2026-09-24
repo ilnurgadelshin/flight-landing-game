@@ -59,6 +59,13 @@ body.pad #touch { display: none !important; }
 .muted { color: var(--muted); font-size: 13px; }
 #pause .panel button { margin: 4px; }
 #rotate { z-index: 40; background: rgba(5, 8, 12, 0.96); }
+/* the approach chart over everything but the rotate notice; a tap zooms it to full size, then it scrolls */
+#chart { position: fixed; inset: 0; z-index: 30; background: rgba(0,0,0,0.72);
+  padding: calc(var(--sat) + 6px) calc(var(--sar) + 6px) calc(var(--sab) + 6px) calc(var(--sal) + 6px); }
+#chart-scroll { width: 100%; height: 100%; overflow: auto; display: flex; -webkit-overflow-scrolling: touch; touch-action: pan-x pan-y; overscroll-behavior: contain; }
+#chart-canvas { margin: auto; display: block; max-width: 100%; max-height: 100%; border-radius: 6px; box-shadow: 0 10px 40px rgba(0,0,0,0.6); cursor: zoom-in; }
+#chart.zoom #chart-canvas { max-width: none; max-height: none; width: 1200px; height: 800px; cursor: zoom-out; }
+#chart-close { position: absolute; top: calc(var(--sat) + 10px); right: calc(var(--sar) + 10px); width: 44px; height: 44px; border-radius: 50%; border: 1px solid rgba(255,255,255,0.4); background: rgba(10,16,24,0.8); color: #fff; font-size: 20px; cursor: pointer; }
 .rot-icon { font-size: 44px; margin-bottom: 4px; }
 h1 { margin: 0 0 4px; font-size: 26px; letter-spacing: 2px; }
 h1 span { color: var(--accent); font-weight: 400; }
@@ -134,6 +141,12 @@ button.primary:hover { filter: brightness(1.1); }
 #res-headline { font-size: 24px; margin: 4px 0 6px; text-transform: none; letter-spacing: 0; color: #fff; }
 #res-score { font-size: 40px; font-weight: 900; color: var(--accent); margin-bottom: 10px; }
 #res-score small { font-size: 16px; color: var(--muted); font-weight: 400; margin-left: 10px; }
+#res-map { display: block; width: 100%; height: auto; margin: 6px 0 2px; border-radius: 8px; background: #0d141c; }
+#res-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 11px; color: var(--muted); margin-bottom: 8px; }
+#res-legend span[class]::before { content: ""; display: inline-block; width: 16px; height: 3px; margin-right: 5px; vertical-align: middle; border-radius: 2px; }
+#res-legend .lg-a::before { background: #4fa3ff; }
+#res-legend .lg-g::before { background: #ffb020; }
+#res-legend .lg-r::before { background: #3fd67a; }
 #res-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 #res-table td { padding: 6px 8px; border-top: 1px solid rgba(255,255,255,0.08); vertical-align: top; }
 #res-table td.pts { text-align: right; white-space: nowrap; font-family: monospace; }
@@ -214,9 +227,17 @@ body.touch #gpws-caption { font-size: 16px; }
 .g-scale.v em { left: -3px; right: -3px; top: 50%; height: 2px; } .g-scale.h em { top: -3px; bottom: -3px; left: 50%; width: 2px; }
 .g-dia { position: absolute; width: calc(11px * var(--k)); height: calc(11px * var(--k)); background: #ff5cf0; transform: translate(-50%, -50%) rotate(45deg); box-shadow: 0 0 3px #000; display: none; }
 .g-scale.v .g-dia { left: 50%; top: 50%; } .g-scale.h .g-dia { top: 50%; left: 50%; }
-#hgs.ils .g-dia { display: block; }
+#hgs.loc #g-loc .g-dia, #hgs.gs #g-gs .g-dia { display: block; }
 #g-fd { position: absolute; left: 50%; top: 42%; width: 0; height: 0; display: none; }
 #hgs.fd #g-fd { display: block; }
+/* the navigation display over the view (js/nd.js): a phone's MAP panel takes the readouts' place,
+   the same size and position; a computer's head-up view has it as an inset (J) */
+#t-map-panel, #nd-inset { display: none; position: absolute; border: 1px solid rgba(255,255,255,0.35); border-radius: 8px; background: #000; }
+#t-map-panel { left: 50%; top: calc(var(--sat) + 26%); height: 42%; transform: translateX(-50%); pointer-events: auto; touch-action: none; }
+body.touch.map-open #t-map-panel { display: block; }
+body.touch.map-open #hgs { display: none; }
+#nd-inset { right: 12px; bottom: 64px; width: 240px; height: 240px; pointer-events: none; }
+body.nd-inset:not(.touch) #nd-inset { display: block; }
 .g-ac { position: absolute; width: 44px; height: 10px; margin: -5px 0 0 -22px; border-bottom: 2px solid #7dff9a; }
 .g-ac::after { content: ''; position: absolute; left: 16px; top: 3px; width: 8px; height: 8px; border: 2px solid #7dff9a; border-radius: 50%; }
 .g-fdh, .g-fdv { position: absolute; background: #ff5cf0; box-shadow: 0 0 3px #000; }
@@ -271,6 +292,8 @@ body.touch #gpws-caption { font-size: 16px; }
 #t-sys #t-view { width: calc(56px * var(--k)); }
 #t-sys .tbtn b { font-size: calc(13px * var(--k)); }
 #t-view small { color: #e8eef4; text-shadow: 0 0 2px #000, 0 0 3px #000; }      /* the view shown, readable over a bright sky */
+#t-map { position: absolute; left: calc(250px * var(--k)); bottom: 0; width: calc(56px * var(--k)); height: calc(46px * var(--k)); }
+body.map-open #t-map { border-color: var(--accent); background: rgba(255,195,77,0.18); }
 #t-reposition { position: absolute; right: 0; top: calc(52px * var(--k)); width: auto; padding: 0 12px; border-color: #3fd0ff; background: rgba(63,208,255,0.18); }
 /* tilt: the stick's circle becomes a display of the tilt; CENTER sits in its corner */
 body.tilt #t-stick-zone { pointer-events: none; }

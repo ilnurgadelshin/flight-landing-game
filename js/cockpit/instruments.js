@@ -3,6 +3,8 @@
 // is redrawn from the physics state every frame.
 import * as THREE from 'three';
 import { AIRCRAFT as AC, RUNWAY, DEG, FT, KTS, NM } from '../config.js';
+import { ndModel, drawND } from '../nd.js';
+import { ILS27 } from '../nav.js';
 
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 const S = 512;
@@ -168,13 +170,21 @@ export class PFD {
     for (const d of [-2, -1, 1, 2]) { g.beginPath(); g.arc(cx + d * 34, locY, 4, 0, Math.PI * 2); g.stroke(); g.beginPath(); g.arc(gsX, cy + d * 34, 4, 0, Math.PI * 2); g.stroke(); }
     g.beginPath(); g.moveTo(cx, locY - 10); g.lineTo(cx, locY + 10); g.stroke();
     g.beginPath(); g.moveTo(gsX - 10, cy); g.lineTo(gsX + 10, cy); g.stroke();
-    if (st.distToThreshold > -RUNWAY.length && st.distToThreshold < 25 * NM) {
-      const locD = dots(-st.locDev, 1.0);   // needle shows where the course is: aircraft right => needle left
-      const gsD = dots(-st.gsDev, 0.35);    // above the glideslope => needle down
-      g.fillStyle = MAGENTA;
+    // the ILS 27 receivers (js/nav.js): a pointer only where its signal is received
+    const ils = st.ils || { locValid: false, gsValid: false };
+    g.fillStyle = MAGENTA;
+    if (ils.locValid) {
+      const locD = dots(-ils.locDev, 1.0);   // needle shows where the course is: aircraft right => needle left
       g.beginPath(); g.moveTo(cx + locD * 34, locY - 9); g.lineTo(cx + locD * 34 + 9, locY); g.lineTo(cx + locD * 34, locY + 9); g.lineTo(cx + locD * 34 - 9, locY); g.closePath(); g.fill();
+    }
+    if (ils.gsValid) {
+      const gsD = dots(-ils.gsDev, 0.35);    // above the glideslope => needle down
       g.beginPath(); g.moveTo(gsX, cy - gsD * 34 - 9); g.lineTo(gsX + 9, cy - gsD * 34); g.lineTo(gsX, cy - gsD * 34 + 9); g.lineTo(gsX - 9, cy - gsD * 34); g.closePath(); g.fill();
     }
+    // the tuned ILS and its DME, top left of the attitude display
+    g.font = FONT_S; g.textAlign = 'left'; g.fillStyle = ils.locValid ? GREEN : '#888';
+    g.fillText(`${ILS27.ident}/${ILS27.courseDeg}°`, 8, 60);
+    g.fillText(ils.locValid ? `DME ${ils.dmeNm.toFixed(1)}` : 'DME ---', 8, 78);
 
     // ---- heading strip
     const hdgY = 470;
@@ -188,8 +198,8 @@ export class PFD {
       g.beginPath(); g.moveTo(x, hdgY - 22); g.lineTo(x, hdgY - (hh % 10 === 0 ? 10 : 16)); g.stroke();
       if (hh % 10 === 0) g.fillText(hh / 10, x, hdgY + 4);
     }
-    // runway heading bug + track diamond
-    const rwyBug = ((RUNWAY.headingDeg - hdg + 540) % 360) - 180;
+    // selected heading bug (the mode control panel's) + track line
+    const rwyBug = (((extra.mcp ? extra.mcp.hdg : RUNWAY.headingDeg) - hdg + 540) % 360) - 180;
     g.fillStyle = MAGENTA; g.fillRect(cx + rwyBug * pxPerDegH - 6, hdgY - 22, 12, 6);
     const trk = ((st.track / DEG - hdg + 540) % 360) - 180;
     g.strokeStyle = '#fff'; g.beginPath(); g.moveTo(cx + trk * pxPerDegH, hdgY - 22); g.lineTo(cx + trk * pxPerDegH, hdgY + 20); g.stroke();
@@ -212,57 +222,11 @@ export class PFD {
 
 // ---------------------------------------------------------------------------
 export class ND {
-  constructor() { Object.assign(this, mkCanvas()); }
-  draw(st) {
-    const g = this.ctx;
-    g.fillStyle = '#000'; g.fillRect(0, 0, S, S);
-    const cx = 256, cy = 400;  // aircraft symbol position
-    const rangeNm = st.distToThreshold > 12 * NM ? 40 : (st.distToThreshold > 4 * NM ? 20 : 10);
-    const pxPerM = 330 / (rangeNm * NM);
-    // range rings
-    g.strokeStyle = '#4a4a55'; g.lineWidth = 1; g.font = FONT_S; g.fillStyle = '#4a4a55'; g.textAlign = 'left';
-    for (let r = 1; r <= 2; r++) { g.beginPath(); g.arc(cx, cy, 330 * r / 2, Math.PI, 2 * Math.PI); g.stroke(); g.fillText(`${rangeNm * r / 2}`, cx + 330 * r / 2 - 26, cy - 6); }
-    // heading rose (track up)
-    const hdg = st.heading;
-    g.save(); g.translate(cx, cy); g.rotate(-hdg);
-    g.strokeStyle = '#fff'; g.fillStyle = '#fff'; g.font = FONT_S; g.textAlign = 'center'; g.textBaseline = 'middle';
-    for (let d = 0; d < 360; d += 10) {
-      const a = d * DEG; const r0 = 330, r1 = d % 30 === 0 ? 316 : 322;
-      g.beginPath(); g.moveTo(Math.sin(a) * r1, -Math.cos(a) * r1); g.lineTo(Math.sin(a) * r0, -Math.cos(a) * r0); g.stroke();
-      if (d % 30 === 0) { g.save(); g.translate(Math.sin(a) * 300, -Math.cos(a) * 300); g.rotate(a); g.fillText(d / 10, 0, 0); g.restore(); }
-    }
-    // map: world -> screen (north up before the rotation): dx east = +x, dz south = +y
-    const wx = (x, z) => [(x - st.x) * pxPerM, (z - st.z) * pxPerM];
-    // runway
-    const L = RUNWAY.length, W = RUNWAY.width;
-    g.fillStyle = '#ccc';
-    const c1 = wx(-L / 2, -W / 2), c2 = wx(L / 2, W / 2);
-    g.fillRect(c1[0], c1[1], c2[0] - c1[0], Math.max(3, c2[1] - c1[1]));
-    // extended centreline (localizer) with 1 nm ticks
-    g.strokeStyle = MAGENTA; g.lineWidth = 2; g.setLineDash([8, 6]);
-    const a1 = wx(RUNWAY.thresholdX, 0), a2 = wx(RUNWAY.thresholdX + 30 * NM, 0);
-    g.beginPath(); g.moveTo(a1[0], a1[1]); g.lineTo(a2[0], a2[1]); g.stroke(); g.setLineDash([]);
-    g.strokeStyle = '#fff';
-    for (let nm = 1; nm <= 25; nm++) { const p = wx(RUNWAY.thresholdX + nm * NM, 0); g.beginPath(); g.moveTo(p[0], p[1] - 4); g.lineTo(p[0], p[1] + 4); g.stroke(); }
-    // airport symbol
-    const ap = wx(0, 300); g.strokeStyle = CYAN; g.beginPath(); g.arc(ap[0], ap[1], 8, 0, Math.PI * 2); g.stroke();
-    g.font = FONT_S; g.fillStyle = CYAN; g.fillText('FBL', ap[0], ap[1] + 16);
-    g.restore();
-    // aircraft symbol
-    g.strokeStyle = '#fff'; g.lineWidth = 3; g.beginPath(); g.moveTo(cx, cy - 14); g.lineTo(cx, cy + 10); g.moveTo(cx - 12, cy); g.lineTo(cx + 12, cy); g.moveTo(cx - 6, cy + 8); g.lineTo(cx + 6, cy + 8); g.stroke();
-    // track line
-    g.strokeStyle = '#fff'; g.lineWidth = 1; const ta = st.track - hdg; g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx + Math.sin(ta) * 330, cy - Math.cos(ta) * 330); g.stroke();
-    // top readouts
-    g.font = FONT_S; g.textAlign = 'left'; g.fillStyle = '#fff';
-    g.fillText(`GS ${Math.round(st.groundSpeed / KTS)}  TAS ${Math.round(st.tasKts)}`, 8, 16);
-    g.fillStyle = '#fff'; g.fillText(`${String(Math.round(st.windDirDeg)).padStart(3, '0')}°/${Math.round(st.windKts)}`, 8, 34);
-    // wind arrow
-    g.save(); g.translate(30, 62); g.rotate((st.windDirDeg * DEG + Math.PI) - hdg); g.strokeStyle = '#fff'; g.lineWidth = 2; g.beginPath(); g.moveTo(0, -12); g.lineTo(0, 12); g.moveTo(-5, 6); g.lineTo(0, 12); g.lineTo(5, 6); g.stroke(); g.restore();
-    g.textAlign = 'right'; g.fillStyle = GREEN; g.fillText(`ILS 27  ${(Math.max(0, st.distToThreshold) / NM).toFixed(1)} NM`, S - 8, 16);
-    g.fillStyle = '#fff'; g.fillText(`TRK ${String(Math.round(st.track / DEG) % 360).padStart(3, '0')}`, S - 8, 34);
-    g.textAlign = 'center'; g.fillStyle = GREEN; g.font = FONT; g.fillText(`HDG ${String(Math.round(hdg / DEG) % 360).padStart(3, '0')}`, cx, 20);
-    // lateral deviation text
-    g.font = FONT_S; g.fillStyle = MAGENTA; g.fillText(`${Math.abs(st.lateralOffset).toFixed(0)} m ${st.lateralOffset > 0 ? 'R' : 'L'} of C/L`, cx, S - 10);
+  constructor() { Object.assign(this, mkCanvas()); this.last = null; }
+  /** efis: { mode, range, auto }; opts: { hdgBug, hdgSel, circuit } (js/nd.js). */
+  draw(st, efis = { mode: 'MAP', range: 20, auto: true }, opts = {}) {
+    this.last = ndModel(st, efis, opts);
+    drawND(this.ctx, this.last);
     this.tex.needsUpdate = true;
   }
 }
@@ -360,8 +324,9 @@ export class LowerDU {
     row(210, 'BRAKE TEMP', `${Math.round(Math.min(9.9, st.brakeTemp))}`, st.brakeTemp > 5 ? AMBER : '#fff');
     row(240, 'VREF', `${st.vref} KT`, GREEN);
     row(270, 'HEAD/CROSSWIND', `${Math.round(st.headwind)} / ${Math.round(st.crosswind)} KT`, Math.abs(st.crosswind) > 20 ? AMBER : '#fff');
-    row(300, 'ILS DEV', `${st.locDev > 0 ? 'R' : 'L'} ${Math.abs(st.locDev).toFixed(2)}°  ${st.gsDev > 0 ? 'HI' : 'LO'} ${Math.abs(st.gsDev).toFixed(2)}°`);
-    row(330, 'TO THRESHOLD', `${(Math.max(0, st.distToThreshold) / NM).toFixed(1)} NM`);
+    const ils = st.ils || { locValid: false, gsValid: false };
+    row(300, 'ILS DEV', `${ils.locValid ? `${ils.locDev > 0 ? 'R' : 'L'} ${Math.abs(ils.locDev).toFixed(2)}°` : 'LOC ---'}  ${ils.gsValid ? `${ils.gsDev > 0 ? 'HI' : 'LO'} ${Math.abs(ils.gsDev).toFixed(2)}°` : 'G/S ---'}`);
+    row(330, `DME ${ILS27.ident}`, ils.locValid ? `${ils.dmeNm.toFixed(1)} NM` : '---');
     row(360, 'PAPI', extra.papi !== undefined ? '●'.repeat(extra.papi) + '○'.repeat(4 - extra.papi) : '----', extra.papi === 2 ? GREEN : AMBER);
     row(390, 'G LOAD', `${st.gLoad.toFixed(2)}`, Math.abs(st.gLoad - 1) > 0.5 ? AMBER : '#fff');
     if (extra.checklist) {

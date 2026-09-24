@@ -14,6 +14,7 @@
 // to 3000 ft, then radar vectors round a left-hand circuit to a 30° intercept of the localizer
 // and another approach. After two go-arounds a crew would divert; the autoland then lands.
 import { RUNWAY, KTS, FT, DEG, NM } from './config.js';
+import { MISSED } from './nav.js';
 
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 
@@ -44,8 +45,8 @@ export const GO_AROUND = {
   flareSlowKts: 10,     // in the flare above 15 ft: below Vref by this, held 1 s
   longM: 1000,          // still airborne this far past the threshold: past the touchdown zone
   max: 2,               // go-arounds before the crew would divert; the autoland then lands
-  missedAltFt: 3000,    // the missed approach altitude, and the circuit's
-  circuitKts: 180,      // with flaps 5
+  missedAltFt: MISSED.altFt,     // the missed approach altitude, and the circuit's (js/nav.js)
+  circuitKts: MISSED.speedKts,   // with flaps 5
 };
 
 /** The autothrottle's speed mode (fractions of the thrust lever's travel). */
@@ -140,9 +141,12 @@ export class Autopilot {
       const gsAltErr = st.alt - st.gsAltitude;   // + above the GS
       if (this.phase === 'approach' && st.alt > st.gsAltitude + 30 && distThr > 2000) {
         vsTarget = -900 * 0.00508;   // descend to intercept from above
+        this.vMode = 'V/S';
       } else if (gsAltErr < -40 && distThr > 4000) {
         vsTarget = 0; // level, wait for the glideslope
+        this.vMode = 'ALT HOLD';
       } else {
+        this.vMode = 'G/S';
         // the glidepath's descent rate, corrected towards the glideslope; the correction fades out
         // from 150 ft to 50 ft, where the beam is too sensitive to chase
         const gsVs = -st.groundSpeed * Math.tan(RUNWAY.glideslopeDeg * DEG);
@@ -252,7 +256,7 @@ export class Autopilot {
     if (this.phase === 'missed') {
       // the missed approach, then radar vectors back to the ILS: climb straight ahead, flaps 5 and
       // 180 kt, left turn at 2000 ft to a crosswind leg (180), downwind (090) 4 nm abeam at 3000 ft,
-      // base (360) 11 nm out, and a 30° intercept (300) until the localizer is close: then the
+      // base (360) 13 nm out, and a 30° intercept (300) until the localizer is close: then the
       // approach as before (the configuration schedule brings flaps 15, the gear and flaps 30)
       if (inp.flapIndex > 2 && st.ias > 170) { inp.flapIndex = 2; this.note('flaps 5'); }
       this.throttleForSpeed(GO_AROUND.circuitKts, dt);
@@ -261,13 +265,16 @@ export class Autopilot {
       const vsWant = clamp((GO_AROUND.missedAltFt * FT - st.alt) * 0.04, -5, 10);
       this.vsCmd += clamp(vsWant - this.vsCmd, -0.6 * dt, 0.6 * dt);
       this.pitchForVs(this.vsCmd, dt);
-      const T = RUNWAY.thresholdX;
-      if (this.leg === 'climb' && st.alt > 2000 * FT) { this.leg = 'crosswind'; this.note('left turn, crosswind'); }
-      else if (this.leg === 'crosswind' && st.z > 4 * NM) { this.leg = 'downwind'; this.note('downwind'); }
-      else if (this.leg === 'downwind' && st.x > T + 11 * NM) { this.leg = 'base'; this.note('base'); }
-      else if (this.leg === 'base' && st.z < 1.5 * NM) { this.leg = 'intercept'; this.note('intercept heading'); }
-      else if (this.leg === 'intercept' && st.landingDirection === RUNWAY.ident && Math.abs(st.lateralOffset) < 700) { this.resumeApproach(); return; }
-      this.holdHeading({ climb: RUNWAY.headingDeg, crosswind: 180, downwind: 90, base: 360, intercept: 300 }[this.leg], dt, 25);
+      const T = RUNWAY.thresholdX, M = MISSED;
+      // each turn starts early by the distance the turn itself covers (its radius at 25° of bank; 0.87
+      // of it for the 60° turn onto the intercept), so the legs lie where the chart and the ND draw them
+      const lead = (st.groundSpeed * st.groundSpeed) / (9.81 * Math.tan(25 * DEG));
+      if (this.leg === 'climb' && st.alt > M.turnAltFt * FT) { this.leg = 'crosswind'; this.note('left turn, crosswind'); }
+      else if (this.leg === 'crosswind' && st.z > M.downwindNm * NM - lead) { this.leg = 'downwind'; this.note('downwind'); }
+      else if (this.leg === 'downwind' && st.x > T + M.baseNm * NM - lead) { this.leg = 'base'; this.note('base'); }
+      else if (this.leg === 'base' && st.z < M.interceptNm * NM + 0.87 * lead) { this.leg = 'intercept'; this.note('intercept heading'); }
+      else if (this.leg === 'intercept' && st.landingDirection === RUNWAY.ident && Math.abs(st.lateralOffset) < M.captureM) { this.resumeApproach(); return; }
+      this.holdHeading(M.headings[this.leg], dt, 25);
     }
 
     if (this.phase === 'rollout') {
@@ -358,6 +365,27 @@ export class Autopilot {
     if (this.iHold === undefined) this.iHold = inp.pitch;
     this.iHold = clamp(this.iHold + err * dt * 2, -0.7, 0.7);
     inp.pitch = clamp(this.iHold + err * 5 - st.q * 3, -0.8, 0.8);
+  }
+
+  /**
+   * The flight mode annunciator as a 737's shows the autoland: autothrottle, roll and pitch modes.
+   * TO/GA in the go-around; HDG SEL with LVL CHG, then ALT HOLD at 3000 ft, in the circuit.
+   */
+  get fma() {
+    const st = this.ac.state, at = this.atMode;
+    if (this.phase === 'goaround') return { at, roll: 'TO/GA', pitch: 'TO/GA' };
+    if (this.phase === 'missed') return { at, roll: 'HDG SEL', pitch: Math.abs(MISSED.altFt * FT - st.alt) < 60 * FT ? 'ALT HOLD' : 'LVL CHG' };
+    if (this.phase === 'approach') return { at, roll: 'LOC', pitch: this.vMode || 'G/S' };
+    if (this.phase === 'flare') return { at, roll: 'LOC', pitch: 'FLARE' };
+    return { at, roll: 'ROLLOUT', pitch: '' };
+  }
+
+  /** What the autoland has set on the mode control panel: speed (kt), heading and altitude (ft). */
+  get mcp() {
+    const st = this.ac.state;
+    const spd = this.phase === 'goaround' ? this.gaVref + 15 : this.phase === 'missed' ? MISSED.speedKts : (this.targetIas || st.vref + 5);
+    const hdg = this.phase === 'missed' ? MISSED.headings[this.leg] : RUNWAY.headingDeg;
+    return { spd: Math.round(spd), hdg, alt: MISSED.altFt };
   }
 
   /** The autothrottle's mode as a 737's flight mode annunciator shows it. */

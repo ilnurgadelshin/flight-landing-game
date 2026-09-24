@@ -92,8 +92,10 @@ export class GPWS {
       else if (aglFt < 245 && st.gearDown && st.flapIndex < 4 && st.ias < 165 && !ctx.gaMode) this.announce('Too low, flaps', 'caution', 2, 3);
       else if (aglFt < 300 && st.ias > 200 && !ctx.gaMode) this.announce('Too low, terrain', 'caution', 2, 3);
       // ---- Mode 5: below glideslope
-      if (st.gearDown && aglFt < 1000 && aglFt > 30 && st.distToThreshold > 0 && st.distToThreshold < 12 * 1852 && Math.abs(st.locDev) < 2.5) {
-        const below = -st.gsDev;   // degrees below
+      // (from the ILS 27 glideslope receiver, while it is received)
+      const ils = st.ils;
+      if (st.gearDown && aglFt < 1000 && aglFt > 30 && ils && ils.gsValid && ils.locValid && Math.abs(ils.locDev) < 2.5) {
+        const below = -ils.gsDev;   // degrees below
         if (below > 0.9) this.announce('Glideslope', 'caution', 2, 1.6);
         else if (below > 0.45) this.announce('Glideslope', 'caution', 1, 3.5);
       }

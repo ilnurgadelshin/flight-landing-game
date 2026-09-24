@@ -25,9 +25,12 @@ import { Simulation } from './sim.js';
 import { FlightControls } from './flightcontrols.js';
 import { evaluateLanding } from './evaluate.js';
 import { terrainAhead } from './avionics.js';
+import { ND_RANGES, ND_MODES, autoRange } from './nd.js';
 import { SCENARIOS, RUNWAY, FT, KTS, DEG, NM, AIRCRAFT as AC } from './config.js';
 
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
+const PATH_PERIOD = 0.5;          // s of flight between the recorded path's samples
+const PATH_MAX = 4000;            // samples kept; past this the path keeps every other one
 const DAMAGE = ['gearcollapse', 'destroyed', 'bellycontact', 'wingstrike', 'tailstrike', 'enginestrike', 'nosefirst'];
 
 export class Game {
@@ -49,7 +52,44 @@ export class Game {
     this.ctx = this.newCtx();
     this.time = 0;
     this.result = null;
+    this.efis = this.newEfis();
+    this.path = this.newPath();
   }
+
+  /**
+   * The flight's path for the debrief map (js/debrief.js): samples { t, x, z, altFt, aglFt, kind,
+   * seg } every half second (kind 'approach' | 'goaround' | 'ground'; seg changes at a reposition),
+   * and marks { type, t, x, z, altFt, text } for the go-arounds, touchdowns and the stop.
+   */
+  newPath() { return { samples: [], marks: [], seg: 0, wait: 0, period: PATH_PERIOD }; }
+  recordPath(dt) {
+    const p = this.path, st = this.sim.state;
+    p.wait -= dt;
+    if (p.wait > 0) return;
+    p.wait = p.period;
+    p.samples.push({ t: this.time, x: st.x, z: st.z, altFt: (st.alt - RUNWAY.elevation) / FT, aglFt: st.agl / FT,
+      kind: st.onGround ? 'ground' : (this.inCircuit() ? 'goaround' : 'approach'), seg: p.seg });
+    if (p.samples.length > PATH_MAX) { p.samples = p.samples.filter((s, i) => i % 2 === 0); p.period *= 2; }
+  }
+  mark(type, text = '') {
+    const st = this.sim.state;
+    this.path.marks.push({ type, t: this.time, x: st.x, z: st.z, altFt: (st.alt - RUNWAY.elevation) / FT, text, seg: this.path.seg });
+  }
+
+  /** The EFIS control panel: the navigation display's mode and range (automatic until the pilot turns it). */
+  newEfis() { return { mode: 'MAP', range: 20, auto: true }; }
+  /**
+   * What the navigation display needs besides the state and the EFIS panel (js/nd.js): the selected
+   * heading (the autoland's, or the runway's), whether the autopilot flies it, and whether a
+   * go-around and its circuit are under way (the autoland's until it is back on the approach; the
+   * pilot's until the game sees a stabilised approach again or a reposition).
+   */
+  ndOpts() {
+    const ap = this.demoAp, mcp = ap ? ap.mcp : null, fma = ap ? ap.fma : null;
+    return { hdgBug: mcp ? mcp.hdg : RUNWAY.headingDeg, hdgSel: !!fma && fma.roll === 'HDG SEL', circuit: this.inCircuit() };
+  }
+  /** A go-around and its circuit are under way (the display's and the debrief map's sense). */
+  inCircuit() { const ap = this.demoAp; return ap ? ap.phase === 'goaround' || ap.phase === 'missed' : this.ctx.gaMode; }
 
   on(type, fn) { (this.listeners[type] = this.listeners[type] || []).push(fn); }
   emit(type, data = {}) { for (const fn of this.listeners[type] || []) fn(data); }
@@ -86,6 +126,8 @@ export class Game {
     this.sim.postStep = (dt) => { if (this.state === 'flying' && this.gpws) this.gpws.update(dt, this.sim.state, { gaMode: this.ctx.gaMode, gaAltitudeLoss: this.ctx.gaMaxAgl - this.sim.state.agl, terrainAhead: this.terrainAhead() }); };
     if (this.gpws) this.gpws.reset();
     this.ctx = this.newCtx();
+    this.efis = this.newEfis();
+    this.path = this.newPath();
     this.events.length = 0;
     this.time = 0;
     this.result = null;
@@ -140,6 +182,21 @@ export class Game {
         break;
       }
       case 'reposition': if (this.ctx.gaMode || st.alt > 900 || st.onGround) this.reposition(); break;
+      case 'ndRange': {
+        // the range knob: from the range shown now, one step (or round the ranges, from a controller)
+        const e = this.efis, shown = e.auto ? autoRange(st, this.inCircuit()) : e.range;
+        let i = Math.max(0, ND_RANGES.indexOf(shown));
+        i = arg === 'cycle' ? (i + 1) % ND_RANGES.length : clamp(i + (arg < 0 ? -1 : 1), 0, ND_RANGES.length - 1);
+        e.range = ND_RANGES[i]; e.auto = false;
+        this.emit('control', { name, value: e.range }); this.log('input', `ND range ${e.range} nm`);
+        break;
+      }
+      case 'ndMode': {
+        const e = this.efis;
+        e.mode = ND_MODES[(ND_MODES.indexOf(e.mode) + 1) % ND_MODES.length];
+        this.emit('control', { name, value: e.mode }); this.log('input', `ND ${e.mode}`);
+        break;
+      }
       case 'mouse': this.log('input', `mouse yoke ${arg ? 'on' : 'off'}`); break;
       case 'reverse': this.log('input', `reverse ${arg ? 'on' : 'off'}`); break;
       default: break;
@@ -182,6 +239,7 @@ export class Game {
     const ap = this.controls.autopilot;
     if (ap) this.controls.engageAutopilot(Object.assign({}, ap.opts, { goAroundsFlown: ap.goArounds }));
     if (this.gpws) this.gpws.reset();
+    this.path.seg++; this.path.wait = 0;
     this.message(`REPOSITIONED — ${this.sim.start.distanceNm} nm final`, 'ga', 2.5);
     this.emit('reposition', { distanceNm: this.sim.start.distanceNm });
     this.log('reposition', 'back on final');
@@ -193,6 +251,7 @@ export class Game {
     this.ctx.gaMode = true; this.ctx.gaTimer = 0; this.ctx.goArounds++; this.ctx.gaMaxAgl = this.sim.state.agl; this.ctx.gaStartAgl = this.sim.state.agl;
     this.message(reason ? `AUTOLAND GO-AROUND — ${reason}. [[reposition]]: back on final` : 'GO-AROUND — pitch up, gear up, flaps 15. [[reposition]]: back on final', 'ga');
     this.emit('goaround', { manual, reason });
+    this.mark('goaround', reason ? `autoland: ${reason}` : (manual ? 'TO/GA' : 'go-around'));
     this.log('goaround', reason ? `autoland: ${reason}` : (manual ? 'TOGA pressed' : 'detected'));
   }
 
@@ -207,6 +266,7 @@ export class Game {
     this.time += dt;
     this.ctx.elapsed += dt;
     this.track(dt);
+    if (!this.ctx.finished) this.recordPath(dt);
     if (this.state === 'flying' && this.mode === 'training') this.instructor(dt);
     return dt;
   }
@@ -258,6 +318,7 @@ export class Game {
         // set: a touch-and-go, not the landing
         if (c.gaMode && (inp.throttle > 0.8 || c.gaTimer < 8)) { c.touchAndGo = true; this.log('goaround', 'touch-and-go: the wheels touched during the go-around'); }
         else if (c.gaMode) c.gaMode = false;
+        this.mark(c.touchAndGo && c.gaMode ? 'touchandgo' : 'touchdown', `${(e.sink / 0.00508).toFixed(0)} fpm`);
       } else if (e.type === 'spoilers') { this.emit('spoilers'); this.log('systems', 'ground spoilers deployed'); }
       else if (e.type === 'liftoff') { this.log('bounce', `bounce ${e.bounce}`); }
       else if (DAMAGE.includes(e.type)) {
@@ -289,6 +350,8 @@ export class Game {
     c.finished = true;
     const res = evaluateLanding(this.sim.aircraft, c);
     this.result = res;
+    this.path.wait = 0; this.recordPath(0);
+    this.mark(this.sim.aircraft.damage.destroyed ? 'crash' : (this.sim.state.onGround ? 'stop' : 'end'), res.outcome);
     this.setState('finished');
     this.sim.paused = true;
     this.emit('instructor', { html: '' });
