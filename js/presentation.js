@@ -12,7 +12,7 @@ import { debriefModel, drawDebrief } from './debrief.js';
 import { getScheme } from './controls.js';
 
 const CONTROL_SOUNDS = { gear: 'gear', flapsDown: 'flaps', flapsUp: 'flaps', speedbrake: 'click', armSpeedbrake: 'click', autobrake: 'click', toga: 'chime', ndRange: 'click', ndMode: 'click' };
-const ND_PERIOD = 0.1;               // s between redraws of the navigation display over the view
+const ND_PERIOD = 1 / 15;            // s between redraws of the ND view's sharp copy of the display
 const CHART_PERIOD = 0.25;           // s between redraws of the approach chart (its own-ship)
 
 export class Presentation {
@@ -23,9 +23,8 @@ export class Presentation {
     this.msgSeq = 0;
     this.soundWait = 0;              // s the sound has been waiting for a gesture while the controller is in use
     this.soundHintOn = false;
-    // the navigation display over the view: a phone's MAP panel (closed until MAP is tapped) and the
-    // head-up view's inset on a computer (on until J turns it off)
-    this.nav = { panel: false, inset: true, wait: 0, canvas: null };
+    this.nav = { wait: 0 };          // the ND view's redraws
+    ui.onEfis = (what, arg) => this.onAction(what, arg);
     this.chart = { open: false, wait: 0, canvas: null };
     ui.onChart = (open) => this.setChart(open);
     const on = (type, fn) => game.on(type, fn);
@@ -100,13 +99,10 @@ export class Presentation {
     if (name === 'camera') { this.view.camera(arg); return; }            // the view is not the rules' business
     if (name === 'chart') { this.setChart(!this.chart.open); return; }
     if (name === 'menu' && this.chart.open) { this.setChart(false); return; }   // Escape closes the chart first
-    // a controller or keyboard on a phone: the range and mode controls open the MAP panel first
-    if ((name === 'ndRange' || name === 'ndMode') && getScheme() === 'touch' && !this.nav.panel) { this.nav.panel = true; this.nav.wait = 0; this.audio.play('click'); return; }
-    if (name === 'ndInset') {
-      if (getScheme() === 'touch') this.nav.panel = !this.nav.panel; else this.nav.inset = !this.nav.inset;
-      this.nav.wait = 0; this.audio.play('click');
-      return;
-    }
+    // the ND view (js/view.js): lean in to the flight deck's navigation display, or back
+    if (name === 'ndView') { this.setNdView(!this.view.ndView); return; }
+    // the range and mode controls where the ND is out of sight (the head-up view) show it first
+    if ((name === 'ndRange' || name === 'ndMode') && this.view.shown === 'hud' && this.game.state === 'flying') { this.setNdView(true); return; }
     if (name === 'enter') { if (this.game.state === 'finished' && this.ui.onAgain) this.ui.onAgain(); return; }
     this.game.action(name, arg);
   }
@@ -156,22 +152,39 @@ export class Presentation {
     if (this.touch) this.touch.sync(st, inp, { gaMode: g.ctx.gaMode, view });
     if (this.gpws) this.ui.setCaption(this.gpws.caption, this.gpws.captionKind);
     this.ui.setChecklist(g.state === 'flying' ? g.checklist() : null);
-    this.navDisplay(frameDt, view);
+    this.navDisplay(frameDt);
     if (this.chart.open) { this.chart.wait -= frameDt; if (this.chart.wait <= 0) { this.chart.wait = CHART_PERIOD; this.drawChart(); } }
   }
 
-  /** The navigation display over the view, redrawn ten times a second while shown. */
-  navDisplay(frameDt, view) {
-    const g = this.game, n = this.nav, touch = getScheme() === 'touch';
-    const up = g.state === 'flying' || g.state === 'paused';
-    const kind = !up ? '' : (touch ? (n.panel ? 'panel' : '') : (n.inset && view === 'hud' ? 'inset' : ''));
-    const canvas = this.ui.setNavDisplay(kind);
-    if (!canvas) { n.canvas = null; return; }
+  setNdView(on) {
+    const s = this.game.state;
+    if (on && s !== 'flying' && s !== 'paused') return;
+    if (!!on === this.view.ndView) return;
+    this.view.setNdView(on);
+    this.audio.play('click');
+  }
+
+  /**
+   * The ND view: once the camera has leaned in, the ND is drawn again at the screen's own
+   * resolution exactly over its 3D screen, because a phone renders the 3D view at 1.5 times its
+   * pixels or fewer, too soft for the display's small print. Around it: the EFIS buttons and, on
+   * a phone, the speed and the altitude either side.
+   */
+  navDisplay(frameDt) {
+    const g = this.game, v = this.view, n = this.nav, touch = getScheme() === 'touch';
+    if (v.ndView && g.state !== 'flying' && g.state !== 'paused') v.setNdView(false);
+    if (v.ndView) v.ndFrame = this.ui.ndFrame(touch);
+    const el = v.world.renderer.domElement;
+    const rect = v.ndSettled ? v.cockpit.ndScreenRect(el.clientWidth, el.clientHeight) : null;
+    const out = this.ui.setNdView(v.ndView, rect, touch);
+    if (!out) { n.wait = 0; return; }
     n.wait -= frameDt;
-    if (canvas === n.canvas && n.wait > 0) return;
-    n.canvas = canvas; n.wait = ND_PERIOD;
+    if (!out.resized && n.wait > 0) return;
+    n.wait = ND_PERIOD;
     this.lastNd = ndModel(g.sim.state, g.efis, g.ndOpts());
-    drawND(canvas.getContext('2d'), this.lastNd, { big: touch });
+    out.g.setTransform(out.scale, 0, 0, out.scale, 0, 0);
+    drawND(out.g, this.lastNd);
+    this.ui.setEfisBar(this.lastNd.range, this.lastNd.mode);
   }
 
   /**

@@ -230,14 +230,31 @@ body.touch #gpws-caption { font-size: 16px; }
 #hgs.loc #g-loc .g-dia, #hgs.gs #g-gs .g-dia { display: block; }
 #g-fd { position: absolute; left: 50%; top: 42%; width: 0; height: 0; display: none; }
 #hgs.fd #g-fd { display: block; }
-/* the navigation display over the view (js/nd.js): a phone's MAP panel takes the readouts' place,
-   the same size and position; a computer's head-up view has it as an inset (J) */
-#t-map-panel, #nd-inset { display: none; position: absolute; border: 1px solid rgba(255,255,255,0.35); border-radius: 8px; background: #000; }
-#t-map-panel { left: 50%; top: calc(var(--sat) + 26%); height: 42%; transform: translateX(-50%); pointer-events: auto; touch-action: none; }
-body.touch.map-open #t-map-panel { display: block; }
-body.touch.map-open #hgs { display: none; }
-#nd-inset { right: 12px; bottom: 64px; width: 240px; height: 240px; pointer-events: none; }
-body.nd-inset:not(.touch) #nd-inset { display: block; }
+/* the ND view (js/view.js): the camera leans in to the flight deck's navigation display; once it is
+   there, the display is drawn sharp exactly over its 3D screen (#nd-view), with the EFIS buttons
+   beside it; on a phone the speed and the altitude sit either side of it */
+#nd-view { display: none; position: absolute; pointer-events: none; }
+body.nd-ready #nd-view { display: block; }
+/* on a phone the rest of the flight deck is shaded, so the readouts and the controls over it stay clear */
+body.touch.nd-ready #nd-view { box-shadow: 0 0 0 200vmax rgba(6, 10, 15, 0.66); }
+body.touch.nd-ready #t-stick-zone:not(.active) .tbase { opacity: 0; }
+body.nd-view #t-map { visibility: hidden; }
+body.nd-view #hgs { display: none !important; }
+body.touch.nd-ready #hgs { display: block !important; }
+body.nd-ready #g-gs, body.nd-ready #g-loc, body.nd-ready #g-fd { display: none !important; }
+body.nd-ready .g-col { top: 0; }
+body.nd-ready #g-alt { right: 0; }
+#efis-bar { display: none; position: absolute; transform: translateX(-50%); align-items: center; gap: 6px; padding: 3px; border-radius: 12px; background: rgba(10,16,24,0.55); border: 1px solid rgba(255,255,255,0.18); pointer-events: auto; touch-action: manipulation; font-family: "DejaVu Sans", "Segoe UI", Roboto, Arial, sans-serif; }
+body.nd-ready #efis-bar { display: flex; }
+#efis-bar button { height: 38px; min-width: 44px; padding: 0 12px; border-radius: 9px; border: 1px solid rgba(255,255,255,0.3); background: rgba(40,50,62,0.85); color: #e8eef4; font: 700 16px/1 "DejaVu Sans", "Segoe UI", Roboto, Arial, sans-serif; letter-spacing: 1px; cursor: pointer; }
+#efis-bar button:active { background: rgba(255,195,77,0.3); border-color: var(--accent); }
+#efis-rng { min-width: 64px; text-align: center; color: #7dff9a; font: 700 15px/1 "DejaVu Sans Mono", Consolas, monospace; }
+#efis-mode { color: #7dff9a !important; min-width: 64px !important; }
+body.touch #efis-bar { gap: 4px; padding: 3px; }
+body.touch #efis-bar button { height: 40px; min-width: 38px; padding: 0 6px; }
+body.touch #efis-mode { min-width: 52px !important; }
+body.touch #efis-rng { display: none; }           /* the ND shows its range at its foot */
+#efis-bar.narrow #efis-close { display: none; }
 .g-ac { position: absolute; width: 44px; height: 10px; margin: -5px 0 0 -22px; border-bottom: 2px solid #7dff9a; }
 .g-ac::after { content: ''; position: absolute; left: 16px; top: 3px; width: 8px; height: 8px; border: 2px solid #7dff9a; border-radius: 50%; }
 .g-fdh, .g-fdv { position: absolute; background: #ff5cf0; box-shadow: 0 0 3px #000; }
@@ -293,7 +310,7 @@ body.nd-inset:not(.touch) #nd-inset { display: block; }
 #t-sys .tbtn b { font-size: calc(13px * var(--k)); }
 #t-view small { color: #e8eef4; text-shadow: 0 0 2px #000, 0 0 3px #000; }      /* the view shown, readable over a bright sky */
 #t-map { position: absolute; left: calc(250px * var(--k)); bottom: 0; width: calc(56px * var(--k)); height: calc(46px * var(--k)); }
-body.map-open #t-map { border-color: var(--accent); background: rgba(255,195,77,0.18); }
+
 #t-reposition { position: absolute; right: 0; top: calc(52px * var(--k)); width: auto; padding: 0 12px; border-color: #3fd0ff; background: rgba(63,208,255,0.18); }
 /* tilt: the stick's circle becomes a display of the tilt; CENTER sits in its corner */
 body.tilt #t-stick-zone { pointer-events: none; }

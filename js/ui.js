@@ -2,6 +2,7 @@
 // pause and results screens.
 import { SCENARIOS, APPROACH_STARTS, AIRCRAFT as AC, FT, KTS, DEG } from './config.js';
 import { fmtOutcome } from './evaluate.js';
+import { ndViewLayout } from './nd.js';
 import { controlsHtml, controlsText, getScheme, onSchemeChange, tiltWording, padWording } from './controls.js';
 
 const $ = (id) => document.getElementById(id);
@@ -27,9 +28,9 @@ export const SCHOOL_STEPS = [
     touch: { anchor: '#g-alt',
       body: `Altitude in feet (right box), the radio altitude (height above the ground) below 2500 ft, and the vertical speed: about <b>−750 fpm</b> on the glideslope.<ul><li>Pitch controls the descent rate. High on the glideslope → lower the nose a little; low → raise it.</li></ul>` } },
   { title: 'ILS: localizer & glideslope', anchor: 'nd',
-    body: `The magenta diamonds on the PFD show your position relative to the runway centreline (bottom) and the 3° glideslope (right). Keep both centred.<ul><li>Follow the <b>PAPI</b> lights left of the runway: 2 white + 2 red = on slope, more white = high, more red = low.</li><li>The navigation display next to it shows the route, the next fix and your track: [[ndRange]] changes its range, [[ndMode]] its mode (MAP, APP, PLN). [[chart]] opens the approach chart.</li></ul>`,
+    body: `The magenta diamonds on the PFD show your position relative to the runway centreline (bottom) and the 3° glideslope (right). Keep both centred.<ul><li>Follow the <b>PAPI</b> lights left of the runway: 2 white + 2 red = on slope, more white = high, more red = low.</li><li>The navigation display next to it shows the route, the next fix and your track: [[ndRange]] changes its range, [[ndMode]] its mode (MAP, APP, PLN), and [[ndView]] leans in to read it. [[chart]] opens the approach chart.</li></ul>`,
     touch: { anchor: '#hgs',
-      body: `The magenta diamonds show where the runway centreline (bottom scale) and the 3° glideslope (right scale) are. Steer towards them to centre them: diamond below the middle → you are high, lower the nose a little; diamond left → bank left a little.<ul><li>Follow the <b>PAPI</b> lights left of the runway: 2 white + 2 red = on slope, more white = high, more red = low.</li><li>[[ndInset]] shows the navigation display here instead: tap its sides for the range, its middle for the mode. [[chart]] opens the approach chart.</li></ul>` } },
+      body: `The magenta diamonds show where the runway centreline (bottom scale) and the 3° glideslope (right scale) are. Steer towards them to centre them: diamond below the middle → you are high, lower the nose a little; diamond left → bank left a little.<ul><li>Follow the <b>PAPI</b> lights left of the runway: 2 white + 2 red = on slope, more white = high, more red = low.</li><li>[[ndView]] leans in to the flight deck's navigation display: the route, the next fix and your track, with buttons for its range and mode. [[chart]] opens the approach chart.</li></ul>` } },
   { title: 'Rudder — essential in a crosswind', anchor: 'rudder', look: 1, touch: { anchor: '#t-rudder' },
     body: `In a crosswind you fly "crabbed" into the wind. Just before touchdown, press the rudder to align the nose with the runway and lower the upwind wing slightly.<ul><li>[[rudder]]: left / right rudder. On the ground it also steers the nose wheel.</li></ul>` },
   { title: 'Thrust levers', anchor: 'throttle', look: 1,
@@ -79,6 +80,7 @@ export class UI {
     this.schoolIndex = 0;
     this.onStart = null; this.onDemo = null; this.onResume = null; this.onQuit = null; this.onAgain = null; this.onSchoolDone = null;
     this.onChart = null;             // (open) => void: the approach chart's buttons
+    this.onEfis = null;              // (action, arg) => void: the ND view's EFIS buttons
     this.buildMenu();
     this.bindButtons();
     this.hgs = {}; this.hgsShown = {};
@@ -139,6 +141,9 @@ export class UI {
     $('btn-resume').addEventListener('click', () => this.onResume && this.onResume());
     $('btn-quit').addEventListener('click', () => this.onQuit && this.onQuit());
     $('btn-chart').addEventListener('click', () => this.onChart && this.onChart(true));
+    // the ND view's EFIS buttons (mouse and touch)
+    const efis = (id, what, arg) => $(id).addEventListener('click', (e) => { e.preventDefault(); if (this.onEfis) this.onEfis(what, arg); });
+    efis('efis-rng-dn', 'ndRange', -1); efis('efis-rng-up', 'ndRange', 1); efis('efis-mode', 'ndMode'); efis('efis-close', 'ndView');
     $('chart-close').addEventListener('click', () => this.onChart && this.onChart(false));
     $('chart-canvas').addEventListener('click', () => $('chart').classList.toggle('zoom'));
     $('btn-again').addEventListener('click', () => this.onAgain && this.onAgain());
@@ -189,16 +194,92 @@ export class UI {
   }
 
   /**
-   * The navigation display over the view: 'panel' (a phone's MAP panel in the readouts' place),
-   * 'inset' (the head-up view's inset on a computer) or '' (neither). Returns the canvas shown, or null.
+   * Where the ND view puts the ND ({ h, cx, cy }: its size and centre as fractions of the screen).
+   * On a computer: centred, below the mode line, above the EFIS buttons and the readout strip. On a
+   * phone: the largest square the touch controls leave free below the mode line (js/nd.js
+   * ndViewLayout), with the speed and the altitude beside it and the EFIS buttons in the gap between
+   * the rudder strip and the stick, where MAP is.
    */
-  setNavDisplay(kind) {
-    if (kind !== this._nav) {
-      this._nav = kind;
-      document.body.classList.toggle('map-open', kind === 'panel');
-      document.body.classList.toggle('nd-inset', kind === 'inset');
+  ndFrame(touch) {
+    const W = window.innerWidth || 1, H = window.innerHeight || 1;
+    const BAR = 48;
+    if (!touch) {
+      const top = 58, bottom = H - 64 - BAR - 10, size = Math.max(80, Math.min(bottom - top, 0.8 * H));
+      this._ndBarAt = null;
+      return { h: size / H, cx: 0.5, cy: (top + size / 2) / H };
     }
-    return kind === 'panel' ? $('t-map-panel') : (kind === 'inset' ? $('nd-inset') : null);
+    const css = getComputedStyle(document.documentElement), px = (v) => parseFloat(css.getPropertyValue(v)) || 0;
+    const obstacles = this.touchObstacles();
+    // the EFIS buttons: in the bottom row, between the controls either side of the screen's middle
+    const barT = H - px('--sab') - 8 - BAR, row = obstacles.filter((o) => o.t < barT + BAR && o.b > barT);
+    const lo = Math.max(px('--sal') + 14, ...row.filter((o) => (o.l + o.r) / 2 < W / 2).map((o) => o.r + 6));
+    const hi = Math.min(W - px('--sar') - 14, ...row.filter((o) => (o.l + o.r) / 2 >= W / 2).map((o) => o.l - 6), ...this.stickLeft(barT, BAR));
+    this._ndBarAt = { x: (lo + hi) / 2, y: barT, room: hi - lo };
+    // the speed and altitude columns' width, measured while they show (they are hidden during the move)
+    const seen = Math.max($('g-spd').offsetWidth || 0, $('g-alt').offsetWidth || 0);
+    if (seen) this._colW = seen;
+    const col = this._colW || 80;
+    const L = ndViewLayout({ W, top: px('--sat') + 30, bottom: barT - 6, maxSize: 0.8 * H, obstacles, cols: { w: col, h: 70, at: 0.38 }, left: px('--sal') + 14, right: W - px('--sar') - 14 })
+      || { x: W / 2 - 60, y: px('--sat') + 30, size: 120 };
+    return { h: L.size / H, cx: (L.x + L.size / 2) / W, cy: (L.y + L.size / 2) / H };
+  }
+  /** The touch controls on screen now (except the stick's open area and MAP, which the ND view hides), as rects. */
+  touchObstacles() {
+    const out = [];
+    for (const e of document.querySelectorAll('#touch .tbtn, #t-lever-body, #t-rudder')) {
+      if (e.id === 't-map') continue;
+      const r = e.getBoundingClientRect();
+      if (r.width > 0 && r.height > 0) out.push({ l: r.left, t: r.top, r: r.right, b: r.bottom });
+    }
+    return out;
+  }
+  /** The stick's area, if the EFIS buttons' row reaches it: its left edge. */
+  stickLeft(y, h) {
+    const z = document.getElementById('t-stick-zone'), r = z && z.getBoundingClientRect();
+    return r && r.width > 0 && r.top < y + h && r.bottom > y ? [r.left - 6] : [];
+  }
+
+  /**
+   * The ND view on the page: body.nd-view while the camera leans in (the head-up readouts wait),
+   * body.nd-ready once it is there, with the sharp copy of the display over its 3D screen (`rect`,
+   * CSS px), the EFIS buttons next to it and, on a phone, the speed and altitude either side.
+   * Returns { g, scale, resized } to draw with, or null.
+   */
+  setNdView(on, rect, touch) {
+    const b = document.body, ready = !!(on && rect);
+    if (on !== this._ndOn) { this._ndOn = on; b.classList.toggle('nd-view', on); }
+    if (ready !== this._ndReady) {
+      this._ndReady = ready; b.classList.toggle('nd-ready', ready);
+      if (!ready) { this._ndKey = ''; $('hgs').style.cssText = ''; }
+    }
+    if (!ready) return null;
+    const c = $('nd-view'), dpr = window.devicePixelRatio || 1;
+    const key = `${rect.x.toFixed(1)},${rect.y.toFixed(1)},${rect.w.toFixed(1)},${rect.h.toFixed(1)},${touch}`;
+    let resized = false;
+    if (key !== this._ndKey) {
+      this._ndKey = key;
+      Object.assign(c.style, { left: `${rect.x}px`, top: `${rect.y}px`, width: `${rect.w}px`, height: `${rect.h}px` });
+      const bw = Math.round(rect.w * dpr), bh = Math.round(rect.h * dpr);
+      if (c.width !== bw || c.height !== bh) { c.width = bw; c.height = bh; }
+      resized = true;
+      const bar = $('efis-bar'), at = this._ndBarAt;
+      // a narrow gap (the smallest phones) leaves out ✕: VIEW, which reads ND, goes back too
+      bar.classList.toggle('narrow', !!(touch && at && at.room < 190));
+      if (touch && at) Object.assign(bar.style, { left: `${at.x}px`, top: `${at.y}px` });
+      else Object.assign(bar.style, { left: `${rect.x + rect.w / 2}px`, top: `${rect.y + rect.h + 8}px` });
+      if (touch) {
+        // the speed on the left of the display, the altitude on its right, level with its centre
+        const g = $('hgs'), col = Math.max($('g-spd').offsetWidth, $('g-alt').offsetWidth, 60) + 10;
+        g.style.cssText = `left:${rect.x - col}px;top:${rect.y + rect.h * 0.38}px;width:${rect.w + 2 * col}px;height:${rect.h * 0.4}px;transform:none`;
+      }
+    }
+    return { g: c.getContext('2d'), scale: c.width / 512, resized };
+  }
+  /** The EFIS buttons' readouts: the range shown and the mode. */
+  setEfisBar(range, mode) {
+    const t = `${range} NM`;
+    if (this._efisR !== t) { this._efisR = t; $('efis-rng').textContent = t; }
+    if (this._efisM !== mode) { this._efisM = mode; $('efis-mode').textContent = mode; }
   }
 
   /** The approach chart: shown or hidden. Returns its canvas when shown. */

@@ -33,6 +33,10 @@ export class Cockpit {
     this.basePitch = -15 * DEG;
     camera.rotation.set(this.basePitch, 0, 0);
     this.lookDown = 0; this.lookYaw = 0; this.lookPitch = 0;
+    // the instrument view (as Microsoft Flight Simulator's): the camera leans in until the captain's
+    // navigation display fills the screen; 0 = at the eye, 1 = there
+    this.focus = 0;
+    this._qLook = new THREE.Quaternion(); this._v = new THREE.Vector3();
     this.shake = new THREE.Vector3();
     this.shakeAmt = 0;
 
@@ -166,7 +170,7 @@ export class Cockpit {
       return screen;
     };
     // Captain side: PFD outboard, ND inboard; centre: upper/lower DU; F/O side mirrored (same textures)
-    du(this.pfd.tex, -0.70, 0.14); du(this.nd.tex, -0.46, 0.14);
+    du(this.pfd.tex, -0.70, 0.14); this.ndScreen = du(this.nd.tex, -0.46, 0.14);
     du(this.upper.tex, 0.0, 0.14); du(this.lower.tex, 0.0, -0.10);
     du(this.nd.tex, 0.46, 0.14); du(this.pfd.tex, 0.70, 0.14);
     // standby instruments between ND and centre: attitude (ISFD-style), altimeter, clock
@@ -307,6 +311,47 @@ export class Cockpit {
     this.camera.position.y -= clamp((st.gLoad - 1) * 0.02, -0.04, 0.04);
     const base = extra.viewPitch === undefined ? this.basePitch : extra.viewPitch;
     this.camera.rotation.set(base - this.lookDown * 40 * DEG + this.lookPitch, this.lookYaw, 0, 'YXZ');
+    // the instrument view: from the eye's pose to one square in front of the ND in 0.45 s, eased
+    const step = Math.min(dt, 0.1) / 0.45;
+    this.focus = extra.focus ? Math.min(1, this.focus + step) : Math.max(0, this.focus - step);
+    if (this.focus === 0) { this.camRig.position.copy(this.eyeLocal); return; }
+    const s = this.focus * this.focus * (3 - 2 * this.focus);
+    const p = this.ndFocusPose(extra.focusFov || 30, extra.focusFrame || { h: 0.7, cx: 0.5, cy: 0.5 });
+    this.camRig.position.lerpVectors(this.eyeLocal, p.pos, s);
+    this._qLook.copy(this.camera.quaternion);
+    this.camera.quaternion.slerpQuaternions(this._qLook, p.quat, s);
+    this.camera.position.multiplyScalar(1 - s);         // no shake or head bob once leaning in
+  }
+
+  /**
+   * The camera's pose (in the flight deck's frame) looking square at the captain's ND so that its
+   * screen fills `frame.h` of the view's height, centred `frame.cx` of the way across and `frame.cy`
+   * of the way down, at a vertical field of view of `fovDeg`.
+   */
+  ndFocusPose(fovDeg, frame) {
+    const g = this.panelGroup, q = g.quaternion, size = 0.20;
+    const c = new THREE.Vector3(-0.46, 0.14, 0.039).applyQuaternion(q).add(g.position);
+    const n = new THREE.Vector3(0, 0, 1).applyQuaternion(q), up = new THREE.Vector3(0, 1, 0).applyQuaternion(q);
+    const t = Math.tan(fovDeg * DEG / 2);
+    const d = size / (frame.h * 2 * t);                 // the view is 2 d t high at the screen
+    const side = new THREE.Vector3().crossVectors(up, n);
+    // raise the eye to show the screen lower, move it left to show the screen further right
+    const pos = c.clone().addScaledVector(n, d).addScaledVector(up, (frame.cy - 0.5) * 2 * d * t).addScaledVector(side, -((frame.cx === undefined ? 0.5 : frame.cx) - 0.5) * 2 * d * t * this.camera.aspect);
+    const quat = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().makeBasis(side, up, n));
+    return { pos, quat };
+  }
+
+  /** The captain's ND screen on the page (CSS px): its bounding box as the camera sees it now. */
+  ndScreenRect(width, height) {
+    const m = this.ndScreen; if (!m) return null;
+    m.updateWorldMatrix(true, false);
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const [x, y] of [[-0.1, -0.1], [0.1, -0.1], [0.1, 0.1], [-0.1, 0.1]]) {
+      const v = this._v.set(x, y, 0); m.localToWorld(v); v.project(this.camera);
+      const px = (v.x + 1) / 2 * width, py = (1 - v.y) / 2 * height;
+      x0 = Math.min(x0, px); x1 = Math.max(x1, px); y0 = Math.min(y0, py); y1 = Math.max(y1, py);
+    }
+    return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
   }
 
   /**

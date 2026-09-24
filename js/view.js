@@ -10,10 +10,16 @@
 //             looks 6° below the nose, so on the approach the runway is near the middle of the
 //             screen, and the field of view is about 100° wide on any screen shape.
 // Flight School always shows the cockpit: its pages point at the flight deck.
+//
+// From either view, the ND view leans in to the captain's navigation display, the way Microsoft
+// Flight Simulator's instrument views frame a display: the camera moves in front of it until it
+// fills most of the screen (MAP on a phone, J on a computer). There is one navigation display, the
+// flight deck's; nothing copies it over the view.
 import * as THREE from 'three';
 import { DEG } from './config.js';
 
 const COCKPIT_PITCH = -15 * DEG, HUD_PITCH = -6 * DEG, COCKPIT_FOV = 70;
+const ND_FOV = 30;                          // the ND view's vertical field of view (deg)
 /** The head-up view's vertical field of view (degrees) for a screen shape: about 100° across, 45–70° high. */
 export function hudFov(aspect) {
   return Math.min(70, Math.max(45, 2 * Math.atan(Math.tan(50 * DEG) / aspect) / DEG));
@@ -31,6 +37,8 @@ export class GameView {
     this.hud = hud;                             // js/hud.js HeadUpDisplay (the head-up view's symbols)
     this.mode = 'cockpit';                      // 'cockpit' | 'hud', chosen by the player
     this.onMode = null;                         // (mode) => void: the choice changed
+    this.ndView = false;                        // leaning in to the ND (over either view)
+    this.ndFrame = { h: 0.7, cx: 0.5, cy: 0.5 }; // where the ND sits in the ND view (fractions of the screen)
     this.speedTrend = { ias: 0, t: -1, rate: 0 };
     this.aircraft = new THREE.Group();          // follows the aircraft; the flight deck and camera hang in it
     this.aircraft.add(cockpit.group);
@@ -43,9 +51,10 @@ export class GameView {
       cockpit.setNight(night || scenario.timeOfDay !== 'day');
       this.raining = scenario.rain > 0;
       this.schoolLook = 0;
+      this.ndView = false;
       this.sync();
     });
-    game.on('state', ({ prev }) => { if (prev === 'school') this.schoolLook = 0; });
+    game.on('state', ({ state, prev }) => { if (prev === 'school') this.schoolLook = 0; if (state === 'school' || state === 'menu') this.ndView = false; });
     game.on('reposition', () => this.sync());
     this.sync();
   }
@@ -57,8 +66,13 @@ export class GameView {
     this.aircraft.quaternion.set(q[0], q[1], q[2], q[3]);
   }
 
-  /** The view shown now: the player's choice, except that Flight School shows the cockpit. */
-  get shown() { return this.game.state === 'school' ? 'cockpit' : this.mode; }
+  /** The view shown now: the player's choice, 'nd' while leaning in to the ND; Flight School shows the cockpit. */
+  get shown() { return this.game.state === 'school' ? 'cockpit' : (this.ndView ? 'nd' : this.mode); }
+
+  /** Lean in to the navigation display, or back to the view chosen. */
+  setNdView(on) { this.ndView = !!on && this.game.state !== 'school'; }
+  /** The camera is in front of the ND (the move has finished). */
+  get ndSettled() { return this.ndView && this.cockpit.focus >= 1; }
 
   setMode(mode) {
     if (mode !== 'cockpit' && mode !== 'hud') return;
@@ -73,6 +87,7 @@ export class GameView {
    * controller's right stick press).
    */
   camera(action) {
+    if (this.ndView) { this.ndView = false; return; }   // any view change first leaves the ND view
     if (action === 'toggle') { this.look.down = false; this.setMode(this.mode === 'hud' ? 'cockpit' : 'hud'); return; }
     if (action !== 'cycle') return;
     if (this.mode === 'hud') { this.look.down = false; this.setMode('cockpit'); }
@@ -100,8 +115,12 @@ export class GameView {
     const demo = !!g.demoAp;
     // what the autoland has selected and the modes it flies (the pilot's defaults without it)
     const fma = demo ? g.demoAp.fma : null, mcp = demo ? g.demoAp.mcp : null;
-    const hud = this.shown === 'hud', cam = this.world.camera;
-    const fov = hud ? hudFov(cam.aspect) : COCKPIT_FOV;
+    // the flight deck is drawn while the camera leans in to the ND or back out of it, and the field
+    // of view narrows with the move (it eases: cockpit.focus)
+    const f = this.cockpit.focus, s = f * f * (3 - 2 * f);
+    const hud = this.shown === 'hud' && f === 0, cam = this.world.camera;
+    const headUp = this.mode === 'hud' && this.game.state !== 'school';
+    const fov = (headUp ? hudFov(cam.aspect) : COCKPIT_FOV) * (1 - s) + ND_FOV * s;
     if (Math.abs(cam.fov - fov) > 1e-3) { cam.fov = fov; cam.updateProjectionMatrix(); }
     this.world.drawCockpit = !hud;
     this.cockpit.update(st, inp, frameDt, {
@@ -110,7 +129,8 @@ export class GameView {
       gaMode: g.ctx.gaMode, rain: this.raining, autothrottle: fma ? fma.at : '',
       rollMode: fma ? fma.roll : (g.mode === 'training' ? 'FD' : ''), pitchMode: fma ? fma.pitch : (g.mode === 'training' ? 'FD' : ''),
       mcp, efis: g.efis, nd: g.ndOpts(),
-      hidden: hud, viewPitch: hud ? HUD_PITCH : COCKPIT_PITCH,
+      hidden: hud, viewPitch: headUp ? HUD_PITCH : COCKPIT_PITCH,
+      focus: this.ndView, focusFov: ND_FOV, focusFrame: this.ndFrame,
     });
     // the speed trend for the display's acceleration caret (kt per simulated second, smoothed)
     const tr = this.speedTrend;
@@ -129,7 +149,7 @@ export class GameView {
     const g = this.game, st = g.sim.state, c = this.cockpit;
     const ahead = Math.abs(c.lookYaw) < 0.35 && Math.abs(c.lookPitch) < 0.3 && c.lookDown < 0.3;
     this.hud.render(this.world.camera, st, {
-      visible: this.shown === 'hud' && g.state !== 'menu' && ahead,
+      visible: this.shown === 'hud' && c.focus === 0 && g.state !== 'menu' && ahead,
       target: !st.onGround && st.flapIndex >= 4 ? st.vref + 5 : null, accel: this.speedTrend.rate, fd: g.fdCommand(),
     });
   }
