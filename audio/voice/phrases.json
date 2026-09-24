@@ -1,0 +1,32 @@
+{
+  "voice": "am_michael",
+  "speed": 1.05,
+  "phrases": [
+    "Two thousand five hundred",
+    "One thousand",
+    "Five hundred",
+    "Four hundred",
+    "Three hundred",
+    "Two hundred",
+    "One hundred",
+    "Fifty",
+    "Forty",
+    "Thirty",
+    "Twenty",
+    "Ten",
+    "Approaching minimums",
+    "Minimums",
+    "Sink rate",
+    "Pull up",
+    "Terrain, terrain, pull up",
+    "Too low, terrain",
+    "Too low, gear",
+    "Too low, flaps",
+    "Glideslope",
+    "Bank angle, bank angle",
+    "Stall, stall",
+    "Go around, flaps fifteen",
+    "Nice landing, Captain",
+    "We are down"
+  ]
+}
