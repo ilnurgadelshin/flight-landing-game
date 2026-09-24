@@ -183,11 +183,11 @@ thrust lever that stays where it is left for the other.
 | Control | Touch |
 | --- | --- |
 | Pitch and roll | **Stick** (right thumb): it appears where the thumb lands in the lower right and springs back to centre when released. The aircraft then holds its attitude and trims itself. Stick up = nose up (tick *Pilot-style pitch* for stick up = nose down). Or tick **Tilt to fly** (below) |
-| Thrust | **Thrust lever** at the left edge: drag it, and it stays where you leave it. **TO/GA** on top gives go-around thrust |
+| Thrust | **Thrust lever** at the left edge: drag it, and it stays where you leave it. **TO/GA** on top (beside it on short screens) gives go-around thrust |
 | Thrust reversers | On the ground, pull the lever down past idle into **REV**. It stays there until you push it back up |
 | Rudder / nose-wheel steering | **RUDDER** strip next to the lever; springs back to centre |
 | Gear, flaps, speedbrakes, autobrake | **GEAR**, **FLAPS − / +**, **ARM** and **EXT** (speedbrakes), **A/BRK** buttons at the top left. Each shows its current setting |
-| Wheel brakes | **BRAKE** (hold): appears on the ground |
+| Wheel brakes | **BRAKE** (hold): appears on the ground, above the stick's area |
 | Reposition on final | **REPOSITION**: appears during a go-around |
 | Look around / at the panel | Drag on the windshield (lets go straight ahead) · **VIEW** toggles the panel |
 | Pause / Flight School | **❚❚** / **?** at the top right |
@@ -197,6 +197,14 @@ against Vref + 5, N1, altitude, radio altitude, vertical speed, wind, the
 localizer and glideslope diamonds, and the flight director in Flight School.
 Flight School and the instructor hints name the touch controls instead of keys,
 and highlight them.
+
+**Short screens.** In landscape, Safari's address and tab bars leave an
+iPhone's page only 265–330 px tall (Chrome on Android about 300). When the
+full layout does not fit, a compact one takes over. The gear, autobrake,
+flaps and speedbrake buttons sit in two rows of three, and TO/GA moves beside
+the thrust lever, above the rudder strip. The lever takes the height that is
+left. Added to the Home Screen, the game has the whole screen. On short
+screens the menu and results scroll.
 
 ### Tilt to fly
 
@@ -444,7 +452,7 @@ draws every scenario by day and night on both graphics tiers.
 | Command | What it checks | Time |
 | --- | --- | --- |
 | `npm test` | Node, no browser: physics (62 checks in 12 groups), phone features (59 checks in 7 groups), game controllers (40 checks in 6 groups), the sky model (12 checks in 3 groups) and the game's rules (36 checks in 7 groups), below | ~5 s |
-| `npm run test:e2e` | The real page in Chromium: 225 checks in 16 groups (below), run in 3 parallel processes (`test/e2e-parallel.mjs`) | ~11–15 min |
+| `npm run test:e2e` | The real page in Chromium: 230 checks in 16 groups (below), run in 3 parallel processes (`test/e2e-parallel.mjs`) | ~11–15 min |
 | `npm run test:e2e:quick` | The same without the four landings flown in real time (E9, E11, E13, E15) | ~6 min |
 | `node test/e2e.mjs only=<groups>` | E1 plus the groups listed, in one process, comma-separated: `menu`, `keys`, `school`, `land`, `fail`, `ga`, `fps`, `keyboard`, `mobile`, `touchland`, `tilt`, `tiltland`, `gamepad`, `padland`, `graphics` (e.g. `only=tilt,tiltland`) | 10 s – 3 min each |
 | `npm run test:e2e:serial` | All browser groups in one process | ~25 min |
@@ -517,6 +525,10 @@ controls a player has.
   - every touch control sits inside the safe area, with no overlaps and targets
     of at least 34×40 px, also on an iPhone SE, an iPhone 13 mini and a 640×360
     Android;
+  - the same on short screens (iPhones with Safari's toolbars at 265–320 px, and
+    Android Chrome at 304 px), where the compact layout is used. Each size is
+    checked with BRAKE, REPOSITION and tilt's CENTER shown, and the thrust lever
+    must keep at least 80 px of travel;
   - the head-up display replaces the readout strip;
   - each button drives its control;
   - two thumbs work at once, the stick and rudder spring back and the lever

@@ -496,22 +496,43 @@ if (want('mobile')) {
   check('the head-up display is clear of the buttons and levers', lay.hgsHits.length === 0, lay.hgsHits.join(', '));
   check('the head-up display replaces the desktop readout strip', lay.strip === 'none' && /^\d+$/.test(lay.ias) && /^\d+$/.test(lay.alt), `IAS ${lay.ias}, ALT ${lay.alt}`);
   await snap(mp, 'e2e-phone-flying');
-  // the same rules on smaller phones: iPhone SE and a 640×360 Android (no notch), and the narrowest
-  // notched iPhone (13 mini, 812×375 with 50 px side insets)
+  // the same rules on other phones, in each state that shows other buttons (BRAKE on the ground,
+  // REPOSITION in a go-around, CENTER with tilt): iPhone SE and a 640×360 Android (no notch), the
+  // narrowest notched iPhone (13 mini, 812×375 with 50 px side insets), and short screens, where
+  // Safari's address and tab bars in landscape leave 265–330 px (the compact layout)
   const setSafe = (s) => mp.evaluate((s) => { const st = document.documentElement.style; st.setProperty('--sal', s.l + 'px'); st.setProperty('--sar', s.r + 'px'); st.setProperty('--sat', s.t + 'px'); st.setProperty('--sab', s.b + 'px'); }, s);
-  for (const vp of [{ width: 667, height: 375, safe: { l: 0, r: 0, t: 0, b: 0 } }, { width: 640, height: 360, safe: { l: 0, r: 0, t: 0, b: 0 } }, { width: 812, height: 375, safe: { l: 50, r: 50, t: 0, b: 21 } }]) {
-    await mp.setViewportSize({ width: vp.width, height: vp.height }); await setSafe(vp.safe); await mf(2);
-    const small = await mp.evaluate(() => {
-      const ids = ['t-gear', 't-autobrake', 't-flaps-up', 't-flaps-dn', 't-arm', 't-ext', 't-toga', 't-lever-body', 't-rudder', 't-stick-zone', 't-view', 't-pause', 't-help', 'hgs'];
-      const rects = ids.map((id) => { const r = document.getElementById(id).getBoundingClientRect(); return { id, l: r.left, t: r.top, r: r.right, b: r.bottom, w: r.width, h: r.height }; });
-      const hit = (a, b) => a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b;
+  const N0 = { l: 0, r: 0, t: 0, b: 0 };
+  const SIZES = [
+    { width: 667, height: 375, safe: N0 }, { width: 640, height: 360, safe: N0 }, { width: 812, height: 375, safe: { l: 50, r: 50, t: 0, b: 21 } },
+    { width: 932, height: 320, safe: SAFE, name: 'iPhone Pro Max, Safari with tab bar' }, { width: 852, height: 283, safe: SAFE, name: 'iPhone 15, Safari with tab bar' },
+    { width: 812, height: 265, safe: { l: 50, r: 50, t: 0, b: 21 }, name: 'iPhone 13 mini, Safari with tab bar' }, { width: 667, height: 265, safe: N0, name: 'iPhone SE, Safari with tab bar' },
+    { width: 640, height: 304, safe: N0, name: 'Android, Chrome' },
+  ];
+  for (const vp of SIZES) {
+    await mp.setViewportSize({ width: vp.width, height: vp.height }); await setSafe(vp.safe); await mf(3);
+    const bad = await mp.evaluate((S) => {
       const bad = [];
-      for (const r of rects) if (r.l < 0 || r.t < 0 || r.r > innerWidth || r.b > innerHeight) bad.push(r.id + ' off screen');
-      for (let i = 0; i < rects.length; i++) for (let j = i + 1; j < rects.length; j++) if (!(rects[i].id === 'hgs' && rects[j].id === 't-stick-zone') && !(rects[j].id === 'hgs' && rects[i].id === 't-stick-zone') && hit(rects[i], rects[j])) bad.push(rects[i].id + '/' + rects[j].id);
-      for (const r of rects) if (r.id !== 'hgs' && (r.w < 34 || r.h < 39)) bad.push(`${r.id} ${Math.round(r.w)}×${Math.round(r.h)}`);
+      for (const state of ['air', 'go-around', 'ground', 'tilt']) {
+        const show = (id, on) => document.getElementById(id).classList.toggle('hidden', !on);
+        show('t-reposition', state === 'go-around'); show('t-brake', state === 'ground'); document.body.classList.toggle('tilt', state === 'tilt');
+        const ids = ['t-gear', 't-autobrake', 't-flaps-up', 't-flaps-dn', 't-arm', 't-ext', 't-toga', 't-lever-body', 't-rudder', 't-stick-zone', 't-view', 't-pause', 't-help', 't-reposition', 't-brake', 't-center', 'hgs'];
+        const rects = ids.map((id) => { const r = document.getElementById(id).getBoundingClientRect(); return { id, l: r.left, t: r.top, r: r.right, b: r.bottom, w: r.width, h: r.height }; }).filter((r) => r.w > 0);
+        const hit = (a, b) => a.l < b.r - 0.5 && b.l < a.r - 0.5 && a.t < b.b - 0.5 && b.t < a.b - 0.5;
+        // the head-up display and CENTER may lie over the stick's area (it has no drawn edge)
+        const allowed = (a, b) => [a, b].includes('t-stick-zone') && ([a, b].includes('hgs') || [a, b].includes('t-center'));
+        for (const r of rects) if (r.id !== 'hgs' && (r.l < S.l - 0.5 || r.t < S.t - 0.5 || r.r > innerWidth - S.r + 0.5 || r.b > innerHeight - S.b + 0.5)) bad.push(`${state}: ${r.id} outside the safe area`);
+        for (let i = 0; i < rects.length; i++) for (let j = i + 1; j < rects.length; j++) if (!allowed(rects[i].id, rects[j].id) && hit(rects[i], rects[j])) bad.push(`${state}: ${rects[i].id}/${rects[j].id}`);
+        for (const r of rects) if (!['hgs', 't-stick-zone'].includes(r.id) && (r.w < 34 || r.h < 39)) bad.push(`${state}: ${r.id} ${Math.round(r.w)}×${Math.round(r.h)}`);
+        // the thrust lever keeps a usable travel
+        const tr = document.querySelector('#t-lever .ttrack').getBoundingClientRect().height;
+        if (tr < 80) bad.push(`${state}: lever travel ${Math.round(tr)} px`);
+      }
+      document.getElementById('t-reposition').classList.add('hidden'); document.getElementById('t-brake').classList.add('hidden'); document.body.classList.remove('tilt');
       return bad;
-    });
-    check(`${vp.width}×${vp.height}: controls on screen, apart, at least 34×39 px`, small.length === 0, small.join(', '));
+    }, vp.safe);
+    const compact = await mp.evaluate(() => document.body.classList.contains('compact'));
+    check(`${vp.width}×${vp.height}${vp.name ? ` (${vp.name})` : ''}: controls inside the safe area, apart, at least 34×39 px, lever travel ≥ 80 px, in every state`, bad.length === 0, bad.join(', ') || (compact ? 'compact layout' : 'full layout'));
+    if (vp.width === 932 && vp.height === 320) await snap(mp, 'e2e-phone-safari-toolbars');
   }
   await mp.setViewportSize({ width: 852, height: 393 }); await setSafe(SAFE); await mf(2);
 
