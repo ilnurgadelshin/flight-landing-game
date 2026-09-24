@@ -90,7 +90,15 @@ export function detailFlightDeck(cockpit) {
     const p = new THREE.Mesh(rounded(0.30, 0.052, 0.012), M.panel);
     p.position.set(x, -0.175, -0.669); root.add(p);
     label(root, 'EFIS CONTROL', x, -0.156, -0.6625, 0.14, 0.009);
-    for (const dx of [-0.105, 0, 0.105]) knob(root, x + dx, -0.18, -0.663, 0.009);
+    // minimums (fixed), the mode selector and the range knob: the last two turn with the
+    // navigation display's settings, so they stay out of the static batches
+    cockpit.efisKnobs = cockpit.efisKnobs || { mode: [], range: [] };
+    for (const [dx, role] of [[-0.105, null], [0, 'mode'], [0.105, 'range']]) {
+      if (!role) { knob(root, x + dx, -0.18, -0.663, 0.009); continue; }
+      const grp = new THREE.Group(); grp.position.set(x + dx, -0.18, -0.663); grp.userData.keep = true; root.add(grp);
+      knob(grp, 0, 0, 0, 0.009);
+      cockpit.efisKnobs[role].push(grp);
+    }
   }
   // Leather edge piping on the glareshield; small ventilation slots on its top.
   const piping = new THREE.Mesh(rounded(2.27, 0.014, 0.017, 0.006), rubber);
@@ -114,8 +122,9 @@ export function detailFlightDeck(cockpit) {
 function batchFittings(root, existing) {
   root.updateWorldMatrix(true, true);
   const inverse = root.matrixWorld.clone().invert(), batches = new Map(), meshes = [];
+  const kept = (o) => { for (let p = o.parent; p; p = p.parent) if (p.userData.keep) return true; return false; };
   root.traverse((o) => {
-    if (!o.isMesh || o.isInstancedMesh || existing.has(o)) return;
+    if (!o.isMesh || o.isInstancedMesh || existing.has(o) || kept(o)) return;
     const key = o.material.id;
     if (!batches.has(key)) batches.set(key, { material: o.material, pieces: [] });
     let geometry = o.geometry.clone();

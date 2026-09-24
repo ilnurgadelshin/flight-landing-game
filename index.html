@@ -64,6 +64,10 @@
       <div id="g-loc" class="g-scale h"><i></i><i></i><em></em><i></i><i></i><div class="g-dia"></div></div>
       <div id="g-fd"><div class="g-ac"></div><div class="g-fdh"></div><div class="g-fdv"></div></div>
     </div>
+    <!-- the navigation display over the view: a phone's MAP panel (in the readouts' place) and the
+         head-up view's inset on a computer (J) -->
+    <canvas id="t-map-panel" width="512" height="512" aria-label="Navigation display: tap the left third for a shorter range, the right third for a longer one, the middle for the mode"></canvas>
+    <canvas id="nd-inset" width="512" height="512" aria-label="Navigation display"></canvas>
     <div id="alert-stall" class="alert hidden">STALL</div>
     <div id="alert-config" class="alert hidden">GEAR</div>
     <div id="crash-flash"></div>
@@ -115,7 +119,7 @@
       </div>
       <p class="hint only-touch"><span class="no-tilt">Right thumb: the stick</span><span class="only-tilt">Tilt the phone to fly</span> · left thumb: the thrust lever and the rudder · buttons for gear, flaps, speedbrakes and autobrake. <span class="ios-only">For full screen on iPhone: Share → Add to Home Screen.</span></p>
       <p class="hint only-pad" id="pad-hint"></p>
-      <p class="hint only-desktop">Keyboard: ↑↓ pitch · ←→ roll · A/D rudder · W/S throttle · T TOGA · F/V flaps · G gear · Space speedbrake · X arm · B brakes · N autobrake · R reversers · [ ] trim · L look down · C view (cockpit / head-up) · H help</p>
+      <p class="hint only-desktop">Keyboard: ↑↓ pitch · ←→ roll · A/D rudder · W/S throttle · T TOGA · F/V flaps · G gear · Space speedbrake · X arm · B brakes · N autobrake · R reversers · [ ] trim · L look down · C view (cockpit / head-up) · , . K navigation display range / mode · J map over the head-up view · E approach chart · H help</p>
     </div>
   </div>
 
@@ -140,6 +144,7 @@
       <h2>Paused</h2>
       <p class="only-desktop">Press <b>P</b> to resume.</p>
       <button id="btn-resume" class="primary">Resume</button>
+      <button id="btn-chart">Approach chart</button>
       <button id="btn-quit">Back to menu</button>
     </div>
   </div>
@@ -150,6 +155,9 @@
       <div id="res-outcome"></div>
       <h2 id="res-headline"></h2>
       <div id="res-score"></div>
+      <!-- the debrief map (js/debrief.js): the track, the profile and the runway -->
+      <canvas id="res-map" width="960" height="380" aria-label="Debrief map: the flight's track, its height against the glidepath and the touchdowns on the runway"></canvas>
+      <div id="res-legend"><span class="lg-a">approach</span><span class="lg-g">go-around and circuit</span><span class="lg-r">on the ground</span><span>▲ go-around · ● touchdown · ■ stop</span></div>
       <table id="res-table"></table>
       <div id="res-notes"></div>
       <div class="menu-actions">
@@ -157,6 +165,13 @@
         <button id="btn-menu">Change conditions</button>
       </div>
     </div>
+  </div>
+
+  <!-- the approach chart (electronic flight bag, js/chart.js): E, the pause menu, or the controller's
+       Y in the pause menu; a tap zooms it -->
+  <div id="chart" class="hidden" role="dialog" aria-label="Approach chart, ILS runway 27">
+    <div id="chart-scroll"><canvas id="chart-canvas" width="1200" height="800"></canvas></div>
+    <button id="chart-close" aria-label="Close the chart">✕</button>
   </div>
 
   <!-- touch devices held upright -->

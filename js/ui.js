@@ -27,9 +27,9 @@ export const SCHOOL_STEPS = [
     touch: { anchor: '#g-alt',
       body: `Altitude in feet (right box), the radio altitude (height above the ground) below 2500 ft, and the vertical speed: about <b>−750 fpm</b> on the glideslope.<ul><li>Pitch controls the descent rate. High on the glideslope → lower the nose a little; low → raise it.</li></ul>` } },
   { title: 'ILS: localizer & glideslope', anchor: 'nd',
-    body: `The magenta diamonds on the PFD show your position relative to the runway centreline (bottom) and the 3° glideslope (right). Keep both centred. The navigation display shows the extended centreline and your track.<ul><li>Follow the <b>PAPI</b> lights left of the runway: 2 white + 2 red = on slope, more white = high, more red = low.</li></ul>`,
+    body: `The magenta diamonds on the PFD show your position relative to the runway centreline (bottom) and the 3° glideslope (right). Keep both centred.<ul><li>Follow the <b>PAPI</b> lights left of the runway: 2 white + 2 red = on slope, more white = high, more red = low.</li><li>The navigation display next to it shows the route, the next fix and your track: [[ndRange]] changes its range, [[ndMode]] its mode (MAP, APP, PLN). [[chart]] opens the approach chart.</li></ul>`,
     touch: { anchor: '#hgs',
-      body: `The magenta diamonds show where the runway centreline (bottom scale) and the 3° glideslope (right scale) are. Steer towards them to centre them: diamond below the middle → you are high, lower the nose a little; diamond left → bank left a little.<ul><li>Follow the <b>PAPI</b> lights left of the runway: 2 white + 2 red = on slope, more white = high, more red = low.</li></ul>` } },
+      body: `The magenta diamonds show where the runway centreline (bottom scale) and the 3° glideslope (right scale) are. Steer towards them to centre them: diamond below the middle → you are high, lower the nose a little; diamond left → bank left a little.<ul><li>Follow the <b>PAPI</b> lights left of the runway: 2 white + 2 red = on slope, more white = high, more red = low.</li><li>[[ndInset]] shows the navigation display here instead: tap its sides for the range, its middle for the mode. [[chart]] opens the approach chart.</li></ul>` } },
   { title: 'Rudder — essential in a crosswind', anchor: 'rudder', look: 1, touch: { anchor: '#t-rudder' },
     body: `In a crosswind you fly "crabbed" into the wind. Just before touchdown, press the rudder to align the nose with the runway and lower the upwind wing slightly.<ul><li>[[rudder]]: left / right rudder. On the ground it also steers the nose wheel.</li></ul>` },
   { title: 'Thrust levers', anchor: 'throttle', look: 1,
@@ -78,6 +78,7 @@ export class UI {
     this.selection = { mode: 'game', scenario: 'clear', start: 'standard' };
     this.schoolIndex = 0;
     this.onStart = null; this.onDemo = null; this.onResume = null; this.onQuit = null; this.onAgain = null; this.onSchoolDone = null;
+    this.onChart = null;             // (open) => void: the approach chart's buttons
     this.buildMenu();
     this.bindButtons();
     this.hgs = {}; this.hgsShown = {};
@@ -137,6 +138,9 @@ export class UI {
     $('btn-demo').addEventListener('click', () => this.onDemo && this.onDemo(this.getOptions()));
     $('btn-resume').addEventListener('click', () => this.onResume && this.onResume());
     $('btn-quit').addEventListener('click', () => this.onQuit && this.onQuit());
+    $('btn-chart').addEventListener('click', () => this.onChart && this.onChart(true));
+    $('chart-close').addEventListener('click', () => this.onChart && this.onChart(false));
+    $('chart-canvas').addEventListener('click', () => $('chart').classList.toggle('zoom'));
     $('btn-again').addEventListener('click', () => this.onAgain && this.onAgain());
     $('btn-menu').addEventListener('click', () => this.onQuit && this.onQuit());
     $('btn-help').addEventListener('click', () => this.onHelp && this.onHelp());
@@ -184,6 +188,27 @@ export class UI {
     document.body.classList.toggle('view-hud', view === 'hud');
   }
 
+  /**
+   * The navigation display over the view: 'panel' (a phone's MAP panel in the readouts' place),
+   * 'inset' (the head-up view's inset on a computer) or '' (neither). Returns the canvas shown, or null.
+   */
+  setNavDisplay(kind) {
+    if (kind !== this._nav) {
+      this._nav = kind;
+      document.body.classList.toggle('map-open', kind === 'panel');
+      document.body.classList.toggle('nd-inset', kind === 'inset');
+    }
+    return kind === 'panel' ? $('t-map-panel') : (kind === 'inset' ? $('nd-inset') : null);
+  }
+
+  /** The approach chart: shown or hidden. Returns its canvas when shown. */
+  showChart(on) {
+    const c = $('chart');
+    if (!on) c.classList.remove('zoom');
+    c.classList.toggle('hidden', !on);
+    return on ? $('chart-canvas') : null;
+  }
+
   /** Touch devices: the head-up display with the numbers needed to land (DOM writes only on change). */
   updateHGS(st, extra = {}) {
     const g = this.hgs, shown = this.hgsShown;
@@ -199,15 +224,14 @@ export class UI {
     const vs = Math.round(st.vs / 0.00508 / 10) * 10;
     set('g-vs', `V/S ${vs > 0 ? '+' : ''}${vs}`, vs < -1000 ? 'bad' : '');
     set('g-wind', `W ${String(Math.round(st.windDirDeg)).padStart(3, '0')}/${Math.round(st.windKts)}`);
-    // ILS: diamonds on the same scales as the PFD (1° localizer, 0.35° glideslope per dot)
-    const ils = airborne && st.distToThreshold > 0 && st.distToThreshold < 25 * 1852;
-    const cls = (ils ? 'ils ' : '') + (extra.fd ? 'fd' : '');
+    // ILS 27 (js/nav.js): diamonds on the same scales as the PFD (1° localizer, 0.35° glideslope per
+    // dot), each only where its signal is received
+    const R = st.ils || {}, loc = airborne && R.locValid, gsOk = airborne && R.gsValid;
+    const cls = (loc ? 'loc ' : '') + (gsOk ? 'gs ' : '') + (extra.fd ? 'fd' : '');
     if (shown.hgsCls !== cls) { shown.hgsCls = cls; g.hgs.className = cls; }
-    if (ils) {
-      const dots = (dev, full) => Math.max(-2.5, Math.min(2.5, dev / full));
-      pos('gs', g.gsDia, 'top', 50 + dots(st.gsDev, 0.35) * 20);        // above the glideslope: diamond low
-      pos('loc', g.locDia, 'left', 50 + dots(-st.locDev, 1.0) * 20);    // right of the centreline: diamond left
-    }
+    const dots = (dev, full) => Math.max(-2.5, Math.min(2.5, dev / full));
+    if (gsOk) pos('gs', g.gsDia, 'top', 50 + dots(R.gsDev, 0.35) * 20);        // above the glideslope: diamond low
+    if (loc) pos('loc', g.locDia, 'left', 50 + dots(-R.locDev, 1.0) * 20);    // right of the centreline: diamond left
     if (extra.fd) {
       const fp = Math.max(-40, Math.min(40, (extra.fd.pitch - st.pitch) / DEG * 5));
       const fr = Math.max(-40, Math.min(40, (extra.fd.roll - st.roll) / DEG * 2));
@@ -273,7 +297,8 @@ export class UI {
   hideSchool(skipped) { this.show('school', false); this.onSchoolDone && this.onSchoolDone(skipped); }
 
   // ---- results ---------------------------------------------------------------
-  showResults(res) {
+  /** The results screen; drawMap(ctx) paints the debrief map on its canvas. */
+  showResults(res, drawMap = null) {
     const o = $('res-outcome'); o.textContent = fmtOutcome(res.outcome); o.className = res.success ? 'ok' : 'fail';
     $('res-headline').textContent = res.headline;
     $('res-score').innerHTML = `${res.score} <small>/ 100 — grade ${res.grade}</small>`;
@@ -283,6 +308,7 @@ export class UI {
       tr.innerHTML = `<td><b>${it.label}</b><br><span class="note">${it.value}</span></td><td class="note">${it.note}</td><td class="pts">${it.max ? `${it.points} / ${it.max}` : ''}</td>`;
       t.appendChild(tr);
     }
+    if (drawMap) drawMap($('res-map').getContext('2d'));
     const n = $('res-notes'); n.innerHTML = '';
     for (const note of res.notes) { const d = document.createElement('div'); d.textContent = note; n.appendChild(d); }
     this.show('results', true);

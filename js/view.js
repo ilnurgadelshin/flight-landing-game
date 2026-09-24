@@ -98,14 +98,18 @@ export class GameView {
     this.cockpit.eyeWorld(this.eye);
     const look = { yaw: this.look.yaw, pitch: this.look.pitch, down: this.look.down ? 1 : (this.schoolLook || 0) };
     const demo = !!g.demoAp;
+    // what the autoland has selected and the modes it flies (the pilot's defaults without it)
+    const fma = demo ? g.demoAp.fma : null, mcp = demo ? g.demoAp.mcp : null;
     const hud = this.shown === 'hud', cam = this.world.camera;
     const fov = hud ? hudFov(cam.aspect) : COCKPIT_FOV;
     if (Math.abs(cam.fov - fov) > 1e-3) { cam.fov = fov; cam.updateProjectionMatrix(); }
     this.world.drawCockpit = !hud;
     this.cockpit.update(st, inp, frameDt, {
-      look, fd: g.fdCommand(), targetSpeed: !st.onGround ? st.vref + 5 : null, papi: this.world.lights.papiWhites(this.eye), checklist: g.checklist(),
-      gaMode: g.ctx.gaMode, rain: this.raining, autothrottle: demo ? g.demoAp.atMode : '',
-      rollMode: demo ? 'LOC' : (g.mode === 'training' ? 'FD' : ''), pitchMode: demo ? 'G/S' : (g.mode === 'training' ? 'FD' : ''),
+      // the selected speed: the autoland's on its MCP, otherwise the approach's Vref + 5
+      look, fd: g.fdCommand(), targetSpeed: !st.onGround ? (mcp ? mcp.spd : st.vref + 5) : null, papi: this.world.lights.papiWhites(this.eye), checklist: g.checklist(),
+      gaMode: g.ctx.gaMode, rain: this.raining, autothrottle: fma ? fma.at : '',
+      rollMode: fma ? fma.roll : (g.mode === 'training' ? 'FD' : ''), pitchMode: fma ? fma.pitch : (g.mode === 'training' ? 'FD' : ''),
+      mcp, efis: g.efis, nd: g.ndOpts(),
       hidden: hud, viewPitch: hud ? HUD_PITCH : COCKPIT_PITCH,
     });
     // the speed trend for the display's acceleration caret (kt per simulated second, smoothed)

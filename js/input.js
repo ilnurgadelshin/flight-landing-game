@@ -93,6 +93,11 @@ export class InputManager {
         case 'Escape': if (this.mouseEngaged) this.setMouse(false); else this.emit('menu'); break;
         case 'KeyL': this.look.down = true; break;
         case 'KeyC': this.emit('camera', 'toggle'); break;
+        case 'Comma': this.emit('ndRange', -1); break;        // the EFIS range knob
+        case 'Period': this.emit('ndRange', 1); break;
+        case 'KeyK': this.emit('ndMode'); break;              // the EFIS mode selector: MAP → APP → PLN
+        case 'KeyJ': this.emit('ndInset'); break;             // the navigation display over the head-up view
+        case 'KeyE': this.emit('chart'); break;               // the approach chart (electronic flight bag)
         case 'Enter': this.emit('enter'); break;
         default: break;
       }

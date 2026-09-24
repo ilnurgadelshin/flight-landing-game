@@ -7,6 +7,7 @@
 //   LB / RB     flaps up / down              D-pad ↑ / ↓  trim nose down / nose up
 //   D-pad ←     autobrake                    D-pad →      speedbrakes: tap = arm, hold = extend / retract
 //   View        TO/GA; in a go-around, back on final      Menu  pause · start · fly again
+//   L3 (left stick press)  navigation display: tap = next range, hold = next mode (MAP / APP / PLN)
 // On the ground at idle, keeping B held selects reverse thrust, which stays until A (like pulling
 // the reverse levers). Other controllers (joysticks with their own layout) fly pitch and roll with
 // their first two axes. Browsers only reveal a controller once one of its buttons is pressed.
@@ -21,9 +22,9 @@ export const BUTTONS = { A: 0, B: 1, X: 2, Y: 3, LB: 4, RB: 5, LT: 6, RT: 7, Vie
 
 /** Button names printed on each family of controller (the standard layout is positional). */
 export const LABELS = {
-  xbox: { name: 'Xbox', A: 'A', B: 'B', X: 'X', Y: 'Y', LB: 'LB', RB: 'RB', LT: 'LT', RT: 'RT', View: 'View', Menu: 'Menu', R3: 'R3' },
-  playstation: { name: 'PlayStation', A: '✕', B: '○', X: '□', Y: '△', LB: 'L1', RB: 'R1', LT: 'L2', RT: 'R2', View: 'Create', Menu: 'Options', R3: 'R3' },
-  nintendo: { name: 'Nintendo', A: 'B', B: 'A', X: 'Y', Y: 'X', LB: 'L', RB: 'R', LT: 'ZL', RT: 'ZR', View: '−', Menu: '+', R3: 'R-stick press' },
+  xbox: { name: 'Xbox', A: 'A', B: 'B', X: 'X', Y: 'Y', LB: 'LB', RB: 'RB', LT: 'LT', RT: 'RT', View: 'View', Menu: 'Menu', L3: 'L3', R3: 'R3' },
+  playstation: { name: 'PlayStation', A: '✕', B: '○', X: '□', Y: '△', LB: 'L1', RB: 'R1', LT: 'L2', RT: 'R2', View: 'Create', Menu: 'Options', L3: 'L3', R3: 'R3' },
+  nintendo: { name: 'Nintendo', A: 'B', B: 'A', X: 'Y', Y: 'X', LB: 'L', RB: 'R', LT: 'ZL', RT: 'ZR', View: '−', Menu: '+', L3: 'L-stick press', R3: 'R-stick press' },
 };
 export function labelsFor(id) {
   const s = (id || '').toLowerCase();
@@ -36,6 +37,7 @@ export const PAD = {
   stickDeadZone: 0.12,    // worn sticks drift: ignore this much deflection, then rescale to full
   triggerDeadZone: 0.05,
   speedbrakeHold: 0.6,    // s: D-pad → held this long (and for 3+ reads, so a quick tap at a low frame rate still arms) extends / retracts
+  ndModeHold: 0.6,        // s: L3 held this long (and for 3+ reads) changes the navigation display's mode; a tap its range
   activeAt: 0.3,          // deflection that makes the controller the device in use
 };
 
@@ -63,6 +65,7 @@ export class GamepadInput {
     this.rightSince = -1;     // when D-pad → went down (s), -1 = up
     this.rightPolls = 0;      // reads while it is held
     this.rightFired = false;
+    this.l3Since = -1; this.l3Polls = 0; this.l3Fired = false;   // L3: tap = ND range, hold = ND mode
     this.onChange = null;     // ({ connected, active, labels, id }) => void
   }
 
@@ -112,6 +115,7 @@ export class GamepadInput {
       this.prev[i] = on;
     }
     if (this.standard && this.rightSince >= 0 && !this.rightFired && ++this.rightPolls >= 3 && now - this.rightSince >= PAD.speedbrakeHold) { this.rightFired = true; this.input.emit('speedbrake'); }
+    if (this.standard && this.l3Since >= 0 && !this.l3Fired && ++this.l3Polls >= 3 && now - this.l3Since >= PAD.ndModeHold) { this.l3Fired = true; this.input.emit('ndMode'); }
     if (busy) this.setActive(true);
   }
 
@@ -127,6 +131,7 @@ export class GamepadInput {
       case BUTTONS.Right: this.rightSince = now; this.rightPolls = 0; this.rightFired = false; break;
       case BUTTONS.View: I.emit('togaOrReposition'); break;
       case BUTTONS.R3: I.emit('camera', 'cycle'); break;              // cockpit → panel → head-up
+      case BUTTONS.L3: this.l3Since = now; this.l3Polls = 0; this.l3Fired = false; break;
       default: break;
     }
     I.emit('padButton', name);   // menus, pause, Flight School and results use A, B and Menu
@@ -136,6 +141,10 @@ export class GamepadInput {
     if (this.standard && i === BUTTONS.Right) {
       if (!this.rightFired) this.input.emit('armSpeedbrake');
       this.rightSince = -1; this.rightFired = false;
+    }
+    if (this.standard && i === BUTTONS.L3) {
+      if (!this.l3Fired && this.l3Since >= 0) this.input.emit('ndRange', 'cycle');
+      this.l3Since = -1; this.l3Fired = false;
     }
   }
 
