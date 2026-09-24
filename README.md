@@ -405,12 +405,20 @@ without shadows or bloom. Add `?quality=high` or `?quality=low` to the address
 to choose.
 
 The terrain uses a bundled aerial countryside texture with close-range ground detail and a
-separate maintained-grass surface around the airport. Both tiers include rounded cockpit
-surfaces, recessed display bezels, panel fittings, broadleaf vegetation, pitched town roofs,
-terminal glazing, jet bridges, ramp vehicles and irregular water boundaries. The high tier
-also draws fair-weather cumulus as ray-marched 3D density volumes with self-shadowing;
-the low tier uses the lighter sprite clouds. Cloud-deck visibility and storm physics are shared.
-Asset provenance and the generation prompt are in `assets/README.md`.
+separate maintained-grass surface around the airport. Both tiers include:
+
+- rounded cockpit surfaces, recessed display bezels and panel fittings;
+- broadleaf vegetation;
+- towns grown along their streets, with houses facing the street and pitched, tiled roofs;
+- terminal glazing, jet bridges and ramp vehicles;
+- irregular water boundaries.
+
+At night the flight deck's flood and dome lights are turned well down, as crews fly, so the
+panel is dimmer than by day and the displays stand out. The high tier also draws fair-weather
+cumulus as ray-marched 3D density volumes with self-shadowing. Each ray marches only through
+the box around its cloud and skips the noise outside the cloud's shape. The low tier uses the
+lighter sprite clouds. Cloud-deck visibility and storm physics are shared. Asset provenance and
+the generation prompt are in `assets/README.md`.
 
 **Head-up view** (`js/hud.js`, `js/view.js`): the flight deck hidden and a
 conformal head-up display modelled on the 737's HGS (see *Views* above).

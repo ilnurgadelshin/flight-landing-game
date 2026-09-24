@@ -81,14 +81,16 @@ export function detailFlightDeck(cockpit) {
     for (const dx of [-0.13, -0.04, 0.05, 0.14]) knob(panel, x + dx, -0.17, 0.039, 0.011);
     for (const dx of [-0.18, 0.18]) for (const dy of [-0.05, 0.05]) screw(panel, x + dx, -0.16 + dy, 0.039, 0.65);
   }
-  // The MCP's flat lettering is retained as a live face, with protruding selector knobs.
-  for (const x of [-0.36, -0.19, -0.025, 0.145]) knob(root, x, -0.214, -0.659, 0.013);
+  // The MCP's flat lettering is retained as a live face, with a selector knob under each window.
+  // Knobs and panels stay on the glareshield's face (y -0.20 to -0.15): from the pilot's eye
+  // anything lower hangs in front of the tops of the displays.
+  for (const x of [-0.36, -0.19, -0.025, 0.145]) knob(root, x, -0.1885, -0.672, 0.008);
   for (const side of [-1, 1]) {
     const x = side * 0.73;
-    const p = new THREE.Mesh(rounded(0.30, 0.09, 0.015), M.panel);
-    p.position.set(x, -0.193, -0.665); root.add(p);
-    label(root, 'EFIS CONTROL', x, -0.166, -0.655, 0.18, 0.012);
-    for (const dx of [-0.105, 0, 0.105]) knob(root, x + dx, -0.202, -0.645, 0.012);
+    const p = new THREE.Mesh(rounded(0.30, 0.052, 0.012), M.panel);
+    p.position.set(x, -0.175, -0.669); root.add(p);
+    label(root, 'EFIS CONTROL', x, -0.156, -0.6625, 0.14, 0.009);
+    for (const dx of [-0.105, 0, 0.105]) knob(root, x + dx, -0.18, -0.663, 0.009);
   }
   // Leather edge piping on the glareshield; small ventilation slots on its top.
   const piping = new THREE.Mesh(rounded(2.27, 0.014, 0.017, 0.006), rubber);

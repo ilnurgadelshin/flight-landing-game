@@ -125,14 +125,12 @@ export function makeTaxiwayTexture(anisotropy, lengthM, widthM, centreline = tru
   return makeTexture(c, { anisotropy });
 }
 
-/** Patchwork of fields, hedgerows and roads for the ground. Tiled every 2 km. */
-export function makeGroundTexture(anisotropy, night = false) {
+/** Patchwork of fields, hedgerows and roads: the ground until the aerial texture has loaded (or if it cannot). */
+export function makeGroundTexture(anisotropy) {
   const S = 1024;
   const c = canvas(S, S); const g = c.getContext('2d');
   const rng = makeRng(3);
-  const palette = night
-    ? ['#0d1a12', '#101d14', '#141f13', '#0c1810', '#171f14', '#121a10']
-    : ['#557a38', '#63883f', '#728f48', '#868c48', '#9a9457', '#5e6f36', '#7d6c40', '#587337', '#93a05a', '#6f7d44'];
+  const palette = ['#557a38', '#63883f', '#728f48', '#868c48', '#9a9457', '#5e6f36', '#7d6c40', '#587337', '#93a05a', '#6f7d44'];
   // base
   g.fillStyle = palette[0]; g.fillRect(0, 0, S, S);
   // irregular fields: random rectangles rotated a little
@@ -152,12 +150,12 @@ export function makeGroundTexture(anisotropy, night = false) {
   }
   g.globalAlpha = 1;
   // hedgerows / tree lines
-  g.strokeStyle = night ? '#08120a' : '#3d5a2a'; g.lineWidth = 3;
+  g.strokeStyle = '#3d5a2a'; g.lineWidth = 3;
   for (let i = 0; i < 60; i++) {
     g.beginPath(); const x = rng() * S, y = rng() * S; g.moveTo(x, y); g.lineTo(x + (rng() - 0.5) * 300, y + (rng() - 0.5) * 300); g.stroke();
   }
   // roads: a few winding lanes (drawn wrapped so the tile stays seamless)
-  g.strokeStyle = night ? '#1b1b1b' : '#8a877e'; g.lineWidth = 3; g.lineCap = 'round';
+  g.strokeStyle = '#8a877e'; g.lineWidth = 3; g.lineCap = 'round';
   for (let i = 0; i < 5; i++) {
     let x = rng() * S, y = rng() * S, a = rng() * Math.PI * 2;
     for (let k = 0; k < 60; k++) {
@@ -169,7 +167,7 @@ export function makeGroundTexture(anisotropy, night = false) {
   // small villages
   for (let v = 0; v < 5; v++) {
     const vx = rng() * S, vy = rng() * S;
-    for (let i = 0; i < 40; i++) { g.fillStyle = night ? '#3a2f1a' : (rng() < 0.5 ? '#9a6b4a' : '#b0b0b0'); g.fillRect(vx + (rng() - 0.5) * 80, vy + (rng() - 0.5) * 80, 3 + rng() * 4, 3 + rng() * 4); }
+    for (let i = 0; i < 40; i++) { g.fillStyle = rng() < 0.5 ? '#9a6b4a' : '#b0b0b0'; g.fillRect(vx + (rng() - 0.5) * 80, vy + (rng() - 0.5) * 80, 3 + rng() * 4, 3 + rng() * 4); }
   }
   // fine noise
   const img = g.getImageData(0, 0, S, S);

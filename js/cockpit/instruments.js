@@ -380,7 +380,8 @@ export function makeMCPTexture() {
   // the windows are redrawn by the cockpit when the selected values change (texture.userData.draw)
   const draw = (v) => {
     g.fillStyle = '#3b3d42'; g.fillRect(0, 0, 1024, 96);
-    const win = (x, label, val) => { g.fillStyle = '#111'; g.fillRect(x, 18, 90, 34); g.fillStyle = '#ffa33a'; g.font = 'bold 22px monospace'; g.textAlign = 'center'; g.fillText(val || '', x + 45, 43); g.fillStyle = '#ddd'; g.font = '11px sans-serif'; g.fillText(label, x + 45, 70); };
+    // label above each window; below it the window's selector knob (geometry, js/cockpit/finish.js)
+    const win = (x, label, val) => { g.fillStyle = '#111'; g.fillRect(x, 18, 90, 34); g.fillStyle = '#ffa33a'; g.font = 'bold 22px monospace'; g.textAlign = 'center'; g.fillText(val || '', x + 45, 43); g.fillStyle = '#ddd'; g.font = '11px sans-serif'; g.fillText(label, x + 45, 13); };
     win(80, 'IAS/MACH', v.ias); win(260, 'HEADING', v.hdg); win(440, 'ALTITUDE', v.alt); win(620, 'VERT SPEED', v.vs);
     for (const [x, l] of [[190, 'N1'], [230, 'SPD'], [380, 'LNAV'], [560, 'VNAV'], [780, 'APP'], [830, 'CMD A'], [880, 'CMD B'], [940, 'A/T']]) { g.fillStyle = '#2a2c30'; g.fillRect(x, 26, 34, 22); g.fillStyle = '#bbb'; g.font = '9px sans-serif'; g.textAlign = 'center'; g.fillText(l, x + 17, 40); }
     t.needsUpdate = true;

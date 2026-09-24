@@ -273,15 +273,18 @@ export class Cockpit {
     this.dome = new THREE.PointLight(0xfff0dd, 1.2, 5, 2);
     this.dome.position.set(0, 0.8, 0.3);
     this.root.add(this.dome);
-    // panel flood
-    this.flood = new THREE.PointLight(0xffe7c0, 0.5, 1.8, 2);
-    this.flood.position.set(0, -0.22, -0.42);     // under the glareshield lip, lights the panel and pedestal
+    // panel flood: far enough back to light the whole panel and the pedestal evenly, as the
+    // glareshield's flood strips do (close to the panel a point light makes a bright pool)
+    this.flood = new THREE.PointLight(0xffe7c0, 0.5, 3, 2);
+    this.flood.position.set(0, -0.12, -0.15);
     this.root.add(this.flood);
   }
 
   setNight(night) {
-    this.dome.intensity = night ? 1.6 : 1.2;
-    this.flood.intensity = night ? 0.9 : 0.5;
+    // at night the flood and dome lights are turned well down, as crews fly: a dark flight deck
+    // keeps night vision and lets the displays stand out (the panel stays readable, dimmer than by day)
+    this.dome.intensity = night ? 0.25 : 1.2;
+    this.flood.intensity = night ? 0.25 : 0.5;
   }
 
   // ------------------------------------------------------------------ per frame

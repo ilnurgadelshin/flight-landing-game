@@ -723,6 +723,10 @@ if (want('tilt')) {
   check('the choice is remembered on this device', await mp.evaluate(() => localStorage.getItem('tilt') === '1'));
 
   await mp.tap('#btn-start'); await mf(4);
+  // the checks on this flight are about the controls, not the flight: slow the simulation so the
+  // aircraft, flown by the test's tilt poses, cannot reach the ground while a loaded machine
+  // renders slowly (the tilt filter and the sensor timeout run on wall-clock time)
+  await mp.evaluate(() => window.__sim.setTimeScale(0.2));
   t = await TL();
   const zone = await mp.evaluate(() => ({ label: document.querySelector('#t-stick-zone .tlabel').textContent, pe: getComputedStyle(document.getElementById('t-stick-zone')).pointerEvents, center: getComputedStyle(document.getElementById('t-center')).display }));
   check('the flight starts level with the phone as it is held; the circle shows TILT and CENTER appears', t.active && t.neutral && Math.abs(t.pitch) < 0.03 && Math.abs(t.roll) < 0.03 && zone.label === 'TILT' && zone.pe === 'none' && zone.center !== 'none', `tilt ${fmt(t.pitch, 2)}/${fmt(t.roll, 2)}, ${JSON.stringify(zone)}`);

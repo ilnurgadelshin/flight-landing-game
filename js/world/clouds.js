@@ -34,9 +34,12 @@ const fragmentShader = /* glsl */`
       mix(mix(hash(i+vec3(0,0,1)),hash(i+vec3(1,0,1)),f.x),mix(hash(i+vec3(0,1,1)),hash(i+vec3(1,1,1)),f.x),f.y),f.z);
   }
   float density(vec3 p) {
+    if (p.y < -0.30) return 0.0;
     float shape = max(1.0-length((p-vec3(-0.12,-0.03,0.0))*vec3(3.4,3.0,3.7)),
                   max(1.0-length((p-vec3(0.16,0.02,0.03))*vec3(4.6,3.3,4.3)),
                       1.0-length((p-vec3(0.0,0.16,-0.04))*vec3(4.4,4.0,4.5))));
+    // the erosion only takes density away, so outside the three lobes there is nothing to add up
+    if (shape <= 0.035) return 0.0;
     vec3 n = p * 10.0 + uSeed;
     float erosion = noise3(n)*0.24 + noise3(n*2.07)*0.13 + noise3(n*4.11)*0.065;
     return max(0.0, shape - erosion - 0.035) * smoothstep(-0.30,-0.17,p.y) * 4.0;
@@ -45,19 +48,21 @@ const fragmentShader = /* glsl */`
     #include <logdepthbuf_fragment>
     vec3 rd = normalize(vLocal-uEye);
     vec3 inv = 1.0 / (rd + vec3(0.000001));
-    vec3 a = (-0.5-uEye)*inv, b = (0.5-uEye)*inv;
+    // march only through the box around the three lobes (smaller than the unit box the mesh
+    // draws), so rays that miss it cost nothing and the steps are shorter
+    vec3 a = (vec3(-0.42,-0.30,-0.28)-uEye)*inv, b = (vec3(0.38,0.42,0.27)-uEye)*inv;
     vec3 lo = min(a,b), hi = max(a,b);
     float enter = max(max(lo.x,lo.y),lo.z), leave = min(min(hi.x,hi.y),hi.z);
     enter = max(enter,0.0);
     if (leave <= enter) discard;
-    float stepSize = (leave-enter)/36.0;
+    float stepSize = (leave-enter)/28.0;
     float jitter = fract(sin(dot(gl_FragCoord.xy,vec2(12.9898,78.233)))*43758.5453);
     float trans = 1.0; vec3 light = vec3(0.0);
-    for (int i=0;i<36;i++) {
+    for (int i=0;i<28;i++) {
       vec3 p = uEye + rd*(enter + (float(i)+jitter)*stepSize);
       float d = density(p);
       if (d > 0.005) {
-        float shadow = density(p+uSun*0.065)*0.65 + density(p+uSun*0.16)*0.35;
+        float shadow = density(p+uSun*0.1);        // self-shadowing: the cloud between this point and the sun
         float sun = exp(-shadow*2.4);
         float alpha = 1.0-exp(-d*stepSize*14.0);
         vec3 col = mix(uShade, uLit, sun);
