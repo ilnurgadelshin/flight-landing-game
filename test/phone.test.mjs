@@ -187,10 +187,15 @@ console.log('\n[P7] Sound on iPhone and iPad: unlocking, the silent switch, spee
     constructor() { this.state = 'suspended'; this.sampleRate = 48000; this.currentTime = 0; this.destination = {}; this.resumes = 0; this.silent = 0; FakeCtx.last = this; }
     resume() { this.resumes++; if (FakeCtx.gesture) this.state = 'running'; return Promise.resolve(); }
     node() { return { connect() {}, start() {}, stop() {}, gain: param(), frequency: param(), Q: param() }; }
-    createGain() { return this.node(); } createOscillator() { return this.node(); } createBiquadFilter() { return this.node(); }
+    createGain() { return this.node(); } createOscillator() { return this.node(); } createBiquadFilter() { return this.node(); } createWaveShaper() { return this.node(); }
     createBuffer(ch, n) { return { length: n, getChannelData: () => new Float32Array(n) }; }
-    createBufferSource() { const n = this.node(); n.start = () => { if (n.buffer && n.buffer.length === 1) this.silent++; }; return n; }
+    createBufferSource() { const n = this.node(); n.start = () => { if (n.buffer && n.buffer.length === 1) this.silent++; if (n.buffer && n.buffer.phrase) { FakeCtx.played.push(n.buffer.phrase); FakeCtx.playing = n; } }; n.stop = () => { n.stopped = true; }; return n; }
+    decodeAudioData(data, ok) { const b = { phrase: data.phrase, length: 1000 }; ok(b); return Promise.resolve(b); }
   }
+  FakeCtx.played = [];
+  // the voice clips: a phrase list and one "file" per phrase
+  const CLIPS = ['Minimums', 'Sink rate', 'Pull up'];
+  globalThis.fetch = async (u) => ({ json: async () => ({ phrases: CLIPS }), arrayBuffer: async () => Object.assign(new ArrayBuffer(8), { phrase: CLIPS.find((p) => u.endsWith(p.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '.mp3')) }) });
   const spoken = [];
   globalThis.window = { AudioContext: FakeCtx, speechSynthesis: { getVoices: () => [], speak: (u) => spoken.push(u), cancel() {} } };
   globalThis.SpeechSynthesisUtterance = class { constructor(t) { this.text = t; } };
@@ -227,6 +232,22 @@ console.log('\n[P7] Sound on iPhone and iPad: unlocking, the silent switch, spee
   FakeCtx.gesture = true; b.unlock();
   check('the tap ending then starts it', FakeCtx.last.state === 'running');
 
+  // the voice: recorded clips through Web Audio, one at a time, urgent ones first
+  await a.clipsReady;
+  check('the voice clips load after the first tap', a.clips.size === 3, `${a.clips.size} clips`);
+  spoken.length = 0; FakeCtx.played.length = 0;
+  a.say('Minimums', { priority: 1 });
+  a.say('Sink rate', { priority: 1 });
+  check('a callout plays its recorded clip (not the browser\'s speech), the next one waits its turn', FakeCtx.played.join() === 'Minimums' && spoken.length === 0 && a.log.some((e) => e.text === 'Minimums' && e.via === 'clip'));
+  FakeCtx.playing.onended();
+  check('when it ends, the next one plays', FakeCtx.played.join() === 'Minimums,Sink rate');
+  const current = FakeCtx.playing;
+  a.say('Pull up', { priority: 3 });
+  check('an urgent warning cuts in', current.stopped && FakeCtx.played[FakeCtx.played.length - 1] === 'Pull up');
+  FakeCtx.playing.onended();
+  a.say('Glideslope', { priority: 1 });
+  check('a phrase without a clip falls back to the browser\'s speech, and is noted', spoken.some((u) => u.text === 'Glideslope') && a.fallbacks.includes('Glideslope'));
+
   // older iOS: no Audio Session API
   Object.defineProperty(globalThis, 'navigator', { value: {}, configurable: true, writable: true });
   a = new AudioSystem({ ios: true });
@@ -250,7 +271,7 @@ console.log('\n[P7] Sound on iPhone and iPad: unlocking, the silent switch, spee
   const tag = (o) => String.fromCharCode(w.getUint8(o), w.getUint8(o + 1), w.getUint8(o + 2), w.getUint8(o + 3));
   let silent = true; for (let i = 44; i < w.byteLength; i++) if (w.getUint8(i) !== 128) silent = false;
   check('the silent WAV is a valid half second of 8 kHz silence', tag(0) === 'RIFF' && tag(8) === 'WAVE' && tag(36) === 'data' && w.getUint32(24, true) === 8000 && w.getUint32(40, true) === 4000 && w.byteLength === 4044 && silent);
-  delete globalThis.window; delete globalThis.document; delete globalThis.SpeechSynthesisUtterance; delete globalThis.navigator;
+  delete globalThis.window; delete globalThis.document; delete globalThis.SpeechSynthesisUtterance; delete globalThis.navigator; delete globalThis.fetch;
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

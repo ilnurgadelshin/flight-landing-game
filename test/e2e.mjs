@@ -238,10 +238,17 @@ async function autoland(scenarioId, startId, apOpts = {}, extra = {}) {
 const said = (r, re) => r.audio.some((a) => a.kind === 'voice' && re.test(a.text));
 
 if (want('land')) {
-  section('E5', 'Autoland in every scenario, day and night, with GPWS callouts');
+  section('E5', 'Autoland in every scenario, day and night, with GPWS callouts in the recorded voice');
+  // the voice is recorded clips played through Web Audio like the engines (an iPhone plays nothing
+  // else reliably); they load after the first key press or tap
+  await page.keyboard.press('Shift');
+  const clips = await page.evaluate(async () => { const a = window.__sim.audio; return { n: await a.clipsReady, state: a.ctx && a.ctx.state }; });
+  const nPhrases = JSON.parse(fs.readFileSync(path.join(root, 'audio', 'voice', 'phrases.json'), 'utf8')).phrases.length;
+  check(`the voice recordings load after the first key press (${nPhrases} phrases)`, clips.n === nPhrases, `${clips.n} decoded, sound ${clips.state}`);
   const cases = [['clear', 'short', false], ['tailwind', 'short', false], ['crosswind', 'short', false], ['storm', 'short', true], ['clear', 'standard', true]];
   for (const [sc, st, night] of cases) {
-    const r = await autoland(sc, st, {}, { shotName: `e2e-land-${sc}${night ? '-night' : ''}`, night });
+    const sound = sc === 'clear' && st === 'short';   // one landing with the sound on
+    const r = await autoland(sc, st, {}, { shotName: `e2e-land-${sc}${night ? '-night' : ''}`, night, startOpts: { sound } });
     const td = r.result && r.result.touchdown;
     console.log(`  ${sc}/${st}${night ? ' night' : ''}: ${r.result ? `${r.result.outcome} ${r.result.score} ${r.result.grade} — ${r.result.headline}` : 'no result'} | td ${td ? `${fmt(td.sink / 0.00508, 0)} fpm @ ${fmt(td.distFromThreshold, 0)} m` : '-'}`);
     check(`${sc}: results screen shown with a successful landing`, r.resultsVisible && r.result && r.result.success, r.headline);
@@ -249,6 +256,11 @@ if (want('land')) {
     check(`${sc}: "Minimums" called`, said(r, /Minimums/));
     check(`${sc}: touchdown sound played`, r.audio.some((a) => a.kind === 'sound' && /touchdown|hardlanding/.test(a.text)));
     check(`${sc}: no GPWS warnings during a good approach`, !r.gpws.some((e) => e.type === 'warning'), r.gpws.filter((e) => e.type !== 'callout').map((e) => e.text).join(', '));
+    if (sound) {
+      // at 16× time many callouts are dropped as stale; the ones spoken must all be recordings
+      const spoken = r.audio.filter((a) => a.kind === 'voice' && a.via), fallbacks = await page.evaluate(() => window.__sim.audio.fallbacks);
+      check(`${sc}: the callouts play the recordings, none left to the browser's speech`, spoken.length >= 3 && spoken.every((a) => a.via === 'clip') && !fallbacks.length, `${spoken.map((a) => `${a.text} (${a.via})`).join(', ').slice(0, 140)}${fallbacks.length ? ' | fallbacks: ' + fallbacks.join(', ') : ''}`);
+    }
   }
 }
 
@@ -260,6 +272,46 @@ if (want('fail')) {
   check('gear-up: "Too low, gear" warning and the configuration horn', said(r, /Too low, gear/) && r.gpws.some((e) => e.type === 'horn'), r.gpws.map((e) => e.text).join(', ').slice(0, 100));
   check('gear-up: belly landing outcome on the results screen', r.result && r.result.outcome === 'belly' && /BELLY/.test(r.outcome));
   check('gear-up: crash sound and screen flash', r.audio.some((a) => a.text === 'crash') && r.events.some((e) => e.type === 'damage'));
+  // a phone speaker plays little below 400 Hz, so a thud is not enough: each sound rendered offline
+  // and its loudest 200 ms between 400 Hz and 8 kHz compared with the engines' (dBFS)
+  const band = await page.evaluate(async () => {
+    const { AudioSystem } = await import(new URL('js/audio.js', location.href).href);
+    const fft = (re, im) => {
+      const n = re.length;
+      for (let i = 1, j = 0; i < n; i++) { let bit = n >> 1; for (; j & bit; bit >>= 1) j ^= bit; j ^= bit; if (i < j) { [re[i], re[j]] = [re[j], re[i]]; [im[i], im[j]] = [im[j], im[i]]; } }
+      for (let len = 2; len <= n; len <<= 1) {
+        const a = -2 * Math.PI / len, wr = Math.cos(a), wi = Math.sin(a);
+        for (let i = 0; i < n; i += len) for (let k = 0, cr = 1, ci = 0; k < len / 2; k++) {
+          const p = i + k, q = p + len / 2, vr = re[q] * cr - im[q] * ci, vi = re[q] * ci + im[q] * cr;
+          re[q] = re[p] - vr; im[q] = im[p] - vi; re[p] += vr; im[p] += vi;
+          const t = cr * wr - ci * wi; ci = cr * wi + ci * wr; cr = t;
+        }
+      }
+    };
+    const st = (n1, kts, onGround) => ({ n1: [n1, n1], reverser: 0, tasKts: kts, speedbrake: 0, gearDown: true, groundSpeed: kts * 0.514, onGround, surface: 'runway', skidding: false, stallWarning: false });
+    const out = {};
+    for (const name of ['approach', 'rollout', 'touchdown', 'hardlanding', 'crash', 'voice', 'shaker']) {
+      const fs = 48000, N = 1 << 18, ctx = new OfflineAudioContext(1, N, fs), a = new AudioSystem();
+      a.init(ctx);
+      if (name === 'approach') a.update(0.016, st(0.55, 145, false), {}); else if (name === 'rollout') a.update(0.016, st(0.3, 110, true), {});
+      else if (name === 'voice') { await a.loadClips(); a.say('Sink rate', { priority: 2 }); } else if (name === 'shaker') a.startStickShaker(); else a.play(name);
+      const re = Float64Array.from((await ctx.startRendering()).getChannelData(0)), im = new Float64Array(N);
+      fft(re, im);
+      for (let k = 0; k < N; k++) { const f = Math.min(k, N - k) * fs / N; if (f < 400 || f > 8000) { re[k] = 0; im[k] = 0; } im[k] = -im[k]; }
+      fft(re, im);
+      const w = fs * 0.2; let acc = 0, best = 0;
+      for (let i = 0; i < N; i++) { const y = re[i] / N, z = i >= w ? re[i - w] / N : 0; acc += y * y - z * z; best = Math.max(best, acc); }
+      out[name] = 10 * Math.log10(best / w + 1e-12);
+    }
+    return out;
+  });
+  const dB = (k) => `${fmt(band[k])} dB`;
+  console.log(`  phone band: approach ${dB('approach')}, roll-out ${dB('rollout')}, touchdown ${dB('touchdown')}, hard landing ${dB('hardlanding')}, crash ${dB('crash')}, "Sink rate" ${dB('voice')}, stick shaker ${dB('shaker')}`);
+  check('on a phone speaker a touchdown is heard over the roll-out (≥ 5 dB)', band.touchdown - band.rollout >= 5, fmt(band.touchdown - band.rollout) + ' dB');
+  check('a hard landing clearly over it (≥ 10 dB)', band.hardlanding - band.rollout >= 10, fmt(band.hardlanding - band.rollout) + ' dB');
+  check('a crash over the engines on approach (≥ 8 dB)', band.crash - band.approach >= 8, fmt(band.crash - band.approach) + ' dB');
+  check('the voice warnings over the engines on approach (≥ 8 dB)', band.voice - band.approach >= 8, fmt(band.voice - band.approach) + ' dB');
+  check('the stick shaker over them too (≥ 4 dB)', band.shaker - band.approach >= 4, fmt(band.shaker - band.approach) + ' dB');
 
   r = await autoland('clear', 'short', { noFlare: true }, {});
   console.log(`  no flare: ${r.outcome} — ${r.headline}`);

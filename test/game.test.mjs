@@ -1,9 +1,11 @@
 // The game's rules (js/game.js) and the flight controls' owner (js/flightcontrols.js) in Node:
 // no browser, no DOM, no Three.js, no sound. The rules only emit events; this test records them.
+// R7 checks that every phrase the game speaks has a voice recording (audio/voice).
 //   node test/game.test.mjs
 import { Game } from '../js/game.js';
 import { GPWS } from '../js/gpws.js';
 import { FlightControls } from '../js/flightcontrols.js';
+import fs from 'node:fs';
 
 let passed = 0, failed = 0;
 const check = (name, cond, detail = '') => { if (cond) { passed++; console.log(`  ✔ ${name}${detail ? '  (' + detail + ')' : ''}`); } else { failed++; console.log(`  ✘ ${name}${detail ? '  (' + detail + ')' : ''}`); } };
@@ -126,6 +128,21 @@ console.log('\n[R6] One owner of the controls');
   const thr = inp.throttle, pitch = inp.pitch;
   for (let i = 0; i < 240; i++) fc.step(1 / 120);
   check('the flight director never moves the aircraft\'s controls', inp.throttle === thr && inp.pitch === pitch && fc.shadow.pitch !== 0);
+}
+
+console.log('\n[R7] Every phrase the game speaks has a recording');
+{
+  // the phrases in the code: the strings on the lines that speak (say, announce, the height callouts)
+  const src = ['gpws.js', 'presentation.js'].map((f) => fs.readFileSync(new URL('../js/' + f, import.meta.url), 'utf8')).join('\n');
+  const spoken = new Set();
+  for (const line of src.split('\n').filter((l) => /\b(say|announce)\(|const text =/.test(l))) for (const m of line.matchAll(/'([A-Z][a-z][^']*)'/g)) spoken.add(m[1]);
+  const dir = new URL('../audio/voice/', import.meta.url);
+  const { phrases } = JSON.parse(fs.readFileSync(new URL('phrases.json', dir), 'utf8'));
+  const missing = [...spoken].filter((t) => !phrases.includes(t)), unused = phrases.filter((t) => !spoken.has(t));
+  check('the phrase list is exactly what the GPWS and the game say', spoken.size >= 20 && !missing.length && !unused.length, missing.length || unused.length ? `missing: ${missing.join(', ') || '-'}; never said: ${unused.join(', ') || '-'}` : `${phrases.length} phrases`);
+  const slug = (t) => t.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const bad = phrases.filter((t) => { try { const b = fs.readFileSync(new URL(slug(t) + '.mp3', dir)); return b.length < 1500 || !(b[0] === 0xff && (b[1] & 0xe0) === 0xe0 || b.toString('latin1', 0, 3) === 'ID3'); } catch (e) { return true; } });
+  check('each phrase has its MP3 file', !bad.length, bad.length ? 'bad or missing: ' + bad.join(', ') : `${phrases.length} files`);
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

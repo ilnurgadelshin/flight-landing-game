@@ -63,15 +63,15 @@ offline and can be hosted on any static host.
 ### GitHub Pages
 
 The live site is served from the `gh-pages` branch, which holds only the game
-files (`index.html`, `manifest.webmanifest`, `css/`, `icons/`, `js/`, `vendor/`) and an empty `.nojekyll` so
+files (`index.html`, `manifest.webmanifest`, `audio/`, `css/`, `icons/`, `js/`, `vendor/`) and an empty `.nojekyll` so
 GitHub serves them as-is. All asset paths are relative, so the game runs from
 the `/flight-landing-game/` sub-path unchanged. To publish the current `main`:
 
 ```bash
 git fetch origin gh-pages
 git worktree add ../flight-landing-game-site gh-pages
-rm -rf ../flight-landing-game-site/css ../flight-landing-game-site/icons ../flight-landing-game-site/js ../flight-landing-game-site/vendor
-cp -R index.html manifest.webmanifest css icons js vendor ../flight-landing-game-site/
+rm -rf ../flight-landing-game-site/audio ../flight-landing-game-site/css ../flight-landing-game-site/icons ../flight-landing-game-site/js ../flight-landing-game-site/vendor
+cp -R index.html manifest.webmanifest audio css icons js vendor ../flight-landing-game-site/
 git -C ../flight-landing-game-site add -A
 git -C ../flight-landing-game-site commit -m "Publish main $(git rev-parse --short HEAD)"
 git -C ../flight-landing-game-site push origin gh-pages
@@ -232,8 +232,12 @@ and the buttons, which helps in a crosswind flare.
   video's, plays even with the ring/silent switch set to silent. On older iOS
   versions a silent media element is kept playing for that. After a phone call
   or a trip to the app switcher, the next tap brings the sound back. Untick
-  **Sound & voice callouts** to leave other apps' audio (music) alone. Engine
-  rumble is low-pitched and phone speakers barely reproduce it; headphones do.
+  **Sound & voice callouts** to leave other apps' audio (music) alone. The
+  voice callouts and warnings are recordings played the same way as the engine,
+  so whenever the engine is heard, so are they. Engine rumble is low-pitched and
+  phone speakers barely reproduce it (headphones do), so touchdowns and impacts
+  also carry a tyre chirp, crunch and scrape pitched where a phone speaker
+  plays them.
 - **Interruptions.** Turning the phone upright or switching away from the
   browser pauses the flight. While flying, the screen is kept awake where the
   browser supports it.
@@ -298,7 +302,21 @@ yokes and windshield wipers.
 wind, rain and rolling sounds; altitude callouts (2500 … 10), "approaching
 minimums", "minimums", "sink rate", "pull up", "too low gear / flaps /
 terrain", "glideslope", "bank angle", "terrain", stall warning with a stick
-shaker, gear configuration horn, flap overspeed.
+shaker, gear configuration horn, flap overspeed. Touchdowns, hard landings and
+crashes have their own impact sounds (tyre chirp, thump, crunch, metal and
+scrape), and thunder follows lightning. The warnings and impacts are pitched
+and set so that a phone speaker, which plays almost nothing below 400 Hz, still
+plays them well above the engines.
+
+The voice is a set of short recordings in `audio/voice/` (26 phrases, about
+220 KB), played through Web Audio like every other sound. Browsers' built-in
+speech sounds different on each device and often stays silent on iPhone, so it
+is used only for a phrase whose recording failed to load. The phrase list is
+`audio/voice/phrases.json`. `tools/make-voice.py` renders the clips with the
+open Kokoro text-to-speech model (Apache-2.0; its docstring has the setup), and
+band-limits them like a flight-deck speaker. After changing a phrase in the
+code, add it to the list and run the tool; `test/game.test.mjs` fails while a
+spoken phrase has no recording.
 
 **Evaluation** (`js/evaluate.js`): touchdown point, vertical speed, centreline,
 speed, alignment (crab and bank), configuration and stopping are scored;
@@ -379,7 +397,8 @@ a module to what it uses; nothing points back up.
 | `js/physics/` | Flight model and landing gear (`aircraft.js`), atmosphere and wind, terrain |
 | `js/world/` | Terrain, airport, runway textures, airfield lights and PAPI, weather; the sky and haze model (`sky.js`); lighting, shadows and post-processing (`scene.js`) |
 | `js/cockpit/` | 3D flight deck and the canvas-drawn displays |
-| `js/input.js`, `js/audio.js`, `js/gpws.js` | Keyboard, mouse yoke and touch input, synthesised sound and voice, warning system |
+| `js/input.js`, `js/audio.js`, `js/gpws.js` | Keyboard, mouse yoke and touch input, synthesised sound and the recorded voice, warning system |
+| `audio/voice/`, `tools/make-voice.py` | The voice callouts and warnings (MP3 clips and their phrase list), and the script that records them |
 | `js/touch.js`, `js/platform.js`, `js/controls.js` | On-screen touch controls; phone support (orientation, full screen, pausing, wake lock, adaptive resolution); the control glossary that words hints for keys, touch or tilt |
 | `js/tilt.js`, `js/haptics.js`, `js/gamepad.js` | Tilt steering from the motion sensor; vibration and controller rumble; game controllers |
 | `manifest.webmanifest`, `icons/`, `tools/make-icons.mjs` | Home-screen app: manifest, icons, and the script that renders the icons |
@@ -413,8 +432,8 @@ draws every scenario by day and night on both graphics tiers.
 
 | Command | What it checks | Time |
 | --- | --- | --- |
-| `npm test` | Node, no browser: physics (62 checks in 12 groups), phone features (54 checks in 7 groups), game controllers (34 checks in 4 groups), the sky model (12 checks in 3 groups) and the game's rules (34 checks in 6 groups), below | ~5 s |
-| `npm run test:e2e` | The real page in Chromium: 204 checks in 16 groups (below), run in 3 parallel processes (`test/e2e-parallel.mjs`) | ~11–15 min |
+| `npm test` | Node, no browser: physics (62 checks in 12 groups), phone features (59 checks in 7 groups), game controllers (34 checks in 4 groups), the sky model (12 checks in 3 groups) and the game's rules (36 checks in 7 groups), below | ~5 s |
+| `npm run test:e2e` | The real page in Chromium: 219 checks in 16 groups (below), run in 3 parallel processes (`test/e2e-parallel.mjs`) | ~11–15 min |
 | `npm run test:e2e:quick` | The same without the four landings flown in real time (E9, E11, E13, E15) | ~6 min |
 | `node test/e2e.mjs only=<groups>` | E1 plus the groups listed, in one process, comma-separated: `menu`, `keys`, `school`, `land`, `fail`, `ga`, `fps`, `keyboard`, `mobile`, `touchland`, `tilt`, `tiltland`, `gamepad`, `padland`, `graphics` (e.g. `only=tilt,tiltland`) | 10 s – 3 min each |
 | `npm run test:e2e:serial` | All browser groups in one process | ~25 min |
@@ -472,8 +491,12 @@ controls a player has.
 - **E2** chooses the mode, conditions and start with the mouse and starts the approach.
 - **E3** presses every mapped key and checks the control it drives.
 - **E4** walks through every Flight School step.
-- **E5** autolands in every scenario by day and night and checks the callouts and sounds.
-- **E6** provokes the failures and checks the warnings and outcomes.
+- **E5** autolands in every scenario by day and night and checks the callouts and sounds. The
+  voice recordings load after the first key press, and in one landing with sound on every callout
+  plays its recording, with none left to the browser's speech.
+- **E6** provokes the failures and checks the warnings and outcomes. It also renders sounds offline
+  and checks that, between 400 Hz and 8 kHz (what a phone speaker plays), a touchdown, a hard
+  landing, a crash, a voice warning and the stick shaker are clearly louder than the engines.
 - **E7** flies a keyboard-only go-around from 500 ft and repositions, in Fly the Approach and in Flight School.
 - **E8** checks that simulated time matches the frame time the game loop hands the physics, at any frame rate, and that the 4× time scale runs the physics 4× as fast.
 - **E9** lands with real mouse-yoke and keyboard events.
@@ -562,7 +585,9 @@ The other browser groups run on the fast low tier with the 3D drawing off.
    switch (the Audio Session API, or a silent looping media element on older
    iOS). Speech is unlocked with an empty utterance. The next tap brings the
    sound back after an interruption. Switching sound off releases other apps'
-   audio.
+   audio. The voice recordings load after the first tap. A callout plays its
+   recording rather than the browser's speech, one at a time, and an urgent
+   warning cuts in. A phrase without a recording falls back to speech.
 
 `test/sky.test.mjs` checks the atmosphere model in Node:
 
@@ -586,7 +611,9 @@ The other browser groups run on the fast low tier with the 3D drawing off.
 5. training: Flight School before and during the flight, the flight director, the checklist, the
    instructor;
 6. one owner of the controls: actions report what changed; the flight director never moves the
-   aircraft's controls.
+   aircraft's controls;
+7. every phrase the game speaks is in the voice phrase list, the list has nothing else, and each
+   phrase has its MP3 file.
 
 `test/gamepad.test.mjs` checks the controller module against a fake
 `navigator.getGamepads()`, and InputManager's controller thrust:
