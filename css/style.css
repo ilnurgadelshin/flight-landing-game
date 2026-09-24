@@ -271,5 +271,20 @@ body.tilt #t-stick-zone .tlabel { right: calc(80px * var(--k)); }
 #t-center { position: absolute; right: 0; bottom: 0; width: calc(70px * var(--k)); display: none; border-color: #3fd0ff; }
 body.tilt #t-center { display: flex; }
 #t-center b { font-size: calc(12px * var(--k)); }
-#t-brake { position: absolute; right: calc(4px * var(--k)); bottom: calc(176px * var(--k)); width: calc(66px * var(--k)); height: calc(50px * var(--k)); border-color: rgba(255,90,90,0.7); }
+/* just above the stick's area (the same height rule as #t-stick-zone) */
+#t-brake { position: absolute; right: calc(4px * var(--k)); bottom: calc(min(60%, calc(230px * var(--k))) + 6px * var(--k)); width: calc(66px * var(--k)); height: calc(50px * var(--k)); border-color: rgba(255,90,90,0.7); }
 #t-brake.down { background: rgba(255,77,77,0.4); }
+
+/* compact layout for short screens (body.compact, set by js/touch.js when the full layout does not
+   fit): the configuration buttons in two rows of three, TO/GA beside the thrust lever above the
+   rudder, the lever taking the height that is left, and the head-up display a little narrower */
+body.compact #t-config { grid-template-columns: repeat(3, calc(56px * var(--k))); }
+body.compact #t-spd { display: contents; }
+body.compact #t-arm { grid-column: 3; grid-row: 1; }
+body.compact #t-ext { grid-column: 3; grid-row: 2; }
+body.compact #t-flaps { grid-column: 1 / span 2; grid-row: 2; }
+body.compact #t-lever { top: calc(100px * var(--k)); height: auto; }
+body.compact #t-toga { position: absolute; left: calc(70px * var(--k)); bottom: calc(52px * var(--k)); width: calc(56px * var(--k)); }
+body.compact #t-brake { height: calc(44px * var(--k)); }
+body.touch.compact #hud-top { left: calc(var(--sal) + 208px * var(--k)); }
+body.compact #hgs { width: min(40vw, 420px); }

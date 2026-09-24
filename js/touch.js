@@ -13,6 +13,9 @@ import { AIRCRAFT as AC } from './config.js';
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 const capture = (el, e) => { try { el.setPointerCapture(e.pointerId); } catch (err) { /* synthetic pointer */ } };
 const scale = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--k')) || 1;
+// height of the full layout on the left, in px at --k 1: three rows of configuration buttons
+// (3 × 44 + 2 × 6), a gap, and the thrust lever with TO/GA (206)
+const FULL_HEIGHT = 144 + 6 + 206;
 
 const MARKUP = `
   <div id="t-config">
@@ -87,6 +90,10 @@ export class TouchControls {
     this.bindRudder();
     this.bindLever();
     this.bindLook(input.canvas);
+    // a short screen (Safari's toolbars in landscape leave an iPhone 265–330 px) gets the compact
+    // layout (body.compact, css/style.css) when the full one does not fit the controls' height
+    this.layout = () => { const h = this.root.clientHeight; if (h > 0) document.body.classList.toggle('compact', h < FULL_HEIGHT * scale()); };
+    if (typeof ResizeObserver !== 'undefined') new ResizeObserver(this.layout).observe(this.root);
   }
 
   // ------------------------------------------------------------------ buttons
