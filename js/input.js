@@ -60,8 +60,8 @@ export class InputManager {
   padFlying() { const p = this.pad; return p.active && (Math.abs(p.pitch) > 0.3 || Math.abs(p.roll) > 0.3 || Math.abs(p.yaw) > 0.3 || p.thrust !== 0); }
   /** The player is flying through the touch controls right now (used to take over from the autoland demo). */
   touchFlying() { const t = this.touch; return t.stickHeld || t.rudderHeld || t.leverHeld; }
-  /** Tilt steering is on and the device is tilted well away from its neutral position. */
-  tiltFlying() { const t = this.tilt; return this.touchMode && t.active && (Math.abs(t.pitch) > 0.3 || Math.abs(t.roll) > 0.3); }
+  /** Tilt steering is on (and no controller in use) and the device is tilted well away from its neutral position. */
+  tiltFlying() { const t = this.tilt; return this.touchMode && t.active && !this.pad.active && (Math.abs(t.pitch) > 0.3 || Math.abs(t.roll) > 0.3); }
   /** The player is holding a flight control (any device): takes command back from the autoland (js/flightcontrols.js). */
   grabbing() { return this.anyFlightKeyHeld() || this.mouseEngaged || this.touchFlying() || this.tiltFlying() || this.padFlying(); }
   /** Time passes while the autoland flies (the devices do not move the controls). */

@@ -111,6 +111,9 @@ export class AudioSystem {
     return this.clipsReady;
   }
 
+  /** The sound is playing (not waiting for a gesture, or interrupted by a call on iOS). */
+  get running() { return !!this.ctx && this.ctx.state === 'running'; }
+
   setEnabled(on) {
     this.enabled = on;
     if (this.master) this.master.gain.setTargetAtTime(on ? 0.8 : 0, this.ctx.currentTime, 0.05);

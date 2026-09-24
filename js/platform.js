@@ -6,7 +6,10 @@
 //  - iPhone Safari has no element full screen and no orientation lock, so portrait gets a
 //    "rotate your phone" screen and players are told Add to Home Screen gives full screen.
 //  - Android Chrome can go full screen and lock landscape from a tap.
-//  - Screen Wake Lock works on Android and iOS 18.4+; elsewhere the request just fails.
+//  - Screen Wake Lock works on Android and iOS 18.4+; elsewhere the request just fails. Safari
+//    grants it only to a request made during a user gesture, and from then on to any request
+//    from the page: its first request must come from a tap, or a game controller's first press
+//    (Safari's gamepadconnected event counts as a gesture).
 import { setScheme, getScheme } from './controls.js';
 
 const params = new URLSearchParams(location.search);
@@ -28,6 +31,8 @@ export class Platform {
     this.game = game; this.input = input; this.world = world;
     this.forced = params.has('touch');
     this.wakeLock = null;
+    this.wantLock = false;
+    this.padConnected = false;
     this.rotateEl = document.getElementById('rotate');
     // the scheme follows the pointer the player actually uses (hybrid laptops, iPads with a mouse)
     this.applyScheme(touchFirst ? 'touch' : 'desktop');
@@ -51,7 +56,7 @@ export class Platform {
     // leaving the game (app switch, call, lock screen) pauses the flight
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'hidden') { if (this.game.state === 'flying') this.game.togglePause(); }
-      else if (this.game.state === 'flying') this.setWakeLock(true);   // the lock is dropped while hidden
+      else this.keepAwake();                                             // the lock is dropped while hidden
     });
   }
 
@@ -81,11 +86,19 @@ export class Platform {
       .catch(() => {});
   }
 
-  /** Keep the screen on while flying (a tilt or hands-off approach has no touches to keep it awake). */
+  /**
+   * Keep the screen on while flying (a tilt, controller or hands-off approach has no touches to
+   * keep it awake), and while a game controller is connected: its player may never touch the screen.
+   */
+  keepAwake() { this.setWakeLock(document.visibilityState === 'visible' && (this.game.state === 'flying' || this.padConnected)); }
+
   async setWakeLock(on) {
+    this.wantLock = on;
     try {
-      if (on && !this.wakeLock && navigator.wakeLock && document.visibilityState === 'visible') {
+      if (on && !this.wakeLock && navigator.wakeLock) {
+        // requested at once (not after a pending one): the request made inside a gesture is the one Safari grants
         const lock = await navigator.wakeLock.request('screen');
+        if (this.wakeLock || !this.wantLock) { lock.release(); return; }   // another request won, or no longer wanted
         this.wakeLock = lock;
         lock.addEventListener('release', () => { if (this.wakeLock === lock) this.wakeLock = null; });
       } else if (!on && this.wakeLock) {
@@ -94,7 +107,10 @@ export class Platform {
     } catch (e) { /* not supported or not allowed: the screen may dim, nothing else changes */ }
   }
 
-  onGameState(state) { this.setWakeLock(state === 'flying'); }
+  /** A game controller connected or disconnected. Called from Safari's gamepadconnected gesture too. */
+  setController(connected) { this.padConnected = connected; this.keepAwake(); }
+
+  onGameState() { this.keepAwake(); }
 }
 
 /**

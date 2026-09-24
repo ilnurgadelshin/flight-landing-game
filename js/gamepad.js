@@ -10,6 +10,9 @@
 // On the ground at idle, keeping B held selects reverse thrust, which stays until A (like pulling
 // the reverse levers). Other controllers (joysticks with their own layout) fly pitch and roll with
 // their first two axes. Browsers only reveal a controller once one of its buttons is pressed.
+// Safari on iPhone and iPad names a controller "<its name> Extended Gamepad" (no vendor number),
+// e.g. "DualSense Wireless Controller Extended Gamepad", in the standard layout with the PS / Home
+// button as button 16; it has no rumble there (only on a Mac).
 //
 // This module reads the controller once per frame, writes the analog state to InputManager.pad and
 // emits button presses as actions; InputManager.update applies them like the keyboard's.

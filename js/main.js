@@ -93,6 +93,7 @@ async function boot() {
     + 'speedbrakes [[armSpeedbrake]] (arm), [[speedbrake]] (extend) · brakes [[brakes]] · autobrake [[autobrake]] · trim D-pad ↑/↓ · TO/GA [[toga]] · look [[look]] · pause [[pause]]';
   let padWas = false;
   pad.onChange = ({ connected, active, labels }) => {
+    if (connected !== padWas) platform.setController(connected);
     document.body.classList.toggle('pad', active);
     document.body.classList.toggle('pad-rumble', connected && pad.canRumble);
     setPad(active ? labels : null);
@@ -117,6 +118,10 @@ async function boot() {
   // and needs it again after a call or the app switcher, so every gesture tries (see AudioSystem.unlock)
   const armAudio = () => audio.unlock();
   for (const ev of ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown']) window.addEventListener(ev, armAudio);
+  // Safari counts a game controller's first press (when the page first sees it: gamepadconnected)
+  // as a gesture, the only one a controller gives: the sound and the screen wake lock start there,
+  // so an iPhone player with only a controller has both. Other browsers fire it without a gesture.
+  window.addEventListener('gamepadconnected', () => { armAudio(); platform.setController(true); });
 
   // starting a flight is a tap: on Android that is the moment full screen and landscape can be requested
   ui.onStart = (opts) => { armAudio(); platform.enterFullscreen(); tiltFromTap(); game.start(opts); };
@@ -146,6 +151,7 @@ async function boot() {
     if (draw) lastDraw = now;
     if (tilt.enabled) tilt.update();       // a sensor that stops reporting lets go of the controls
     pad.poll(now / 1000);
+    presentation.soundHint(dt);
     const t0 = performance.now();
     if (game.state !== 'menu') {
       const simDt = game.update(dt);        // controls, physics, rules
