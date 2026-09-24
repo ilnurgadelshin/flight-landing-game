@@ -75,6 +75,9 @@ button.primary:hover { filter: brightness(1.1); }
 
 /* ---------- HUD ---------- */
 #hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; }
+/* a controller player whose sound waits for a tap (a controller's buttons do not count as one) */
+#sound-hint { position: fixed; top: calc(env(safe-area-inset-top, 0px) + 6px); right: calc(env(safe-area-inset-right, 0px) + 8px); z-index: 30;
+  padding: 4px 10px; border-radius: 12px; background: rgba(5, 8, 12, 0.85); color: var(--accent); font-size: 13px; pointer-events: none; }
 #hud-top { position: absolute; top: 10px; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
 #mode-msg { font-size: 22px; font-weight: 700; letter-spacing: 3px; color: var(--accent); text-shadow: 0 2px 8px #000; min-height: 26px; }
 #mode-msg.ga { color: #7ef; }

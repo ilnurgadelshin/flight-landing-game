@@ -15,6 +15,8 @@ export class Presentation {
     this.yokeWasOn = false;          // the mouse yoke was engaged when the flight was interrupted
     this.raining = false;
     this.msgSeq = 0;
+    this.soundWait = 0;              // s the sound has been waiting for a gesture while the controller is in use
+    this.soundHintOn = false;
     const on = (type, fn) => game.on(type, fn);
 
     on('start', ({ opts, scenario }) => {
@@ -107,6 +109,17 @@ export class Presentation {
     if (this.touch) this.touch.sync(st, inp, { gaMode: g.ctx.gaMode });
     if (this.gpws) this.ui.setCaption(this.gpws.caption, this.gpws.captionKind);
     this.ui.setChecklist(g.state === 'flying' ? g.checklist() : null);
+  }
+
+  /**
+   * Every frame, in the menus too: a player using only a controller cannot start the sound (its
+   * buttons are not a gesture, except its first press in Safari), so after half a second of
+   * silence the screen says how. A tap, click or key starts it and the note goes.
+   */
+  soundHint(frameDt) {
+    this.soundWait = this.input.pad.active && this.audio.enabled && !this.audio.running ? this.soundWait + frameDt : 0;
+    const on = this.soundWait > 0.5;
+    if (on !== this.soundHintOn) { this.soundHintOn = on; this.ui.setSoundHint(on); }
   }
 
   /** Per frame, after the view: engine, wind, rain and rolling sounds. */

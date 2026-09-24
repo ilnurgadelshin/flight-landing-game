@@ -824,8 +824,26 @@ if (!quick && want('tiltland')) {
 // --------------------------------------------------------------------------- game controller
 // Browsers cannot emulate a controller: test/gamepad-stub.browser.js replaces navigator.getGamepads()
 // with a standard-layout controller that the test presses (held until the game has read it).
-async function padPage({ phone = false } = {}) {
-  const ctx = await browser.newContext(phone ? { viewport: { width: 852, height: 393 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true } : { viewport: { width: 1024, height: 576 } });
+const IPHONE_UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.6 Mobile/15E148 Safari/604.1';
+// iphone: Safari's rules where Chromium differs. No navigator.vibrate, and a screen wake lock
+// granted only to a request made during a gesture (then to any; WebKit's WakeLock::request).
+// window.__gesture marks the test's stand-in for a gesture; requests and releases go to __locks.
+async function padPage({ phone = false, iphone = false } = {}) {
+  const ctx = await browser.newContext(phone ? { viewport: { width: 852, height: 393 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true, ...(iphone ? { userAgent: IPHONE_UA } : {}) } : { viewport: { width: 1024, height: 576 } });
+  if (iphone) await ctx.addInitScript(() => {
+    delete Navigator.prototype.vibrate;
+    window.__gesture = false; window.__locks = []; let authorized = false;
+    const request = (type) => {
+      const granted = window.__gesture || authorized;
+      if (window.__gesture) authorized = true;
+      window.__locks.push({ type, gesture: window.__gesture, granted });
+      if (!granted) return Promise.reject(new DOMException('Permission was denied', 'NotAllowedError'));
+      const s = new EventTarget();
+      s.release = () => { window.__locks.push({ release: true }); s.dispatchEvent(new Event('release')); return Promise.resolve(); };
+      return Promise.resolve(s);
+    };
+    Object.defineProperty(navigator, 'wakeLock', { configurable: true, value: { request } });
+  });
   const pp = await ctx.newPage();
   pp.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') consoleErrors.push(`[pad ${m.type()}] ${m.text()}`); });
   pp.on('pageerror', (e) => consoleErrors.push(`[pad pageerror] ${e.message}`));
@@ -973,6 +991,37 @@ if (want('gamepad')) {
   const shown = await P2.pp.evaluate(() => getComputedStyle(document.getElementById('touch')).display !== 'none');
   check('phone with a controller: touch controls hidden (head-up display kept); a touch brings them back', hidden && shown);
   await P2.ctx.close();
+
+  // an iPhone with a PS5 controller, as Safari reports it (WebKit's GameController bridge): named
+  // "... Extended Gamepad" with no vendor number, no rumble, the PS button as button 16. The page
+  // first sees it at a press, in a gamepadconnected event that Safari counts as a gesture: the only
+  // one a player who never touches the screen gives
+  const P3 = await padPage({ phone: true, iphone: true });
+  await P3.pp.evaluate(() => { const a = window.__sim.audio, u = a.unlock.bind(a); window.__unlocks = []; a.unlock = () => { window.__unlocks.push(window.__gesture); return u(); }; });
+  await P3.pp.evaluate(() => { window.__gesture = true; window.fakePad.connect({ id: 'DualSense Wireless Controller Extended Gamepad', rumble: false }); window.__gesture = false; });
+  await P3.pf(3);
+  let ip = await P3.pp.evaluate(() => ({ msg: document.getElementById('pad-msg').textContent, unlocks: window.__unlocks, locks: window.__locks, held: !!window.__sim.platform.wakeLock, sound: window.__sim.audio.running }));
+  check('iPhone + PS5 controller: announced with its own buttons ("Options or ✕ starts")', /PlayStation controller connected.*Options or ✕ starts/.test(ip.msg), ip.msg);
+  check('iPhone: the controller\'s first press (Safari\'s gesture) starts the sound and keeps the screen awake', ip.unlocks[0] === true && ip.sound && ip.locks.length >= 1 && ip.locks.some((l) => l.gesture && l.granted) && ip.held, JSON.stringify({ unlocks: ip.unlocks, locks: ip.locks }));
+  await P3.tapPad('Menu'); await P3.pf(3);
+  await P3.tapPad('Home'); await P3.pf(2);
+  ip = await P3.pp.evaluate(() => ({ state: window.__sim.game.state, held: !!window.__sim.platform.wakeLock, touch: getComputedStyle(document.getElementById('touch')).display, vib: getComputedStyle(document.getElementById('opt-vib').parentElement).display, hint: document.getElementById('pad-hint').textContent }));
+  check('Options starts the flight with the screen still kept awake; the PS button does nothing', ip.state === 'flying' && ip.held, JSON.stringify({ state: ip.state, held: ip.held }));
+  check('iPhone: touch controls hidden, controls worded for PlayStation, no Vibration option (no rumble or vibration there)', ip.touch === 'none' && /△/.test(ip.hint) && ip.vib === 'none', JSON.stringify({ touch: ip.touch, vib: ip.vib }));
+  // after a phone call iOS interrupts the sound; the controller cannot restart it, so the screen says how
+  await P3.pp.evaluate(() => window.__sim.audio.ctx.suspend());
+  await P3.pp.evaluate(() => window.fakePad.stick('left', 0.5, 0)); await simWaitOn(P3.pp, 0.3);
+  await P3.pp.waitForFunction(() => !document.getElementById('sound-hint').classList.contains('hidden'), null, { timeout: 30000 }).catch(() => {});
+  const note = await P3.pp.evaluate(() => ({ text: document.getElementById('sound-hint').textContent, shown: getComputedStyle(document.getElementById('sound-hint')).display !== 'none' }));
+  await P3.pp.evaluate(() => window.fakePad.stick('left', 0, 0));
+  await P3.pp.touchscreen.tap(430, 200); await P3.pf(3);
+  await P3.pp.waitForFunction(() => window.__sim.audio.running, null, { timeout: 10000 }).catch(() => {});
+  const after = await P3.pp.evaluate(() => ({ sound: window.__sim.audio.running, shown: !document.getElementById('sound-hint').classList.contains('hidden') }));
+  check('sound interrupted while flying with the controller: "Tap the screen for sound", and a tap brings it back', note.shown && /Tap the screen for sound/.test(note.text) && after.sound && !after.shown, JSON.stringify({ note, after }));
+  await P3.pp.evaluate(() => { window.fakePad.disconnect(); window.__sim.game.quitToMenu(); }); await P3.pf(3);
+  const released = await P3.pp.evaluate(() => ({ held: !!window.__sim.platform.wakeLock, last: window.__locks[window.__locks.length - 1] }));
+  check('controller gone and back in the menu: the screen may sleep again', !released.held && released.last.release === true, JSON.stringify(released));
+  await P3.ctx.close();
 }
 
 // --------------------------------------------------------------------------- a landing flown with the controller

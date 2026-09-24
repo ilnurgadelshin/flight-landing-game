@@ -154,11 +154,22 @@ own buttons throughout the game.
   flight does nothing until it is released, so the A that resumes does not also
   add thrust.
 - **Unplugging.** Unplugging the controller mid-flight pauses the game.
-- **Rumble** (Chrome and Edge): the controller rumbles for the gear locking down,
-  the touchdown (harder for a harder landing), a crash and the stick shaker.
-  *Vibration* in the menu turns it off.
+- **Rumble** (Chrome and Edge, and Safari on a Mac): the controller rumbles for
+  the gear locking down, the touchdown (harder for a harder landing), a crash and
+  the stick shaker. *Vibration* in the menu turns it off.
 - **Phones.** With a controller in use, the touch controls are hidden and the
-  head-up display stays.
+  head-up display stays. Tilt steering, if it is on, waits while the controller
+  is in use, so a phone tilted in a controller clip does not fly the aircraft.
+- **iPhone and iPad** (a PS5 DualSense, PS4, Xbox, Switch Pro or MFi controller
+  paired in Bluetooth settings). Safari reports these controllers in the
+  standard layout, and the PlayStation ones are worded with their own buttons
+  (✕ ○ □ △, Options, Create). The controller's first press counts as a tap in
+  Safari. It starts the sound and keeps the screen awake while a controller is
+  connected, so the game can be played without touching the screen. After a
+  phone call or a trip to another app, the sound needs a tap on the screen,
+  and the game says so. There is no rumble: Safari supports it only on a Mac.
+  Safari keeps the PS button from iOS, and the game gives it nothing to do.
+  Controllers do not work in Lockdown Mode.
 - **Joysticks with their own layout.** They fly pitch and roll with their stick;
   use the keyboard for the rest.
 
@@ -432,8 +443,8 @@ draws every scenario by day and night on both graphics tiers.
 
 | Command | What it checks | Time |
 | --- | --- | --- |
-| `npm test` | Node, no browser: physics (62 checks in 12 groups), phone features (59 checks in 7 groups), game controllers (34 checks in 4 groups), the sky model (12 checks in 3 groups) and the game's rules (36 checks in 7 groups), below | ~5 s |
-| `npm run test:e2e` | The real page in Chromium: 219 checks in 16 groups (below), run in 3 parallel processes (`test/e2e-parallel.mjs`) | ~11–15 min |
+| `npm test` | Node, no browser: physics (62 checks in 12 groups), phone features (59 checks in 7 groups), game controllers (40 checks in 6 groups), the sky model (12 checks in 3 groups) and the game's rules (36 checks in 7 groups), below | ~5 s |
+| `npm run test:e2e` | The real page in Chromium: 225 checks in 16 groups (below), run in 3 parallel processes (`test/e2e-parallel.mjs`) | ~11–15 min |
 | `npm run test:e2e:quick` | The same without the four landings flown in real time (E9, E11, E13, E15) | ~6 min |
 | `node test/e2e.mjs only=<groups>` | E1 plus the groups listed, in one process, comma-separated: `menu`, `keys`, `school`, `land`, `fail`, `ga`, `fps`, `keyboard`, `mobile`, `touchland`, `tilt`, `tiltland`, `gamepad`, `padland`, `graphics` (e.g. `only=tilt,tiltland`) | 10 s – 3 min each |
 | `npm run test:e2e:serial` | All browser groups in one process | ~25 min |
@@ -551,7 +562,14 @@ controls a player has.
   - PlayStation button names;
   - unplugging mid-flight;
   - a joystick with its own layout;
-  - the touch controls hiding on a phone.
+  - the touch controls hiding on a phone;
+  - an iPhone with a PS5 controller, as Safari reports it ("… Extended
+    Gamepad", no rumble, the PS button as button 16) and with Safari's wake
+    lock rule (granted only to a request made in a gesture). Its first press
+    (Safari's gamepadconnected gesture) starts the sound and keeps the screen
+    awake; Options starts the flight; there is no Vibration option. After the
+    sound is interrupted, "Tap the screen for sound" shows until a tap brings
+    it back. Without the controller, the screen may sleep again.
 - **E15** lands with the controller only: stick, A/B thrust, triggers, buttons,
   reverse by holding B, stowed with A. It checks the touchdown rumble.
 - **E16** checks the graphics tiers, and draws every scenario by day and night on both tiers
@@ -625,7 +643,10 @@ The other browser groups run on the fast low tier with the 3D drawing off.
 3. joysticks with their own layout: stick only;
 4. thrust at the keyboard's rate; the hold-off after a start; reverse only on
    the ground after 0.4 s of B at idle; stowing with A without added thrust;
-   pilot-style pitch; a controller not in use drives nothing.
+   pilot-style pitch; a controller not in use drives nothing;
+5. controllers as Safari on iPhone and iPad reports them: each family by its name, a PS5 controller's
+   Options and Create, the PS button doing nothing, no rumble;
+6. tilt steering does not take over from the autoland demo while a controller is in use.
 
 Screenshots go to `test/output/`.
 
