@@ -708,7 +708,7 @@ draws every scenario by day and night on both graphics tiers.
 | Command | What it checks | Time |
 | --- | --- | --- |
 | `npm test` | Node, no browser: physics (71 checks in 13 groups), phone features (59 checks in 7 groups), game controllers (40 checks in 6 groups), the sky model (12 checks in 3 groups), the head-up display (23 checks in 5 groups), navigation (57 checks in 4 groups) and the game's rules (99 checks in 10 groups), below | ~10 s |
-| `npm run test:e2e` | The real page in Chromium: 261 checks in 17 groups (below), run in 3 parallel processes (`test/e2e-parallel.mjs`) | ~13–17 min |
+| `npm run test:e2e` | The real page in Chromium: 268 checks in 17 groups (below), run in 3 parallel processes (`test/e2e-parallel.mjs`) | ~13–17 min |
 | `npm run test:e2e:quick` | The same without the four landings flown in real time (E9, E11, E13, E15) | ~6 min |
 | `node test/e2e.mjs only=<groups>` | E1 plus the groups listed, in one process, comma-separated: `menu`, `keys`, `school`, `land`, `fail`, `ga`, `maps`, `fps`, `keyboard`, `mobile`, `touchland`, `tilt`, `tiltland`, `gamepad`, `padland`, `graphics` (e.g. `only=tilt,tiltland`) | 10 s – 3 min each |
 | `npm run test:e2e:serial` | All browser groups in one process | ~25 min |

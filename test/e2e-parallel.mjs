@@ -11,7 +11,7 @@ import path from 'node:path';
 const root = path.resolve(new URL('..', import.meta.url).pathname);
 // seconds per group with 3 processes on the reference machine (software rendering, 4 cores), from the
 // "Time per group" line that test/e2e.mjs prints; update them when groups change a lot
-const GROUP_SECONDS = { menu: 2, keys: 25, school: 49, land: 115, fail: 73, ga: 62, fps: 7, keyboard: 164, mobile: 165, touchland: 180, tilt: 159, tiltland: 214, gamepad: 154, padland: 191, graphics: 130, maps: 185 };
+const GROUP_SECONDS = { menu: 2, keys: 25, school: 49, land: 115, fail: 73, ga: 62, fps: 7, keyboard: 164, mobile: 165, touchland: 180, tilt: 159, tiltland: 214, gamepad: 154, padland: 191, graphics: 130, maps: 210 };
 const LANDINGS = ['keyboard', 'touchland', 'tiltland', 'padland'];
 
 const args = process.argv.slice(2);
