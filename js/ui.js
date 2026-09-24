@@ -219,8 +219,9 @@ export class UI {
     const seen = Math.max($('g-spd').offsetWidth || 0, $('g-alt').offsetWidth || 0);
     if (seen) this._colW = seen;
     const col = this._colW || 80;
-    const L = ndViewLayout({ W, top: px('--sat') + 30, bottom: barT - 6, maxSize: 0.8 * H, obstacles, cols: { w: col, h: 70, at: 0.38 }, left: px('--sal') + 14, right: W - px('--sar') - 14 })
-      || { x: W / 2 - 60, y: px('--sat') + 30, size: 120 };
+    // (8 px of room around the display for its bezel)
+    const L = ndViewLayout({ W, top: px('--sat') + 34, bottom: barT - 12, maxSize: 0.8 * H, obstacles, cols: { w: col, h: 70, at: 0.38 }, gap: 12, left: px('--sal') + 22, right: W - px('--sar') - 22 })
+      || { x: W / 2 - 60, y: px('--sat') + 34, size: 120 };
     return { h: L.size / H, cx: (L.x + L.size / 2) / W, cy: (L.y + L.size / 2) / H };
   }
   /** The touch controls on screen now (except the stick's open area and MAP, which the ND view hides), as rects. */
@@ -263,7 +264,7 @@ export class UI {
       if (c.width !== bw || c.height !== bh) { c.width = bw; c.height = bh; }
       resized = true;
       const bar = $('efis-bar'), at = this._ndBarAt;
-      // a narrow gap (the smallest phones) leaves out ✕: VIEW, which reads ND, goes back too
+      // a narrow gap (the smallest phones) leaves out ✕: VIEW, which reads MAP, goes back too
       bar.classList.toggle('narrow', !!(touch && at && at.room < 190));
       if (touch && at) Object.assign(bar.style, { left: `${at.x}px`, top: `${at.y}px` });
       else Object.assign(bar.style, { left: `${rect.x + rect.w / 2}px`, top: `${rect.y + rect.h + 8}px` });

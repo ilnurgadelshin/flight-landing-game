@@ -31,8 +31,10 @@
   <!-- 2D overlays -->
   <div id="sound-hint" class="hidden" role="status"></div>
   <div id="hud" class="hidden">
-    <!-- the ND view (J, MAP): the flight deck's navigation display drawn sharp over its 3D screen
-         (first, so that on a phone its shade over the rest of the flight deck lies under everything) -->
+    <!-- the ND view (J, MAP): on a phone a dark backdrop hides the rest of the flight deck, so MAP
+         shows only the map; over it, the flight deck's navigation display drawn sharp on its 3D screen
+         (both first, under the readouts and the controls) -->
+    <div id="nd-shade"></div>
     <canvas id="nd-view" width="512" height="512" aria-label="Navigation display"></canvas>
     <div id="hud-top">
       <div id="mode-msg"></div>
