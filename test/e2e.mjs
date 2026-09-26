@@ -1323,11 +1323,18 @@ if (want('graphics')) {
   check('towards the horizon it turns paler and brighter (haze)', L(nearHz) > L(top) && nearHz[2] - nearHz[0] < top[2] - top[0], `horizon ${nearHz.map((x) => x.toFixed(0)).join(',')} at row ${hy}`);
   check('the land below the horizon is darker than the sky above it', L(below) < L(nearHz), below.map((x) => x.toFixed(0)).join(','));
   // the flight deck: the sun comes in through the windows only; the shell shades the rest
-  const shade = rowMean(await grab(`return null;`), 30, 54);
+  const shadePixels = await grab(`return null;`), shade = rowMean(shadePixels, 30, 54);
   const noShadow = rowMean(await grab(`const s = w.cockpitSun.shadow.intensity; w.cockpitSun.shadow.intensity = 0; return () => { w.cockpitSun.shadow.intensity = s; };`), 30, 54);
-  const noSun = rowMean(await grab(`const i = w.cockpitSun.intensity; w.cockpitSun.intensity = 0; return () => { w.cockpitSun.intensity = i; };`), 30, 54);
+  const noSunPixels = await grab(`const i = w.cockpitSun.intensity; w.cockpitSun.intensity = 0; return () => { w.cockpitSun.intensity = i; };`);
+  // Most of the original cabin's panel is shaded. A whole-panel average hides
+  // small sunlit patches; compare those actual pixels with the sun switched off.
+  let sunlitPixels=0;
+  for(let y=30;y<54;y++)for(let x=0;x<96;x++){
+    const i=(y*96+x)*4;
+    if(L(shadePixels.slice(i,i+3))-L(noSunPixels.slice(i,i+3))>3)sunlitPixels++;
+  }
   check('the flight deck is shaded by its roof and walls (darker with its shadows than without)', L(shade) < 0.9 * L(noShadow), `with ${L(shade).toFixed(1)}, without ${L(noShadow).toFixed(1)}`);
-  check('but sunlight falls in through the windows (brighter than with the sun off)', L(shade) > L(noSun) + 0.5, `sun off ${L(noSun).toFixed(1)}`);
+  check('but sunlight falls in through the windows (visible patches disappear with the sun off)', sunlitPixels>=8, `${sunlitPixels} visibly sunlit panel pixels`);
   // a cloud deck: sunshine and a clear sky above it, overcast light below
   await gp.evaluate(() => { window.__sim.start({ scenarioId: 'crosswind', startId: 'standard', mode: 'game', sound: false, seed: 5 }); window.__sim.setTimeScale(0); });
   await gf(2);
@@ -1370,17 +1377,23 @@ if (want('graphics')) {
     await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));   // the view updates the camera
     info.autoReset = false; info.reset(); S.drawNow(); const calls = info.render.calls; info.autoReset = true;
     const cv = document.createElement('canvas'); cv.width = 96; cv.height = 54;
-    const g = cv.getContext('2d'); g.drawImage(w.renderer.domElement, 0, 0, 96, 54);
-    const d = g.getImageData(0, 36, 96, 18).data; let l = 0;                            // the lower third
-    for (let i = 0; i < d.length; i += 4) l += 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2];
+    const g = cv.getContext('2d',{willReadFrequently:true}); g.drawImage(w.renderer.domElement, 0, 0, 96, 54);
+    const d = g.getImageData(0, 36, 96, 18).data;                                     // the lower third
+    // Compare against an actual world-only frame at this camera, rather than
+    // assuming the panel must be darker than terrain by an arbitrary amount.
+    const deck=w.drawCockpit;w.drawCockpit=false;w.render();w.drawCockpit=deck;
+    g.drawImage(w.renderer.domElement,0,0,96,54);
+    const outside=g.getImageData(0,36,96,18).data;let outsideDifference=0;
+    for(let i=0;i<d.length;i++)if(i%4!==3)outsideDifference+=Math.abs(d[i]-outside[i]);
+    outsideDifference/=d.length/4*3;
     const hc = document.getElementById('hud-canvas'), hd = hc.width ? hc.getContext('2d').getImageData(0, 0, hc.width, hc.height).data : []; let green = 0;   // hidden: no size
     for (let i = 0; i < hd.length; i += 4) if (hd[i + 3] > 200 && hd[i + 1] > 200 && hd[i] < 190) green++;
     const h = S.view.hud.last;
-    return { calls, lower: l / (d.length / 4), green, fpv: h && h.fpv, gs: h && h.gsRef[Math.floor(h.gsRef.length / 2)], runway: h && h.runway, ppd: h && h.pxPerDeg };
+    return { calls, outsideDifference, green, fpv: h && h.fpv, gs: h && h.gsRef[Math.floor(h.gsRef.length / 2)], runway: h && h.runway, ppd: h && h.pxPerDeg };
   }, mode);
   const ck = await shot('cockpit'), hu = await shot('hud');
   check('head-up view: the flight deck is not drawn (fewer draw calls)', hu.calls < ck.calls * 0.8, `${ck.calls} → ${hu.calls} draw calls`);
-  check('the lower third shows the land ahead instead of the dark panel', hu.lower > ck.lower + 20, `luminance ${fmt(ck.lower, 0)} → ${fmt(hu.lower, 0)}`);
+  check('the head-up lower third matches the outside-world render, without panel pixels', hu.outsideDifference<1&&ck.outsideDifference>5, `world difference ${fmt(ck.outsideDifference,1)} → ${fmt(hu.outsideDifference,1)}`);
   check('the head-up display is drawn (green symbols), and none in the cockpit view', hu.green > 300 && ck.green === 0, `${ck.green} → ${hu.green} green pixels`);
   // how far the marker is from the runway outline (0 inside it); 4 nm out the runway is a few pixels wide
   const offRwy = (R, p) => {

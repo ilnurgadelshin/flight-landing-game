@@ -567,9 +567,9 @@ The visual assets are bundled locally and need no map service, account or API ke
 The desktop cockpit has about 1.02 million triangles and an 8.3 MB download. The lighter
 phone model has about 420,000 triangles and a 3.6 MB download, omits tiny molded labels,
 and retains the live instruments. Phones also use 1024 px aerial images and fewer trees.
-The captain’s desktop view uses a 58° vertical field of view and an eye position aligned
-with the forward windshield. Panel, padding and trim have separate finishes; runway lights
-use smaller daytime cores and fade with visibility in fog. Cloud surfaces are hidden inside
+The captain’s desktop view uses a 58° vertical field of view and an eye position fitted
+to the original cabin. The authored shell proportions, material colours and roughness are
+preserved. Runway lights use smaller daytime cores and fade with visibility in fog. Cloud surfaces are hidden inside
 the deck so they cannot cut a dark floor across the view. The ranked visual audit
 and remaining limits are in [`test/VISUAL-AUDIT.md`](test/VISUAL-AUDIT.md).
 
@@ -1173,6 +1173,9 @@ fog horizon and obscured distant lights on both graphics tiers. It saves desktop
 head-up, navigation, pedestal, overhead, night, airport and close-approach weather screenshots
 in `test/output/rebuild-*.png`.
 It uses the actual game renderer and requires Playwright Chromium, like the browser suite.
+
+`npm run test:assets` also checks that both delivered cockpit models preserve the source
+windshield-frame dimensions, material colours/roughness and animated-control bindings.
 
 `test/visual-tour.mjs` captures the view at every stage of an autoland in each
 scenario, by day and night: 10 nm, 4 nm with the left, right and pedestal

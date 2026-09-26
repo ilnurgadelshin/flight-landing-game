@@ -3,7 +3,6 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
-import { finishAuthoredDeck } from './materials.js';
 
 const point=(x,y,z)=>new THREE.Vector3(-1.7*x,.14+1.7*(y-2.22),-1.7*(z-.9));
 
@@ -29,32 +28,21 @@ export async function loadFlightDeck(cockpit) {
     o.castShadow=true;o.receiveShadow=true;
   });
   root.add(model);c.authoredModel=model;
-  // Align the eye with the forward pane of this authored shell. Its outboard
-  // pillar otherwise sits almost exactly on the landing sightline.
-  c.eyeLocal.set(-.28,.155,-.08);
-  finishAuthoredDeck(model);
+  // Fit the eye to the original cabin, measured in source coordinates. The old
+  // eye was above the useful glazing, which led to stretching the entire shell.
+  c.eyeLocal.copy(point(.24,2.155,.95));
   // The open source omits the roof. Close it with a curved headliner so looking up
   // stays inside the cabin and sunlight enters through the glazing, not the ceiling.
   const roofPositions=[],roofIndices=[];
   for(let j=0;j<=12;j++)for(let i=0;i<=16;i++){
     const t=j/12,x=(i/16-.5)*1.65,z=1.42-t*1.40;
-    const y=2.47+t*.39+.055*(1-Math.pow(x/.825,2));
+    const y=2.27+t*.39+.055*(1-Math.pow(x/.825,2));
     roofPositions.push(...point(x,y,z).toArray());
     if(i<16&&j<12){const a=j*17+i;roofIndices.push(a,a+1,a+17,a+1,a+18,a+17);}
   }
   const roofGeometry=new THREE.BufferGeometry();roofGeometry.setAttribute('position',new THREE.Float32BufferAttribute(roofPositions,3));roofGeometry.setIndex(roofIndices);roofGeometry.computeVertexNormals();
   const roof=new THREE.Mesh(roofGeometry,new THREE.MeshStandardMaterial({color:0x626763,roughness:.96,side:THREE.DoubleSide}));
   roof.name='Flight deck headliner';roof.castShadow=true;roof.receiveShadow=true;model.add(roof);
-  // A very faint reflected sky on the forward glazing. Transmission cannot be
-  // used in the separate cockpit pass (its buffer would contain no scenery).
-  const glass=new THREE.MeshStandardMaterial({color:0xb8cfda,metalness:1,roughness:.16,
-    transparent:true,opacity:.025,depthWrite:false,side:THREE.DoubleSide,envMapIntensity:.6});
-  for(const side of [-1,1]){
-    const corners=[[-.60,-.04,-.95],[0,-.04,-1.30],[0,.9,-1.05],[-.60,1,-.63]];
-    const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(corners.flatMap(([x,y,z])=>[x*side,y,z]),3));
-    geometry.setIndex([0,1,2,0,2,3]);geometry.computeVertexNormals();
-    const pane=new THREE.Mesh(geometry,glass);pane.name='Forward windshield glazing';pane.renderOrder=2;model.add(pane);
-  }
 
   const live=new THREE.Group();live.name='Live flight instruments';root.add(live);
   const screen=(tex,x,y,z,size=.102)=>{

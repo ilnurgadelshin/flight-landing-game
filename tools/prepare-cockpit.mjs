@@ -1,19 +1,22 @@
-// Usage: node tools/prepare-cockpit.mjs /path/to/unzipped/scene.gltf
+// Usage: node tools/prepare-cockpit.mjs /path/to/unzipped/scene.gltf [output-directory]
 // The source is hakai315's CC BY 4.0 cockpit, downloaded via its Sketchfab page.
 import { NodeIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import { flatten, getBounds, dedup, weld, simplify, join, prune, meshopt, transformPrimitive, cloneDocument } from '@gltf-transform/functions';
 import { MeshoptEncoder, MeshoptSimplifier } from 'meshoptimizer';
 import fs from 'node:fs/promises';
+import path from 'node:path';
 import { bakeOcclusion } from './bake-cockpit-occlusion.mjs';
 
 if(!process.argv[2]) throw new Error('Pass the downloaded scene.gltf path. See assets/README.md.');
+const output=process.argv[3]||'assets/models';
+await fs.mkdir(output,{recursive:true});
 await Promise.all([MeshoptEncoder.ready,MeshoptSimplifier.ready]);
 const io=new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({'meshopt.encoder':MeshoptEncoder});
 const document=await io.read(process.argv[2]);
 await document.transform(flatten());
-// Source coordinates face +Z. Normalize to metres, facing -Z, with the design eye at
-// (-.51,.14,0). This transform is shared by the live display/animation bindings.
+// Source coordinates face +Z. Normalize to metres, facing -Z, in the simulator's
+// instrument-binding frame. Camera placement is fitted separately in model.js.
 const scale=1.7, transform=[-scale,0,0,0, 0,scale,0,0, 0,0,-scale,0, 0,.14-2.22*scale,.9*scale,1];
 const scene=document.getRoot().listScenes()[0];
 const moving={};
@@ -53,16 +56,8 @@ for(const node of document.getRoot().listNodes()) {
       const p=primitive.getAttribute('POSITION');
       for(let i=0;i<p.getCount();i++){const v=p.getElement(i,[]);v[2]-=.23;p.setElement(i,v);}
     }
-    // The source ceiling intersects the captain's design eye. Raise the upper shell and
-    // overhead by 20 cm, blending only through the windshield pillars above the MCP.
-    const position=primitive.getAttribute('POSITION'), normal=primitive.getAttribute('NORMAL');
-    for(let i=0;i<position.getCount();i++) {
-      const v=position.getElement(i,[]);
-      const upperShell=min[1]>2.15 || /^Body\.(006|018|002|020)_/.test(node.getName());
-      const t=upperShell?Math.max(0,Math.min(1,(v[1]-2.09)/.07)):0;
-      v[1]+=.20*t*t*(3-2*t);position.setElement(i,v);
-      if(normal){const n=normal.getElement(i,[]);n[1]/=1+.20*6*t*(1-t)/.07;const l=Math.hypot(...n)||1;normal.setElement(i,n.map(x=>x/l));}
-    }
+    // Preserve the authored shell and overhead proportions. The pilot camera must
+    // fit the source cabin; stretching the window pillars to fit an eye distorts it.
     transformPrimitive(primitive,transform);
   }
   node.setTranslation([0,0,0]).setRotation([0,0,0,1]).setScale([1,1,1]);
@@ -80,11 +75,8 @@ for(const [name,group] of Object.entries(moving)) {
   const column=name.endsWith('column');
   group.setExtras({[column?'columnPivot':'controlPivot']:[x,(column?1.557:1.967)*scale+transform[13],(column?1.30:1.265)*-scale+transform[14]]});
 }
-for(const mat of document.getRoot().listMaterials()) {
-  mat.setRoughnessFactor(Math.min(.93,Math.max(.45,mat.getRoughnessFactor())));
-  if(mat.getName()==='Material.014')mat.setBaseColorFactor([.24,.255,.26,1]);
-  if(mat.getName()==='Material.048')mat.setBaseColorFactor([.58,.59,.57,1]);
-}
+// Keep the source's material colours and roughness. Material numbers are opaque
+// exporter identifiers, not reliable semantic names such as "panel" or "padding".
 // Keep the source's vector lettering on desktop. On phones the live displays remain
 // full resolution, while tiny moulded labels and dense switch bevels use less geometry.
 const low=cloneDocument(document);
@@ -92,10 +84,10 @@ for(const node of low.getRoot().listNodes())if(/^Text/.test(node.getName()))node
 await low.transform(prune(),dedup(),weld(),simplify({simplifier:MeshoptSimplifier,ratio:.20,error:.008}),join());
 bakeOcclusion(low);
 await low.transform(meshopt({encoder:MeshoptEncoder,level:'high',quantizePosition:15}));
-await io.write('assets/models/737-cockpit-low.glb',low);
+await io.write(path.join(output,'737-cockpit-low.glb'),low);
 await document.transform(prune(),dedup(),weld(),simplify({simplifier:MeshoptSimplifier,ratio:.32,error:.003}),join());
 bakeOcclusion(document);
 // Meshopt provides compact, offline delivery without a network decoder or a GPU extension.
 await document.transform(meshopt({encoder:MeshoptEncoder,level:'high',quantizePosition:16}));
-await io.write('assets/models/737-cockpit.glb',document);
-console.log('Prepared cockpit:',(await fs.stat('assets/models/737-cockpit.glb')).size,'bytes');
+await io.write(path.join(output,'737-cockpit.glb'),document);
+console.log('Prepared cockpit:',(await fs.stat(path.join(output,'737-cockpit.glb'))).size,'bytes');

@@ -14,13 +14,19 @@ Author: https://sketchfab.com/hakai315
 License: https://creativecommons.org/licenses/by/4.0/
 Original download notice: `models/737-cockpit-LICENSE.txt`.
 
-Changes: removed stray geometry, converted coordinates and scale, adjusted the upper shell
-for pilot eye clearance, repositioned the captain's seat, reduced geometry, merged static meshes,
-changed material values, baked vertex contact shading, compressed with Meshopt, and separated
-the yokes, columns, thrust/reverse levers, flap/speedbrake levers and trim wheels for animation.
+Changes: removed stray geometry, converted coordinates and scale, repositioned the captain's
+seat, reduced geometry, merged static meshes, baked vertex contact shading, compressed with
+Meshopt, and separated the yokes, columns, thrust/reverse levers, flap/speedbrake levers and
+trim wheels for animation.
 The simulator adds working PFD/ND/engine displays, selected MCP values, standby instruments
 and animated controls, and closes the source's open roof with a fitted headliner. The low
 variant also omits the tiny molded lettering. It is a visual adaptation, not a certified cockpit trainer.
+
+The source's shell/window proportions, material colours and roughness are retained. The camera
+is fitted to the original cabin. An earlier conversion stretched the upper shell and darkened
+the trim; comparison with the source in Blender exposed these integration errors, and they
+have been removed. The downloaded glTF contains no texture images. The extra glazing planes
+fitted to the stretched shell were also removed; proper glass would need to follow the source panes.
 
 To reproduce, download the freely licensed **glTF** archive from that page (Sketchfab requires
 sign-in), unzip it, run `npm install`, then:
@@ -28,6 +34,20 @@ sign-in), unzip it, run `npm install`, then:
 ```sh
 node tools/prepare-cockpit.mjs /path/to/unzipped/scene.gltf
 ```
+
+Pass an optional output directory after the source path to build comparison assets without
+overwriting the game files. `npm run test:assets` checks the delivered models' frame dimensions,
+source materials and animated-control bindings.
+
+For a repeatable source inspection in Blender (optional; not required to build or play):
+
+```sh
+blender --background --python tools/review-cockpit-source.py -- /path/to/scene.gltf test/output/source-review
+```
+
+This saves the source at the former and corrected eye positions, a material/dimension report
+and a Blender inspection file. The workbench images isolate geometry and camera placement;
+their lighting is not intended to match the game renderer.
 
 The source archive is about 88 MB unpacked and is deliberately not shipped. The conversion
 runs offline; development tools are recorded in `package-lock.json`.
