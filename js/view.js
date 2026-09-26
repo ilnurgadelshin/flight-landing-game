@@ -3,7 +3,7 @@
 // It reads the game and never changes it.
 //
 // Two first-person views from the captain's eye point:
-//   cockpit   the flight deck around the eye, looking 15° down so the panel shows (the PANEL look
+//   cockpit   the flight deck around the eye, looking 14° down so the panel shows (the PANEL look
 //             tilts further down to it)
 //   head-up   the flight deck hidden and a head-up display over the outside world (js/hud.js), like
 //             X-Plane's "forward with HUD" or a 737 flown on its head-up guidance system. The eye
@@ -18,8 +18,8 @@
 import * as THREE from 'three';
 import { DEG } from './config.js';
 
-const COCKPIT_PITCH = -15 * DEG, HUD_PITCH = -6 * DEG, COCKPIT_FOV = 70;
-const ND_FOV = 30;                          // the ND view's vertical field of view (deg)
+const COCKPIT_PITCH = -14 * DEG, HUD_PITCH = -6 * DEG, COCKPIT_FOV = 58;
+const ND_FOV = 50;                          // the ND view's vertical field of view (deg)
 /** The head-up view's vertical field of view (degrees) for a screen shape: about 100° across, 45–70° high. */
 export function hudFov(aspect) {
   return Math.min(70, Math.max(45, 2 * Math.atan(Math.tan(50 * DEG) / aspect) / DEG));
@@ -120,7 +120,10 @@ export class GameView {
     const f = this.cockpit.focus, s = f * f * (3 - 2 * f);
     const hud = this.shown === 'hud' && f === 0, cam = this.world.camera;
     const headUp = this.mode === 'hud' && this.game.state !== 'school';
-    const fov = (headUp ? hudFov(cam.aspect) : COCKPIT_FOV) * (1 - s) + ND_FOV * s;
+    // Preserve the panel coverage on narrow screens; a desktop no longer uses a
+    // 100-degree wide-angle lens that shrinks the runway and exaggerates pillars.
+    const deckFov = cam.aspect < 1.35 ? 70 : COCKPIT_FOV;
+    const fov = (headUp ? hudFov(cam.aspect) : deckFov) * (1 - s) + ND_FOV * s;
     if (Math.abs(cam.fov - fov) > 1e-3) { cam.fov = fov; cam.updateProjectionMatrix(); }
     this.world.drawCockpit = !hud;
     this.cockpit.update(st, inp, frameDt, {

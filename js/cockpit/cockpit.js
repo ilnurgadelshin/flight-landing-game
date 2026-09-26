@@ -1,4 +1,4 @@
-// 3D flight deck built from primitives: window frames, glareshield with MCP,
+// Procedural fallback flight deck: window frames, glareshield with MCP,
 // main panel with six display units, pedestal with animated thrust /
 // speedbrake / flap levers and trim wheels, gear lever, yokes, seats, wipers.
 // Everything lives in a group attached to the aircraft body; the camera sits
@@ -8,11 +8,13 @@ import { AIRCRAFT as AC, DEG } from '../config.js';
 import { PFD, ND, UpperDU, LowerDU, makeMCPTexture, makePanelTexture, makeOverheadTexture } from './instruments.js';
 import { surfaceGrain, rounded, detailFlightDeck } from './finish.js';
 import { ND_RANGES } from '../nd.js';
+import { loadFlightDeck } from './model.js';
 
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 
 export class Cockpit {
-  constructor(camera) {
+  constructor(camera, { lowDetail = false } = {}) {
+    this.lowDetail = lowDetail;
     this.camera = camera;
     this.group = new THREE.Group();       // attached to the aircraft group
     const eye = AC.pilotEye;
@@ -61,6 +63,7 @@ export class Cockpit {
     this.buildYokes();
     detailFlightDeck(this);
     this.buildLights();
+    this.assetsReady = loadFlightDeck(this);
   }
 
   box(w, h, d, x, y, z, mat, parent = this.root) {
@@ -329,8 +332,12 @@ export class Cockpit {
    * of the way down, at a vertical field of view of `fovDeg`.
    */
   ndFocusPose(fovDeg, frame) {
-    const g = this.panelGroup, q = g.quaternion, size = 0.20;
-    const c = new THREE.Vector3(-0.46, 0.14, 0.039).applyQuaternion(q).add(g.position);
+    const screen = this.ndScreen;
+    screen.updateWorldMatrix(true, false); this.root.updateWorldMatrix(true, false);
+    const transform = this.root.matrixWorld.clone().invert().multiply(screen.matrixWorld);
+    const c = new THREE.Vector3(), q = new THREE.Quaternion(), scale = new THREE.Vector3();
+    transform.decompose(c, q, scale);
+    const size = screen.geometry.parameters.height * scale.y;
     const n = new THREE.Vector3(0, 0, 1).applyQuaternion(q), up = new THREE.Vector3(0, 1, 0).applyQuaternion(q);
     const t = Math.tan(fovDeg * DEG / 2);
     const d = size / (frame.h * 2 * t);                 // the view is 2 d t high at the screen
@@ -346,7 +353,8 @@ export class Cockpit {
     const m = this.ndScreen; if (!m) return null;
     m.updateWorldMatrix(true, false);
     let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
-    for (const [x, y] of [[-0.1, -0.1], [0.1, -0.1], [0.1, 0.1], [-0.1, 0.1]]) {
+    const h = m.geometry.parameters.height / 2, w = m.geometry.parameters.width / 2;
+    for (const [x, y] of [[-w, -h], [w, -h], [w, h], [-w, h]]) {
       const v = this._v.set(x, y, 0); m.localToWorld(v); v.project(this.camera);
       const px = (v.x + 1) / 2 * width, py = (1 - v.y) / 2 * height;
       x0 = Math.min(x0, px); x1 = Math.max(x1, px); y0 = Math.min(y0, py); y1 = Math.max(y1, py);
@@ -372,8 +380,12 @@ export class Cockpit {
       t.rev.rotation.x = -st.reverser * 1.2;
     });
     this.sbLever.rotation.x = 0.5 - st.speedbrake * 0.9 - (input.speedbrakeArmed ? 0.12 : 0);
-    this.flapLever.position.z = -0.08 + (input.flapIndex / 5) * 0.26;
-    this.flapLever.rotation.x = -0.2;
+    if(this.flapLever.userData.rotaryGate){
+      this.flapLever.rotation.x = -0.35 + input.flapIndex * 0.14;
+    }else{
+      this.flapLever.position.z = -0.08 + (input.flapIndex / 5) * 0.26;
+      this.flapLever.rotation.x = -0.2;
+    }
     this.gearHandle.position.y = input.gearDown ? -0.05 : 0.05;
     this.gearLights.forEach((l) => l.material.color.set(st.gearDown ? 0x33ff55 : (st.gearInTransit ? 0xff3030 : 0x113311)));
     this.flapNeedlePivot.rotation.z = -(st.flapDeg / 40) * 2.4;

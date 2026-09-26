@@ -14,13 +14,14 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RUNWAY, DEG } from '../config.js';
-import { TERRAIN } from '../physics/terrain.js';
 import { makeRng } from '../physics/atmosphere.js';
-import { makeRunwayTexture, makeTaxiwayTexture, makeGroundTexture, makeMacroTexture, makeDetailTexture, makeCloudTexture, makeOvercastTexture, makeBuildingTexture, makeTreeTexture } from './textures.js';
+import { makeRunwayTexture, makeTaxiwayTexture, makeDetailTexture, makeCloudTexture, makeOvercastTexture, makeBuildingTexture } from './textures.js';
 import { AirfieldLights } from './lights.js';
 import { Atmosphere, SKY_GLSL, installHaze, sceneColor } from './sky.js';
 import { Cumulus } from './clouds.js';
-import { addAirportDetail, addWater } from './airport-detail.js';
+import { addAirportDetail } from './airport-detail.js';
+import { buildLandscape } from './landscape.js';
+import { loadParkedAircraft } from './scenery-models.js';
 
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 
@@ -104,7 +105,7 @@ const RAIN_FRAG = /* glsl */`
 const TOD = {
   // day: 40° up, 70° right of the final approach track: the landscape ahead is lit from the side,
   // the terminal's runway-facing side is in the sun, and it shines in through the right-hand windows
-  day: { sun: [-0.26, 0.643, -0.72], turbidity: 2.2, rayleigh: 2.5, scale: 0.1, sunIrr: 6.0, sunWhite: 0.55, cockpitEnv: 0.25, fill: 0.9, lights: 0.8, stars: 0 },
+  day: { sun: [-0.26, 0.643, -0.72], turbidity: 2.0, rayleigh: 2.5, scale: 0.1, sunIrr: 6.0, sunWhite: 0.7, cockpitEnv: 0.48, fill: 1.1, lights: 0.8, stars: 0 },
   dusk: { sun: [-0.85, 0.12, 0.5], turbidity: 4, rayleigh: 2.5, scale: 0.1, sunIrr: 5.0, sunWhite: 0.2, cockpitEnv: 0.3, fill: 0.5, lights: 2.5, stars: 0.3 },
   night: { sun: [0.3, -0.4, 0.5], moon: [0.35, 0.55, -0.45], turbidity: 3, rayleigh: 2.5, scale: 0.1, sunIrr: 0, sunWhite: 1, cockpitEnv: 1, fill: 0.02, lights: 3, stars: 1, nightZenith: 0x03060f, nightHorizon: 0x111a2a },
 };
@@ -143,12 +144,13 @@ export class World {
     this.cockpitScene = new THREE.Scene();
     // the sky seen through the windows lights it (environment map); light bounced around the
     // flight deck is a neutral, warm-grey fill
-    this.cockpitFill = new THREE.HemisphereLight(0xe4e0da, 0x3a3632, 0.9);
+    this.cockpitFill = new THREE.HemisphereLight(0xdde8f0, 0x55514b, 1.1);
     this.cockpitScene.add(this.cockpitFill);
     this.time = 0;
     this.night = false;
     this.rng = makeRng(21);
 
+    this.assetJobs = [];
     this.buildLighting();
     this.buildSky();
     this.buildTerrain();
@@ -156,6 +158,11 @@ export class World {
     this.buildAirport();
     this.lights = new AirfieldLights(this.scene, this.townLightEntries);
     this.buildWeather();
+    this.assetJobs.push(loadParkedAircraft(this));
+    this.assetsReady = Promise.allSettled(this.assetJobs).then(results => {
+      this.assetErrors = results.filter(r => r.status === 'rejected').map(r => String(r.reason));
+      if (this.assetErrors.length) console.warn('Some scenery could not load:', this.assetErrors);
+    });
     if (high) this.buildPost();
 
     window.addEventListener('resize', () => this.resize());
@@ -250,78 +257,7 @@ export class World {
 
   // ------------------------------------------------------------------ terrain
   buildTerrain() {
-    const sizeX = 160000, sizeZ = 110000, seg = this.lowDetail ? 100 : 200;
-    const geo = new THREE.PlaneGeometry(sizeX, sizeZ, seg, Math.round(seg * sizeZ / sizeX));
-    geo.rotateX(-Math.PI / 2);
-    geo.translate(12000, 0, 0);           // the approach comes from the east: extend that way
-    const pos = geo.attributes.position;
-    for (let i = 0; i < pos.count; i++) {
-      const x = pos.getX(i), z = pos.getZ(i);
-      pos.setY(i, TERRAIN.heightAt(x, z));
-    }
-    geo.computeVertexNormals();
-    // A photographic-scale agricultural tile covers six kilometres.
-    const uvAttr = geo.attributes.uv;
-    for (let i = 0; i < uvAttr.count; i++) uvAttr.setXY(i, pos.getX(i) / 6000, pos.getZ(i) / 6000);
-    this.groundTex = makeGroundTexture(this.maxAniso);
-    // a standard (lit, shadowed, fogged) material whose colour is built from three textures: the
-    // 2 km field patchwork, a large-scale variation, and close-up grass detail; high ground is rock and snow
-    const gu = this.groundUniforms = { uMacro: { value: makeMacroTexture() }, uDetail: { value: makeDetailTexture() }, uWet: { value: 0 }, uAlbedo: { value: 0.92 } };
-    const mat = new THREE.MeshStandardMaterial({ map: this.groundTex, roughness: 1, metalness: 0 });
-    const base = THREE.Material.prototype.onBeforeCompile;
-    mat.onBeforeCompile = (sh, r) => {
-      base.call(mat, sh, r);
-      Object.assign(sh.uniforms, gu);
-      sh.vertexShader = sh.vertexShader
-        .replace('#include <common>', '#include <common>\nvarying float vHeight; varying vec2 vGroundXZ;')
-        .replace('#include <begin_vertex>', '#include <begin_vertex>\nvHeight = position.y; vGroundXZ = position.xz;');
-      sh.fragmentShader = sh.fragmentShader
-        .replace('#include <common>', '#include <common>\nvarying float vHeight; varying vec2 vGroundXZ;\nuniform sampler2D uMacro; uniform sampler2D uDetail; uniform float uWet; uniform float uAlbedo;')
-        .replace('#include <map_fragment>', /* glsl */`
-          vec3 base = texture2D(map, vMapUv).rgb;
-          // Keep fields and pictured farmhouses outside the airport's maintained grass verge.
-          float airport = (1.0-smoothstep(1660.0,1900.0,abs(vGroundXZ.x))) * (1.0-smoothstep(470.0,630.0,abs(vGroundXZ.y-130.0)));
-          float grassNoise = texture2D(uMacro,vGroundXZ/650.0).r;
-          float mowing = 0.97 + 0.03*sin(vGroundXZ.y*0.18);
-          base = mix(base,vec3(0.105,0.145,0.061)*(0.8+grassNoise*0.4)*mowing,airport);
-          // the towns (see buildTown): gardens, yards and streets instead of crop fields under the houses
-          vec2 dE = (vGroundXZ - vec2(8000.0, 1800.0)) * vec2(1.0, 1.25), dN = (vGroundXZ - vec2(-6000.0, -2600.0)) * vec2(1.0, 1.25);
-          float town = max(1.0 - smoothstep(900.0, 1900.0, length(dE)), 1.0 - smoothstep(600.0, 1350.0, length(dN)));
-          base = mix(base, vec3(0.16, 0.17, 0.13) * (0.75 + grassNoise * 0.5), town * 0.7);
-          float macro = texture2D(uMacro, vMapUv * 0.1).r * 2.0;
-          // close-up grass / soil detail (fades out beyond ~1.5 km so it never sparkles at range)
-          float detail = texture2D(uDetail, vMapUv * 180.0).r * 2.0;
-          float detailW = 1.0 - smoothstep(300.0, 1500.0, length(vViewPosition));
-          base *= mix(1.0, mix(0.82, 1.18, detail * 0.5), detailW);
-          // rocky / snowy high ground
-          float hi = smoothstep(250.0, 700.0, vHeight);
-          base = mix(base, vec3(0.45, 0.42, 0.38), hi * 0.8);
-          base = mix(base, vec3(0.9), smoothstep(650.0, 900.0, vHeight));
-          base *= mix(0.85, 1.15, macro * 0.5);
-          base *= mix(1.0, 0.7, uWet) * uAlbedo;
-          diffuseColor.rgb *= base;
-        `);
-    };
-    this.groundMat = mat;
-    const ground = new THREE.Mesh(geo, mat);
-    ground.position.y = -0.05;
-    ground.frustumCulled = false;
-    ground.receiveShadow = true;
-    this.scene.add(ground);
-    this.ground = ground;
-    // Keep a procedural fallback if the local texture cannot load. Boot waits for this
-    // promise so the first flight and visual tests never capture an unfinished surface, but
-    // not for more than 8 s on a stalled connection (the texture still swaps in when it arrives).
-    this.assetsReady = new Promise((resolve) => {
-      setTimeout(resolve, 8000);
-      new THREE.TextureLoader().load(new URL('../../assets/textures/countryside.jpg', import.meta.url).href, (tex) => {
-        tex.colorSpace = THREE.SRGBColorSpace;
-        tex.wrapS = tex.wrapT = THREE.MirroredRepeatWrapping;
-        tex.anisotropy = this.maxAniso;
-        this.groundTex.dispose(); this.groundTex = tex; mat.map = tex; mat.needsUpdate = true;
-        resolve();
-      }, undefined, () => resolve());
-    });
+    buildLandscape(this);
   }
 
   // ------------------------------------------------------------------ airport
@@ -339,6 +275,19 @@ export class World {
     rw.position.y = 0.02;
     add(rw, false);
     this.runwayMat = rwMat;
+    // Narrow, irregular aggregate shoulders soften the razor-straight pavement
+    // against the turf without changing the operational runway dimensions.
+    const shoulderMat=std({color:0x656659,roughness:1});
+    for(const side of [-1,1]){
+      const positions=[],indices=[];
+      for(let i=0;i<=120;i++){
+        const x=-halfL+i*L/120,outer=W/2+5.5+Math.sin(i*2.31)*.65;
+        positions.push(x,.005,side*(W/2-.2),x,.005,side*outer);
+        if(i<120){const a=i*2;indices.push(a,a+1,a+2,a+1,a+3,a+2);}
+      }
+      const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geo.setIndex(indices);geo.computeVertexNormals();
+      const shoulder=new THREE.Mesh(geo,shoulderMat);shoulder.material.side=THREE.DoubleSide;add(shoulder,false);
+    }
     // blast pads / stopways at each end (60 m, chevrons omitted)
     const padMat = std({ color: 0x4a4a4c, roughness: 1 });
     for (const sx of [-1, 1]) { const p = new THREE.Mesh(new THREE.PlaneGeometry(60, W), padMat); p.rotation.x = -Math.PI / 2; p.position.set(sx * (halfL + 30), 0.01, 0); add(p, false); }
@@ -368,7 +317,7 @@ export class World {
       m.position.set(x, h / 2, z); return add(m);
     };
     this.buildingTex.repeat.set(4, 1);
-    box(420, 22, 60, 0, 460);                    // terminal
+    box(700, 22, 60, 0, 460);                    // terminal — all five gates connect
     box(120, 16, 60, -400, 470); box(120, 16, 60, 420, 470);
     const hangarMat = std({ color: 0x8e9298, roughness: 0.6, metalness: 0.3 });
     for (let i = 0; i < 3; i++) box(90, 24, 70, 700 + i * 110, 300, hangarMat); // hangars
@@ -377,7 +326,8 @@ export class World {
     const shaft = new THREE.Mesh(new THREE.CylinderGeometry(5, 7, 52, 12), towerMat); shaft.position.set(-250, 26, 330); add(shaft);
     const cab = new THREE.Mesh(new THREE.CylinderGeometry(11, 9, 9, 12), std({ color: 0x1a2530, roughness: 0.1, metalness: 0.6 })); cab.position.set(-250, 56, 330); add(cab);
     // jet bridges + parked aircraft on the apron
-    for (let i = 0; i < 5; i++) this.addParkedAirliner(-320 + i * 160, 380, Math.PI);
+    this.parkedAircraft = new THREE.Group();
+    this.scene.add(this.parkedAircraft);
     // localizer antenna array beyond the 09 end, glideslope mast near the TDZ
     const antMat = std({ color: 0xdddddd, roughness: 0.6 });
     for (let i = -7; i <= 7; i++) { const a = new THREE.Mesh(new THREE.BoxGeometry(0.4, 3, 2.5), antMat); a.position.set(-halfL - 300, 1.5, i * 3.2); add(a); }
@@ -392,149 +342,9 @@ export class World {
     // perimeter road
     const road = new THREE.Mesh(new THREE.PlaneGeometry(6000, 8), std({ color: 0x555555, roughness: 1 }));
     road.rotation.x = -Math.PI / 2; road.position.set(0, 0.01, 620); add(road, false);
-    // forests + villages around (instanced trees)
-    this.buildVegetation();
-    addWater(this.scene);
     addAirportDetail(this.scene, this.lowDetail);
-    // a town under the approach (rows of small buildings) for scale & lights
-    this.buildTown();
-  }
-
-  addParkedAirliner(x, z, yaw) {
-    const g = new THREE.Group();
-    const white = this.airlinerWhite || (this.airlinerWhite = new THREE.MeshStandardMaterial({ color: 0xf0f0f0, roughness: 0.35, metalness: 0.1 }));
-    const blue = this.airlinerBlue || (this.airlinerBlue = new THREE.MeshStandardMaterial({ color: 0x2255aa, roughness: 0.35 }));
-    const grey = this.airlinerGrey || (this.airlinerGrey = new THREE.MeshStandardMaterial({ color: 0x999999, roughness: 0.3, metalness: 0.7 }));
-    const part = (m) => { m.castShadow = true; m.receiveShadow = true; g.add(m); return m; };
-    const fus = part(new THREE.Mesh(new THREE.CylinderGeometry(1.9, 1.9, 38, 16), white)); fus.rotation.x = Math.PI / 2; fus.position.y = 3.2;
-    const wing = part(new THREE.Mesh(new THREE.BoxGeometry(34, 0.4, 5), white)); wing.position.set(0, 2.6, 1);
-    const tail = part(new THREE.Mesh(new THREE.BoxGeometry(0.4, 7, 5), blue)); tail.position.set(0, 7, 16);
-    const htail = part(new THREE.Mesh(new THREE.BoxGeometry(13, 0.3, 3), white)); htail.position.set(0, 4, 17);
-    for (const sx of [-1, 1]) { const e = part(new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.1, 4, 12), grey)); e.rotation.x = Math.PI / 2; e.position.set(sx * 5.7, 1.8, -1); }
-    g.position.set(x, 0, z); g.rotation.y = yaw; this.scene.add(g);
-  }
-
-  buildVegetation() {
-    const tex = makeTreeTexture();
-    const mat = new THREE.MeshStandardMaterial({ map: tex, transparent: false, alphaTest: 0.5, side: THREE.DoubleSide, roughness: 0.95 });
-    const count = this.lowDetail ? 1200 : 3500;
-    const geo = new THREE.PlaneGeometry(9, 12);
-    const mesh = new THREE.InstancedMesh(geo, mat, count * 2);
-    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3();
-    const rng = this.rng;
-    let i = 0;
-    // forest patches (avoid the runway strip and the approach corridor within 1.2 km of the centreline)
-    const patches = [];
-    for (let k = 0; k < 40; k++) {
-      let x, z;
-      do { x = (rng() - 0.5) * 30000; z = (rng() - 0.5) * 24000; } while (Math.abs(z) < 900 || (Math.abs(x) < 2200 && Math.abs(z) < 1400));
-      patches.push({ x, z, r: 250 + rng() * 700 });
-    }
-    for (const pt of patches) {
-      const n = Math.floor(count / patches.length);
-      for (let k = 0; k < n && i < count; k++) {
-        const a = rng() * Math.PI * 2, r = Math.sqrt(rng()) * pt.r;
-        p.set(pt.x + Math.cos(a) * r, 0, pt.z + Math.sin(a) * r);
-        p.y = TERRAIN.heightAt(p.x, p.z) + 6;
-        const sc = 0.8 + rng() * 0.8;
-        s.set(sc, sc, sc);
-        for (const rot of [0, Math.PI / 2]) {
-          q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), rot);
-          m.compose(p, q, s); mesh.setMatrixAt(i * 2 + (rot === 0 ? 0 : 1), m);
-        }
-        i++;
-      }
-    }
-    mesh.count = i * 2;
-    mesh.instanceMatrix.needsUpdate = true;
-    mesh.frustumCulled = false;
-    this.scene.add(mesh);
-  }
-
-  buildTown() {
-    const rng = this.rng;
-    const tex = makeBuildingTexture(false);
-    const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.85 });
-    const roofMat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9 });   // tinted per roof
-    const geo = new THREE.BoxGeometry(1, 1, 1);
-    const count = this.lowDetail ? 300 : 900;
-    const mesh = new THREE.InstancedMesh(geo, mat, count);
-    const roofs = new THREE.InstancedMesh(new THREE.ConeGeometry(0.7071, 1, 4).rotateY(Math.PI / 4), roofMat, count);
-    const colors = [0xd1c9b9, 0xb5b5a8, 0xc0b4a0, 0xa4a89c, 0xcbc9c0];
-    const roofColors = [0x74685a, 0x8a5a44, 0x5d5f5e, 0x9a6b4f, 0x6e5446];
-    const m = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
-    // a town ~6–9 km east of the threshold, south of the extended centreline, plus a suburb north.
-    // Each grows along streets out of its centre (a few gently curving radial streets and two
-    // ring roads): the houses face their street, stand closer together and taller towards the
-    // centre, and are kept apart (one per 22 m cell).
-    const towns = [{ x: 8000, z: 1800, r: 1700, n: Math.round(count * 0.7) }, { x: -6000, z: -2600, r: 1200, n: count - Math.round(count * 0.7) }];
-    const taken = new Set(), cell = 22, key = (x, z) => `${Math.round(x / cell)},${Math.round(z / cell)}`;
-    let i = 0;
-    const road = [], strip = (pts) => {                     // a 7 m street along a polyline, on the (flat) ground
-      for (let k = 0; k < pts.length - 1; k++) {
-        const [x0, z0] = pts[k], [x1, z1] = pts[k + 1], l = Math.hypot(x1 - x0, z1 - z0) || 1, nx = -(z1 - z0) / l * 3.5, nz = (x1 - x0) / l * 3.5;
-        road.push(x0 - nx, 0.012, z0 - nz, x0 + nx, 0.012, z0 + nz, x1 - nx, 0.012, z1 - nz, x0 + nx, 0.012, z0 + nz, x1 + nx, 0.012, z1 + nz, x1 - nx, 0.012, z1 - nz);
-      }
-    };
-    for (const t of towns) {
-      const streets = [];
-      const radial = 7 + Math.floor(rng() * 3);
-      for (let k = 0; k < radial; k++) streets.push({ ring: false, a: (k + rng() * 0.6) * (2 * Math.PI / radial), bend: (rng() - 0.5) * 0.0011 });
-      for (const f of [0.33, 0.66]) streets.push({ ring: true, rad: t.r * f * (0.9 + rng() * 0.2), a: rng() * 2 * Math.PI });
-      for (const st of streets) {
-        const pts = [];
-        if (st.ring) for (let a = 0; a <= 2 * Math.PI + 1e-6; a += Math.PI / 48) pts.push([t.x + Math.cos(a) * st.rad, t.z + Math.sin(a) * st.rad * 0.8]);
-        else for (let dist = 0; dist <= t.r; dist += 50) pts.push([t.x + Math.cos(st.a + st.bend * dist / 2) * dist, t.z + Math.sin(st.a + st.bend * dist / 2) * dist * 0.8]);
-        strip(pts);
-      }
-      for (let placed = 0, tries = 0; placed < t.n && tries < t.n * 25; tries++) {
-        const st = streets[Math.floor(rng() * streets.length)];
-        let x, z, dir, dist;
-        if (st.ring) {
-          const a = rng() * 2 * Math.PI;
-          dist = st.rad; x = t.x + Math.cos(a) * dist; z = t.z + Math.sin(a) * dist * 0.8; dir = a + Math.PI / 2;
-        } else {
-          dist = t.r * Math.pow(rng(), 1.4);                      // denser towards the centre
-          dir = st.a + st.bend * dist;
-          x = t.x + Math.cos(st.a + st.bend * dist / 2) * dist; z = t.z + Math.sin(st.a + st.bend * dist / 2) * dist * 0.8;
-        }
-        const core = 1 - Math.min(1, dist / (t.r * 0.35));       // 1 in the centre, 0 in the outskirts
-        const side = rng() < 0.5 ? -1 : 1, back = 13 + rng() * 9 + core * 6;
-        x += -Math.sin(dir) * side * back; z += Math.cos(dir) * side * back;
-        if (taken.has(key(x, z))) continue;
-        taken.add(key(x, z));
-        const h = core > 0 ? 7 + rng() * (8 + core * 14) : 5 + rng() * (rng() < 0.05 ? 18 : 4);
-        const w = 9 + rng() * 6 + core * 12, d = 10 + rng() * 6 + core * 10;
-        const ground = TERRAIN.heightAt(x, z);
-        q.setFromAxisAngle(up, -dir + (rng() - 0.5) * 0.08);
-        p.set(x, ground + h / 2, z); s.set(w, h, d);
-        m.compose(p, q, s); mesh.setMatrixAt(i, m);
-        mesh.setColorAt(i, new THREE.Color(colors[Math.floor(rng() * colors.length)]));
-        const roofH = Math.min(w, d) * (core > 0.5 ? 0.12 : 0.3);    // flatter roofs on the bigger central buildings
-        p.y = ground + h + roofH / 2; s.set(w + 1.2, roofH, d + 1.2); m.compose(p, q, s); roofs.setMatrixAt(i, m);
-        roofs.setColorAt(i, new THREE.Color(roofColors[Math.floor(rng() * roofColors.length)]));
-        // street light next to every other house, warm white / sodium orange
-        if (i % 2 === 0) this.townLightEntries.push({ x: x + Math.sin(dir) * side * (back - 6), y: ground + 6, z: z - Math.cos(dir) * side * (back - 6), color: rng() < 0.6 ? [1, 0.75, 0.4] : [0.95, 0.95, 1], size: 1.4, group: 'town' });
-        i++; placed++;
-      }
-    }
-    mesh.count = roofs.count = i;
-    const roadGeo = new THREE.BufferGeometry();
-    roadGeo.setAttribute('position', new THREE.Float32BufferAttribute(road, 3)); roadGeo.computeVertexNormals();
-    const streetMesh = new THREE.Mesh(roadGeo, new THREE.MeshStandardMaterial({ color: 0x55575a, roughness: 0.95, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }));
-    streetMesh.receiveShadow = true; this.scene.add(streetMesh);
-    // scattered farm / village lights across the plain and along the perimeter road
-    for (let i = 0; i < 260; i++) {
-      const x = (rng() - 0.5) * 36000 + 6000, z = (rng() - 0.5) * 22000;
-      if (Math.abs(z) < 700 && Math.abs(x) < 3000) continue;
-      this.townLightEntries.push({ x, y: 4, z, color: rng() < 0.7 ? [1, 0.78, 0.45] : [0.9, 0.95, 1], size: 1.1, group: 'town' });
-    }
-    for (let x = -3000; x <= 3000; x += 120) this.townLightEntries.push({ x, y: 8, z: 640, color: [1, 0.7, 0.35], size: 1.2, group: 'town' });
-    mesh.instanceMatrix.needsUpdate = roofs.instanceMatrix.needsUpdate = true;
-    this.scene.add(mesh);
-    this.scene.add(roofs);
-    this.townMat = mat;
-    this.buildingMats.push(mat);
+    // Perimeter road lighting; villages and woodland follow the photographic region.
+    for (let x=-2800;x<=2800;x+=120) this.townLightEntries.push({x,y:8,z:640,color:[1,.75,.42],size:1.2,group:'town'});
   }
 
   // ------------------------------------------------------------------ weather
@@ -557,7 +367,18 @@ export class World {
     // overcast deck
     const ovTex = makeOvercastTexture();
     ovTex.repeat.set(30, 30);
-    this.overcast = new THREE.Mesh(new THREE.PlaneGeometry(80000, 80000), new THREE.MeshBasicMaterial({ map: ovTex, side: THREE.DoubleSide, transparent: true, opacity: 0.97, fog: true, depthWrite: false }));
+    this.overcast = new THREE.Mesh(new THREE.PlaneGeometry(80000, 80000, 96, 96), new THREE.MeshBasicMaterial({ map: ovTex, side: THREE.DoubleSide, transparent: true, opacity: 0.97, fog: true, depthWrite: false }));
+    this.overcast.material.onBeforeCompile=shader=>{
+      THREE.Material.prototype.onBeforeCompile.call(this.overcast.material,shader);
+      shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>
+        vec3 deckWorld=(modelMatrix*vec4(position,1.0)).xyz;
+        // Broad billows rise from the specified cloud base; they never lower the ceiling.
+        transformed.z-=30.0+14.0*sin(deckWorld.x*.0018+sin(deckWorld.z*.0008))
+                            +12.0*sin(deckWorld.z*.0027+deckWorld.x*.0013);`);
+      shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',`#include <map_fragment>
+        vec3 broad=texture2D(map,vMapUv*.173+vec2(.27,.61)).rgb;
+        diffuseColor.rgb*=.76+broad*.55;`);
+    };
     this.overcast.rotation.x = Math.PI / 2;
     this.overcast.visible = false;
     this.overcast.renderOrder = 2;
@@ -766,9 +587,10 @@ export class World {
     if (this.hasDeck) {
       inCloudF = Math.max(0, Math.min(1, (alt - this.cloudBase) / 60, (this.cloudTop - alt) / 60));
       vis = vis * (1 - inCloudF) + 120 * inCloudF;
-      // inside the deck neither sheet is drawn (a sheet seen edge-on would leave a false horizon line)
-      this.overcast.visible = alt < this.cloudTop - 20 && inCloudF < 0.97;
-      this.overcastTop.visible = this.cloudTop < 6000 && alt > this.cloudBase + 20 && inCloudF < 0.97;
+      // A sheet represents an OUTSIDE surface. Even the transition band inside
+      // the cloud must not see an opaque floor/ceiling cutting across the fog.
+      this.overcast.visible = alt < this.cloudBase + 3;
+      this.overcastTop.visible = this.cloudTop < 6000 && alt > this.cloudTop - 3;
       // how far down through the deck: 0 at its top (clear sky, sunshine), 1 at its base (overcast)
       under = Math.max(under, clamp((this.cloudTop - alt) / Math.max(this.cloudTop - this.cloudBase, 1), 0, 1));
     }
@@ -781,6 +603,9 @@ export class World {
     au.skyOvercast.value = Math.max(this.baseOvercast, under * this.deckOvercast, inCloudF, murk);
     // the sun is hidden by the deck: its light and shadows fade on the way down through it
     const sunF = 1 - 0.92 * Math.max(under, inCloudF);
+    // Tree cards contain the source model's soft baked lighting. Only the broad
+    // weather/time exposure is applied here, avoiding a second set of card-shaped shadows.
+    if(this.woodlandMaterial)this.woodlandMaterial.color.setScalar(.025+this.daylight*(.3+.7*sunF));
     this.sun.intensity = this.sunI * sunF;
     this.cockpitSun.intensity = this.sunI * sunF * (this.cockpitSunScale || 0.6);
     if (this.sun.castShadow) { this.sun.shadow.intensity = sunF; this.cockpitSun.shadow.intensity = sunF; }

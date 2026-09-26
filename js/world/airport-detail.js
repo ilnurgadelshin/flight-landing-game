@@ -11,19 +11,30 @@ export function addAirportDetail(scene, lowDetail) {
     batches.get(key).transforms.push(m);
   };
   // Terminal curtain wall, horizontal bands and roof plant.
-  for (let x=-205;x<=205;x+=9) {
+  for (let x=-345;x<=345;x+=9) {
     add(0x354f58,x,11,429.75,7.8,15,0.25,0,true);
     add(0xc7c8bf,x+4.25,11,429.4,0.55,20,0.8,0,true);
   }
-  for (const y of [4,11,18]) add(0xa6aaa4,0,y,429.3,420,0.5,0.8,0,true);
-  add(0xc9cac2,0,22.5,454,435,1.2,78,0,true);
-  for (let x=-180;x<200;x+=28) add(0x818a89,x,24.4,467,10,3,8,0,true);
+  for (const y of [4,11,18]) add(0xa6aaa4,0,y,429.3,700,0.5,0.8,0,true);
+  add(0x8e9695,0,22.5,454,715,1.2,78,0,true);
+  // Standing-seam roof, perimeter flashing, plant curbs and dark ventilation grilles.
+  for(let x=-354;x<358;x+=6) add(0x697675,x,23.15,454,.09,.13,77,0,true);
+  for(const z of [415.4,492.6])add(0xadb4ae,0,23.15,z,715,.35,.3,0,true);
+  for (let x=-320;x<340;x+=36){
+    add(0x515e5c,x,23.5,467,11,.8,9);
+    add(0x899491,x,24.7,467,10,2,8,0,true);
+    add(0x333e3b,x,25.75,467,8.5,.06,6.5);
+    for(let z=464;z<471;z+=.6)add(0x747f7a,x,25.82,z,8.7,.08,.18,0,true);
+  }
+  add(0x6c716b,0,.4,429.1,700,.8,.6); // weathered plinth meets the apron
   // Hangar door reveals, ribs and roof ridge caps.
   for (let i=0;i<3;i++) {
     const x=700+i*110;
     add(0x414a4a,x,10.5,264.6,78,20,0.6,0,true);
     for (let dx=-39;dx<=39;dx+=6) add(0xa0a8a5,x+dx,10.5,264.2,0.45,20,0.6,0,true);
     add(0xc4c8c1,x,24.5,300,94,1,74,0,true);
+    for(let dx=-42;dx<=42;dx+=3)add(0x919c99,x+dx,25.04,300,.07,.12,73,0,true);
+    add(0x505c58,x,.3,264.1,91,.6,.4);
   }
   // Jet bridges, yellow stand guidance and ramp service vehicles.
   for (let i=0;i<5;i++) {
@@ -31,6 +42,11 @@ export function addAirportDetail(scene, lowDetail) {
     add(0xa6acaa,x-11,4.8,414,4.2,3.2,34,0,true);
     add(0x485b61,x-13.2,5,414,0.12,1.2,31,0,true);
     add(0x747e7c,x-11,2,401,1.6,4,1.6,0,true);
+    // Articulated head reaches the aircraft door; the old bridges stopped in mid-air.
+    add(0x929d97,x-6.8,4.6,399,8.5,2.8,3.3,0,true);
+    add(0x37443e,x-2.4,4.6,399,.55,2.8,3.5);
+    for(let dx=-10;dx<-2.5;dx+=1.8)add(0x576961,x+dx,4.9,397.3,1.4,1.1,.1,0,true);
+    add(0x737d75,x-11,.4,401,3.4,.8,2.2);
     add(0xc8a24a,x,0.037,331,0.22,0.01,66);
     add(0xc8a24a,x,0.038,357,16,0.01,0.22);
     add(0xc8a24a,x-40,0.037,348,0.2,0.01,80);
@@ -56,7 +72,8 @@ export function addAirportDetail(scene, lowDetail) {
   }
   const geometry=new THREE.BoxGeometry(1,1,1);
   for (const batch of batches.values()) {
-    const material=new THREE.MeshStandardMaterial({color:batch.color,roughness:batch.metallic?0.48:0.85,metalness:batch.metallic?0.3:0});
+    const glass=batch.color===0x354f58||batch.color===0x485b61;
+    const material=new THREE.MeshStandardMaterial({color:batch.color,roughness:glass?.22:batch.metallic?.68:.92,metalness:glass?.48:batch.metallic?.22:0});
     const mesh=new THREE.InstancedMesh(geometry,material,batch.transforms.length);
     batch.transforms.forEach((m,i)=>mesh.setMatrixAt(i,m));
     mesh.castShadow=true; mesh.receiveShadow=true; scene.add(mesh);

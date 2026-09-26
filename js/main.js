@@ -35,10 +35,10 @@ async function boot() {
   await new Promise((r) => setTimeout(r, 30));
   const canvas = document.getElementById('gl');
   const world = new World(canvas, { lowDetail, quality, pixelRatio: touchFirst ? Math.min(window.devicePixelRatio || 1, 1.5) : undefined });
-  await world.assetsReady;
-  ui.hideLoading('Building the flight deck…');
+  ui.hideLoading('Loading scenery and flight deck…');
   await new Promise((r) => setTimeout(r, 10));
-  const cockpit = new Cockpit(world.camera);
+  const cockpit = new Cockpit(world.camera, { lowDetail: world.lowDetail || world.quality === 'low' });
+  await Promise.all([world.assetsReady, cockpit.assetsReady]);
   world.setupCockpit(cockpit.root);
   const input = new InputManager(canvas);
   const audio = new AudioSystem({ ios: isIOS });

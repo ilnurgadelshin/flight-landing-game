@@ -214,7 +214,9 @@ if (want('school')) {
   check('steps show the key mapping', kbdSteps >= 9, `${kbdSteps} steps with key caps`);
   await page.click('#school-next'); await page.waitForTimeout(500);
   check('"Start flying" closes the school and unpauses', (await S()).gameState === 'flying' && !(await page.evaluate(() => window.__sim.game.sim.paused)));
-  await page.waitForTimeout(1500);
+  // Hints advance on simulated time. A wall-clock sleep can expire before the
+  // first 0.5 s update when software-rendered screenshot work is still queued.
+  await simWait(1);
   const inst = await page.evaluate(() => document.getElementById('instructor').textContent);
   check('instructor hints are shown in training mode', inst.length > 10, inst.slice(0, 60));
   check('flight director is displayed in training mode', await page.evaluate(() => window.__sim.cockpit.pfd.fdEnabled));

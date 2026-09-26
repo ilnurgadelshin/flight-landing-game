@@ -25,7 +25,12 @@ const VERT = /* glsl */`
     vDepth = dist;
     // apparent size: lights stay visible at range (like real airfield lights)
     float s = size * uPixelRatio * clamp(1400.0 / max(dist, 1.0), 0.35, 3.0);
-    gl_PointSize = clamp(s, 3.0 * uPixelRatio, 26.0 * uPixelRatio) * (bright > 0.01 ? 1.0 : 0.0);
+    // Only beacons/PAPI need a conspicuous daytime core. Hundreds of 3 px
+    // minimum-size lamps used to merge into a white rectangle on final.
+    float signal = smoothstep(2.0, 3.4, size);
+    float minSize = mix(3.0, mix(0.65, 1.8, signal), uDaylight);
+    s *= mix(1.0, mix(0.62, 0.95, signal), uDaylight);
+    gl_PointSize = clamp(s, minSize * uPixelRatio, 26.0 * uPixelRatio) * (bright > 0.01 ? 1.0 : 0.0);
     gl_Position = projectionMatrix * mvPosition;
     #include <logdepthbuf_vertex>
   }
@@ -49,9 +54,10 @@ const FRAG = /* glsl */`
     float a = (core + halo) * vBright;
     // lights punch through fog better than terrain (Koschmieder-ish) but still fade
     float fog = exp(-uFogDensity * uFogDensity * vDepth * vDepth * 0.55);
-    a *= mix(1.0, fog, 0.97);
+    // No visibility floor: it made the whole runway glow through opaque cloud.
+    a *= fog;
     // by day the lights are dimmer relative to the scene
-    a *= mix(1.0, 0.9, uDaylight);
+    a *= mix(1.0, 0.48, uDaylight);
     gl_FragColor = vec4(vColor * (1.0 + 0.6 * core) * mix(1.0, uIntensity, core), a);
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
@@ -180,7 +186,10 @@ export class AirfieldLights {
   update(dt, eye, fogDensity, daylight, pixelRatio) {
     this.time += dt;
     const u = this.material.uniforms;
-    u.uFogDensity.value = fogDensity; u.uDaylight.value = daylight; u.uPixelRatio.value = pixelRatio;
+    u.uFogDensity.value = fogDensity;
+    // High-intensity approach lights remain useful in daytime fog.
+    u.uDaylight.value = daylight * (1 - Math.min(.85, fogDensity * 1800));
+    u.uPixelRatio.value = pixelRatio;
     // sequenced flashers: run toward the threshold twice per second
     const fl = this.groups.flasher || [];
     const phase = (this.time * 2) % 1;            // 0..1 per sequence

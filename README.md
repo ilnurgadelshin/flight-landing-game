@@ -524,7 +524,7 @@ green.
 **World** (`js/world/`): terrain, an airport with a 3000 m × 45 m runway with
 ICAO markings, ALSF-2 approach lights with sequenced flashers, threshold,
 edge, centreline and touchdown-zone lights, a PAPI computed from the pilot's
-eye position, taxiways, buildings, a town, forests, clouds, rain, fog and
+eye position, taxiways, terminal buildings, photographed countryside, woodland, clouds, rain, fog and
 lightning.
 
 **Light and atmosphere** (`js/world/sky.js`, `js/world/scene.js`): one
@@ -533,12 +533,12 @@ the haze over the land (it takes the colour of the horizon sky in each
 direction: warm and bright towards the sun, blue away from it), the colour of
 the sunlight and the light the sky sheds. The sky is captured into an
 environment map that lights, and is reflected by, every surface outside and
-inside the cockpit, so water mirrors the sky and a wet runway shines. The sun
+inside the cockpit, so metal reflects the sky and a wet runway shines. The sun
 casts shadows: over the airport, and through the flight-deck windows, whose
 frames throw moving shadows across the glareshield and panel. Under a cloud
 deck the sun is hidden and the light turns flat and grey; above it, sunshine
 and a clear sky return. At night there are stars, moonlight, and runway and
-town lights that glow.
+airport and perimeter-road lights that glow.
 
 Computers get the **high** graphics tier: sun shadows, and the outside view
 drawn into a floating-point frame with 4× multisampling and a bloom pass (the
@@ -547,21 +547,43 @@ the **low** tier: the same sky, haze and lighting, drawn straight to the screen,
 without shadows or bloom. Add `?quality=high` or `?quality=low` to the address
 to choose.
 
-The terrain uses a bundled aerial countryside texture with close-range ground detail and a
-separate maintained-grass surface around the airport. Both tiers include:
+The visual assets are bundled locally and need no map service, account or API key:
 
-- rounded cockpit surfaces, recessed display bezels and panel fittings;
-- broadleaf vegetation;
-- towns grown along their streets, with houses facing the street and pitched, tiled roofs;
-- terminal glazing, jet bridges and ramp vehicles;
-- irregular water boundaries.
+- An authored **737-800 flight deck** replaces the primitive cockpit. Modeled switches,
+  lettering, bezels, seats, overhead and yokes have baked contact shading. The simulator's
+  live flight, navigation and engine displays occupy the model's instrument windows;
+  the yokes and flight controls animate from the simulation. A fitted headliner closes
+  the source model's open roof. The old cockpit remains available if the model cannot load.
+- Four **USDA NAIP aerial photographs** cover the 80 km region, 24 km approach and
+  8 km airport, plus an 8 km final-approach layer at 2 m/px. They blend across rolling
+  terrain that remains level under the airport and approach safety strip;
+  the scenery uses Pennsylvania imagery repositioned around fictional Westhaven,
+  rather than reproducing a real airport. The close scenery uses canopy views baked from a detailed CC0 tree, grouped into
+  stands along the airfield and final approach.
+- **Scanned grass and asphalt materials** add surface detail around the runway,
+  taxiways and apron. The airport retains its terminal glazing, jet bridges and vehicles,
+  with authored **B737 and A320** models on the stands.
+
+The desktop cockpit has about 1.02 million triangles and an 8.3 MB download. The lighter
+phone model has about 420,000 triangles and a 3.6 MB download, omits tiny molded labels,
+and retains the live instruments. Phones also use 1024 px aerial images and fewer trees.
+The captain’s desktop view uses a 58° vertical field of view and an eye position aligned
+with the forward windshield. Panel, padding and trim have separate finishes; runway lights
+use smaller daytime cores and fade with visibility in fog. Cloud surfaces are hidden inside
+the deck so they cannot cut a dark floor across the view. The ranked visual audit
+and remaining limits are in [`test/VISUAL-AUDIT.md`](test/VISUAL-AUDIT.md).
+
+This is an asset-based rendering foundation; the terrain heights and airport buildings
+are still synthetic, and photographed buildings outside the airport are not individual
+3D structures. Hardware frame rates depend on the device and graphics tier.
 
 At night the flight deck's flood and dome lights are turned well down, as crews fly, so the
 panel is dimmer than by day and the displays stand out. The high tier also draws fair-weather
 cumulus as ray-marched 3D density volumes with self-shadowing. Each ray marches only through
 the box around its cloud and skips the noise outside the cloud's shape. The low tier uses the
-lighter sprite clouds. Cloud-deck visibility and storm physics are shared. Asset provenance and
-the generation prompt are in `assets/README.md`.
+lighter sprite clouds. Cloud-deck visibility and storm physics are shared. All imported assets
+are public domain, CC0 or CC BY 4.0; licenses, attribution and reproducible asset preparation
+commands are in [`assets/README.md`](assets/README.md). Players can open the credits from the menu.
 
 **Head-up view** (`js/hud.js`, `js/view.js`): the flight deck hidden and a
 conformal head-up display modelled on the 737's HGS (see *Views* above).
@@ -1143,6 +1165,14 @@ results of two full playtest rounds, every issue found and how it was fixed,
 are in [`test/PLAYTEST-FINDINGS.md`](test/PLAYTEST-FINDINGS.md).
 
 ### Visual review
+
+`node test/visual-review.mjs` verifies that the authored cockpit, both yokes, all four aerial
+images and five parked aircraft load, checks that the PFD and focused ND are unobstructed,
+verifies the fallback for a missing cockpit model, and checks rendered pixels for a continuous
+fog horizon and obscured distant lights on both graphics tiers. It saves desktop cockpit,
+head-up, navigation, pedestal, overhead, night, airport and close-approach weather screenshots
+in `test/output/rebuild-*.png`.
+It uses the actual game renderer and requires Playwright Chromium, like the browser suite.
 
 `test/visual-tour.mjs` captures the view at every stage of an autoland in each
 scenario, by day and night: 10 nm, 4 nm with the left, right and pedestal

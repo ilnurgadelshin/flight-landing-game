@@ -1,7 +1,6 @@
 // Terrain height / surface query used by BOTH physics and rendering so the
-// wheels and the visuals agree. The airport sits on a flat plain; gentle
-// hills rise far away (well outside the approach corridor) and a mountain
-// ridge sits to the south.
+// wheels and the visuals agree. The airport and approach safety strip stay level;
+// rolling countryside rises beside them and a mountain ridge sits to the south.
 import { RUNWAY } from '../config.js';
 
 function hash2(x, z) {
@@ -19,25 +18,23 @@ function smoothNoise(x, z) {
 export const TERRAIN = {
   // metres above sea level at world x,z
   heightAt(x, z) {
-    // flat airport plain within ~12 km of the runway (and the whole extended
-    // centreline corridor east/west stays flat)
+    // A level airport and approach safety strip, blending into nearby rolling
+    // countryside. Rendering, wheel contact and navigation use this same query.
     const dz = Math.abs(z);
     const dx = Math.abs(x);
-    const corridor = dz < 3500;                        // approach corridor is flat
-    const plainR = Math.hypot(dx / 1.6, dz);           // elongated plain along the runway axis
-    if (corridor && dx < 60000) return 0;
-    const t = Math.min(1, Math.max(0, (plainR - 9000) / 6000)); // blend 9–15 km
+    if (dz <= 700 && dx < 60000) return 0;
+    const t = Math.min(1, Math.max(0, (dz - 700) / 2200));
     if (t <= 0) return 0;
     let h = 0;
     // rolling hills
-    h += 90 * smoothNoise(x / 3500, z / 3500);
-    h += 40 * smoothNoise(x / 1200 + 7.3, z / 1200 + 2.1);
+    h += 155 * smoothNoise(x / 2800, z / 2800);
+    h += 55 * smoothNoise(x / 950 + 7.3, z / 950 + 2.1);
     // mountain ridge to the south (z > 18 km)
     if (z > 15000) {
       const s = Math.min(1, (z - 15000) / 8000);
       h += s * (600 + 350 * smoothNoise(x / 4000 + 3.3, z / 4000));
     }
-    return h * t * t;
+    return h * t * t * (3 - 2 * t);
   },
 
   // 'runway' | 'taxiway' | 'grass'

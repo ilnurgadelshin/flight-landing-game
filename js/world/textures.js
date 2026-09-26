@@ -252,13 +252,21 @@ export function makeOvercastTexture(top = false) {
 
 /** Simple building facade with lit windows. */
 export function makeBuildingTexture(night) {
-  const c = canvas(128, 128); const g = c.getContext('2d');
+  const c = canvas(512, 256); const g = c.getContext('2d');
   const rng = makeRng(11);
-  g.fillStyle = night ? '#1a1c22' : '#b9b4ab'; g.fillRect(0, 0, 128, 128);
-  for (let y = 8; y < 120; y += 14) for (let x = 6; x < 122; x += 12) {
-    const lit = night ? rng() < 0.5 : rng() < 0.15;
-    g.fillStyle = lit ? (night ? '#ffe9a8' : '#e8eef4') : (night ? '#0d0f14' : '#6f7580');
-    g.fillRect(x, y, 7, 9);
+  g.fillStyle = night ? '#1a1c22' : '#a9aea8'; g.fillRect(0, 0, 512, 256);
+  for (let row=0;row<4;row++)for(let col=0;col<12;col++) {
+    const x=col*512/12,y=row*64,lit=night&&rng()<.38;
+    const tone=night?25:155+Math.floor(rng()*15);
+    g.fillStyle=`rgb(${tone},${tone+3},${tone})`;g.fillRect(x+1,y+1,41,63);
+    const reflection=g.createLinearGradient(0,y+9,0,y+48);
+    reflection.addColorStop(0,lit?'#cab98c':night?'#0d131a':'#819da5');
+    reflection.addColorStop(.55,lit?'#e2d4ae':night?'#0d131a':'#5b7277');
+    reflection.addColorStop(.58,lit?'#bcb18e':night?'#121b21':'#465953');
+    reflection.addColorStop(1,lit?'#b8a887':night?'#121b21':'#68766b');
+    g.fillStyle=reflection;g.fillRect(x+6,y+9,31,39);
+    g.fillStyle=night?'#252a2e':'#bcc3bb';g.fillRect(x+21,y+9,1,39);g.fillRect(x+5,y+48,33,2);
+    g.fillStyle=night?'#171d22':'#898f87';g.fillRect(x+5,y+50,33,2);
   }
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.needsUpdate = true; return t;
 }
