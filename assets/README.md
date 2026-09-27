@@ -104,6 +104,17 @@ It is scenery, not a geographic or navigation reference. Four images cover the 8
 8 km final-approach area at 2 m/px; phones load 1024 px variants. Exact export requests and extents are recorded
 in `scenery/sources.json`. Files are recompressed for delivery.
 
+`scenery/detail/` adds sixteen overlapping 1 km tiles along the last 8 km of the
+approach (x 2–10 km, z ±1 km). Downloaded 2026-09-27 from the same public-domain
+service, with each exact export URL and extent in `detail/manifest.json`. High quality
+uses 2064 px exports sampled at 0.5 m/px; low uses 1032 px at 1 m/px. NAIP's underlying
+survey is generally 0.6 m: output sampling does not create finer survey detail.
+The 16 m gutters feather into adjoining tiles and the original imagery. At most four
+detail textures are resident; movement evicts/disposes old textures. Missing tiles leave
+the broad imagery visible. The complete high/low set is approximately 24 MB on disk.
+
+Reproduce with `python3 tools/fetch-ground-detail.py` (Pillow and curl required).
+
 ## Approach buildings and roads
 
 `scenery/approach-buildings.json` contains 2,160 footprints adapted from
@@ -119,6 +130,11 @@ these are not surveyed elevations. The original polygon outlines are retained. R
 is sampled from the public-domain photo; roof pitch, facades, windows and eaves are original
 procedural interpretations. Ground shadows approximate the building silhouette in the sun's
 direction, with reduced contrast under overcast; they supplement existing photographic shadows.
+Twelve original facade bays share one atlas: house fronts, upper floors, sparse side walls,
+barn doors and loading bays. Building dimensions select residential or agricultural layouts;
+bay widths and storey counts keep openings at plausible sizes. Doors stay on the ground
+floor, gables remain solid, and nearby ledges follow the actual window measurements.
+These layouts are interpretations, not photographs of the source buildings.
 
 `scenery/approach-roads.json` adapts public-domain **U.S. Census Bureau TIGERweb Physical
 Features** centerlines (2026 vintage). Source endpoint, query and modifications are in the
@@ -132,6 +148,18 @@ trim, nearby window ledges along the flight corridor, and roadside markers; low 
 small details. Terrain-following surfaces use the rendered triangle height for each tier.
 Buildings and roadside fixtures are visual scenery, not new physics obstacles.
 
+`scenery/approach-infill.json` supplements the ML dataset with **five reviewed roof
+traces** from the bundled public-domain NAIP detail imagery: two connected valley barns,
+a barn and annex north of final, and an eastern farm shed. Pixel coordinates and source
+tile IDs are retained so the traces can be checked. They follow visible roofs, excluding
+photographic shadows; heights, pitch and agricultural facades are interpretations.
+This small supplement does not fill every missing building in the imagery. Its failure
+leaves the main footprint layer available. Regenerate with:
+
+```sh
+python3 tools/prepare-approach-infill.py
+```
+
 Reproduce after downloading the pinned Microsoft tile and the recorded Census layer-5 query:
 
 ```sh
@@ -142,17 +170,45 @@ The converter requires Pillow, uses bundled imagery for roof colours, and runs o
 
 ## Woodland — CC0
 
-`scenery/tree-canopies.png` is baked from **Tree Small 02** by **Rico Cilliers**, Poly Haven:
-https://polyhaven.com/a/tree_small_02 — https://polyhaven.com/license (CC0).
+`scenery/tree-variety.png`, its smaller `-low` variant and `tree-variety.json` are baked
+from these **CC0** Poly Haven assets (https://polyhaven.com/license):
 
-Four alpha-preserving views retain the source's branches, leaves, bark and shading.
-The simulator varies scale and tint and places the crowns in photographed woodland.
-The full source model stays in ignored `test/output/tree-source`; it is not shipped.
+- **Tree Small 02**, Rico Cilliers: https://polyhaven.com/a/tree_small_02
+- **Pine Sapling Small**, model by Rico Cilliers, photos by Rob Tuytel: https://polyhaven.com/a/pine_sapling_small
+- **Fir Sapling Medium**, model by Rico Cilliers, photos by Rob Tuytel: https://polyhaven.com/a/fir_sapling_medium
+
+Seven authored forms have four alpha-preserving views each. The simulator retains crown
+proportions, varies orientation/scale/tint, and groups smaller conifers beneath broadleaf
+woodland. Three intersecting planes use different views; trunks meet each tier's rendered
+terrain. These are impostors, not full 3D branches. The atlases are 2048×3584 (high,
+approximately 6.5 MB) and 1024×1792 (low, approximately 1.8 MB).
+The full models stay in ignored `test/output/tree-source` and `tree-variety-source`;
+they are not shipped. These atlases replace the older single-species `tree-canopies.png`.
 To reproduce the atlas (curl, Python 3, Node and Playwright Chromium required):
 
 ```sh
 python3 tools/fetch-woodland.py
+python3 tools/fetch-tree-variety.py
 node tools/bake-woodland.mjs
+```
+
+The three `scenery/*-near.glb` assets use the **same CC0 sources and seven forms** for
+real nearby branches, trunks and leaf geometry on the high tier. They are normalized
+to unit height, simplified separately for foliage and wood, texture-packed and Meshopt
+compressed. The broadleaf keeps about 159,000 triangles to retain its canopy; conifers
+use about 19,000–122,000. Files total approximately 13.2 MB (decimal). Exact sizes, triangle
+counts and source URLs are in `tree-geometry.json`.
+
+At runtime, nearby trees transition between geometry and cards over 90–180 m using
+complementary dithering. Selection targets at most 32 trees / 1.8 million triangles;
+retiring instances share a hard 48-tree / 2.4-million-triangle budget. Distant trees and
+the low tier retain the cheaper atlas. Low quality never requests the GLBs. If they fail
+to load, all foliage cards remain visible. These assets add no collision bodies.
+
+Regenerate after the source downloads above (Node dependencies include Sharp):
+
+```sh
+node tools/prepare-trees.mjs
 ```
 
 ## Scanned surfaces — CC0

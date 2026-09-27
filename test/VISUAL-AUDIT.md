@@ -27,8 +27,8 @@ ignored `test/output/visual-audit-before/` folder; current captures are `test/ou
 | 1 | Distorted cockpit/window proportions and poorly placed camera | Removed the upper-shell stretch; fitted the eye to the original cabin; retained desktop 58° FOV and narrow-screen coverage. Checked PFD and ND visibility. | Some surfaces remain simple, but this comparison does not justify replacing the source geometry. |
 | 2 | Muddy cockpit colours and flattened material separation | Restored source material values in the GLBs. Verified part assignments in Blender, then added distinct, subtle coated-panel, molded-trim, frame, seat-weave and yoke-rubber finishes at runtime. Modeled lettering is retained. | The detail maps are small original procedural surfaces, not photographic scans or a uniquely authored wear/texture set. Material refinement remains partial. |
 | 3 | A completely flat approach corridor | Rolling relief outside the protected runway/approach strip; denser terrain mesh near the airport; rendering and collision use the same height function. | Heights are synthetic, not surveyed elevation. The safe approach strip is deliberately flat. |
-| 4 | Blurry aerial imagery ahead of the airport | Added a bundled 8 km final-approach image at 2 m/px, blended with the other layers. Added 2,160 buildings from registered footprints, pitched roofs, eaves, foundations, nearby window relief and night windows; two checked valley roads follow the terrain. | Near-ground imagery remains blurry and seasonally muted. Footprints follow the photo, but roof forms/facades and road widths are interpretations; minor roads remain photographic. |
-| 5 | Sparse, three-lobed tree blobs | Four canopy views baked from a detailed CC0 tree; instanced intersecting foliage planes, varied size/tint, grouped woodland stands, ground contact and alpha-to-coverage. | These are foliage impostors with limited species variety. Close flyovers reveal repetition and the underlying photo; full nearby tree geometry would improve them. |
+| 4 | Blurry aerial imagery ahead of the airport | Sixteen local 1 km detail tiles along the last 8 km, sampled at 0.5 m/px high and 1 m/px low, feather into the existing imagery; four textures stay resident. Subtle scanned grass grain adds close surface detail. | Underlying NAIP is generally 0.6 m; exports cannot supply finer survey detail. Coverage is a 2 km wide corridor. Five reviewed farm roofs now fill prominent detection gaps. Other missing buildings and photographic shadows remain visible from very low views. |
+| 5 | Sparse, three-lobed tree blobs | Seven authored forms across broadleaf, pine and fir, four views each; each crossed plane uses a different view. Crown proportions and smaller understory heights are retained. More of the fixed tree budget goes into approach stands. High quality now uses simplified 3D trunks/branches/leaves within 180 m, with complementary LOD fading and fixed geometry budgets. | Distant and low-tier trees remain impostors. Only one broadleaf source model is available, and simplified leaves and LOD transitions remain visible close up. |
 | 6 | Thin cloud rings and weak volume | Taller, denser cloud shapes; varied rotation; deeper bases and multiple sun-occlusion samples in the high-tier volume shader. | Fair-weather clouds remain simplified noise volumes. Low quality retains sprites; overcast is not a complete volumetric cloud system. |
 | 7 | Runway lights look like a luminous rectangle by day | Smaller daytime cores, lower daylight intensity, distinct PAPI/beacon sizing and fog attenuation without a minimum visibility floor. Night bloom retained. | Point-based lights approximate optical glare; no lens-scattering simulation. |
 | 8 | Flat, muddy illumination and weak foreground depth | Reduced warm daytime lamps in favour of neutral sky light. Sun shadows plus a rebake of close contact and cabin sky access, including the fitted roof. Baked occlusion now affects indirect light rather than darkening the paint and direct sunlight. | No real-time global illumination. The bake approximates sky access and bounced light; it cannot replace fully authored materials. |
@@ -37,17 +37,18 @@ ignored `test/output/visual-audit-before/` folder; current captures are `test/ou
 | 11 | Windshields appear absent | Removed the approximation planes fitted to the incorrectly stretched shell during the source-fidelity correction. | Glazing should follow the actual source panes. Refraction, water droplets and optical distortion remain unimplemented; the separate cockpit pass limits physical transmission. |
 | 12 | Hard black fog horizon, a dark sheet inside the cloud transition, and lights visible through opaque cloud | Fixed shared atmospheric uniforms on foliage/deck shaders; show cloud surfaces only from outside the deck; removed the lights' 3% fog visibility floor. Added rendered regression checks. | The earlier audit incorrectly blamed a CSS rain overlay: it was already disabled. Existing rain uses 3D streaks driven by relative velocity; realistic water on glass remains future work. |
 | 13 | Jagged foliage, grain and inconsistent fine-detail sharpness | Alpha-to-coverage for foliage, anisotropic filtering and mipmapped, metric-scale cockpit finishes. Removed the cockpit shadow normal offset that stippled the double-sided liner; existing 4× world MSAA and cockpit antialiasing remain. | No temporal AA. Thin modeled labels, shadow edges and branches can still shimmer at distance. |
-| 14 | Repeating facade grids and weak building contact | Higher-resolution airport facades; approach buildings now have varied siding/brick textures, roof edges, terrain-fitted foundations, nearby sills/lintels and approximate sun-direction ground shadows. | Repeated procedural facades remain recognizable close up. The approach uses three facade families, not individually authored houses. |
+| 14 | Repeating facade grids and weak building contact | Twelve approach facade bays share an atlas: house fronts with doors/shutters, upper floors, sparse sides, barns and loading bays. Dimensions select layouts; ledges follow opening measurements, gables stay solid. Roof edges, foundations and approximate sun shadows retain contact. | These are procedural interpretations. Shared bays and simple roof forms remain recognizable close up; individually authored houses would improve architectural detail. |
 | 15 | Prototype-like desktop readout bar | Inset, quieter translucent status strip with restrained borders and spacing; controls and readouts retained. | The simulator intentionally retains training/status UI. This matters less than asset quality. |
 
 Further cockpit work should begin with a source-versus-game comparison, not a replacement
 model. The approach now has matching building footprints and two valley roads. The next large
-scenery gaps are varied nearby vegetation, richer house/farm assets and ground detail;
+scenery gaps are additional mature tree species, authored house/farm assets and wider coverage for missing building detections;
 weather still needs better overcast and windshield water. An engine migration alone would not
 provide those assets or effects.
 
-All imported assets remain free and openly licensed. The new foliage atlas comes from
-[Tree Small 02 by Rico Cilliers / Poly Haven](https://polyhaven.com/a/tree_small_02), CC0.
+All imported assets remain free and openly licensed. The foliage atlases use
+[Tree Small 02](https://polyhaven.com/a/tree_small_02), [Pine Sapling Small](https://polyhaven.com/a/pine_sapling_small)
+and [Fir Sapling Medium](https://polyhaven.com/a/fir_sapling_medium) from Poly Haven, CC0.
 Sources, modifications and repeatable preparation commands are in
 [`assets/README.md`](../assets/README.md).
 
@@ -138,3 +139,82 @@ and rendered fog/cloud continuity. High and low sky/ground intensities remained 
 98/99.3 and 98/98.7, with only one channel level contributed by lights behind opaque cloud.
 The final graphics browser suite passed all 23 checks, including every weather scenario by
 day/night on both tiers, cockpit sunlight/shadows, HUD alignment and Flight School view behavior.
+
+
+## Ground detail and scenery variety — 2026-09-27
+
+The previous approach pass is committed on main as `2535479`; this followup addresses
+its ground blur and repeated vegetation/facades. The new local imagery uses 16 m gutters
+and a four-texture cache with disposal, stale-load protection and a base-photo fallback.
+The high/low tile set adds about 24 MB on disk. Seven authored tree forms become 28
+atlas views (6.5 MB high / 1.8 MB low); the runtime keeps the existing 52,000 / 14,000
+instance budgets and concentrates planting along the approach. Trunks now use the actual
+rendered terrain height for each tier. Facades share one atlas, reducing building batches
+while adding ground-floor doors, shutters, different window spacing and agricultural bays.
+
+The close-up review intentionally includes incomplete source footprint coverage: large
+photographic roofs without matching 3D buildings remain visible. Higher-resolution ground
+makes this limitation clearer; it is not solved by sharpening or by a rendering-engine swap.
+
+The scenery test freezes its review camera while awaiting streamed imagery. Pausing physics
+alone still lets the live camera update tile selection, which initially made the review
+captures show the coarse fallback. It now checks active tile uniforms and compares actual
+near-ground pixels with detail enabled/disabled, in addition to camera-matched screenshots.
+
+
+Validation: `node test/approach-scenery.mjs` passes for both tiers, including all 2,160
+buildings, seven populated tree forms, twelve populated facade profiles, a maximum of
+four resident detail tiles, stale-load races, missing-tile fallback and clear road/building
+exclusions. With the review camera fixed, enabling detail changes the sampled close-ground
+pixels by a mean 10.13/255 (high) and 15.45/255 (low). These deltas establish that the tiles
+reach the rendered image; visual review, not the metric alone, establishes sharper detail.
+The approach geometry uses 593 batches / 176,592 triangles high and 207 / 102,336 low.
+
+`node test/visual-review.mjs` also passes: unobstructed PFD/ND, missing-cockpit fallback,
+night and close-approach weather views. In-cloud sky/ground intensity stays approximately
+98/99.48 high and 98/98.74 low; distant lamp contribution remains 1/255 and 2/255. Fixed
+captain, village, close and night views were inspected on high and low. The local
+`test/output/approach-scenery-review.html` compares them with the committed baseline.
+Hardware frame rate has not been benchmarked; the additional imagery is memory-bounded,
+and low quality uses smaller imagery, foliage and facade atlases.
+
+
+## Close-range geometry and missing farm roofs — 2026-09-27
+
+Five visually reviewed roof traces now supplement the ML footprints, including the long
+flat photographic barn in the close view. They use the existing public-domain tiles;
+raw pixel vertices are retained in `approach-infill.json`. Metal roof seams, interpreted
+agricultural openings, eaves and terrain-fitted foundations give these sites real parallax.
+This is a targeted repair, not complete roof detection or surveyed reconstruction.
+
+Nearby high-quality trees now use the same CC0 source geometry as the canopy atlas.
+A first aggressive reduction visibly thinned the crowns and was rejected. The final
+broadleaf retains about 159,000 triangles, including separately preserved wood geometry;
+a matched oblique source comparison retained approximately 85% of opaque canopy coverage
+(71,677 versus 84,255 pixels). That single view is a simplification check, not a complete
+shape-fidelity metric. Pine and fir forms keep about 19,000–122,000 triangles each.
+The fir comparison also rejected an over-simplified candidate; the retained version has
+48,829 opaque pixels against the source’s 43,724 in the same view. The slight increase
+reflects triangulation, masking and quantization changes; it is not added botanical detail.
+
+Only trees within 180 m are eligible, with complementary card/geometry dithering from
+90–180 m. The pool targets 32 trees / 1.8 million triangles and allows retiring instances
+within hard limits of 48 trees / 2.4 million triangles. Low quality does not download these
+models, and failed model loads retain the full atlas woodland. Hardware frame rates have
+not been benchmarked; the high tier trades a bounded geometry cost for nearby depth.
+
+Validation: `node test/approach-scenery.mjs` passes on both tiers with 2,165 buildings,
+including the five additions, and no tree/building or road-clearance violations. The
+review position selects 18 geometry trees / 1,799,957 triangles. Camera moves and vertical
+passes stay within the hard pool limits; low quality makes no near-tree GLB requests.
+Missing supplementary footprints, model failures and ground-tile failures retain their
+fallbacks. Ground tiles remain bounded to four resident textures. The approach building
+geometry uses 596 batches / 177,663 triangles high and 210 / 102,551 low, excluding trees.
+
+`node test/visual-review.mjs` also passes: cockpit assets, unobstructed PFD/ND, missing-model
+recovery, and rendered cloud transitions on high and low. Cloud sky/ground values remain
+98/99.48 high and 98/98.74 low; distant light contribution is 1/255 and 2/255. Inspected the
+final close, woodland, night and captain captures. The local scenery review offers both
+the previous scenery pass and committed baseline, plus matched card/geometry tree views.
+Close-ground imagery, simple farm walls and hard approximate building shadows still limit
+these low-altitude views; this pass adds depth without establishing photorealism.

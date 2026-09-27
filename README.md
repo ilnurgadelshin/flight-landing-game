@@ -558,10 +558,18 @@ The visual assets are bundled locally and need no map service, account or API ke
   8 km airport, plus an 8 km final-approach layer at 2 m/px. They blend across rolling
   terrain that remains level under the airport and approach safety strip;
   the scenery uses Pennsylvania imagery repositioned around fictional Westhaven,
-  rather than reproducing a real airport. The close scenery uses canopy views baked from a detailed CC0 tree, grouped into
-  stands along the airfield and final approach.
+  rather than reproducing a real airport. Sixteen local detail tiles sharpen the last
+  8 km of the approach, sampled at 0.5 m/px on high and 1 m/px on low, with four loaded
+  at a time. The underlying NAIP survey is generally 0.6 m. Close woodland uses seven
+  authored broadleaf, pine and fir forms, baked into 28 canopy views from CC0 models.
+  On high quality, nearby crowns transition to the same models' 3D branches and leaves
+  within 180 m, with fixed instance and triangle budgets. Low quality keeps the atlas.
 - **2,160 individual approach buildings** follow openly licensed Microsoft footprints,
-  with pitched/flat roofs, metric facade textures, eaves, foundations and night windows.
+  with pitched/flat roofs, twelve facade layouts, eaves, foundations and night windows.
+  House fronts, side walls and farm buildings have different openings; nearby window
+  ledges match those openings, and roof gables remain solid.
+  Five additional farm roofs traced from the public-domain imagery fill prominent gaps
+  in the source footprints, with interpreted corrugated roofs and agricultural facades.
   Two imagery-checked valley roads use public-domain Census centerlines, terrain-following
   pavement and roadside markers. Woodland crowns leave clearance around buildings and roads.
 - **Scanned grass and asphalt materials** add surface detail around the runway,

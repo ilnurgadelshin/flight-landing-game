@@ -3,47 +3,21 @@
 import * as THREE from 'three';
 import { makeRng } from '../physics/atmosphere.js';
 import { sceneryGroundHeight } from './scenery-ground.js';
+import { createFacadeAtlas } from './facade-atlas.js';
 
-function facade(style,aniso) {
-  const canvas=document.createElement('canvas');canvas.width=512;canvas.height=512;
-  const glow=canvas.cloneNode(),g=canvas.getContext('2d'),e=glow.getContext('2d'),rng=makeRng(91+style);
-  g.fillStyle=['#bebbb0','#b2a390','#a5aaa5'][style];g.fillRect(0,0,512,512);
-  e.fillStyle='black';e.fillRect(0,0,512,512);
-  // An 8 m wide, two-storey repeat, with siding or brick at physical scale.
-  for(let y=0;y<512;y+=style===1?8:14){
-    g.fillStyle=style===1?'rgba(58,48,38,.18)':'rgba(24,30,28,.12)';g.fillRect(0,y,512,1);
-    g.fillStyle='rgba(255,255,255,.06)';g.fillRect(0,y+1,512,1);
-    if(style===1)for(let x=(y%16?9:0);x<512;x+=18)g.fillRect(x,y,1,8);
-  }
-  for(let i=0;i<14000;i++){
-    g.fillStyle=`rgba(${rng()>.5?'255,255,255':'0,0,0'},.025)`;g.fillRect(rng()*512,rng()*512,1,1);
-  }
-  for(let row=0;row<2;row++)for(let col=0;col<4;col++){
-    const x=32+col*128,y=50+row*256,w=57,h=108;
-    g.fillStyle='rgba(20,23,21,.42)';g.fillRect(x-5,y-5,w+12,h+15);
-    g.fillStyle='#d2d0c5';g.fillRect(x-3,y-3,w+6,h+6);
-    const pane=g.createLinearGradient(0,y,0,y+h);pane.addColorStop(0,'#34484c');pane.addColorStop(.5,'#526260');pane.addColorStop(1,'#232c2c');
-    g.fillStyle=pane;g.fillRect(x+2,y+2,w-4,h-4);
-    if(rng()>.5){g.fillStyle='rgba(161,153,132,.4)';g.fillRect(x+3,y+3,12,h-7);}
-    g.fillStyle='#b8b9b1';g.fillRect(x+w/2-1,y,2,h);g.fillRect(x,y+h*.52,w,3);
-    g.fillStyle='#dedbd0';g.fillRect(x-5,y+h,w+10,4);
-    if(rng()>.6){e.fillStyle=['#6e542d','#a37b40','#50482f'][col%3];e.fillRect(x+3,y+3,w-6,h-6);}
-  }
-  const texture=c=>{const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=aniso;return t;};
-  return new THREE.MeshStandardMaterial({map:texture(canvas),emissiveMap:texture(glow),
-    emissive:0xffd3a0,emissiveIntensity:0,roughness:.89,vertexColors:true});
-}
-
-function roofMaterial(aniso) {
+function roofMaterial(aniso,metal=false) {
   const c=document.createElement('canvas');c.width=c.height=256;const g=c.getContext('2d'),rng=makeRng(592);
   g.fillStyle='#b5b5b5';g.fillRect(0,0,256,256);
-  for(let y=0;y<256;y+=16)for(let x=-32;x<256;x+=64){
+  if(metal)for(let x=0;x<256;x+=43){
+    g.fillStyle='#8e9390';g.fillRect(x,0,2,256);g.fillStyle='#d1d4cd';g.fillRect(x+2,0,1,256);
+  }
+  else for(let y=0;y<256;y+=16)for(let x=-32;x<256;x+=64){
     const v=158+Math.floor(rng()*40),xx=x+(y%32?32:0);
     g.fillStyle=`rgb(${v},${v},${v})`;g.fillRect(xx,y,63,15);
     g.fillStyle='rgba(0,0,0,.18)';g.fillRect(xx,y+14,64,2);
   }
   const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=aniso;
-  return new THREE.MeshStandardMaterial({map:t,roughness:.92,vertexColors:true});
+  return new THREE.MeshStandardMaterial({map:t,roughness:metal?.58:.92,metalness:metal?.25:0,vertexColors:true});
 }
 
 class Batch {
@@ -68,25 +42,33 @@ function clipRidge(points,positive) {
 }
 
 export async function addApproachBuildings(world) {
+  const infill=fetch(new URL('../../assets/scenery/approach-infill.json',import.meta.url)).then(async r=>{
+    if(!r.ok)throw new Error(`Approach infill: HTTP ${r.status}`);return r.json();
+  });
+  world.assetJobs.push(infill); // A missing supplement leaves the main footprints available.
   const response=await fetch(new URL('../../assets/scenery/approach-buildings.json',import.meta.url));
   if(!response.ok)throw new Error(`Approach buildings: HTTP ${response.status}`);
   const {buildings}=await response.json(),low=world.lowDetail||world.quality==='low';
-  const materials=[0,1,2].map(i=>facade(i,world.maxAniso)),roof=roofMaterial(world.maxAniso);
+  const extra=await infill.catch(()=>({buildings:[]}));buildings.push(...extra.buildings);
+  const atlas=createFacadeAtlas(world.maxAniso,low),materials=[atlas.material],roof=roofMaterial(world.maxAniso),metalRoof=roofMaterial(world.maxAniso,true);
+  const wallFill=new THREE.MeshStandardMaterial({roughness:.93,vertexColors:true});
   const trim=new THREE.MeshStandardMaterial({color:0xaca99e,roughness:.87,vertexColors:true});
   const foundation=new THREE.MeshStandardMaterial({color:0x77766e,roughness:1,vertexColors:true});
   const group=new THREE.Group();group.name='Georegistered approach buildings';
-  const tiles=new Map(),details=new Map(),index=new Map(),rng=makeRng(9482),white=new THREE.Color(0xffffff);
+  const tiles=new Map(),details=new Map(),index=new Map(),profileCounts=Array(12).fill(0),rng=makeRng(9482),white=new THREE.Color(0xffffff);
   const ground=(x,z)=>sceneryGroundHeight(x,z,low);
   for(const b of buildings){
     const tile=low?2000:1000,key=`${Math.floor(b.x/tile)}:${Math.floor(b.z/tile)}`;
     if(!tiles.has(key))tiles.set(key,Array.from({length:6},()=>new Batch()));
     if(!low&&!details.has(key))details.set(key,new Batch());
-    const batches=tiles.get(key),style=Math.floor(rng()*3),wall=batches[style],top=batches[3],edge=batches[4],base=batches[5];
+    const batches=tiles.get(key),style=Math.floor(rng()*3),wall=batches[0],top=batches[b.roofKind==='metal'?5:1],edge=batches[2],base=batches[3],fill=batches[4];
+    const farm=b.use==='farm'||b.w*b.d>300||Math.min(b.w,b.d)>18;
     const cos=Math.cos(b.angle),sin=Math.sin(b.angle),rise=b.pitched?Math.min(b.d*.27,b.height*.38,4):0;
     const floor=Math.max(...b.outline.map(([x,z])=>ground(b.x+x,b.z+z)))+.15;
     const eave=floor+Math.max(2.6,b.height-rise),roofY=v=>eave+rise*Math.max(0,1-Math.abs(v)/(b.d/2));
     let points=b.outline.map(([x,z])=>[x*cos+z*sin,-x*sin+z*cos]);
     if(THREE.ShapeUtils.isClockWise(points.map(p=>new THREE.Vector2(...p))))points.reverse();
+    const wallPoints=points;
     if(rise){
       const split=[];
       for(let i=0;i<points.length;i++){
@@ -97,26 +79,43 @@ export async function addApproachBuildings(world) {
     const vertex=(u,v,y)=>[b.x+u*cos-v*sin,y,b.z+u*sin+v*cos];
     const roofTint=new THREE.Color().setRGB(...b.roof.map(v=>Math.max(.18,Math.min(.82,v/255*1.15))),THREE.SRGBColorSpace);
     const tint=new THREE.Color().setRGB(.78+rng()*.18,.78+rng()*.16,.74+rng()*.15);
-    for(let i=0;i<points.length;i++){
-      const a=points[i],p=points[(i+1)%points.length],len=Math.hypot(p[0]-a[0],p[1]-a[1]);
-      const ya=roofY(a[1]),yb=roofY(p[1]);
-      // Consistent metre-scale repeats: larger buildings do not acquire giant windows.
-      wall.quad(vertex(...a,floor),vertex(...a,ya),vertex(...p,yb),vertex(...p,floor),[[0,0],[0,(ya-floor)/5.6],[len/8,(yb-floor)/5.6],[len/8,0]],tint);
-      const va=vertex(...a,floor),vb=vertex(...p,floor);
-      base.quad([va[0],ground(va[0],va[2])-.4,va[2]],va,vb,[vb[0],ground(vb[0],vb[2])-.4,vb[2]],[[0,0],[0,1],[1,1],[1,0]],white);
-      if(!low&&len>1&&b.x>1800&&Math.abs(b.z)<1500&&b.w<45&&b.height<12){
-        // Raised sills/lintels at the actual texture's window positions make the
-        // glass read as recessed on close passes; a spatial LOD drops them far away.
-        const batch=details.get(key),du=(p[0]-a[0])/len,dv=(p[1]-a[1])/len;
-        const at=(along,y,out)=>vertex(a[0]+du*along+dv*out,a[1]+dv*along-du*out,y);
-        for(let y=floor+5.6*(1-414/512);y+1.25<Math.min(ya,yb,floor+5.6)-.12;y+=2.8){
-          for(let x=.5;x+1<len-.1;x+=2)for(const h of [y,y+1.2]){
-            const uv=[[0,0],[0,1],[1,1],[1,0]];
-            batch.quad(at(x-.07,h,.01),at(x+.97,h,.01),at(x+.97,h,.16),at(x-.07,h,.16),uv,white);
-            batch.quad(at(x-.07,h-.07,.16),at(x-.07,h,.16),at(x+.97,h,.16),at(x+.97,h-.07,.16),uv,white);
+    for(let i=0;i<wallPoints.length;i++){
+      const a=wallPoints[i],p=wallPoints[(i+1)%wallPoints.length],len=Math.hypot(p[0]-a[0],p[1]-a[1]);
+      if(len<.01)continue;
+      const du=(p[0]-a[0])/len,dv=(p[1]-a[1])/len;
+      const at=(along,y,out=0)=>vertex(a[0]+du*along+dv*out,a[1]+dv*along-du*out,y);
+      const levels=farm?1:Math.max(1,Math.round((eave-floor)/2.8)),storey=(eave-floor)/levels;
+      for(let level=0;level<levels;level++){
+        const side=Math.abs(du)>.65?(level===0?0:1):2;
+        const profile=atlas.profiles[farm?9+(i%3):style*3+side];profileCounts[profile.id]++;
+        const bays=Math.max(1,Math.round(len/profile.width)),bayWidth=len/bays,y=floor+level*storey;
+        for(let bay=0;bay<bays;bay++){
+          const x=bay*bayWidth;
+          wall.quad(at(x,y),at(x,y+storey),at(x+bayWidth,y+storey),at(x+bayWidth,y),
+            [[0,0],[0,1],[1,1],[1,0]].map(([u,v])=>atlas.uv(profile,u,v)),tint);
+          if(!low&&b.x>1800&&Math.abs(b.z)<1500&&b.w<45&&b.height<12){
+            const detail=details.get(key),sx=bayWidth/profile.width,sy=storey/profile.height;
+            for(const opening of profile.windows){
+              const left=x+opening.x*sx,right=left+opening.w*sx;
+              for(const h of [y+opening.y*sy,y+(opening.y+opening.h)*sy]){
+                const uv=[[0,0],[0,1],[1,1],[1,0]];
+                detail.quad(at(left-.06,h,.01),at(right+.06,h,.01),at(right+.06,h,.14),at(left-.06,h,.14),uv,white);
+                detail.quad(at(left-.06,h-.06,.14),at(left-.06,h,.14),at(right+.06,h,.14),at(right+.06,h-.06,.14),uv,white);
+              }
+            }
           }
         }
       }
+      // Gable ends remain solid siding: windows cannot climb into the roof ridge.
+      const breaks=[0,len];
+      if(a[1]*p[1]<0)breaks.splice(1,0,-a[1]/(p[1]-a[1])*len);
+      const fillTint=new THREE.Color(atlas.profiles[farm?9:style*3].color).multiply(tint);
+      for(let j=0;j<breaks.length-1;j++){
+        const x=breaks[j],end=breaks[j+1],ya=roofY(a[1]+dv*x),yb=roofY(a[1]+dv*end);
+        if(ya>eave+.001||yb>eave+.001)fill.quad(at(x,eave),at(x,ya),at(end,yb),at(end,eave),[[0,0],[0,1],[1,1],[1,0]],fillTint);
+      }
+      const va=vertex(...a,floor),vb=vertex(...p,floor);
+      base.quad([va[0],ground(va[0],va[2])-.4,va[2]],va,vb,[vb[0],ground(vb[0],vb[2])-.4,vb[2]],[[0,0],[0,1],[1,1],[1,0]],white);
     }
     // Split at the ridge BEFORE triangulation: no diagonal folds across concave roofs.
     const expanded=points.map(([u,v])=>[u*(1+.6/b.w),v*(1+.6/b.d)]);
@@ -139,7 +138,7 @@ export async function addApproachBuildings(world) {
     }
   }
   for(const [key,batches] of tiles)for(let i=0;i<batches.length;i++)if(batches[i].p.length){
-    const mesh=batches[i].mesh([...materials,roof,trim,foundation][i]);mesh.name=`Approach ${key} ${i}`;group.add(mesh);
+    const mesh=batches[i].mesh([atlas.material,roof,trim,foundation,wallFill,metalRoof][i]);mesh.name=`Approach ${key} ${i}`;mesh.userData.sceneryPart=i===1||i===5?'roof':'wall';group.add(mesh);
   }
   for(const [key,batch] of details)if(batch.p.length){
     const mesh=batch.mesh(trim),center=mesh.geometry.boundingSphere.center.clone();
@@ -179,7 +178,7 @@ export async function addApproachBuildings(world) {
     }
     for(const batch of batches.values()){const mesh=batch.mesh(shadowMat);mesh.castShadow=false;mesh.receiveShadow=false;shadows.add(mesh);}
   };
-  world.approachBuildings={group,count:buildings.length,materials,footprints:buildings,updateShadows};
+  world.approachBuildings={group,count:buildings.length,infillCount:extra.buildings.length,materials,footprints:buildings,profileCounts,updateShadows};
   world.scene.add(group);
   updateShadows();
   for(const m of materials)m.emissiveIntensity=world.night?.55:0;

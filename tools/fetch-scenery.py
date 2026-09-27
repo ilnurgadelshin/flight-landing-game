@@ -57,7 +57,20 @@ with tempfile.TemporaryDirectory(prefix='flight-scenery-') as tmp:
         url = f'https://raw.githubusercontent.com/amvlab/aircraft-models/main/models/{name}_nologo.glb'
         fetch(url, dest)
         sources.append(dict(file=f'../models/{name}.glb', source=url, license='CC BY 4.0 — amvlab'))
-    sources.append(dict(file='tree-canopies.png', source='https://polyhaven.com/a/tree_small_02',
-                        license='CC0 — Rico Cilliers, Poly Haven',
-                        modifications='Four alpha-preserving views baked from the model; see tools/bake-woodland.mjs.'))
+    for filename in ['tree-variety.png','tree-variety-low.png']:
+        sources.append(dict(file=filename,
+                            sources=[f'https://polyhaven.com/a/{name}' for name in ['tree_small_02','pine_sapling_small','fir_sapling_medium']],
+                            license='CC0 — Rico Cilliers / Rob Tuytel, Poly Haven',
+                            modifications='Seven authored forms, four alpha-preserving views each; see tools/bake-woodland.mjs.'))
+    sources.append(dict(file='detail/manifest.json',
+                        source='https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer',
+                        license='Public domain — USDA NAIP / USGS',
+                        modifications='Sixteen detail tiles; exact export URLs and extents are in this manifest.'))
+    for name in ['tree_small_02','pine_sapling_small','fir_sapling_medium']:
+        sources.append(dict(file=f'{name}-near.glb',source=f'https://polyhaven.com/a/{name}',
+                            license='CC0 — Poly Haven',
+                            modifications='Simplified trunks, branches and foliage, packed alpha textures, normalized scale and Meshopt compression. See tools/prepare-trees.mjs.'))
+    sources.append(dict(file='approach-infill.json',source='detail/manifest.json',
+                        license='Public domain — original roof traces from USDA NAIP / USGS imagery',
+                        modifications='Five reviewed roof outlines; interpreted heights, roofs and facades. Exact source pixels are retained.'))
     (OUT / 'sources.json').write_text(json.dumps(sources, indent=2) + '\n')

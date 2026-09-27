@@ -6,6 +6,7 @@ import { makeGroundTexture } from './textures.js';
 import { addWoodland } from './woodland.js';
 import { addApproachBuildings } from './approach-buildings.js';
 import { addApproachRoads } from './approach-roads.js';
+import { GROUND_DETAIL_GLSL, groundDetailUniforms, loadGroundDetail } from './ground-detail.js';
 
 const source = (name) => new URL(`../../assets/scenery/${name}.jpg`, import.meta.url).href;
 
@@ -15,6 +16,7 @@ export function buildLandscape(world) {
   const uniforms = world.groundUniforms = {
     uRegion: { value: fallback }, uApproach: { value: fallback }, uAirport: { value: fallback }, uFinal: {value:fallback},
     uGrass: { value: fallback }, uReady: { value: 0 }, uWet: { value: 0 }, uAlbedo: { value: 0.82 },
+    ...groundDetailUniforms(fallback),
   };
   world.groundTex = fallback;
   const material = world.groundMat = new THREE.MeshStandardMaterial({ map: fallback, roughness: 1 });
@@ -28,6 +30,7 @@ export function buildLandscape(world) {
       varying vec2 vGroundXZ;
       uniform sampler2D uRegion, uApproach, uAirport, uFinal, uGrass;
       uniform float uReady, uWet, uAlbedo;
+      ${GROUND_DETAIL_GLSL}
       vec2 aerialUV(vec2 center, float span) { return (vGroundXZ-center)*vec2(1.0,-1.0)/span+0.5; }
       float coverage(vec2 uv) { return 1.0-smoothstep(0.43,0.49,max(abs(uv.x-0.5),abs(uv.y-0.5))); }
     `).replace('#include <map_fragment>', `
@@ -39,6 +42,10 @@ export function buildLandscape(world) {
       land = mix(land,texture2D(uApproach,approach).rgb,coverage(approach));
       land = mix(land,texture2D(uFinal,finalUV).rgb,coverage(finalUV));
       land = mix(land,texture2D(uAirport,airportUV).rgb,coverage(airportUV));
+      land=detailTile(land,uDetail0,uDetailRect0,vGroundXZ);
+      land=detailTile(land,uDetail1,uDetailRect1,vGroundXZ);
+      land=detailTile(land,uDetail2,uDetailRect2,vGroundXZ);
+      land=detailTile(land,uDetail3,uDetailRect3,vGroundXZ);
       // Uneven rough grass margins blend the maintained airfield into real fields.
       float margin=sin(vGroundXZ.x*.024)*8.0+sin(vGroundXZ.y*.035)*6.0;
       float airfield = (1.0-smoothstep(1590.0,1840.0,abs(vGroundXZ.x)+margin)) *
@@ -46,6 +53,13 @@ export function buildLandscape(world) {
       vec3 grass = texture2D(uGrass,vGroundXZ/18.0).rgb;
       // Ground detail remains visible on short final; mowing is very subtle at distance.
       float nearGround = 1.0-smoothstep(500.0,2200.0,length(vViewPosition));
+      // Small-scale grass grain supplies texture between orthophoto pixels without
+      // painting roofs or roads with grass. The photo retains field boundaries/colour.
+      float green=max(0.0,land.g-(land.r+land.b)*.5);
+      float vegetation=smoothstep(.012,.055,green)*(1.0-smoothstep(.20,.38,max(land.r,max(land.g,land.b))));
+      vec3 rotatedGrass=texture2D(uGrass,mat2(.8,-.6,.6,.8)*vGroundXZ/29.0).rgb;
+      float grain=clamp(dot(mix(grass,rotatedGrass,.5),vec3(.25,.5,.25))*5.0,.65,1.35);
+      land*=mix(1.0,grain,vegetation*nearGround*.48);
       vec3 turf = mix(vec3(0.13,0.155,0.065),grass*vec3(0.75,0.9,0.65),nearGround*0.72);
       turf *= 0.97+0.03*sin(vGroundXZ.y*0.21);
       land = mix(land,turf,airfield*uReady);
@@ -78,6 +92,7 @@ export function buildLandscape(world) {
   // Load footprints before planting: crowns must not grow through the houses.
   const buildings=addApproachBuildings(world);
   const roads=addApproachRoads(world);
+  world.assetJobs.push(loadGroundDetail(world,uniforms,fallback));
   const ready=Promise.all(['region','approach','airport','final-approach'].map(n=>load(n+suffix))).then(async([region,approach,airport,final])=>{
     uniforms.uRegion.value=region;uniforms.uApproach.value=approach;uniforms.uAirport.value=airport;
     uniforms.uFinal.value=final;

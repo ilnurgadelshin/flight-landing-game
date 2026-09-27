@@ -583,6 +583,8 @@ export class World {
    */
   update(dt, state, eye) {
     this.time += dt;
+    this.groundDetail?.update(eye);
+    this.nearWoodland?.update(dt,eye);
     // fog density: in cloud above the base, thick; below: visibility
     const alt = state.alt;
     let vis = this.visibility;

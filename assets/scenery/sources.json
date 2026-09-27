@@ -80,9 +80,53 @@
     "license": "Public domain \u2014 USDA NAIP / USGS"
   },
   {
-    "file": "tree-canopies.png",
+    "file": "tree-variety.png",
+    "sources": [
+      "https://polyhaven.com/a/tree_small_02",
+      "https://polyhaven.com/a/pine_sapling_small",
+      "https://polyhaven.com/a/fir_sapling_medium"
+    ],
+    "license": "CC0 \u2014 Rico Cilliers / Rob Tuytel, Poly Haven",
+    "modifications": "Seven authored forms, four alpha-preserving views each; see tools/bake-woodland.mjs."
+  },
+  {
+    "file": "tree-variety-low.png",
+    "sources": [
+      "https://polyhaven.com/a/tree_small_02",
+      "https://polyhaven.com/a/pine_sapling_small",
+      "https://polyhaven.com/a/fir_sapling_medium"
+    ],
+    "license": "CC0 \u2014 Rico Cilliers / Rob Tuytel, Poly Haven",
+    "modifications": "Seven authored forms, four alpha-preserving views each; see tools/bake-woodland.mjs."
+  },
+  {
+    "file": "detail/manifest.json",
+    "source": "https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer",
+    "license": "Public domain \u2014 USDA NAIP / USGS",
+    "modifications": "Sixteen detail tiles; exact export URLs and extents are in this manifest."
+  },
+  {
+    "file": "tree_small_02-near.glb",
     "source": "https://polyhaven.com/a/tree_small_02",
-    "license": "CC0 \u2014 Rico Cilliers, Poly Haven",
-    "modifications": "Four alpha-preserving views baked from the model; see tools/bake-woodland.mjs."
+    "license": "CC0 \u2014 Poly Haven",
+    "modifications": "Simplified trunks, branches and foliage, packed alpha textures, normalized scale and Meshopt compression. See tools/prepare-trees.mjs."
+  },
+  {
+    "file": "pine_sapling_small-near.glb",
+    "source": "https://polyhaven.com/a/pine_sapling_small",
+    "license": "CC0 \u2014 Poly Haven",
+    "modifications": "Simplified trunks, branches and foliage, packed alpha textures, normalized scale and Meshopt compression. See tools/prepare-trees.mjs."
+  },
+  {
+    "file": "fir_sapling_medium-near.glb",
+    "source": "https://polyhaven.com/a/fir_sapling_medium",
+    "license": "CC0 \u2014 Poly Haven",
+    "modifications": "Simplified trunks, branches and foliage, packed alpha textures, normalized scale and Meshopt compression. See tools/prepare-trees.mjs."
+  },
+  {
+    "file": "approach-infill.json",
+    "source": "detail/manifest.json",
+    "license": "Public domain \u2014 original roof traces from USDA NAIP / USGS imagery",
+    "modifications": "Five reviewed roof outlines; interpreted heights, roofs and facades. Exact source pixels are retained."
   }
 ]

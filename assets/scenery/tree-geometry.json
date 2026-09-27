@@ -1,0 +1,57 @@
+{
+  "license": "CC0-1.0",
+  "assets": [
+    {
+      "name": "tree_small_02",
+      "file": "assets/scenery/tree_small_02-near.glb",
+      "source": "https://polyhaven.com/a/tree_small_02",
+      "bytes": 3330676,
+      "forms": [
+        {
+          "name": "tree_small_02_LOD0",
+          "triangles": 159231
+        }
+      ]
+    },
+    {
+      "name": "pine_sapling_small",
+      "file": "assets/scenery/pine_sapling_small-near.glb",
+      "source": "https://polyhaven.com/a/pine_sapling_small",
+      "bytes": 1864312,
+      "forms": [
+        {
+          "name": "pine_sapling_small_b",
+          "triangles": 18727
+        },
+        {
+          "name": "pine_sapling_small_a",
+          "triangles": 21828
+        },
+        {
+          "name": "pine_sapling_small_c",
+          "triangles": 20429
+        }
+      ]
+    },
+    {
+      "name": "fir_sapling_medium",
+      "file": "assets/scenery/fir_sapling_medium-near.glb",
+      "source": "https://polyhaven.com/a/fir_sapling_medium",
+      "bytes": 7995864,
+      "forms": [
+        {
+          "name": "fir_sapling_medium_a_LOD0",
+          "triangles": 121813
+        },
+        {
+          "name": "fir_sapling_medium_b_LOD0",
+          "triangles": 75420
+        },
+        {
+          "name": "fir_sapling_medium_c_LOD0",
+          "triangles": 76658
+        }
+      ]
+    }
+  ]
+}
