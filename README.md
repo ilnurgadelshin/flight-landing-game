@@ -560,6 +560,10 @@ The visual assets are bundled locally and need no map service, account or API ke
   the scenery uses Pennsylvania imagery repositioned around fictional Westhaven,
   rather than reproducing a real airport. The close scenery uses canopy views baked from a detailed CC0 tree, grouped into
   stands along the airfield and final approach.
+- **2,160 individual approach buildings** follow openly licensed Microsoft footprints,
+  with pitched/flat roofs, metric facade textures, eaves, foundations and night windows.
+  Two imagery-checked valley roads use public-domain Census centerlines, terrain-following
+  pavement and roadside markers. Woodland crowns leave clearance around buildings and roads.
 - **Scanned grass and asphalt materials** add surface detail around the runway,
   taxiways and apron. The airport retains its terminal glazing, jet bridges and vehicles,
   with authored **B737 and A320** models on the stands.
@@ -576,8 +580,10 @@ the deck so they cannot cut a dark floor across the view. The ranked visual audi
 and remaining limits are in [`test/VISUAL-AUDIT.md`](test/VISUAL-AUDIT.md).
 
 This is an asset-based rendering foundation; the terrain heights and airport buildings
-are still synthetic, and photographed buildings outside the airport are not individual
-3D structures. Hardware frame rates depend on the device and graphics tier.
+are still synthetic. The approach footprints are geographically aligned with the photos;
+roof styles, facades, road widths and fixtures are interpretations, not surveyed reproductions.
+Scenery buildings are visual objects and do not add collision bodies. Hardware frame rates
+depend on the device and graphics tier.
 
 At night the flight deck's flood and dome lights are turned well down, as crews fly, so the
 panel is dimmer than by day and the displays stand out. The high tier also draws fair-weather
@@ -1167,6 +1173,10 @@ results of two full playtest rounds, every issue found and how it was fixed,
 are in [`test/PLAYTEST-FINDINGS.md`](test/PLAYTEST-FINDINGS.md).
 
 ### Visual review
+
+`node test/approach-scenery.mjs` checks approach geometry, protected-area clearance,
+woodland separation from buildings/roads, both graphics tiers and missing-data fallback.
+It saves captain, village, close-building and night views in `test/output/approach-*.png`.
 
 `node test/visual-review.mjs` verifies that the authored cockpit, both yokes, all four aerial
 images and five parked aircraft load, checks that the PFD and focused ND are unobstructed,

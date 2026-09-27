@@ -104,6 +104,42 @@ It is scenery, not a geographic or navigation reference. Four images cover the 8
 8 km final-approach area at 2 m/px; phones load 1024 px variants. Exact export requests and extents are recorded
 in `scenery/sources.json`. Files are recompressed for delivery.
 
+## Approach buildings and roads
+
+`scenery/approach-buildings.json` contains 2,160 footprints adapted from
+[Microsoft Global ML Building Footprints](https://github.com/microsoft/GlobalMLBuildingFootprints),
+under **CDLA Permissive 2.0**. The required license text is bundled in
+`scenery/CDLA-Permissive-2.0.txt`. The pinned 2026-08-13 source-tile URL is in the data file.
+
+The footprints use exactly the scaled Web Mercator registration of the NAIP images:
+origin 40.828° N, 77.615° W; local x east and z south. Low-confidence/tiny detections and
+buildings inside the fictional airport or approach-light clearance are excluded. Coordinates
+are rounded to 10 cm. Source height estimates are capped and missing heights get defaults;
+these are not surveyed elevations. The original polygon outlines are retained. Roof colour
+is sampled from the public-domain photo; roof pitch, facades, windows and eaves are original
+procedural interpretations. Ground shadows approximate the building silhouette in the sun's
+direction, with reduced contrast under overcast; they supplement existing photographic shadows.
+
+`scenery/approach-roads.json` adapts public-domain **U.S. Census Bureau TIGERweb Physical
+Features** centerlines (2026 vintage). Source endpoint, query and modifications are in the
+file. Only Upper and Lower Georges Valley Road were retained after checking the orthophotos;
+some smaller private drives in the source do not match the imagery. The two routes become
+three sections when clipped around the fictional airfield. Widths, markings and verge markers
+are interpretations. This repackaging is not an official Census Bureau product.
+
+Both files are bundled and require no network while playing. High quality includes roof-edge
+trim, nearby window ledges along the flight corridor, and roadside markers; low quality uses fewer, larger spatial batches and omits those
+small details. Terrain-following surfaces use the rendered triangle height for each tier.
+Buildings and roadside fixtures are visual scenery, not new physics obstacles.
+
+Reproduce after downloading the pinned Microsoft tile and the recorded Census layer-5 query:
+
+```sh
+python3 tools/prepare-approach-scenery.py buildings.geojsonl.gz local-roads.geojson
+```
+
+The converter requires Pillow, uses bundled imagery for roof colours, and runs offline.
+
 ## Woodland — CC0
 
 `scenery/tree-canopies.png` is baked from **Tree Small 02** by **Rico Cilliers**, Poly Haven:

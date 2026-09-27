@@ -343,11 +343,11 @@ export class World {
     const postMat = std({ color: 0x999999, roughness: 0.6 });
     for (let d = 30; d <= 900; d += 30) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.7, 4.4), postMat); p.position.set(RUNWAY.thresholdX + d, 0.35, 0); add(p); }
     // perimeter road
-    const road = new THREE.Mesh(new THREE.PlaneGeometry(6000, 8), std({ color: 0x555555, roughness: 1 }));
+    const road = new THREE.Mesh(new THREE.PlaneGeometry(3500, 8), std({ color: 0x555555, roughness: 1 }));
     road.rotation.x = -Math.PI / 2; road.position.set(0, 0.01, 620); add(road, false);
     addAirportDetail(this.scene, this.lowDetail);
     // Perimeter road lighting; villages and woodland follow the photographic region.
-    for (let x=-2800;x<=2800;x+=120) this.townLightEntries.push({x,y:8,z:640,color:[1,.75,.42],size:1.2,group:'town'});
+    for (let x=-1720;x<=1720;x+=120) this.townLightEntries.push({x,y:8,z:640,color:[1,.75,.42],size:1.2,group:'town'});
   }
 
   // ------------------------------------------------------------------ weather
@@ -537,6 +537,8 @@ export class World {
     this.rain.visible = scenario.rain > 0;
     this.lightningEnabled = !!scenario.lightning;
     // building windows glow at night
+    for(const m of this.approachBuildings?.materials||[])m.emissiveIntensity=tod==='night'?.55:tod==='dusk'?.2:0;
+    this.approachBuildings?.updateShadows();
     this.buildingTex.dispose();
     this.buildingTex = makeBuildingTexture(tod !== 'day');
     this.buildingTex.repeat.set(4, 1);

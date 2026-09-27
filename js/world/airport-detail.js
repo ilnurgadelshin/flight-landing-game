@@ -56,7 +56,7 @@ export function addAirportDetail(scene, lowDetail) {
     for (const dx of [-1.25,1.25]) for (const dz of [-1.8,1.8]) add(0x202523,x+24+dx,0.45,383+dz,0.3,0.8,0.8);
   }
   // Airport service-road dashes, perimeter posts and fine fence rails.
-  for (let x=-2850;x<=2850;x+=16) add(0xc9c7b7,x,0.04,620,6,0.01,0.16);
+  for (let x=-1735;x<=1735;x+=16) add(0xc9c7b7,x,0.04,620,6,0.01,0.16);
   for (const z of [-270,650]) {
     const count=lowDetail?100:200;
     for (let i=0;i<=count;i++) add(0x737e76,-1900+i*3800/count,1.2,z,0.07,2.4,0.07,0,true);

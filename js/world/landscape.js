@@ -4,6 +4,8 @@ import * as THREE from 'three';
 import { TERRAIN } from '../physics/terrain.js';
 import { makeGroundTexture } from './textures.js';
 import { addWoodland } from './woodland.js';
+import { addApproachBuildings } from './approach-buildings.js';
+import { addApproachRoads } from './approach-roads.js';
 
 const source = (name) => new URL(`../../assets/scenery/${name}.jpg`, import.meta.url).href;
 
@@ -73,23 +75,28 @@ export function buildLandscape(world) {
     return tex;
   });
   const suffix=low?'-low':'';
+  // Load footprints before planting: crowns must not grow through the houses.
+  const buildings=addApproachBuildings(world);
+  const roads=addApproachRoads(world);
   const ready=Promise.all(['region','approach','airport','final-approach'].map(n=>load(n+suffix))).then(async([region,approach,airport,final])=>{
     uniforms.uRegion.value=region;uniforms.uApproach.value=approach;uniforms.uAirport.value=airport;
     uniforms.uFinal.value=final;
     uniforms.uReady.value=1;
     world.landscapeImages=[region,approach,airport,final];
+    await Promise.allSettled([buildings,roads]); // imagery still works if vector data is missing
     await addWoodland(world,airport.image,final.image);
   });
   const grass=load('grass-color',true,true).then(t=>uniforms.uGrass.value=t);
-  world.assetJobs.push(ready,grass,load('grass-normal',false,true).then(tex=>{
+  world.assetJobs.push(buildings,roads,ready,grass,load('grass-normal',false,true).then(tex=>{
     tex.repeat.set(10000/18,10000/18);material.normalMap=tex;material.normalScale.set(.22,.22);material.needsUpdate=true;
   }));
   // One surface set is shared by all pavement. World-space mapping keeps the size of
   // aggregate constant on a runway, a connector, and the apron.
   world.assetJobs.push(Promise.all([load('asphalt-color',true,true),load('asphalt-normal',false,true),load('asphalt-rough',false,true)])
-    .then(([color,normal,rough])=>{
+    .then(async([color,normal,rough])=>{
       world.pavementTextures={color,normal,rough};
-      for(const mat of [world.runwayMat,...world.pavementMats]) detailPavement(mat,{color,normal,rough});
+      await roads.catch(()=>{});
+      for(const mat of [world.runwayMat,...world.pavementMats,world.approachRoadMaterial].filter(Boolean)) detailPavement(mat,{color,normal,rough});
     }));
 }
 

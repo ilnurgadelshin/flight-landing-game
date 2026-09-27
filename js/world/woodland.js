@@ -49,6 +49,8 @@ export async function addWoodland(world,photo,approachPhoto) {
     const x=-3900+rng()*13800,z=(rng()-.5)*7800;
     if(Math.abs(x)<2100&&Math.abs(z-120)<700)continue;
     if(Math.abs(z)<180&&x>1500&&x<3400)continue;
+    if(world.approachBuildingExcludes?.(x,z))continue;
+    if(world.approachRoadExcludes?.(x,z))continue;
     const final=x>3900,pixels=final?approachPixels:airportPixels;
     const px=Math.floor(((x-(final?6000:0))/8000+.5)*1024),py=Math.floor((z/8000+.5)*1024),i=(py*1024+px)*4;
     const r=pixels[i],g=pixels[i+1],b=pixels[i+2];
