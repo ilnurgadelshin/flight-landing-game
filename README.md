@@ -564,12 +564,14 @@ The visual assets are bundled locally and need no map service, account or API ke
   taxiways and apron. The airport retains its terminal glazing, jet bridges and vehicles,
   with authored **B737 and A320** models on the stands.
 
-The desktop cockpit has about 1.02 million triangles and an 8.3 MB download. The lighter
+The desktop cockpit has about 1.02 million triangles and an 8.2 MB download. The lighter
 phone model has about 420,000 triangles and a 3.6 MB download, omits tiny molded labels,
 and retains the live instruments. Phones also use 1024 px aerial images and fewer trees.
 The captain’s desktop view uses a 58° vertical field of view and an eye position fitted
-to the original cabin. The authored shell proportions, material colours and roughness are
-preserved. Runway lights use smaller daytime cores and fade with visibility in fog. Cloud surfaces are hidden inside
+to the original cabin. The GLBs preserve the authored shell proportions and material values.
+Verified panel, trim, seat and yoke surfaces receive subtle runtime finishes; the baked cabin
+shading affects indirect light while retaining direct sunlight. Runway lights use smaller
+daytime cores and fade with visibility in fog. Cloud surfaces are hidden inside
 the deck so they cannot cut a dark floor across the view. The ranked visual audit
 and remaining limits are in [`test/VISUAL-AUDIT.md`](test/VISUAL-AUDIT.md).
 

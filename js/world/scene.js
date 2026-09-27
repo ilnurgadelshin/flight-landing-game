@@ -105,7 +105,7 @@ const RAIN_FRAG = /* glsl */`
 const TOD = {
   // day: 40° up, 70° right of the final approach track: the landscape ahead is lit from the side,
   // the terminal's runway-facing side is in the sun, and it shines in through the right-hand windows
-  day: { sun: [-0.26, 0.643, -0.72], turbidity: 2.0, rayleigh: 2.5, scale: 0.1, sunIrr: 6.0, sunWhite: 0.7, cockpitEnv: 0.48, fill: 1.1, lights: 0.8, stars: 0 },
+  day: { sun: [-0.26, 0.643, -0.72], turbidity: 2.0, rayleigh: 2.5, scale: 0.1, sunIrr: 6.0, sunWhite: 0.7, cockpitEnv: 0.7, fill: 1.2, lights: 0.8, stars: 0 },
   dusk: { sun: [-0.85, 0.12, 0.5], turbidity: 4, rayleigh: 2.5, scale: 0.1, sunIrr: 5.0, sunWhite: 0.2, cockpitEnv: 0.3, fill: 0.5, lights: 2.5, stars: 0.3 },
   night: { sun: [0.3, -0.4, 0.5], moon: [0.35, 0.55, -0.45], turbidity: 3, rayleigh: 2.5, scale: 0.1, sunIrr: 0, sunWhite: 1, cockpitEnv: 1, fill: 0.02, lights: 3, stars: 1, nightZenith: 0x03060f, nightHorizon: 0x111a2a },
 };
@@ -215,7 +215,10 @@ export class World {
       s.mapSize.set(2048, 2048);
       Object.assign(s.camera, { left: -2.2, right: 2.2, top: 2.2, bottom: -2.2, near: 0.5, far: 30 });
       s.camera.updateProjectionMatrix();
-      s.bias = -0.0002; s.normalBias = 0.008; s.radius = 3;
+      // The source liner is double-sided. Offsetting along its unflipped vertex
+      // normal pushed back-facing interior surfaces into shadow and produced a
+      // stippled sidewall. Use a small depth bias without that normal offset.
+      s.bias = -0.0004; s.normalBias = 0; s.radius = 3;
     } else {
       // without shadows the sun would shine through the roof: only a trace of it inside
       this.cockpitSunScale = 0.12;

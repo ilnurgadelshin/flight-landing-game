@@ -291,8 +291,10 @@ export class Cockpit {
   setNight(night) {
     // at night the flood and dome lights are turned well down, as crews fly: a dark flight deck
     // keeps night vision and lets the displays stand out (the panel stays readable, dimmer than by day)
-    this.dome.intensity = night ? 0.25 : 1.2;
-    this.flood.intensity = night ? 0.25 : 0.5;
+    // Daylight supplies most cabin illumination. Strong warm lamps flattened
+    // the modeled panels and gave the neutral source materials a brown cast.
+    this.dome.intensity = night ? 0.25 : 0.45;
+    this.flood.intensity = night ? 0.25 : 0.12;
   }
 
   // ------------------------------------------------------------------ per frame

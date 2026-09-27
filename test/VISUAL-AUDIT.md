@@ -12,7 +12,9 @@ recommendation to rebuild the cockpit shell was premature. Our conversion raised
 shell by 0.20 source units (34 cm at game scale), increasing the windshield frame's vertical
 span from about 45 cm to 79 cm. It also darkened the source trim and changed material roughness.
 These integration changes have been removed. The camera now fits the original cabin, and
-the source colours/roughness are retained. The source model has substantial geometric detail;
+the source colours/roughness are retained in the GLBs. A subsequent runtime finish pass targets
+verified panel, liner, seat and yoke parts, documented in `assets/README.md`; it does not deform
+the model. The source model has substantial geometric detail;
 it has no texture images, and its author explicitly notes the missing roof and animations.
 The game's added headliner and live controls remain necessary adaptations.
 
@@ -23,18 +25,18 @@ ignored `test/output/visual-audit-before/` folder; current captures are `test/ou
 | Rank | Cause of the dated appearance | Changes made | Remaining limitation |
 | --- | --- | --- | --- |
 | 1 | Distorted cockpit/window proportions and poorly placed camera | Removed the upper-shell stretch; fitted the eye to the original cabin; retained desktop 58° FOV and narrow-screen coverage. Checked PFD and ND visibility. | Some surfaces remain simple, but this comparison does not justify replacing the source geometry. |
-| 2 | Muddy cockpit colours and flattened material separation | Restored the original material colours and roughness; removed overrides based on guessed material IDs and blanket procedural grain. Retained source lettering and baked contact shading. | There is no authored texture set. Carefully added material detail could improve realism without rebuilding the model. |
+| 2 | Muddy cockpit colours and flattened material separation | Restored source material values in the GLBs. Verified part assignments in Blender, then added distinct, subtle coated-panel, molded-trim, frame, seat-weave and yoke-rubber finishes at runtime. Modeled lettering is retained. | The detail maps are small original procedural surfaces, not photographic scans or a uniquely authored wear/texture set. Material refinement remains partial. |
 | 3 | A completely flat approach corridor | Rolling relief outside the protected runway/approach strip; denser terrain mesh near the airport; rendering and collision use the same height function. | Heights are synthetic, not surveyed elevation. The safe approach strip is deliberately flat. |
 | 4 | Blurry aerial imagery ahead of the airport | Added a bundled 8 km final-approach image at 2 m/px, blended with the other layers; smaller equivalent on phones. | Imagery remains visibly flat near the ground. Photographed houses and roads outside the airport have no matching 3D geometry; the imagery has a muted seasonal palette. |
 | 5 | Sparse, three-lobed tree blobs | Four canopy views baked from a detailed CC0 tree; instanced intersecting foliage planes, varied size/tint, grouped woodland stands, ground contact and alpha-to-coverage. | These are foliage impostors with limited species variety. Close flyovers reveal repetition and the underlying photo; full nearby tree geometry would improve them. |
 | 6 | Thin cloud rings and weak volume | Taller, denser cloud shapes; varied rotation; deeper bases and multiple sun-occlusion samples in the high-tier volume shader. | Fair-weather clouds remain simplified noise volumes. Low quality retains sprites; overcast is not a complete volumetric cloud system. |
 | 7 | Runway lights look like a luminous rectangle by day | Smaller daytime cores, lower daylight intensity, distinct PAPI/beacon sizing and fog attenuation without a minimum visibility floor. Night bloom retained. | Point-based lights approximate optical glare; no lens-scattering simulation. |
-| 8 | Flat, muddy illumination and weak foreground depth | Balanced neutral daylight, hemisphere and cockpit fill; stronger environment contribution; retained sun shadows and baked cockpit occlusion. | No real-time global illumination. Baked shading and fill cannot replace correct geometry and texture detail. |
+| 8 | Flat, muddy illumination and weak foreground depth | Reduced warm daytime lamps in favour of neutral sky light. Sun shadows plus a rebake of close contact and cabin sky access, including the fitted roof. Baked occlusion now affects indirect light rather than darkening the paint and direct sunlight. | No real-time global illumination. The bake approximates sky access and bounced light; it cannot replace fully authored materials. |
 | 9 | Box-like airport and disconnected jet bridges | Terminal length matches all five stands; roof seams, flashing, HVAC, hangar ribs, building bases and articulated bridge ends reaching the aircraft. | Buildings are still procedural architecture. A detailed terminal asset would offer a larger further improvement. |
 | 10 | Clean rectangular pavement pasted onto the terrain | Irregular runway shoulders, softer grass margins, subtle mowing, asphalt variation, apron slabs and expansion joints. | Ground-level wear, drainage and small debris remain sparse. |
 | 11 | Windshields appear absent | Removed the approximation planes fitted to the incorrectly stretched shell during the source-fidelity correction. | Glazing should follow the actual source panes. Refraction, water droplets and optical distortion remain unimplemented; the separate cockpit pass limits physical transmission. |
 | 12 | Hard black fog horizon, a dark sheet inside the cloud transition, and lights visible through opaque cloud | Fixed shared atmospheric uniforms on foliage/deck shaders; show cloud surfaces only from outside the deck; removed the lights' 3% fog visibility floor. Added rendered regression checks. | The earlier audit incorrectly blamed a CSS rain overlay: it was already disabled. Existing rain uses 3D streaks driven by relative velocity; realistic water on glass remains future work. |
-| 13 | Jagged foliage, grain and inconsistent fine-detail sharpness | Alpha-to-coverage for foliage, anisotropic filtering and removal of added cockpit grain; checked existing 4× world MSAA and antialiased cockpit rendering. | No temporal AA. Thin modeled labels and branches can still shimmer at distance. |
+| 13 | Jagged foliage, grain and inconsistent fine-detail sharpness | Alpha-to-coverage for foliage, anisotropic filtering and mipmapped, metric-scale cockpit finishes. Removed the cockpit shadow normal offset that stippled the double-sided liner; existing 4× world MSAA and cockpit antialiasing remain. | No temporal AA. Thin modeled labels, shadow edges and branches can still shimmer at distance. |
 | 14 | Repeating facade grids and weak building contact | Higher-resolution facade texture, varied glazing, mullions, sills, roof edges and base details. | Repeated procedural facades remain recognizable close up. |
 | 15 | Prototype-like desktop readout bar | Inset, quieter translucent status strip with restrained borders and spacing; controls and readouts retained. | The simulator intentionally retains training/status UI. This matters less than asset quality. |
 
@@ -84,6 +86,21 @@ After restoring the cockpit source proportions and materials:
   [before/after comparison](output/cockpit-source-comparison.html) includes an original-source
   reference; its Blender lighting is for inspecting geometry, not comparing illumination.
 - The flight-physics unit suites were not rerun for this asset/camera-only correction.
+
+Material and cabin-lighting follow-up, verified 2026-09-27:
+
+- Both rebaked GLBs pass the source-dimension, material-value and control-binding checks.
+  Geometry and camera placement are unchanged; the bake adds no model triangles.
+- The final graphics browser run passed all 23 checks, covering every weather scenario by
+  day and night on both quality tiers, sunlight/shadows, HUD visibility/alignment and night lights.
+- The full visual review passed again: assets load, PFD/ND remain unobstructed, the missing-model
+  fallback works, and rendered cloud/fog transitions remain correct on both tiers.
+- Compared daylight candidates and isolated sidewall speckling by switching off shadows.
+  Removing the shadow normal offset corrected the double-sided liner's sunlit area. Reviewed
+  the final captain, pedestal and night captures; the original source proportions remain intact.
+- The local [material/lighting comparison](output/cockpit-material-comparison.html) uses the
+  committed source-restoration pass as its baseline. The updated desktop model is 8.2 MB and
+  the low-detail model 3.6 MB; detailed surface maps are generated locally only on the high tier.
 
 These checks establish rendering correctness and preserve flight behavior. They do not measure
 hardware frame rates or establish photorealism; the asset limitations in the table remain.

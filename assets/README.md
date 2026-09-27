@@ -22,11 +22,38 @@ The simulator adds working PFD/ND/engine displays, selected MCP values, standby 
 and animated controls, and closes the source's open roof with a fitted headliner. The low
 variant also omits the tiny molded lettering. It is a visual adaptation, not a certified cockpit trainer.
 
-The source's shell/window proportions, material colours and roughness are retained. The camera
+The GLB files retain the source's shell/window proportions, material colours and roughness. The camera
 is fitted to the original cabin. An earlier conversion stretched the upper shell and darkened
 the trim; comparison with the source in Blender exposed these integration errors, and they
 have been removed. The downloaded glTF contains no texture images. The extra glazing planes
 fitted to the stretched shell were also removed; proper glass would need to follow the source panes.
+
+The runtime adds restrained surface finishes to verified parts of this model. The small,
+original procedural maps distinguish coated panels, molded liner, window framing, seat weave
+and yoke rubber. They store height, roughness and slight colour modulation, with metric scale,
+seamless projection and mipmaps; they are not photographic scans. The high tier uses relief
+and variation, while the low tier uses each finish's average roughness without detail maps.
+The yoke's pure-black grip alone is given 1.2% neutral diffuse reflectance, so its shape remains
+visible; screens, lettering and other black parts keep their original colours.
+
+The material assignments were checked in Blender against these source meshes:
+
+| Source material | Verified parts | Runtime finish |
+| --- | --- | --- |
+| `Material.014` | `Body.002`, `Body.006`, `Body.018` cabin liner | Molded trim |
+| `Material.008` | `Body.020` windshield frame | Coated frame |
+| `Material.457` | `Cube.008` main panel and side panels | Coated panel |
+| `Material.103` | Pedestal casing, panel faces and instrument bezels | Coated panel |
+| `Material.261`, `Material.354` | Overhead/MCP faces, subpanels and switch bodies | Coated panel |
+| `Material.194` | `Cube.488`, `Cube.489`, `Cube.1088` cushions | Woven upholstery |
+| Black material within the two animated yoke groups only | Yoke grips | Rubber |
+
+The offline shading bake samples both close contacts and light access through the cabin,
+including the same added headliner used at runtime. The vertex values attenuate indirect
+illumination, rather than darkening the paint and direct sunlight. This remains an approximation
+of bounced light; it is not a full global-illumination bake.
+Daytime cabin lamps are reduced in favour of neutral sky illumination; night flood lighting
+and the instrument displays retain their existing brightness.
 
 To reproduce, download the freely licensed **glTF** archive from that page (Sketchfab requires
 sign-in), unzip it, run `npm install`, then:
