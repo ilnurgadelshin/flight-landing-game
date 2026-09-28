@@ -6,9 +6,10 @@ import { makeRng } from '../physics/atmosphere.js';
 export function createFacadeAtlas(aniso,low) {
   const palettes=['#c4c2b6','#a6aca6','#a88872','#a39178'];
   const profiles=Array.from({length:12},(_,id)=>({id,width:id<3?6:id<9?8:12,
-    height:id<9?2.8:5,color:palettes[Math.floor(id/3)],windows:[]}));
+    height:id<9?2.8:5,color:palettes[Math.floor(id/3)],windows:[],doors:[]}));
   const cell=low?256:512,canvas=document.createElement('canvas');canvas.width=cell*4;canvas.height=cell*3;
-  const glow=canvas.cloneNode(),g=canvas.getContext('2d'),e=glow.getContext('2d');
+  const glow=canvas.cloneNode(),rough=canvas.cloneNode(),relief=canvas.cloneNode();
+  const g=canvas.getContext('2d'),e=glow.getContext('2d'),r=rough.getContext('2d'),n=relief.getContext('2d');
   for(const p of profiles){
     const wall=document.createElement('canvas');wall.width=wall.height=512;
     const light=wall.cloneNode(),c=wall.getContext('2d'),l=light.getContext('2d'),rng=makeRng(581+p.id);
@@ -39,6 +40,7 @@ export function createFacadeAtlas(aniso,low) {
       if(rng()>.62)rect(l,x+.05,y+.05,w-.1,h-.1,rng()>.5?'#806137':'#57482f');
     };
     const door=(x,w=1)=>{
+      p.doors.push({x,w,h:2.12});
       rect(c,x-.08,0,w+.16,2.21,'#d5d0c1');rect(c,x,.02,w,2.12,family===2?'#4b5550':'#6d7267');
       for(const y of [.25,1.13])rect(c,x+.1,y,w-.2,.72,'rgba(23,29,26,.28)');
       rect(c,x+w-.13,1,.04,.06,'#c4b797');
@@ -71,10 +73,21 @@ export function createFacadeAtlas(aniso,low) {
     for(const [ctx,image] of [[g,wall],[e,light]]){
       ctx.drawImage(image,x,y,cell,cell);ctx.drawImage(image,x+pad,y+pad,cell-pad*2,cell-pad*2);
     }
+    r.fillStyle='#ededed';r.fillRect(x,y,cell,cell);n.fillStyle='#808080';n.fillRect(x,y,cell,cell);
+    // Fine siding/mortar relief remains independent of the painted window colours.
+    n.fillStyle=family===3?'#656565':'#717171';
+    if(family===3)for(let u=0;u<cell;u+=cell*12/512)n.fillRect(x+u,y,cell*2/512,cell);
+    else for(let v=0;v<cell;v+=cell*(family===2?12:24)/512)n.fillRect(x,y+v,cell,cell*2/512);
+    for(const opening of p.windows){
+      const xx=x+pad+opening.x/p.width*(cell-pad*2),yy=y+pad+(1-(opening.y+opening.h)/p.height)*(cell-pad*2);
+      const ww=opening.w/p.width*(cell-pad*2),hh=opening.h/p.height*(cell-pad*2);
+      r.fillStyle='#505050';r.fillRect(xx,yy,ww,hh);n.fillStyle='#808080';n.fillRect(xx,yy,ww,hh);
+    }
   }
-  const texture=c=>{const t=new THREE.CanvasTexture(c);t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=aniso;return t;};
+  const texture=(c,color=true)=>{const t=new THREE.CanvasTexture(c);if(color)t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=aniso;return t;};
   const material=new THREE.MeshStandardMaterial({map:texture(canvas),emissiveMap:texture(glow),emissive:0xffd3a0,
-    emissiveIntensity:0,roughness:.89,vertexColors:true});
+    emissiveIntensity:0,roughness:.96,roughnessMap:texture(rough,false),
+    bumpMap:low?null:texture(relief,false),bumpScale:.035,envMapIntensity:.45,vertexColors:true});
   const uv=(p,u,v)=>[(p.id%4+(1/128+u*126/128))/4,1-(Math.floor(p.id/4)+(1/128+(1-v)*126/128))/3];
   return {material,profiles,uv};
 }

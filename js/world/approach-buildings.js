@@ -4,6 +4,7 @@ import * as THREE from 'three';
 import { makeRng } from '../physics/atmosphere.js';
 import { sceneryGroundHeight } from './scenery-ground.js';
 import { createFacadeAtlas } from './facade-atlas.js';
+import { buildShadowMeshes } from './building-shadows.js';
 
 function roofMaterial(aniso,metal=false) {
   const c=document.createElement('canvas');c.width=c.height=256;const g=c.getContext('2d'),rng=makeRng(592);
@@ -51,6 +52,9 @@ export async function addApproachBuildings(world) {
   const {buildings}=await response.json(),low=world.lowDetail||world.quality==='low';
   const extra=await infill.catch(()=>({buildings:[]}));buildings.push(...extra.buildings);
   const atlas=createFacadeAtlas(world.maxAniso,low),materials=[atlas.material],roof=roofMaterial(world.maxAniso),metalRoof=roofMaterial(world.maxAniso,true);
+  const glass=new THREE.MeshStandardMaterial({map:atlas.material.map,emissiveMap:atlas.material.emissiveMap,
+    emissive:0xffd3a0,emissiveIntensity:0,roughness:.24,metalness:.08,envMapIntensity:.7,vertexColors:true});
+  materials.push(glass);
   const wallFill=new THREE.MeshStandardMaterial({roughness:.93,vertexColors:true});
   const trim=new THREE.MeshStandardMaterial({color:0xaca99e,roughness:.87,vertexColors:true});
   const foundation=new THREE.MeshStandardMaterial({color:0x77766e,roughness:1,vertexColors:true});
@@ -60,7 +64,7 @@ export async function addApproachBuildings(world) {
   for(const b of buildings){
     const tile=low?2000:1000,key=`${Math.floor(b.x/tile)}:${Math.floor(b.z/tile)}`;
     if(!tiles.has(key))tiles.set(key,Array.from({length:6},()=>new Batch()));
-    if(!low&&!details.has(key))details.set(key,new Batch());
+    if(!low&&!details.has(key))details.set(key,{trim:new Batch(),glass:new Batch()});
     const batches=tiles.get(key),style=Math.floor(rng()*3),wall=batches[0],top=batches[b.roofKind==='metal'?5:1],edge=batches[2],base=batches[3],fill=batches[4];
     const farm=b.use==='farm'||b.w*b.d>300||Math.min(b.w,b.d)>18;
     const cos=Math.cos(b.angle),sin=Math.sin(b.angle),rise=b.pitched?Math.min(b.d*.27,b.height*.38,4):0;
@@ -69,6 +73,7 @@ export async function addApproachBuildings(world) {
     let points=b.outline.map(([x,z])=>[x*cos+z*sin,-x*sin+z*cos]);
     if(THREE.ShapeUtils.isClockWise(points.map(p=>new THREE.Vector2(...p))))points.reverse();
     const wallPoints=points;
+    const front=wallPoints.map((a,i)=>({i,length:Math.hypot(a[0]-wallPoints[(i+1)%wallPoints.length][0],a[1]-wallPoints[(i+1)%wallPoints.length][1])})).sort((a,b)=>b.length-a.length)[0].i;
     if(rise){
       const split=[];
       for(let i=0;i<points.length;i++){
@@ -86,22 +91,41 @@ export async function addApproachBuildings(world) {
       const at=(along,y,out=0)=>vertex(a[0]+du*along+dv*out,a[1]+dv*along-du*out,y);
       const levels=farm?1:Math.max(1,Math.round((eave-floor)/2.8)),storey=(eave-floor)/levels;
       for(let level=0;level<levels;level++){
-        const side=Math.abs(du)>.65?(level===0?0:1):2;
-        const profile=atlas.profiles[farm?9+(i%3):style*3+side];profileCounts[profile.id]++;
-        const bays=Math.max(1,Math.round(len/profile.width)),bayWidth=len/bays,y=floor+level*storey;
+        const side=Math.abs(du)>.65?1:2;
+        const ordinary=atlas.profiles[farm?(i===front?11:10):style*3+side];
+        const bays=Math.max(1,Math.round(len/ordinary.width)),bayWidth=len/bays,y=floor+level*storey;
         for(let bay=0;bay<bays;bay++){
+          // A building has one principal entry bay, not a front door every six metres.
+          const entrance=i===front&&level===0&&bay===Math.floor(bays/2);
+          const profile=entrance?atlas.profiles[farm?9:style*3]:ordinary;profileCounts[profile.id]++;
           const x=bay*bayWidth;
           wall.quad(at(x,y),at(x,y+storey),at(x+bayWidth,y+storey),at(x+bayWidth,y),
             [[0,0],[0,1],[1,1],[1,0]].map(([u,v])=>atlas.uv(profile,u,v)),tint);
-          if(!low&&b.x>1800&&Math.abs(b.z)<1500&&b.w<45&&b.height<12){
-            const detail=details.get(key),sx=bayWidth/profile.width,sy=storey/profile.height;
+          if(!low&&b.x>1800&&Math.abs(b.z)<1500&&b.w<90&&b.height<15){
+            const detail=details.get(key).trim,glazing=details.get(key).glass,sx=bayWidth/profile.width,sy=storey/profile.height;
             for(const opening of profile.windows){
-              const left=x+opening.x*sx,right=left+opening.w*sx;
+              const left=x+opening.x*sx,right=left+opening.w*sx,bottom=y+opening.y*sy,top=bottom+opening.h*sy;
+              const paneUV=[[opening.x,opening.y],[opening.x,opening.y+opening.h],[opening.x+opening.w,opening.y+opening.h],[opening.x+opening.w,opening.y]].map(([u,v])=>atlas.uv(profile,u/profile.width,v/profile.height));
+              glazing.quad(at(left,bottom,.025),at(left,top,.025),at(right,top,.025),at(right,bottom,.025),paneUV,white);
+              const uv=[[0,0],[0,1],[1,1],[1,0]];
+              // Raised surrounds put the reflecting pane behind a real bevel.
+              for(const [a,b,c,d] of [
+                [[left-.08,bottom-.08,.14],[left-.08,top+.08,.14],[left,top,.025],[left,bottom,.025]],
+                [[right,bottom,.025],[right,top,.025],[right+.08,top+.08,.14],[right+.08,bottom-.08,.14]],
+                [[left,top,.025],[left-.08,top+.08,.14],[right+.08,top+.08,.14],[right,top,.025]],
+                [[left-.08,bottom-.08,.14],[left,bottom,.025],[right,bottom,.025],[right+.08,bottom-.08,.14]]])detail.quad(at(...a),at(...b),at(...c),at(...d),uv,white);
               for(const h of [y+opening.y*sy,y+(opening.y+opening.h)*sy]){
                 const uv=[[0,0],[0,1],[1,1],[1,0]];
                 detail.quad(at(left-.06,h,.01),at(right+.06,h,.01),at(right+.06,h,.14),at(left-.06,h,.14),uv,white);
                 detail.quad(at(left-.06,h-.06,.14),at(left-.06,h,.14),at(right+.06,h,.14),at(right+.06,h-.06,.14),uv,white);
               }
+            }
+            if(entrance&&!farm)for(const door of profile.doors){
+              const left=x+door.x*sx-.2,right=left+door.w*sx+.4,top=y+door.h*sy+.22,uv=[[0,0],[0,1],[1,1],[1,0]];
+              // A small lintel canopy and threshold establish the entry's depth.
+              detail.quad(at(left,top,.02),at(right,top,.02),at(right,top,.7),at(left,top,.7),uv,white);
+              detail.quad(at(left,top-.1,.7),at(left,top,.7),at(right,top,.7),at(right,top-.1,.7),uv,white);
+              detail.quad(at(left,y+.05,0),at(right,y+.05,0),at(right,y+.05,.45),at(left,y+.05,.45),uv,white);
             }
           }
         }
@@ -140,11 +164,12 @@ export async function addApproachBuildings(world) {
   for(const [key,batches] of tiles)for(let i=0;i<batches.length;i++)if(batches[i].p.length){
     const mesh=batches[i].mesh([atlas.material,roof,trim,foundation,wallFill,metalRoof][i]);mesh.name=`Approach ${key} ${i}`;mesh.userData.sceneryPart=i===1||i===5?'roof':'wall';group.add(mesh);
   }
-  for(const [key,batch] of details)if(batch.p.length){
-    const mesh=batch.mesh(trim),center=mesh.geometry.boundingSphere.center.clone();
+  for(const [key,batches] of details)for(const [kind,batch] of Object.entries(batches))if(batch.p.length){
+    const mesh=batch.mesh(kind==='glass'?glass:trim),center=mesh.geometry.boundingSphere.center.clone();
+    mesh.userData.sceneryPart=kind==='glass'?'window':'relief';
     mesh.geometry.translate(-center.x,-center.y,-center.z);
-    const lod=new THREE.LOD();lod.name=`Window relief ${key}`;lod.position.copy(center);
-    lod.addLevel(mesh,0);lod.addLevel(new THREE.Object3D(),1600,.15);group.add(lod);
+    const lod=new THREE.LOD();lod.name=`Window ${kind} ${key}`;lod.position.copy(center);
+    lod.addLevel(mesh,0);lod.addLevel(new THREE.Object3D(),kind==='glass'?650:1200,.15);group.add(lod);
   }
   world.approachBuildingExcludes=(x,z)=>{
     for(const b of index.get(`${Math.floor(x/100)}:${Math.floor(z/100)}`)||[]){
@@ -153,32 +178,19 @@ export async function addApproachBuildings(world) {
     }return false;
   };
   const shadows=new THREE.Group();shadows.name='Approach building ground shadows';group.add(shadows);
-  const shadowMat=new THREE.MeshBasicMaterial({color:0x131a21,transparent:true,opacity:.24,depthWrite:false,
+  const shadowMat=new THREE.MeshBasicMaterial({color:0x131a21,transparent:true,opacity:.19,vertexColors:true,depthWrite:false,
     polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1});
   let shadowKey='';
   const updateShadows=()=>{
     shadows.visible=!world.night;
-    shadowMat.opacity=world.hasDeck?.07:.24;
+    shadowMat.opacity=world.hasDeck?.035:.19;
     if(world.night)return;
     const sun=world.sun.position.clone().sub(world.sun.target.position).normalize();
     const key=sun.toArray().map(v=>v.toFixed(3)).join(',');if(key===shadowKey)return;shadowKey=key;
     for(const mesh of [...shadows.children]){mesh.geometry.dispose();shadows.remove(mesh);}
-    const batches=new Map();
-    for(const b of buildings){
-      const key=`${Math.floor(b.x/1000)}:${Math.floor(b.z/1000)}`;
-      if(!batches.has(key))batches.set(key,new Batch());
-      const batch=batches.get(key),dy=Math.max(.25,sun.y),dx=-sun.x/dy*b.height,dz=-sun.z/dy*b.height;
-      // A conservative convex silhouette supplements the baked photographic shadow.
-      const pts=b.outline.flatMap(([x,z])=>[[b.x+x,b.z+z],[b.x+x+dx,b.z+z+dz]]).sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
-      const cross=(o,a,b)=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]);
-      const half=list=>{const h=[];for(const p of list){while(h.length>1&&cross(h[h.length-2],h[h.length-1],p)<=0)h.pop();h.push(p);}return h;};
-      const hull=half(pts).slice(0,-1).concat(half([...pts].reverse()).slice(0,-1));
-      const v=p=>[p[0],ground(...p)+.13,p[1]];
-      for(let i=1;i<hull.length-1;i++)batch.triangle(v(hull[0]),v(hull[i+1]),v(hull[i]),[[0,0],[0,0],[0,0]],white);
-    }
-    for(const batch of batches.values()){const mesh=batch.mesh(shadowMat);mesh.castShadow=false;mesh.receiveShadow=false;shadows.add(mesh);}
+    shadows.add(...buildShadowMeshes(buildings,sun,ground,shadowMat));
   };
-  world.approachBuildings={group,count:buildings.length,infillCount:extra.buildings.length,materials,footprints:buildings,profileCounts,updateShadows};
+  world.approachBuildings={group,shadows,count:buildings.length,infillCount:extra.buildings.length,materials,footprints:buildings,profileCounts,updateShadows};
   world.scene.add(group);
   updateShadows();
   for(const m of materials)m.emissiveIntensity=world.night?.55:0;

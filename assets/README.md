@@ -115,6 +115,12 @@ the broad imagery visible. The complete high/low set is approximately 24 MB on d
 
 Reproduce with `python3 tools/fetch-ground-detail.py` (Pillow and curl required).
 
+Below 650 m viewing distance, vegetation and warm soil colours receive finer scanned
+surface frequencies at 6 m and 10.7 m scales, with rotated sampling to reduce repetition.
+Normal and roughness detail fades with the same distance mask; bright roofs and neutral
+roads are suppressed by the colour mask. This is an interpreted surface layer, not newly
+recovered survey detail. Baked shadows and missing photographic features remain.
+
 ## Approach buildings and roads
 
 `scenery/approach-buildings.json` contains 2,160 footprints adapted from
@@ -129,11 +135,15 @@ are rounded to 10 cm. Source height estimates are capped and missing heights get
 these are not surveyed elevations. The original polygon outlines are retained. Roof colour
 is sampled from the public-domain photo; roof pitch, facades, windows and eaves are original
 procedural interpretations. Ground shadows approximate the building silhouette in the sun's
-direction, with reduced contrast under overcast; they supplement existing photographic shadows.
+direction, with terrain-following triangles and a roughly 0.6–1.8 m feathered edge. Contrast
+is reduced under overcast; they supplement existing photographic shadows rather than removing them.
 Twelve original facade bays share one atlas: house fronts, upper floors, sparse side walls,
 barn doors and loading bays. Building dimensions select residential or agricultural layouts;
 bay widths and storey counts keep openings at plausible sizes. Doors stay on the ground
-floor, gables remain solid, and nearby ledges follow the actual window measurements.
+floor, houses get one entrance bay, and gables remain solid. High quality adds beveled
+window surrounds, panes recessed behind those surrounds, lintel canopies and thresholds.
+The atlas has separate roughness and siding/mortar bump maps; nearby panes use a smoother
+reflecting material. Glass and relief disappear at 650/1,200 m respectively.
 These layouts are interpretations, not photographs of the source buildings.
 
 `scenery/approach-roads.json` adapts public-domain **U.S. Census Bureau TIGERweb Physical
@@ -179,8 +189,10 @@ from these **CC0** Poly Haven assets (https://polyhaven.com/license):
 
 Seven authored forms have four alpha-preserving views each. The simulator retains crown
 proportions, varies orientation/scale/tint, and groups smaller conifers beneath broadleaf
-woodland. Three intersecting planes use different views; trunks meet each tier's rendered
-terrain. These are impostors, not full 3D branches. The atlases are 2048×3584 (high,
+woodland. Each distant tree uses one upright camera-facing quad, blending the two nearest
+source azimuth views. This removes crossed/edge-on planes and reduces each tree from six
+to two triangles; trunks meet each tier's rendered terrain. These remain impostors and
+are less convincing from steep overhead angles than full 3D branches. The atlases are 2048×3584 (high,
 approximately 6.5 MB) and 1024×1792 (low, approximately 1.8 MB).
 The full models stay in ignored `test/output/tree-source` and `tree-variety-source`;
 they are not shipped. These atlases replace the older single-species `tree-canopies.png`.

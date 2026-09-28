@@ -15,7 +15,8 @@ export function buildLandscape(world) {
   const fallback = makeGroundTexture(world.maxAniso);
   const uniforms = world.groundUniforms = {
     uRegion: { value: fallback }, uApproach: { value: fallback }, uAirport: { value: fallback }, uFinal: {value:fallback},
-    uGrass: { value: fallback }, uReady: { value: 0 }, uWet: { value: 0 }, uAlbedo: { value: 0.82 },
+    uGrass: { value: fallback }, uGrassRough: {value:fallback}, uSurfaceDetail:{value:1},
+    uReady: { value: 0 }, uWet: { value: 0 }, uAlbedo: { value: 0.82 },
     ...groundDetailUniforms(fallback),
   };
   world.groundTex = fallback;
@@ -28,8 +29,8 @@ export function buildLandscape(world) {
       .replace('#include <begin_vertex>', '#include <begin_vertex>\nvGroundXZ = position.xz;');
     shader.fragmentShader = shader.fragmentShader.replace('#include <common>', `#include <common>
       varying vec2 vGroundXZ;
-      uniform sampler2D uRegion, uApproach, uAirport, uFinal, uGrass;
-      uniform float uReady, uWet, uAlbedo;
+      uniform sampler2D uRegion, uApproach, uAirport, uFinal, uGrass, uGrassRough;
+      uniform float uReady, uWet, uAlbedo, uSurfaceDetail;
       ${GROUND_DETAIL_GLSL}
       vec2 aerialUV(vec2 center, float span) { return (vGroundXZ-center)*vec2(1.0,-1.0)/span+0.5; }
       float coverage(vec2 uv) { return 1.0-smoothstep(0.43,0.49,max(abs(uv.x-0.5),abs(uv.y-0.5))); }
@@ -53,18 +54,29 @@ export function buildLandscape(world) {
       vec3 grass = texture2D(uGrass,vGroundXZ/18.0).rgb;
       // Ground detail remains visible on short final; mowing is very subtle at distance.
       float nearGround = 1.0-smoothstep(500.0,2200.0,length(vViewPosition));
-      // Small-scale grass grain supplies texture between orthophoto pixels without
-      // painting roofs or roads with grass. The photo retains field boundaries/colour.
+      // Keep the photo's field boundaries and colour; reconstruct the missing small
+      // surface frequencies from the bundled scan, fading before they can shimmer.
       float green=max(0.0,land.g-(land.r+land.b)*.5);
-      float vegetation=smoothstep(.012,.055,green)*(1.0-smoothstep(.20,.38,max(land.r,max(land.g,land.b))));
-      vec3 rotatedGrass=texture2D(uGrass,mat2(.8,-.6,.6,.8)*vGroundXZ/29.0).rgb;
-      float grain=clamp(dot(mix(grass,rotatedGrass,.5),vec3(.25,.5,.25))*5.0,.65,1.35);
-      land*=mix(1.0,grain,vegetation*nearGround*.48);
+      float vegetation=smoothstep(.006,.032,green);
+      float soil=smoothstep(.008,.05,land.r-land.b)*(1.0-smoothstep(.0,.025,land.g-land.r));
+      float surfaceMask=max(vegetation,soil*.65)*(1.0-smoothstep(.22,.40,max(land.r,max(land.g,land.b))));
+      float closeSurface=(1.0-smoothstep(90.0,650.0,length(vViewPosition)))*uSurfaceDetail;
+      vec3 fineGrass=texture2D(uGrass,vGroundXZ/6.0).rgb;
+      vec3 rotatedGrass=texture2D(uGrass,mat2(.8,-.6,.6,.8)*vGroundXZ/10.7+vec2(.37,.61)).rgb;
+      float grain=clamp(dot(mix(fineGrass,rotatedGrass,.38),vec3(.25,.5,.25))*7.5,.45,1.75);
+      land*=mix(1.0,grain,surfaceMask*closeSurface*.82);
       vec3 turf = mix(vec3(0.13,0.155,0.065),grass*vec3(0.75,0.9,0.65),nearGround*0.72);
       turf *= 0.97+0.03*sin(vGroundXZ.y*0.21);
       land = mix(land,turf,airfield*uReady);
       diffuseColor.rgb *= land * uAlbedo * mix(1.0,0.65,uWet);
-    `);
+    `).replace('#include <normal_fragment_begin>', '#define vNormalMapUv (vGroundXZ/6.0)\n#include <normal_fragment_begin>')
+      .replace('#include <normal_fragment_maps>',`vec3 groundBaseNormal=normal;
+        #include <normal_fragment_maps>
+        #undef vNormalMapUv
+        normal=normalize(mix(groundBaseNormal,normal,max(surfaceMask,airfield)*closeSurface));`)
+      .replace('#include <roughnessmap_fragment>',`#include <roughnessmap_fragment>
+        roughnessFactor=mix(roughnessFactor,.72+.28*texture2D(uGrassRough,vGroundXZ/6.0).g,
+          max(surfaceMask,airfield)*closeSurface);`);
   };
   // A 62.5 m grid near the airport and 250 m grid farther away follow the SAME
   // height query as the wheels. Patches allow countryside behind the aircraft to be culled.
@@ -102,8 +114,8 @@ export function buildLandscape(world) {
     await addWoodland(world,airport.image,final.image);
   });
   const grass=load('grass-color',true,true).then(t=>uniforms.uGrass.value=t);
-  world.assetJobs.push(buildings,roads,ready,grass,load('grass-normal',false,true).then(tex=>{
-    tex.repeat.set(10000/18,10000/18);material.normalMap=tex;material.normalScale.set(.22,.22);material.needsUpdate=true;
+  world.assetJobs.push(buildings,roads,ready,grass,load('grass-rough',false,true).then(tex=>uniforms.uGrassRough.value=tex),load('grass-normal',false,true).then(tex=>{
+    material.normalMap=tex;material.normalScale.set(.48,.48);material.needsUpdate=true;
   }));
   // One surface set is shared by all pavement. World-space mapping keeps the size of
   // aggregate constant on a runway, a connector, and the apron.

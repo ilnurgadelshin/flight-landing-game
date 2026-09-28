@@ -31,12 +31,16 @@ try{
       s.setDrawing(false);s.start({startId:'short',scenarioId:'clear',seed:5});s.setTimeScale(0);
       s.game.state='menu'; // Stop live camera updates while awaiting offline review tiles.
       const buildings=w.approachBuildings;let triangles=0,downwardRoofVertices=0;
-      let batches=0;
-      buildings.group.traverse(m=>{if(!m.isMesh)return;batches++;triangles+=m.geometry.attributes.position.count/3;
+      let batches=0,windowSurfaces=0,softShadowVertices=0,transparentShadowVertices=0;
+      buildings.shadows.traverse(m=>{if(!m.isMesh)return;const c=m.geometry.attributes.color;
+        for(let i=0;i<c.count;i++){const a=c.getW(i);if(a>0&&a<1)softShadowVertices++;if(a===0)transparentShadowVertices++;}
+      });
+      buildings.group.traverse(m=>{if(!m.isMesh)return;if(m.userData.sceneryPart==='window')windowSurfaces++;batches++;triangles+=m.geometry.attributes.position.count/3;
         if(m.userData.sceneryPart==='roof'){const n=m.geometry.attributes.normal;for(let i=0;i<n.count;i++)if(n.getY(i)<0)downwardRoofVertices++;}
       });
       let intrudingTrees=0,trees=0;const mat=new T.Matrix4(),p=new T.Vector3();
       for(const m of w.woodland.children)if(m.material===w.woodlandMaterial)for(let i=0;i<m.count;i++){
+        if(m.geometry.index.count!==6)throw new Error('Distant tree should have one camera-facing quad');
         m.getMatrixAt(i,mat);p.setFromMatrixPosition(mat);trees++;if(w.approachBuildingExcludes(p.x,p.z)||w.approachRoadExcludes(p.x,p.z))intrudingTrees++;
       }
       const roadVertices=[];
@@ -65,7 +69,7 @@ try{
         }
         near.settle(new T.Vector3(2530,18,352));
       }
-      return {count:buildings.count,infillCount:buildings.infillCount,batches,triangles,downwardRoofVertices,intrudingTrees,trees,
+      return {count:buildings.count,infillCount:buildings.infillCount,batches,triangles,windowSurfaces,softShadowVertices,transparentShadowVertices,downwardRoofVertices,intrudingTrees,trees,
         nearForms:near?.pools.length||0,nearCount:near?.count||0,nearTriangles:near?.triangles||0,
         fadedCards:near?[...near.active.values()].filter(s=>s.t.fade.getX(s.t.index)>.1).length:0,
         treeForms:w.woodlandForms,facadeProfiles:buildings.profileCounts,largestCache,detailErrors:[...detail.errors],
@@ -75,17 +79,17 @@ try{
     console.log(tier,stats);
     assert.equal(stats.count,data.buildings.length+infill.buildings.length);assert.equal(stats.infillCount,5);assert.equal(stats.downwardRoofVertices,0);
     if(tier==='high'){
-      assert.equal(stats.nearForms,7);assert.ok(stats.nearCount>5&&stats.nearCount<=48);assert.ok(stats.nearTriangles>10000&&stats.nearTriangles<=2400000);assert.ok(stats.fadedCards>5);
+      assert.ok(stats.windowSurfaces>5);assert.equal(stats.nearForms,7);assert.ok(stats.nearCount>5&&stats.nearCount<=48);assert.ok(stats.nearTriangles>10000&&stats.nearTriangles<=2400000);assert.ok(stats.fadedCards>5);
       assert.equal(treeRequests.length,3);
     }else {assert.equal(stats.nearForms,0);assert.equal(treeRequests.length,0);}
-    assert.equal(stats.intrudingTrees,0);assert.deepEqual(stats.assetErrors,[]);assert.ok(stats.trees>5000);
+    assert.ok(stats.softShadowVertices>100&&stats.transparentShadowVertices>100);assert.equal(stats.intrudingTrees,0);assert.deepEqual(stats.assetErrors,[]);assert.ok(stats.trees>5000);
     assert.equal(stats.roadSections,3);assert.ok(stats.roadsFaceUp);
     assert.ok(stats.groundError<.001,'Scenery must meet the actual rendered terrain on this tier');
     assert.equal(stats.treeForms.length,7);assert.ok(stats.treeForms.every(n=>n>50));
     assert.equal(stats.facadeProfiles.length,12);assert.ok(stats.facadeProfiles.every(n=>n>0));
     assert.ok(stats.largestCache<=4);assert.deepEqual(stats.detailErrors,[]);
     assert.equal(stats.residentTiles.length,4);assert.ok(stats.residentTiles.every(([x,y])=>x===(tier==='high'?2064:1032)&&y===x));
-    for(const shot of ['captain','village','nearby','night',...(tier==='high'?['woodland']:[])]){
+    for(const shot of ['captain','village','nearby','ground','night',...(tier==='high'?['woodland']:[])]){
       await page.evaluate(async shot=>{
         const T=await import('/vendor/three.module.js'),s=window.__sim,w=s.world;
         s.start({startId:'short',scenarioId:'clear',night:shot==='night',seed:5});s.setTimeScale(0);
@@ -99,6 +103,11 @@ try{
             w.nearWoodland.settle(new T.Vector3(2530,18,352));
             const t=[...w.nearWoodland.active.values()].find(s=>s.t.row===0&&s.fade>.7).t;
             camera.position.set(t.x+26,t.y+11,t.z+24);camera.lookAt(t.x,t.y+t.h*.5,t.z);
+          }
+          else if(shot==='ground'){
+            const {sceneryGroundHeight}=await import('/js/world/scenery-ground.js');
+            const y=sceneryGroundHeight(2550,450,w.lowDetail||w.quality==='low');
+            camera.position.set(2550,y+2.5,450);camera.lookAt(2490,y+1,360);
           }
           else if(shot==='nearby'){camera.position.set(2530,18,352);camera.lookAt(2465.9,2.5,303.6);}
           else {camera.position.set(3150,180,800);camera.lookAt(2450,5,280);}
@@ -114,6 +123,21 @@ try{
         await page.evaluate(()=>{const w=window.__sim.world;w.nearWoodland.group.visible=false;
           for(const {t} of w.nearWoodland.active.values()){t.fade.setX(t.index,0);t.fade.needsUpdate=true;}w.render();});
         await page.screenshot({path:path.join(out,'approach-high-woodland-cards.png')});
+      }
+      if(shot==='ground'){
+        const surfacePixels=await page.evaluate(()=>{
+          const w=window.__sim.world,c=document.createElement('canvas');c.width=640;c.height=400;
+          const ctx=c.getContext('2d',{willReadFrequently:true});
+          const grab=()=>{w.render();ctx.drawImage(w.renderer.domElement,0,0,640,400);return ctx.getImageData(0,0,640,400).data;};
+          const detailed=grab();w.groundUniforms.uSurfaceDetail.value=0;const plain=grab();let delta=0,n=0;
+          for(let y=230;y<390;y++)for(let x=80;x<560;x++)for(let k=0;k<3;k++){const i=(y*640+x)*4+k;delta+=Math.abs(detailed[i]-plain[i]);n++;}
+          w.groundUniforms.uSurfaceDetail.value=1;w.render();return delta/n;
+        });
+        assert.ok(surfacePixels>.5,`${tier}: reconstructed surface must visibly reach the ground (${surfacePixels})`);
+        console.log(tier,'close surface pixel delta',surfacePixels.toFixed(2));
+        await page.evaluate(()=>{const w=window.__sim.world;w.groundUniforms.uSurfaceDetail.value=0;w.render();});
+        await page.screenshot({path:path.join(out,`approach-${tier}-ground-plain.png`)});
+        await page.evaluate(()=>{const w=window.__sim.world;w.groundUniforms.uSurfaceDetail.value=1;w.render();});
       }
       if(shot==='nearby'){
         const detailPixels=await page.evaluate(()=>{

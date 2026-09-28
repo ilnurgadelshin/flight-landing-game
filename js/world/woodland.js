@@ -1,5 +1,5 @@
-// Forest stands tied to the orthophoto. Alpha-tested, multi-plane tree crowns
-// replace opaque geometric blobs. Seven authored forms across three CC0 species
+// Forest stands tied to the orthophoto. Camera-facing, multi-view impostors
+// replace crossed image planes. Seven authored forms across three CC0 species
 // retain their crown proportions, with understory clustered below the broadleaf canopy.
 import * as THREE from 'three';
 import { makeRng } from '../physics/atmosphere.js';
@@ -14,20 +14,12 @@ function groveNoise(x,z) {
 }
 
 function crownGeometry(rows,margin) {
-  const positions=[],normals=[],uv=[],indices=[];
-  // Three intersecting crown planes retain volume from side and oblique views.
-  for(let j=0;j<3;j++){
-    const a=j*Math.PI/3,dx=Math.cos(a)*.5,dz=Math.sin(a)*.5,b=j*4;
-    positions.push(-dx,0,-dz,dx,0,dz,-dx,1,-dz,dx,1,dz);
-    for(let k=0;k<4;k++)normals.push(Math.sin(a)*.4,.75,-Math.cos(a)*.4);
-    const u=j/4+.0005,right=(j+1)/4-.0005,bottom=1-(1-margin)/rows,top=1-margin/rows;
-    // Each crossed plane gets a different authored view. Crop the vertical margin
-    // so every trunk meets the terrain; horizontal aspect comes from the bake.
-    uv.push(u,bottom,right,bottom,u,top,right,top);
-    indices.push(b,b+1,b+2,b+1,b+3,b+2);
-  }
-  const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));
-  g.setAttribute('normal',new THREE.Float32BufferAttribute(normals,3));g.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));g.setIndex(indices);return g;
+  // One camera-facing quad eliminates the edge-on planes of the old crossed cards.
+  const g=new THREE.BufferGeometry(),bottom=1-(1-margin)/rows,top=1-margin/rows;
+  g.setAttribute('position',new THREE.Float32BufferAttribute([-.5,0,0,.5,0,0,-.5,1,0,.5,1,0],3));
+  g.setAttribute('normal',new THREE.Float32BufferAttribute([0,0,1,0,0,1,0,0,1,0,0,1],3));
+  g.setAttribute('uv',new THREE.Float32BufferAttribute([0,bottom,1,bottom,0,top,1,top],2));
+  g.setIndex([0,1,2,1,3,2]);return g;
 }
 
 export async function addWoodland(world,photo,approachPhoto) {
@@ -40,8 +32,30 @@ export async function addWoodland(world,photo,approachPhoto) {
   const material=new THREE.MeshBasicMaterial({map:texture,alphaTest:.28,alphaToCoverage:true,side:THREE.DoubleSide});
   material.onBeforeCompile=shader=>{
     THREE.Material.prototype.onBeforeCompile.call(material,shader);
-    shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nattribute vec2 treeUvOffset;')
-      .replace('#include <uv_vertex>','#include <uv_vertex>\nvMapUv.x=(mod(floor(vMapUv.x*4.0)+treeUvOffset.x,4.0)+fract(vMapUv.x*4.0))*.25;\nvMapUv.y+=treeUvOffset.y;');
+    shader.vertexShader=shader.vertexShader.replace('#include <common>',`#include <common>
+      attribute vec2 treeUvOffset; attribute float treeYaw;
+      varying vec2 vTreeViews; varying float vTreeBlend; varying vec2 vTreeUV;`)
+      .replace('#include <project_vertex>',`
+        vec3 treeCenter=(modelMatrix*instanceMatrix*vec4(0.0,0.0,0.0,1.0)).xyz;
+        vec2 treeFacing=normalize(cameraPosition.xz-treeCenter.xz+vec2(.00001));
+        vec3 treeRight=vec3(treeFacing.y,0.0,-treeFacing.x);
+        vec3 treeWorld=treeCenter+treeRight*position.x*length(instanceMatrix[0].xyz)
+          +vec3(0.0,position.y*length(instanceMatrix[1].xyz),0.0);
+        vec4 mvPosition=viewMatrix*vec4(treeWorld,1.0);
+        gl_Position=projectionMatrix*mvPosition;
+        float treeView=mod((treeYaw-atan(treeFacing.x,treeFacing.y))/1.57079632679+treeUvOffset.x+8.0,4.0);
+        vTreeViews=vec2(floor(treeView),mod(floor(treeView)+1.0,4.0));vTreeBlend=fract(treeView);
+        vTreeUV=vec2(uv.x,uv.y+treeUvOffset.y);
+      `);
+    shader.fragmentShader=shader.fragmentShader.replace('#include <common>',`#include <common>
+      varying vec2 vTreeViews; varying float vTreeBlend; varying vec2 vTreeUV;`)
+      .replace('#include <map_fragment>',`
+        vec4 treeA=texture2D(map,vec2((vTreeViews.x+mix(.002,.998,vTreeUV.x))*.25,vTreeUV.y));
+        vec4 treeB=texture2D(map,vec2((vTreeViews.y+mix(.002,.998,vTreeUV.x))*.25,vTreeUV.y));
+        float treeAlpha=mix(treeA.a,treeB.a,vTreeBlend);
+        vec3 treeColor=mix(treeA.rgb*treeA.a,treeB.rgb*treeB.a,vTreeBlend)/max(.001,treeAlpha);
+        diffuseColor*=vec4(treeColor,treeAlpha);
+      `);
   };
   treeFadeShader(material,false);
   const canvas=document.createElement('canvas');canvas.width=canvas.height=1024;
@@ -89,13 +103,13 @@ export async function addWoodland(world,photo,approachPhoto) {
   const contactGeo=new THREE.PlaneGeometry(1,1).rotateX(-Math.PI/2);
   const records=[];
   for(const trees of patches.values()){
-    const crown=geometry.clone(),offsets=new Float32Array(trees.length*2);
+    const crown=geometry.clone(),offsets=new Float32Array(trees.length*2),yaws=new Float32Array(trees.length);
     const fades=new THREE.InstancedBufferAttribute(new Float32Array(trees.length),1).setUsage(THREE.DynamicDrawUsage);
     crown.setAttribute('treeDetailFade',fades);
     const mesh=new THREE.InstancedMesh(crown,material,trees.length);
     const shadows=new THREE.InstancedMesh(contactGeo,contactMat,trees.length);
     trees.forEach((t,i)=>{
-      offsets[i*2]=t.type;offsets[i*2+1]=-t.row/atlas.rows;
+      offsets[i*2]=t.type;offsets[i*2+1]=-t.row/atlas.rows;yaws[i]=t.yaw;
       q.setFromAxisAngle(up,t.yaw);
       const y=sceneryGroundHeight(t.x,t.z,low);
       matrix.compose(new THREE.Vector3(t.x,y-.08,t.z),q,new THREE.Vector3(t.w,t.h,t.w));
@@ -105,6 +119,7 @@ export async function addWoodland(world,photo,approachPhoto) {
       if(!low)records.push({...t,id:records.length,y:y-.08,color,fade:fades,index:i});
     });
     crown.setAttribute('treeUvOffset',new THREE.InstancedBufferAttribute(offsets,2));
+    crown.setAttribute('treeYaw',new THREE.InstancedBufferAttribute(yaws,1));
     mesh.computeBoundingSphere();shadows.computeBoundingSphere();group.add(mesh,shadows);
   }
   geometry.dispose();

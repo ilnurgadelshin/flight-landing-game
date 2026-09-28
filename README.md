@@ -563,17 +563,20 @@ The visual assets are bundled locally and need no map service, account or API ke
   at a time. The underlying NAIP survey is generally 0.6 m. Close woodland uses seven
   authored broadleaf, pine and fir forms, baked into 28 canopy views from CC0 models.
   On high quality, nearby crowns transition to the same models' 3D branches and leaves
-  within 180 m, with fixed instance and triangle budgets. Low quality keeps the atlas.
+  within 180 m, with fixed instance and triangle budgets. Distant and low-quality trees
+  use camera-facing quads with blended viewing angles, avoiding crossed image planes.
 - **2,160 individual approach buildings** follow openly licensed Microsoft footprints,
   with pitched/flat roofs, twelve facade layouts, eaves, foundations and night windows.
-  House fronts, side walls and farm buildings have different openings; nearby window
-  ledges match those openings, and roof gables remain solid.
+  Houses have a principal entrance bay; nearby high-quality windows have beveled frames,
+  smoother panes and matching ledges. Wall roughness and siding relief separate the
+  materials. Roof gables remain solid, and projected ground shadows have feathered edges.
   Five additional farm roofs traced from the public-domain imagery fill prominent gaps
   in the source footprints, with interpreted corrugated roofs and agricultural facades.
   Two imagery-checked valley roads use public-domain Census centerlines, terrain-following
   pavement and roadside markers. Woodland crowns leave clearance around buildings and roads.
 - **Scanned grass and asphalt materials** add surface detail around the runway,
-  taxiways and apron. The airport retains its terminal glazing, jet bridges and vehicles,
+  taxiways and apron. Nearby fields and soil gain finer scanned colour, normal and roughness
+  detail while retaining the aerial imagery's boundaries. The airport retains its terminal glazing, jet bridges and vehicles,
   with authored **B737 and A320** models on the stands.
 
 The desktop cockpit has about 1.02 million triangles and an 8.2 MB download. The lighter
@@ -1184,7 +1187,11 @@ are in [`test/PLAYTEST-FINDINGS.md`](test/PLAYTEST-FINDINGS.md).
 
 `node test/approach-scenery.mjs` checks approach geometry, protected-area clearance,
 woodland separation from buildings/roads, both graphics tiers and missing-data fallback.
-It saves captain, village, close-building and night views in `test/output/approach-*.png`.
+It saves captain, village, close-building, ground-level and night views in `test/output/approach-*.png`.
+
+`node test/render-benchmark.mjs current` measures the renderer on macOS Metal, rejects
+software rendering, and saves frame-time percentiles and draw counts. The measured M2 Pro
+comparison and its limits are in [`test/RENDER-PERFORMANCE.md`](test/RENDER-PERFORMANCE.md).
 
 `node test/visual-review.mjs` verifies that the authored cockpit, both yokes, all four aerial
 images and five parked aircraft load, checks that the PFD and focused ND are unobstructed,
