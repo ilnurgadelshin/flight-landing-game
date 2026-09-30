@@ -9,7 +9,7 @@ export async function addApproachRoads(world) {
   const asphalt=new THREE.MeshStandardMaterial({color:0x777970,roughness:.97});
   const verge=new THREE.MeshStandardMaterial({color:0x8c8a77,roughness:1});
   const paint=new THREE.MeshStandardMaterial({color:0xb6ac70,roughness:1});
-  const ground=(x,z)=>sceneryGroundHeight(x,z,low),segments=[],markers=[];
+  const ground=(x,z)=>sceneryGroundHeight(x,z,world.groundLowDetail),segments=[],markers=[];
   for(const road of roads){
     const pts=road.points,p=[],uv=[],idx=[],v=[],vuv=[],vi=[],lines=[],li=[];
     let distance=0,nextMarker=0;

@@ -46,7 +46,7 @@ export async function addApproachBuildings(world) {
   const infill=fetch(new URL('../../assets/scenery/approach-infill.json',import.meta.url)).then(async r=>{
     if(!r.ok)throw new Error(`Approach infill: HTTP ${r.status}`);return r.json();
   });
-  world.assetJobs.push(infill); // A missing supplement leaves the main footprints available.
+  infill.catch(error=>world.assetErrors.push(String(error))); // Supplement is optional.
   const response=await fetch(new URL('../../assets/scenery/approach-buildings.json',import.meta.url));
   if(!response.ok)throw new Error(`Approach buildings: HTTP ${response.status}`);
   const {buildings}=await response.json(),low=world.lowDetail||world.quality==='low';
@@ -60,7 +60,7 @@ export async function addApproachBuildings(world) {
   const foundation=new THREE.MeshStandardMaterial({color:0x77766e,roughness:1,vertexColors:true});
   const group=new THREE.Group();group.name='Georegistered approach buildings';
   const tiles=new Map(),details=new Map(),index=new Map(),profileCounts=Array(12).fill(0),rng=makeRng(9482),white=new THREE.Color(0xffffff);
-  const ground=(x,z)=>sceneryGroundHeight(x,z,low);
+  const ground=(x,z)=>sceneryGroundHeight(x,z,world.groundLowDetail);
   for(const b of buildings){
     const tile=low?2000:1000,key=`${Math.floor(b.x/tile)}:${Math.floor(b.z/tile)}`;
     if(!tiles.has(key))tiles.set(key,Array.from({length:6},()=>new Batch()));

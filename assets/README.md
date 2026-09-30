@@ -34,7 +34,7 @@ now use packed **CC0 Poly Haven scans**: [Leather White](https://polyhaven.com/a
 supplies neutral embossed grain for the molded liner, and
 [Poly Wool Herringbone](https://polyhaven.com/a/poly_wool_herringbone) supplies the seat weave.
 These are material interpretations, not photographs of the original aircraft's upholstery.
-`cockpit/liner.png` and `upholstery.png` store linear height, roughness and neutral colour
+`cockpit/liner.webp` and `upholstery.webp` store linear height, roughness and neutral colour
 modulation at 512², with metric scale, seamless projection and mipmaps. The source paint
 colours remain. Low quality uses average roughness without these maps; a failed scan download
 uses the original procedural finish. Exact source files and modifications are in
@@ -62,15 +62,17 @@ of bounced light; it is not a full global-illumination bake.
 Daytime cabin lamps are reduced in favour of sky illumination. Two broad side-window lights
 on high quality supply illumination, attenuated by the baked cabin shading. Their diffuse
 contribution is integrated once onto the existing vertices, separately for front/back faces
-in the cabin's local frame. Weather scales it at runtime. The more expensive area-light BRDFs
-run only while capturing cabin reflections, not in every frame. Direct sunshine
+in the cabin's local frame. Weather scales it at runtime. Captures use this same baked
+illumination; no area lights are added to the rendered scene. Direct sunshine
 still uses the frame shadow map. Both tiers cache a small PMREM reflection capture of the
 actual cabin and windows from the fixed pilot eye for each weather layer, instead of reflecting an unobstructed outdoor
 sky through the ceiling. The cabin uses a separate fixed-resolution PMREM generator. Captures rotate with the airframe and are disposed on a scenario
 change. This is a single-position approximation, not ray tracing or full global illumination;
 sunlit cabin reflections are not continuously rebaked during turns. Night flood lighting
-and the instrument displays retain their existing brightness. The two vendored Three.js area
-light helpers are unchanged MIT-licensed files from the installed Three.js version.
+and the instrument displays retain their existing brightness. Every new capture is checked
+for finite, nonzero half-float radiance before use. Invalid pixels or a failed capture dispose
+the target and keep sky/fill lighting for that scenario; the failure is cached to avoid repeated
+stalls. The unused area-light lookup tables have been removed.
 
 To reproduce, download the freely licensed **glTF** archive from that page (Sketchfab requires
 sign-in), unzip it, run `npm install`, then:
@@ -108,7 +110,7 @@ undercarriage for static airport use.
 
 ## Ground imagery — public domain
 
-`scenery/region.jpg`, `approach.jpg`, `airport.jpg`, `final-approach.jpg` and their `-low` variants are USDA NAIP
+`scenery/region.webp`, `approach.webp`, `airport.webp`, `final-approach.webp` and their `-low` variants are USDA NAIP
 natural-color orthophotography, distributed by USGS / The National Map:
 https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer
 
@@ -128,7 +130,8 @@ uses 2064 px exports sampled at 0.5 m/px; low uses 1032 px at 1 m/px. NAIP's und
 survey is generally 0.6 m: output sampling does not create finer survey detail.
 The 16 m gutters feather into adjoining tiles and the original imagery. At most four
 detail textures are resident; movement evicts/disposes old textures. Missing tiles leave
-the broad imagery visible. The complete high/low set is approximately 24 MB on disk.
+the broad imagery visible. Delivery uses WebP at the original pixel dimensions; exact
+encoded sizes are in `delivery.json`.
 
 Reproduce with `python3 tools/fetch-ground-detail.py` (Pillow and curl required).
 
@@ -221,7 +224,7 @@ The converter requires Pillow, uses bundled imagery for roof colours, and runs o
 
 ## Woodland — CC0
 
-`scenery/tree-variety.png`, its smaller `-low` variant and `tree-variety.json` are baked
+`scenery/tree-variety.webp`, its smaller `-low` variant and `tree-variety.json` are baked
 from these **CC0** Poly Haven assets (https://polyhaven.com/license):
 
 - **Tree Small 02**, Rico Cilliers: https://polyhaven.com/a/tree_small_02
@@ -234,7 +237,7 @@ woodland. Each distant tree uses one upright camera-facing quad, blending the tw
 source azimuth views. This removes crossed/edge-on planes and reduces each tree from six
 to two triangles; trunks meet each tier's rendered terrain. These remain impostors and
 are less convincing from steep overhead angles than full 3D branches. The atlases are 2048×3584 (high,
-approximately 6.5 MB) and 1024×1792 (low, approximately 1.8 MB).
+approximately 1.3 MB) and 1024×1792 (low, approximately 0.5 MB).
 The full models stay in ignored `test/output/tree-source` and `tree-variety-source`;
 they are not shipped. These atlases replace the older single-species `tree-canopies.png`.
 To reproduce the atlas (curl, Python 3, Node and Playwright Chromium required):
@@ -249,14 +252,15 @@ The three `scenery/*-near.glb` assets use the **same CC0 sources and seven forms
 real nearby branches, trunks and leaf geometry on the high tier. They are normalized
 to unit height, simplified separately for foliage and wood, texture-packed and Meshopt
 compressed. The broadleaf keeps about 159,000 triangles to retain its canopy; conifers
-use about 19,000–122,000. Files total approximately 13.2 MB (decimal). Exact sizes, triangle
+use about 19,000–79,000. Files total approximately 10.7 MB (decimal). Exact sizes, triangle
 counts and source URLs are in `tree-geometry.json`.
 
 At runtime, nearby trees transition between geometry and cards over 90–180 m using
 complementary dithering. Selection targets at most 32 trees / 1.8 million triangles;
 retiring instances share a hard 48-tree / 2.4-million-triangle budget. Distant trees and
 the low tier retain the cheaper atlas. Low quality never requests the GLBs. If they fail
-to load, all foliage cards remain visible. These assets add no collision bodies.
+to load, all foliage cards remain visible. Downloads start only after the flight starts and
+a tree crown is within 450 m of the camera. These assets add no collision bodies.
 
 Regenerate after the source downloads above (Node dependencies include Sharp):
 
@@ -283,3 +287,28 @@ python3 tools/fetch-scenery.py
 
 The vendored Three.js glTF loader and geometry utilities are MIT licensed (`vendor/addons/LICENSE`).
 The bundled Meshopt decoder is MIT licensed (`vendor/addons/libs/meshoptimizer-LICENSE.md`).
+
+
+## Delivery optimization — 2026-09-30
+
+The initial scene loads four 512px previews and the selected flight deck. The flight becomes
+interactive before full imagery, roads, buildings, planting and parked aircraft load. Detail
+tiles stay bounded to four; near-tree models are separately requested only near woodland.
+`world.loadScenery()` and `world.loadNearTrees()` allow visual checks to explicitly await these
+stages. Each stage preserves existing fallback surfaces when a request fails.
+
+Aerial photos and detail tiles use WebP quality 84 with unchanged dimensions. Canopy atlases
+use quality 90 with full-quality alpha. Packed cockpit data uses **lossless** WebP so its
+height/roughness channels are unchanged. Near-tree textures use WebP; fir geometry is reduced
+conservatively (65% target, 0.003 normalized error) and unused tangents removed. Broadleaf and
+pine triangle counts remain unchanged. `delivery.json` records original and delivered sizes.
+
+Reproduce the delivery conversion from a snapshot of commit `a406f27` (or regenerated source
+assets with the original JPG/PNG names):
+
+```sh
+node tools/optimize-delivery.mjs /path/to/source-snapshot
+```
+
+The older preparation commands above produce the inputs to this final conversion step.
+Original JPG/PNG delivery copies and unused area-light lookup tables are not shipped.

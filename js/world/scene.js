@@ -151,7 +151,7 @@ export class World {
     this.night = false;
     this.rng = makeRng(21);
 
-    this.assetJobs = [];
+    this.assetJobs = [];this.sceneryJobs=[];this.assetErrors=[];
     this.buildLighting();
     this.buildSky();
     this.buildTerrain();
@@ -159,7 +159,7 @@ export class World {
     this.buildAirport();
     this.lights = new AirfieldLights(this.scene, this.townLightEntries);
     this.buildWeather();
-    this.assetJobs.push(loadParkedAircraft(this));
+    this.sceneryJobs.push(()=>loadParkedAircraft(this));
     this.assetsReady = Promise.allSettled(this.assetJobs).then(results => {
       this.assetErrors = results.filter(r => r.status === 'rejected').map(r => String(r.reason));
       if (this.assetErrors.length) console.warn('Some scenery could not load:', this.assetErrors);
@@ -168,6 +168,43 @@ export class World {
 
     window.addEventListener('resize', () => this.resize());
     this.resize();
+  }
+
+  /** Optional scenery starts after the flight is interactive. One shared promise
+   * also lets graphics tests explicitly wait for the complete scenery. */
+  loadScenery() {
+    return this.sceneryReady??=(async()=>{
+      await this.assetsReady;
+      const results=await Promise.allSettled(this.sceneryJobs.map(job=>job()));
+      this.assetErrors.push(...results.filter(r=>r.status==='rejected').map(r=>String(r.reason)));
+      if(this.sun.castShadow)this.sun.shadow.needsUpdate=true;
+      const tod=this.night?'night':this.scenario?.timeOfDay;
+      for(const m of this.approachBuildings?.materials||[])m.emissiveIntensity=tod==='night'?.55:tod==='dusk'?.2:0;
+      this.approachBuildings?.updateShadows();
+    })();
+  }
+
+  /** Drop expensive effects without restarting a flight or moving its camera. */
+  reduceQuality() {
+    if(this.quality==='low')return;
+    this.quality='low';this.renderer.shadowMap.enabled=false;
+    for(const light of [this.sun,this.cockpitSun]){
+      light.castShadow=false;light.shadow.map?.dispose();light.shadow.map=null;
+    }
+    this.cockpitSunScale=.12;
+    if(this.composer){for(const pass of this.composer.passes)pass.dispose?.();this.composer.dispose();this.composer=null;this.bloom=null;}
+    if(this.cumulus){
+      this.cumulus.group.removeFromParent();
+      this.cumulus.group.traverse(o=>o.geometry?.dispose());this.cumulus.material.dispose();this.cumulus=null;
+    }
+    this.cloudGroup.visible=this.scenario?.id!=='storm';
+    this.requestNearTrees=null;
+    if(this.nearWoodland){
+      this.nearWoodland.group.visible=false;
+      for(const {t} of this.nearWoodland.active.values()){t.fade.setX(t.index,0);t.fade.needsUpdate=true;}
+      this.nearWoodland=null;
+    }
+    this.cabinEnvironment?.reset();
   }
 
   /** Render resolution relative to CSS pixels (the dynamic resolution scaler adjusts it on phones). */
@@ -589,6 +626,7 @@ export class World {
   update(dt, state, eye) {
     this.time += dt;
     this.groundDetail?.update(eye);
+    if(this.quality==='high')this.requestNearTrees?.(eye);
     this.nearWoodland?.update(dt,eye);
     // fog density: in cloud above the base, thick; below: visibility
     const alt = state.alt;

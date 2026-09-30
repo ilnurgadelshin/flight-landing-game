@@ -540,12 +540,23 @@ deck the sun is hidden and the light turns flat and grey; above it, sunshine
 and a clear sky return. At night there are stars, moonlight, and runway and
 airport and perimeter-road lights that glow.
 
-Computers get the **high** graphics tier: sun shadows, and the outside view
+Computers use **automatic quality** at an initial 1× render scale. A brief rendered-frame
+check retains high quality only when at least 90% of sampled frames take no more than
+22.5 ms. During flight, adaptive resolution responds to sustained slow rendering; if it
+is still slow at the resolution floor, expensive effects switch off without restarting.
+The **high** graphics tier uses sun shadows, and the outside view
 drawn into a floating-point frame with 4× multisampling and a bloom pass (the
 sun, glints, the lights at night) before tone mapping. Phones and tablets get
 the **low** tier: the same sky, haze and lighting, drawn straight to the screen,
 without shadows or bloom. Add `?quality=high` or `?quality=low` to the address
-to choose.
+to choose a fixed tier and bypass automatic selection. `?drs=0` disables adaptive
+resolution; `?drs=1` enables it even with a fixed tier. Automatic selection is a local
+measurement, not a guarantee of performance on every scene or device.
+
+Startup loads the flight deck and small terrain previews. Detailed scenery streams after
+flight begins; high-quality near-tree models are requested only near woodland. The first
+view can therefore be less detailed while downloads finish. Asset failures retain the
+existing fallback surfaces and do not prevent flight.
 
 The visual assets are bundled locally and need no map service, account or API key:
 
@@ -769,6 +780,10 @@ draws every scenario by day and night on both graphics tiers.
 run its browser groups with `only=`. Before merging to `main` or publishing, run
 `npm run test:all`.
 
+The 2026-09-30 review-fix run completed all 270 checks in 352 seconds on an Apple M2 Pro
+using ANGLE Metal and three processes. The table above records the earlier software-renderer
+reference; these are different machines/backends and are not a controlled speedup measurement.
+
 **Timing.** Each browser run ends with the time each group took. The parallel runner shares the
 groups out by the durations in `test/e2e-parallel.mjs` (`GROUP_SECONDS`), so update those when a
 group changes a lot (they are measured with 3 processes running, so they include the slow-down
@@ -965,7 +980,12 @@ Over 80 more storm approaches (seeds 11–50):
     of the controls; the buttons; VIEW leaning back out; and the chart from the pause menu,
     zoomed by a tap and closed with ✕.
 
-The other browser groups run on the fast low tier with the 3D drawing off.
+The other browser groups run on the fast low tier with the 3D drawing off. They load the
+real lightweight authored cockpit and all working instruments/controls, but suppress optional
+scenery streaming and reflection rebakes through a test helper. The graphics group restores
+the complete scene; separate scenery/lighting checks cover asset loading and renderer pixels.
+`VISUAL_GPU=metal` selects the Mac hardware renderer for the browser suite when SwiftShader
+is unavailable. Compare test timings only with the renderer and worker count recorded.
 
 `test/phone.test.mjs` checks the phone features in Node:
 
@@ -1208,7 +1228,10 @@ It uses the actual game renderer and requires Playwright Chromium, like the brow
 
 `npm run test:lighting` checks rendered panel readability through repeated day/night/weather
 changes, finite cabin-reflection pixels, capture reuse across cloud layers, resource disposal
-and missing-scan fallback on both graphics tiers. The visual, scenery and lighting checks
+and missing-scan fallback on both graphics tiers. It also injects invalid reflection pixels
+and a failed capture, checking that the cockpit stays lit and the failure is not retried
+every frame. `node test/delivery.mjs` checks actual startup requests, staged downloads and
+automatic quality selection under deliberately slow frame pacing. The visual, scenery and lighting checks
 default to SwiftShader; `VISUAL_GPU=metal` runs them on macOS hardware. A backend that cannot
 create WebGL is a test-environment failure, not a successful graphics check.
 

@@ -55,7 +55,7 @@ def rectangle(points):
 
 
 def prepare(filename):
-    photos = [Image.open(OUT / n).convert('RGB') for n in ['airport.jpg', 'final-approach.jpg']]
+    photos = [Image.open((OUT / n) if (OUT / n).exists() else (OUT / n).with_suffix('.webp')).convert('RGB') for n in ['airport.jpg', 'final-approach.jpg']]
     buildings = []
     with gzip.open(filename, 'rt') as source:
         for line in source:

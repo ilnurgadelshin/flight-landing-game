@@ -25,6 +25,10 @@ export async function addNearTrees(world,trees,atlas) {
   const loader=new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
   const names=[...new Set(atlas.species.map(s=>s.name))];
   const loaded=await Promise.all(names.map(n=>loader.loadAsync(new URL(`../../assets/scenery/${n}-near.glb`,import.meta.url).href)));
+  if(world.quality!=='high'){
+    for(const model of loaded)model.scene.traverse(o=>{if(o.isMesh){o.geometry.dispose();o.material.dispose();}});
+    return; // Auto quality may have stepped down while the downloads completed.
+  }
   const group=new THREE.Group();group.name='Nearby authored tree geometry';
   const pools=[],materials=new Map();
   const materialFor=source=>{

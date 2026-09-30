@@ -40,7 +40,7 @@ export async function loadGroundDetail(world,uniforms,fallback) {
     pending=Promise.all(next.map(t=>{
       if(!cache.has(t.id)){
         const entry={};cache.set(t.id,entry);
-        entry.promise=loader.loadAsync(new URL(`../../assets/scenery/detail/${t.id}${low?'-low':''}.jpg`,import.meta.url).href)
+        entry.promise=loader.loadAsync(new URL(`../../assets/scenery/detail/${t.id}${low?'-low':''}.webp`,import.meta.url).href)
           .then(texture=>{
             if(entry.disposed){texture.dispose();return null;}
             texture.colorSpace=THREE.SRGBColorSpace;texture.anisotropy=world.maxAniso;entry.texture=texture;return texture;

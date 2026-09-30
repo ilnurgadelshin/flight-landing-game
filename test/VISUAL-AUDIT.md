@@ -25,8 +25,8 @@ ignored `test/output/visual-audit-before/` folder; current captures are `test/ou
 | Rank | Cause of the dated appearance | Changes made | Remaining limitation |
 | --- | --- | --- | --- |
 | 1 | Distorted cockpit/window proportions and poorly placed camera | Removed the upper-shell stretch; fitted the eye to the original cabin; retained desktop 58° FOV and narrow-screen coverage. Checked PFD and ND visibility. | Some surfaces remain simple, but this comparison does not justify replacing the source geometry. |
-| 2 | Muddy cockpit colours and flattened material separation | Restored source material values in the GLBs. Verified part assignments in Blender, then added distinct, subtle coated-panel, molded-trim, frame, seat-weave and yoke-rubber finishes at runtime. Modeled lettering is retained. | The detail maps are small original procedural surfaces, not photographic scans or a uniquely authored wear/texture set. Material refinement remains partial. |
-| 3 | A completely flat approach corridor | Rolling relief outside the protected runway/approach strip; denser terrain mesh near the airport; rendering and collision use the same height function. | Heights are synthetic, not surveyed elevation. The safe approach strip is deliberately flat. |
+| 2 | Muddy cockpit colours and flattened material separation | Restored source material values in the GLBs. Verified part assignments in Blender, then added distinct, subtle coated-panel, molded-trim, frame, seat-weave and yoke-rubber finishes at runtime. Modeled lettering is retained. | Liner/upholstery now use CC0 scans, with procedural panel/frame/rubber detail. A uniquely authored aircraft wear/texture set remains absent. See the 2026-09-30 followups. |
+| 3 | A completely flat approach corridor | Registered USGS elevation follows the imagery; rendering, collision and navigation share it. The airport is locally graded and a rising terrain cap protects final. | Elevations are locally modified around the fictional airport. Distant mesh resolution and imagery shadows remain limitations. |
 | 4 | Blurry aerial imagery ahead of the airport | Sixteen local 1 km detail tiles along the last 8 km, sampled at 0.5 m/px high and 1 m/px low, feather into the existing imagery; four textures stay resident. Distance-faded scanned colour, normal and roughness detail reconstructs fine surface grain in nearby fields and soil. | Underlying NAIP is generally 0.6 m; exports cannot supply finer survey detail. Coverage is a 2 km wide corridor. Five reviewed farm roofs now fill prominent detection gaps. Other missing buildings and photographic shadows remain visible from very low views. |
 | 5 | Sparse, three-lobed tree blobs | Seven authored forms across broadleaf, pine and fir, four views each; one camera-facing quad blends adjacent source azimuths instead of exposing crossed planes. Crown proportions and smaller understory heights are retained. More of the fixed tree budget goes into approach stands. High quality now uses simplified 3D trunks/branches/leaves within 180 m, with complementary LOD fading and fixed geometry budgets. | Distant and low-tier trees remain impostors; steep overhead angles still expose the limits of upright images. Only one broadleaf source model is available, and simplified leaves and LOD transitions remain visible close up. |
 | 6 | Thin cloud rings and weak volume | Taller, denser cloud shapes; varied rotation; deeper bases and multiple sun-occlusion samples in the high-tier volume shader. | Fair-weather clouds remain simplified noise volumes. Low quality retains sprites; overcast is not a complete volumetric cloud system. |
@@ -326,3 +326,46 @@ rebaked as sunlight moves during a turn. Airport grading modifies the real DEM l
 Distant mesh resolution, vegetation cards, simplified facades, cloud shapes, photographic
 shadows and the missing fitted windshield still limit realism. The camera-matched valley
 comparison shows a substantial change in landform; the cockpit change is more restrained.
+
+## Review fixes: portable lighting, delivery and quality — 2026-09-30
+
+The external review correctly identified an unguarded cabin capture. Passing on the M2 Pro
+did not establish portability. Area lights are now absent from every rendered scene; the
+finite baked window irradiance also lights the capture. Before use, each half-float target
+is read once and rejected for NaN/Infinity or no illumination. Failure disposes the target
+and retains the ordinary sky/fill environment, caching that result until the next scenario.
+The unused area-light lookup libraries were removed. The original cockpit geometry remains.
+
+The lighting regression passes day/night/weather transitions on both tiers and deliberately
+injects invalid pixels and a thrown capture error. It verifies a lit painted panel in the
+fallback, one attempt per weather layer and no rendered area lights. Hardware validation
+uses ANGLE Metal on the Apple M2 Pro. SwiftShader on this Mac failed to create WebGL before
+the simulator initialized (`BindToCurrentSequence failed`); its result is **not** a pass and
+the external reviewer's GPU/driver remains independently unverified.
+
+Startup now waits for the flight deck and four small imagery previews. Full photos, detail
+tiles, roads, buildings, planting and parked aircraft stream after the first playable frame.
+Near-tree models are requested separately only within 450 m of woodland. Lossy WebP retains
+the imagery's pixel dimensions; canopy alpha and the losslessly encoded packed cockpit scans
+were compared with the originals and are unchanged. Fir geometry is reduced conservatively;
+broadleaf/pine triangle counts remain unchanged. Source and delivery sizes are recorded in
+`assets/delivery.json`. The asset directory decreases from 82.61 MB to approximately 57.7 MB
+(decimal), rather than retaining duplicate JPG/PNG delivery copies.
+
+Desktop automatic mode starts at 1× scale and tests actual rendered-frame pacing, retaining
+high effects only when the sample's p90 is at most 22.5 ms. Explicit URL tiers remain fixed.
+Adaptive resolution monitors the real flight, including streamed scenery; sustained slow
+frames at the resolution floor drop shadows, post-processing and volumetric cumulus without
+restarting. Incomplete calibration selects low. Tests cover slow/unstable samples, isolated
+hitches versus repeated stalls, manual overrides and a simulated slow browser cadence.
+
+Functional browser groups retain the real low-detail cockpit, live displays, flight physics
+and controls. A test helper suppresses optional scenery downloads and repeated reflection
+bakes; the graphics group explicitly restores the complete scene and selects high. E3 now
+asserts the intended 58° desktop FOV and −14° cockpit pitch. All **270 browser checks passed
+in 352 seconds with three processes** on ANGLE Metal, including mouse/keyboard, touch, tilt
+and controller landings and all graphics checks. This is not a software-renderer timing
+comparison with the reviewer's machine. The final Node suites also passed. Separate scenery
+checks cover both tiers, missing assets, tree budgets and placement; visual checks preserve
+PFD/ND visibility and cloud transitions. Performance and transfer measurements are retained
+in `RENDER-PERFORMANCE.md` with their limits.

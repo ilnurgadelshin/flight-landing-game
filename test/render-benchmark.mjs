@@ -1,3 +1,4 @@
+import {completeScenery} from './scene-ready.mjs';
 // Hardware renderer benchmark, separate from SwiftShader correctness tests.
 // Measures fixed-resolution RAF pacing, not uncapped GPU throughput or flight physics.
 // node test/render-benchmark.mjs [label]
@@ -21,6 +22,9 @@ try{
     const page=await browser.newPage({viewport:{width:1440,height:900},deviceScaleFactor:1}),errors=[];
     page.on('pageerror',e=>errors.push(e.message));
     await page.goto(url+'/?quality='+tier);await page.waitForFunction(()=>window.__sim,null,{timeout:120000});
+    const startupBytes=await page.evaluate(()=>performance.getEntriesByType('resource').reduce((sum,r)=>sum+r.encodedBodySize,0));
+    await completeScenery(page);
+    (report.startupBytes??={})[tier]=startupBytes;
     const gpu=await page.evaluate(()=>{
       const s=window.__sim;s.setDrawing(false);s.game.state='menu';s.benchmarkCamera=s.world.camera;
       const gl=s.world.renderer.getContext(),ext=gl.getExtension('WEBGL_debug_renderer_info');

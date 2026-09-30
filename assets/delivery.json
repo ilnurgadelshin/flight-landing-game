@@ -1,0 +1,390 @@
+{
+  "sourceCommit": "a406f27",
+  "files": [
+    {
+      "file": "assets/scenery/region.webp",
+      "before": 1555062,
+      "after": 1122250,
+      "lossless": false,
+      "quality": 84
+    },
+    {
+      "file": "assets/scenery/region-low.webp",
+      "before": 275101,
+      "after": 228610,
+      "lossless": false,
+      "quality": 84
+    },
+    {
+      "file": "assets/scenery/approach.webp",
+      "before": 6009175,
+      "after": 4439290,
+      "lossless": false,
+      "quality": 84
+    },
+    {
+      "file": "assets/scenery/approach-low.webp",
+      "before": 235980,
+      "after": 177230,
+      "lossless": false,
+      "quality": 84
+    },
+    {
+      "file": "assets/scenery/airport.webp",
+      "before": 5463086,
+      "after": 3669750,
+      "lossless": false,
+      "quality": 84
+    },
+    {
+      "file": "assets/scenery/airport-low.webp",
+      "before": 275693,
+      "after": 227076,
+      "lossless": false,
+      "quality": 84
+    },
+    {
+      "file": "assets/scenery/final-approach.webp",
+      "before": 5346066,
+      "after": 3593208,
+      "lossless": false,
+      "quality": 84
+    },
+    {
+      "file": "assets/scenery/final-approach-low.webp",
+      "before": 240197,
+      "after": 191460,
+      "lossless": false,
+      "quality": 84
+    },
+    {
+      "file": "assets/scenery/detail/2_-1-low.webp",
+      "before": 297854,
+      "after": 204558,
+      "lossless": false,
+      "quality": 84
+    },
+    {
+      "file": "assets/scenery/detail/2_-1.webp",
+      "before": 1425882,
+      "after": 847366,
+      "lossless": false,
+      "quality": 84
+    },
+    {
+      "file": "assets/scenery/detail/2_0-low.webp",
+      "before": 270685,
+      "after": 171488,
+      "lossless": false,
+      "quality": 84
+    },
+    {
+      "file": "assets/scenery/detail/2_0.webp",
+      "before": 1309823,
+      "after": 736802,
+      "lossless": false,
+      "quality": 84
+    },
+    {
+      "file": "assets/scenery/detail/3_-1-low.webp",
+      "before": 237727,
+      "after": 143796,
+      "lossless": false,
+      "quality": 84
+    },
+    {
+      "file": "assets/scenery/detail/3_-1.webp",
+      "before": 1217399,
+      "after": 648258,
+      "lossless": false,
+      "quality": 84
+    },
+    {
+      "file": "assets/scenery/detail/3_0-low.webp",
+      "before": 262722,
+      "after": 166338,
+      "lossless": false,
+      "quality": 84
+    },
+    {
+      "file": "assets/scenery/detail/3_0.webp",
+      "before": 1297363,
+      "after": 713096,
+      "lossless": false,
+      "quality": 84
+    },
+    {
+      "file": "assets/scenery/detail/4_-1-low.webp",
+      "before": 268924,
+      "after": 173350,
+      "lossless": false,
+      "quality": 84
+    },
+    {
+      "file": "assets/scenery/detail/4_-1.webp",
+      "before": 1278636,
+      "after": 691466,
+      "lossless": false,
+      "quality": 84
+    },
+    {
+      "file": "assets/scenery/detail/4_0-low.webp",
+      "before": 273088,
+      "after": 184760,
+      "lossless": false,
+      "quality": 84
+    },
+    {
+      "file": "assets/scenery/detail/4_0.webp",
+      "before": 1298294,
+      "after": 723794,
+      "lossless": false,
+      "quality": 84
+    },
+    {
+      "file": "assets/scenery/detail/5_-1-low.webp",
+      "before": 256919,
+      "after": 163108,
+      "lossless": false,
+      "quality": 84
+    },
+    {
+      "file": "assets/scenery/detail/5_-1.webp",
+      "before": 1261250,
+      "after": 702602,
+      "lossless": false,
+      "quality": 84
+    },
+    {
+      "file": "assets/scenery/detail/5_0-low.webp",
+      "before": 274650,
+      "after": 187456,
+      "lossless": false,
+      "quality": 84
+    },
+    {
+      "file": "assets/scenery/detail/5_0.webp",
+      "before": 1330248,
+      "after": 773950,
+      "lossless": false,
+      "quality": 84
+    },
+    {
+      "file": "assets/scenery/detail/6_-1-low.webp",
+      "before": 279379,
+      "after": 189076,
+      "lossless": false,
+      "quality": 84
+    },
+    {
+      "file": "assets/scenery/detail/6_-1.webp",
+      "before": 1382917,
+      "after": 824812,
+      "lossless": false,
+      "quality": 84
+    },
+    {
+      "file": "assets/scenery/detail/6_0-low.webp",
+      "before": 267980,
+      "after": 179916,
+      "lossless": false,
+      "quality": 84
+    },
+    {
+      "file": "assets/scenery/detail/6_0.webp",
+      "before": 1346476,
+      "after": 800462,
+      "lossless": false,
+      "quality": 84
+    },
+    {
+      "file": "assets/scenery/detail/7_-1-low.webp",
+      "before": 250717,
+      "after": 162586,
+      "lossless": false,
+      "quality": 84
+    },
+    {
+      "file": "assets/scenery/detail/7_-1.webp",
+      "before": 1257686,
+      "after": 710294,
+      "lossless": false,
+      "quality": 84
+    },
+    {
+      "file": "assets/scenery/detail/7_0-low.webp",
+      "before": 254669,
+      "after": 168246,
+      "lossless": false,
+      "quality": 84
+    },
+    {
+      "file": "assets/scenery/detail/7_0.webp",
+      "before": 1329670,
+      "after": 792914,
+      "lossless": false,
+      "quality": 84
+    },
+    {
+      "file": "assets/scenery/detail/8_-1-low.webp",
+      "before": 264370,
+      "after": 176224,
+      "lossless": false,
+      "quality": 84
+    },
+    {
+      "file": "assets/scenery/detail/8_-1.webp",
+      "before": 1279278,
+      "after": 725792,
+      "lossless": false,
+      "quality": 84
+    },
+    {
+      "file": "assets/scenery/detail/8_0-low.webp",
+      "before": 279119,
+      "after": 192848,
+      "lossless": false,
+      "quality": 84
+    },
+    {
+      "file": "assets/scenery/detail/8_0.webp",
+      "before": 1349020,
+      "after": 803934,
+      "lossless": false,
+      "quality": 84
+    },
+    {
+      "file": "assets/scenery/detail/9_-1-low.webp",
+      "before": 281782,
+      "after": 187300,
+      "lossless": false,
+      "quality": 84
+    },
+    {
+      "file": "assets/scenery/detail/9_-1.webp",
+      "before": 1350644,
+      "after": 789848,
+      "lossless": false,
+      "quality": 84
+    },
+    {
+      "file": "assets/scenery/detail/9_0-low.webp",
+      "before": 300713,
+      "after": 219688,
+      "lossless": false,
+      "quality": 84
+    },
+    {
+      "file": "assets/scenery/detail/9_0.webp",
+      "before": 1413939,
+      "after": 881924,
+      "lossless": false,
+      "quality": 84
+    },
+    {
+      "file": "assets/scenery/tree-variety.webp",
+      "before": 6208078,
+      "after": 1260748,
+      "lossless": false,
+      "quality": 90
+    },
+    {
+      "file": "assets/scenery/tree-variety-low.webp",
+      "before": 1863454,
+      "after": 512174,
+      "lossless": false,
+      "quality": 90
+    },
+    {
+      "file": "assets/cockpit/liner.webp",
+      "before": 379885,
+      "after": 290790,
+      "lossless": true,
+      "quality": 84
+    },
+    {
+      "file": "assets/cockpit/upholstery.webp",
+      "before": 460469,
+      "after": 407894,
+      "lossless": true,
+      "quality": 84
+    },
+    {
+      "file": "assets/scenery/tree_small_02-near.glb",
+      "before": 3330676,
+      "after": 3264804,
+      "forms": [
+        {
+          "name": "tree_small_02_LOD0",
+          "triangles": 159231
+        }
+      ]
+    },
+    {
+      "file": "assets/scenery/pine_sapling_small-near.glb",
+      "before": 1864312,
+      "after": 1832468,
+      "forms": [
+        {
+          "name": "pine_sapling_small_b",
+          "triangles": 18727
+        },
+        {
+          "name": "pine_sapling_small_a",
+          "triangles": 21828
+        },
+        {
+          "name": "pine_sapling_small_c",
+          "triangles": 20429
+        }
+      ]
+    },
+    {
+      "file": "assets/scenery/fir_sapling_medium-near.glb",
+      "before": 7995864,
+      "after": 5633612,
+      "forms": [
+        {
+          "name": "fir_sapling_medium_a_LOD0",
+          "triangles": 78807
+        },
+        {
+          "name": "fir_sapling_medium_b_LOD0",
+          "triangles": 48954
+        },
+        {
+          "name": "fir_sapling_medium_c_LOD0",
+          "triangles": 49262
+        }
+      ]
+    },
+    {
+      "file": "assets/scenery/region-preview.webp",
+      "before": 0,
+      "after": 40766,
+      "quality": 75,
+      "resolution": 512
+    },
+    {
+      "file": "assets/scenery/approach-preview.webp",
+      "before": 0,
+      "after": 29944,
+      "quality": 75,
+      "resolution": 512
+    },
+    {
+      "file": "assets/scenery/airport-preview.webp",
+      "before": 0,
+      "after": 38518,
+      "quality": 75,
+      "resolution": 512
+    },
+    {
+      "file": "assets/scenery/final-approach-preview.webp",
+      "before": 0,
+      "after": 27120,
+      "quality": 75,
+      "resolution": 512
+    }
+  ]
+}

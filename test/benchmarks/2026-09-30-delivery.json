@@ -1,0 +1,14 @@
+[
+  {
+    "tier": "high",
+    "startupBytes": 13849715,
+    "sceneryBytes": 35027140,
+    "totalWithNearTreesBytes": 45758024
+  },
+  {
+    "tier": "low",
+    "startupBytes": 8522383,
+    "sceneryBytes": 13353298,
+    "totalWithNearTreesBytes": 13353298
+  }
+]

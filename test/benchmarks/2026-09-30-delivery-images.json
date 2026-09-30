@@ -1,0 +1,20 @@
+[
+  {
+    "asset": "tree-variety",
+    "changedAlpha": 0,
+    "meanOpaqueColorError": 3.437071643821422
+  },
+  {
+    "asset": "tree-variety-low",
+    "changedAlpha": 0,
+    "meanOpaqueColorError": 2.9114989808167433
+  },
+  {
+    "asset": "liner",
+    "lossless": true
+  },
+  {
+    "asset": "upholstery",
+    "lossless": true
+  }
+]

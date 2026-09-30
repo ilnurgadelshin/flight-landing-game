@@ -1,6 +1,6 @@
 // Diffuse window irradiance is view-independent. Integrate it once on the
 // cabin's existing vertices instead of evaluating two LTC lights per pixel.
-// Reflections still come from the illuminated cabin capture; no geometry moves.
+// The same finite irradiance lights the cabin reflection capture; no geometry moves.
 import * as THREE from 'three';
 
 export function bakeWindowLight(root,lights,strength) {

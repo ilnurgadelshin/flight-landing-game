@@ -140,7 +140,7 @@ export async function applyCockpitSurfaces(model,{lowDetail=false}={}) {
   const errors=[];
   if(!lowDetail)await Promise.all(Object.entries(FINISHES).filter(([,f])=>f.scan).map(async([kind,f])=>{
     try{
-      const texture=await new THREE.TextureLoader().loadAsync(new URL(`../../assets/cockpit/${f.scan}.png`,import.meta.url).href);
+      const texture=await new THREE.TextureLoader().loadAsync(new URL(`../../assets/cockpit/${f.scan}.webp`,import.meta.url).href);
       texture.name=`Scanned cockpit ${kind}: height / roughness / colour modulation`;
       texture.wrapS=texture.wrapT=THREE.RepeatWrapping;texture.anisotropy=4;
       // Packed linear channels, not an sRGB colour photograph.

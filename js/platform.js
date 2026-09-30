@@ -114,7 +114,7 @@ export class Platform {
 }
 
 /**
- * Dynamic resolution for phones and tablets: lowers the render resolution when frames get
+ * Dynamic resolution for touch devices and desktop auto mode: lowers resolution when frames get
  * slow (GPUs throttle after a few minutes of sustained load) and slowly recovers, never
  * returning to a level that was too slow.
  */
@@ -122,14 +122,24 @@ export class ResolutionScaler {
   constructor(world, { enabled, start }) {
     this.world = world; this.enabled = enabled;
     this.ratio = start; this.ceiling = start; this.min = Math.min(start, 0.7);
-    this.acc = 0; this.n = 0; this.good = 0; this.windows = 0;
+    this.acc = 0; this.n = 0; this.good = 0; this.windows = 0;this.slow=0;this.stalls=0;
   }
   frame(dtMs, active) {
-    if (!this.enabled || !active || dtMs > 250) return;   // ignore menus, pauses and hitches
+    if (!this.enabled || !active) {this.stalls=0;return;}
+    if(dtMs>250){
+      // Ignore an isolated loading hitch, but don't stay stuck at <4 FPS.
+      if(this.world.autoQuality&&++this.stalls>=8){this.set(this.min);this.world.reduceQuality();this.stalls=0;}
+      return;
+    }
+    this.stalls=0;
     this.acc += dtMs; this.n++;
     if (this.acc < 2000) return;
     const avg = this.acc / this.n; this.acc = 0; this.n = 0;
     if (++this.windows < 2) return;                         // the first seconds compile shaders
+    if(this.world.autoQuality&&this.world.quality==='high'){
+      this.slow=avg>28&&this.ratio<=this.min+.01?this.slow+1:0;
+      if(this.slow>=3){this.world.reduceQuality();this.slow=0;}
+    }
     if (avg > 25 && this.ratio > this.min) {                // below ~40 fps: step down
       this.ceiling = Math.min(this.ceiling, this.ratio * 0.95);
       this.set(Math.max(this.min, this.ratio * 0.85)); this.good = 0;

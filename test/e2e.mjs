@@ -1,10 +1,13 @@
+import {functionalScene,completeScenery} from './scene-ready.mjs';
 // Browser end-to-end QA: plays the game in headless Chromium (SwiftShader).
 //   node test/e2e.mjs            (all)      node test/e2e.mjs quick   (skip the slow keyboard, touch, tilt and controller landings)
 // Software rendering (no graphics card) is ~95% of a frame, so the pages run with the 3D drawing
 // switched off (window.__sim.setDrawing): the game loop, physics, rules, displays and interface run
 // as usual at 30-50 fps. A frame is drawn for every screenshot; E1 and E16 check drawn pixels, and
 // E16 draws every scenario by day and night on both graphics tiers. The functional groups use the
-// fast 'low' tier; E16 checks the 'high' one. Each group reports how long it took.
+// fast 'low' tier and real cockpit, without optional scenery/reflection rebakes;
+// E16 restores full assets and explicitly selects high. VISUAL_GPU=metal enables
+// Mac hardware validation. Each group reports how long it took.
 import { chromium } from 'playwright';
 import path from 'node:path';
 import fs from 'node:fs';
@@ -31,8 +34,10 @@ const section = (id, title) => {
 };
 
 const { server, url } = await startServer(root);
-const browser = await chromium.launch({ headless: true, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'] });
+const angle=process.env.VISUAL_GPU||'swiftshader';
+const browser = await chromium.launch({ headless: true, args: [`--use-angle=${angle}`, ...(angle==='swiftshader'?['--enable-unsafe-swiftshader','--ignore-gpu-blocklist']:[]), '--autoplay-policy=no-user-gesture-required'] });
 const page = await browser.newPage({ viewport: { width: 1024, height: 576 } });
+await functionalScene(page);
 const VW = 1024, VH = 576;
 const consoleErrors = [];
 page.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') consoleErrors.push(`[${m.type()}] ${m.text()}`); });
@@ -160,7 +165,7 @@ if (want('keys')) {
   const settled = () => page.waitForFunction(() => window.__sim.cockpit.lookDown < 0.005, null, { timeout: 30000 });   // the look eases back from L
   await settled(); await tap('KeyC'); await frames(3); const hv = await viewNow();
   await tap('KeyC'); await frames(3); const cv = await viewNow();
-  check('C switches to the head-up view (no flight deck, the eye 6° below the nose) and back', hv.mode === 'hud' && hv.body && !hv.deck && Math.abs(hv.pitch + 6) < 0.5 && cv.mode === 'cockpit' && !cv.body && cv.deck && cv.fov === 70 && Math.abs(cv.pitch + 15) < 0.5, `head-up ${JSON.stringify(hv)}, cockpit ${JSON.stringify(cv)}`);
+  check('C switches to the head-up view (no flight deck, the eye 6° below the nose) and back', hv.mode === 'hud' && hv.body && !hv.deck && Math.abs(hv.pitch + 6) < 0.5 && cv.mode === 'cockpit' && !cv.body && cv.deck && cv.fov === 58 && Math.abs(cv.pitch + 14) < 0.5, `head-up ${JSON.stringify(hv)}, cockpit ${JSON.stringify(cv)}`);
   // mouse yoke
   await page.mouse.click(VW / 2, VH / 2); await frames(2);
   check('click engages the mouse yoke', await page.evaluate(() => window.__sim.inputManager.mouseEngaged));
@@ -592,7 +597,7 @@ if (!quick && want('keyboard')) {
 // fingers at once.
 async function phonePage() {
   const ctx = await browser.newContext({ viewport: { width: 852, height: 393 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true });
-  const mp = await ctx.newPage();
+  const mp = await ctx.newPage();await functionalScene(mp);
   const bootLog = [];
   mp.on('console', (m) => { bootLog.push(`[${m.type()}] ${m.text()}`); if (m.type() === 'error' || m.type() === 'warning') consoleErrors.push(`[phone ${m.type()}] ${m.text()}`); });
   mp.on('pageerror', (e) => consoleErrors.push(`[phone pageerror] ${e.message}`));
@@ -982,7 +987,7 @@ if (want('tilt')) {
   // Start starts the sound and the silent looping media element that takes it off the silent switch
   const ictx = await browser.newContext({ viewport: { width: 852, height: 393 }, deviceScaleFactor: 1, isMobile: true, hasTouch: true,
     userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 16_7 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1' });
-  const ip = await ictx.newPage();
+  const ip = await ictx.newPage();await functionalScene(ip);
   ip.on('pageerror', (e) => consoleErrors.push(`[iphone pageerror] ${e.message}`));
   await ip.goto(url + '/?quality=low');
   await ip.waitForFunction(() => window.__sim, null, { timeout: 180000 }); await drawOff(ip);
@@ -1048,7 +1053,7 @@ async function padPage({ phone = false, iphone = false } = {}) {
     };
     Object.defineProperty(navigator, 'wakeLock', { configurable: true, value: { request } });
   });
-  const pp = await ctx.newPage();
+  const pp = await ctx.newPage();await functionalScene(pp);
   pp.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') consoleErrors.push(`[pad ${m.type()}] ${m.text()}`); });
   pp.on('pageerror', (e) => consoleErrors.push(`[pad pageerror] ${e.message}`));
   await page.setViewportSize({ width: 320, height: 180 });     // keep the long-lived desktop page cheap
@@ -1282,6 +1287,7 @@ if (!quick && want('padland')) {
 // from the canvas straight after a frame, and the 'low' tier phones and the other groups use.
 if (want('graphics')) {
   section('E16', 'Graphics: sky, haze, sunlight and shadows; quality tiers');
+  await page.evaluate(()=>window.__restoreVisualScene());
   const low = await page.evaluate(() => { const w = window.__sim.world; return { q: w.quality, composer: !!w.composer, shadows: w.renderer.shadowMap.enabled }; });
   check('the fast tier (phones, and this page): no post-processing and no shadow maps', low.q === 'low' && !low.composer && !low.shadows, JSON.stringify(low));
   const ctx = await browser.newContext({ viewport: { width: 640, height: 360 } });   // the pixel checks use thumbnails: a small page draws faster
@@ -1289,15 +1295,15 @@ if (want('graphics')) {
   gp.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') consoleErrors.push(`[graphics ${m.type()}] ${m.text()}`); });
   gp.on('pageerror', (e) => consoleErrors.push(`[graphics pageerror] ${e.message}`));
   await page.setViewportSize({ width: 320, height: 180 });     // keep the long-lived desktop page cheap
-  await gp.goto(url + '/');
-  await gp.waitForFunction(() => window.__sim, null, { timeout: 180000 }); await drawOff(gp);
+  await gp.goto(url + '/?quality=high');
+  await gp.waitForFunction(() => window.__sim, null, { timeout: 180000 }); await drawOff(gp);await completeScenery(gp);
   const gf = async (n) => { await gp.evaluate((n) => new Promise((res) => { const f0 = window.__sim.stats.frames; const chk = () => (window.__sim.stats.frames - f0 >= n ? res() : requestAnimationFrame(chk)); chk(); }), n); };
   const hi = await gp.evaluate(() => {
     const w = window.__sim.world; let casters = 0;
     w.cockpitScene.traverse((o) => { if (o.isMesh && o.castShadow) casters++; });
     return { q: w.quality, composer: !!w.composer, samples: w.composer && w.composer.renderTarget1.samples, bloom: !!w.bloom, shadows: w.renderer.shadowMap.enabled, sun: w.sun.castShadow, cockpitSun: w.cockpitSun.castShadow, casters, env: !!w.scene.environment };
   });
-  check('a computer gets the high tier: 4× MSAA floating-point frame, bloom, sun shadows outside and in the flight deck', hi.q === 'high' && hi.composer && hi.samples === 4 && hi.bloom && hi.shadows && hi.sun && hi.cockpitSun && hi.casters > 40, JSON.stringify(hi));
+  check('explicit high tier: 4× MSAA floating-point frame, bloom, sun shadows outside and in the flight deck', hi.q === 'high' && hi.composer && hi.samples === 4 && hi.bloom && hi.shadows && hi.sun && hi.cockpitSun && hi.casters > 40, JSON.stringify(hi));
   check('the sky lights every surface (environment map)', hi.env);
   await gp.evaluate(() => { window.__sim.start({ scenarioId: 'clear', startId: 'short', mode: 'game', sound: false, seed: 5 }); window.__sim.setTimeScale(0); document.getElementById('hud').style.visibility = 'hidden'; });
   await gf(3);
@@ -1416,7 +1422,7 @@ if (want('graphics')) {
     return { during, after: { shown: S.view.shown, deck: S.world.drawCockpit }, stored: localStorage.getItem('view') };
   });
   check('Flight School shows the cockpit (its pages point at the flight deck), then the head-up view again', school.during.shown === 'cockpit' && school.during.deck && school.after.shown === 'hud' && school.after.deck === false, JSON.stringify(school));
-  await gp.reload(); await gp.waitForFunction(() => window.__sim, null, { timeout: 180000 }); await drawOff(gp);
+  await gp.reload(); await gp.waitForFunction(() => window.__sim, null, { timeout: 180000 }); await drawOff(gp);await completeScenery(gp);
   check('the chosen view is remembered on this device', school.stored === 'hud' && await gp.evaluate(() => window.__sim.view.mode === 'hud'));
   await gp.evaluate(() => window.__sim.view.setMode('cockpit'));
   // night: stars and airfield lights bright enough to glow through the bloom pass

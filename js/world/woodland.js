@@ -27,7 +27,7 @@ export async function addWoodland(world,photo,approachPhoto) {
   const response=await fetch(new URL('../../assets/scenery/tree-variety.json',import.meta.url));
   if(!response.ok)throw new Error(`Tree atlas: HTTP ${response.status}`);
   const atlas=await response.json();
-  const texture=await new THREE.TextureLoader().loadAsync(new URL(`../../assets/scenery/tree-variety${low?'-low':''}.png`,import.meta.url).href);
+  const texture=await new THREE.TextureLoader().loadAsync(new URL(`../../assets/scenery/tree-variety${low?'-low':''}.webp`,import.meta.url).href);
   texture.colorSpace=THREE.SRGBColorSpace;texture.anisotropy=world.maxAniso;
   const material=new THREE.MeshBasicMaterial({map:texture,alphaTest:.28,alphaToCoverage:true,side:THREE.DoubleSide});
   material.onBeforeCompile=shader=>{
@@ -111,7 +111,7 @@ export async function addWoodland(world,photo,approachPhoto) {
     trees.forEach((t,i)=>{
       offsets[i*2]=t.type;offsets[i*2+1]=-t.row/atlas.rows;yaws[i]=t.yaw;
       q.setFromAxisAngle(up,t.yaw);
-      const y=sceneryGroundHeight(t.x,t.z,low);
+      const y=sceneryGroundHeight(t.x,t.z,world.groundLowDetail);
       matrix.compose(new THREE.Vector3(t.x,y-.08,t.z),q,new THREE.Vector3(t.w,t.h,t.w));
       mesh.setMatrixAt(i,matrix);
       matrix.compose(new THREE.Vector3(t.x,y+.04,t.z),q,new THREE.Vector3(t.w*.75,1,t.w*.75));shadows.setMatrixAt(i,matrix);
@@ -124,5 +124,13 @@ export async function addWoodland(world,photo,approachPhoto) {
   }
   geometry.dispose();
   world.scene.add(group);world.woodland=group;world.woodlandMaterial=material;world.woodlandForms=forms;
-  if(!low)await addNearTrees(world,records,atlas);
+  if(!low){
+    let pending;
+    world.loadNearTrees=()=>pending??=addNearTrees(world,records,atlas).catch(error=>world.assetErrors.push(String(error)));
+    let lastCheck=-Infinity;
+    world.requestNearTrees=eye=>{
+      if(pending||world.time-lastCheck<2)return;lastCheck=world.time;
+      if(records.some(t=>Math.hypot(t.x-eye.x,t.z-eye.z,t.y+t.h*.55-eye.y)<450))world.loadNearTrees();
+    };
+  }
 }
