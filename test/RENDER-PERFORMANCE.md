@@ -47,3 +47,33 @@ checkout. Results are written to `test/output/render-benchmark-<label>.json`.
 The retained before/after JSON reports are copied into `test/benchmarks/` for inspection.
 An initial setup that failed to restore the cockpit camera and used its local position
 for ground streaming was rejected and rerun before this comparison.
+
+## Cockpit lighting and surveyed terrain — 2026-09-30
+
+Baseline: committed main `e66583b`. Followup: scanned cockpit finishes, cached cabin
+reflections/window illumination and registered USGS terrain. Both versions were measured
+on the same Apple M2 Pro, Chromium 141.0.7390.37 and ANGLE Metal, with the resolution,
+camera paths and sampling method described above. Runs were sequential, without other
+graphics tests competing for the GPU. Reports: `benchmarks/2026-09-30-before.json` and
+`benchmarks/2026-09-30-after.json`.
+
+| Quality / scene | Baseline FPS | Followup FPS | Frame ms p50 / p95 | CPU submission ms p50 / p95 | Draw calls (median) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| High / captain | 30.1 | 28.5 | 33.3 / 50.0 | 4.4 / 9.1 | 940 |
+| High / nearby | 37.7 | 36.1 | 33.3 / 33.4 | 2.9 / 5.9 | 408 |
+| High / storm | 46.3 | 44.5 | 16.7 / 33.4 | 4.0 / 5.5 | 934 |
+| Low / captain | 60.0 | 60.0 | 16.7 / 16.7 | 2.6 / 3.5 | 513 |
+| Low / nearby | 60.0 | 60.0 | 16.7 / 16.7 | 2.0 / 3.9 | 270 |
+| Low / storm | 60.0 | 60.0 | 16.7 / 16.7 | 2.5 / 3.6 | 491 |
+
+High average FPS decreased approximately 4–5%; the captain scene's p95 frame time
+increased from 33.5 to 50.0 ms. Low remained at the 60 Hz display ceiling. This is a
+quality/performance tradeoff, not a speedup. Draw calls are unchanged; terrain skirts add
+about 15–18 thousand rendered triangles in high scenes. An initial implementation that
+evaluated two area lights per pixel every frame was substantially slower and was replaced
+by cached diffuse window illumination plus area-lit reflection captures before this run.
+
+These short steady-state runs do not measure the initial cabin capture, scenario-switch
+stalls, full-flight physics, other GPUs or mobile devices. The earlier benchmark's limits
+still apply; the 2026-09-28 and 2026-09-30 numbers should not be treated as a controlled
+comparison with each other.

@@ -22,6 +22,7 @@ import { Cumulus } from './clouds.js';
 import { addAirportDetail } from './airport-detail.js';
 import { buildLandscape } from './landscape.js';
 import { loadParkedAircraft } from './scenery-models.js';
+import { CabinEnvironment } from '../cockpit/lighting.js';
 
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 
@@ -226,7 +227,8 @@ export class World {
   }
 
   /** Let the flight deck cast and receive the sun's shadow (called once the cockpit is built). */
-  setupCockpit(root) {
+  setupCockpit(root,eyeLocal) {
+    this.cabinEnvironment=new CabinEnvironment(this,root,eyeLocal);
     if (this.quality !== 'high') return;
     root.traverse((o) => {
       if (!o.isMesh) return;
@@ -499,6 +501,9 @@ export class World {
     this.atmo.set({ overcast: this.baseOvercast });
     this.envKey = null;
     this.scene.environment = this.cockpitScene.environment = (this.env.above || this.env.below).texture;
+    this.cabinEnvironment?.reset();
+    this.cabinOutdoorIntensity=P.cockpitEnv;
+    this.cockpitScene.environmentRotation.set(0,0,0);
     this.cockpitScene.environmentIntensity = P.cockpitEnv;
     this.cockpitFill.intensity = P.fill * (storm ? 0.6 : 1);
 
@@ -638,6 +643,7 @@ export class World {
     this.cockpitSunTarget.position.copy(eye);
     this.cockpitSun.position.copy(eye).addScaledVector(this.lightDir, 12);
     this.cockpitSunTarget.updateMatrixWorld();
+    this.cabinEnvironment?.update(envKey);
     // clouds drift with the wind
     if (this.cloudGroup.visible) {
       const drift = this.time * 2.0;

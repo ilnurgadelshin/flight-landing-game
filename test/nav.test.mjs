@@ -51,12 +51,16 @@ console.log('\n[N1] ILS 27 signals and their coverage');
   let airportLevel=true;
   for(let x=-3000;x<=3000;x+=100)for(let z=-300;z<=650;z+=50)airportLevel&&=TERRAIN.heightAt(x,z)===RUNWAY.elevation;
   check('the runway, approach lights, taxiways, apron and service road stay level',airportLevel);
-  check('nearby relief never intrudes into the final-approach safety strip',
-    [2000,5000,10000,20000,40000].every(x=>[-500,0,500].every(z=>TERRAIN.heightAt(x,z)===RUNWAY.elevation)));
-  let steepest=0;
-  for(let x=-5000;x<10000;x+=250)for(let z=-4000;z<4000;z+=50)
-    steepest=Math.max(steepest,Math.abs(TERRAIN.heightAt(x,z+50)-TERRAIN.heightAt(x,z))/50);
-  check('nearby hills blend into the airport without terrain steps',steepest<.3,`maximum sampled slope ${(steepest*100).toFixed(1)}%`);
+  let minClearance=Infinity;
+  for(let x=3000;x<=50000;x+=50)for(const z of [-350,0,350])
+    minClearance=Math.min(minClearance,glidepathFt((x-thrX)/NM)*FT-TERRAIN.heightAt(x,z));
+  check('surveyed relief remains clear of the 3° final approach across the protected corridor',minClearance>60,`minimum clearance ${minClearance.toFixed(1)} m`);
+  let edgeStep=0;
+  for(let x=-3000;x<=3000;x+=100)for(const z of [-300,650])
+    edgeStep=Math.max(edgeStep,Math.abs(TERRAIN.heightAt(x,z-.1)-TERRAIN.heightAt(x,z+.1)));
+  for(let z=-300;z<=650;z+=50)for(const x of [-3000,3000])
+    edgeStep=Math.max(edgeStep,Math.abs(TERRAIN.heightAt(x-.1,z)-TERRAIN.heightAt(x+.1,z)));
+  check('airport earthworks meet the level airfield without a step',edgeStep<.001,`largest boundary step ${edgeStep.toFixed(5)} m`);
   check('the missed approach is at or above the MSA\'s neighbourhood of the circuit (3000 ft over the plain)', MISSED.altFt === 3000 && MISSED.headings.climb === RUNWAY.headingDeg);
   const b = bearingTo(at(5, 1500), thrX, 0);
   check('bearingTo: the threshold dead ahead on a westbound final', near(b.deg, 270, 1e-9) && near(b.nm, 5, 1e-9));

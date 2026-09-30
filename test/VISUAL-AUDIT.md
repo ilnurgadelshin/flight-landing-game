@@ -263,3 +263,66 @@ assets, PFD/ND clearance, missing-model recovery and cloud continuity. The final
 cloud sky-ground means were 98/98.90 and 98/98.38, with distant light contribution 1/255.
 Hardware frame pacing was close to pushed main: high 31.5 FPS captain, 40.5 nearby and
 47.9 storm at 1.5× render scale; low stayed near the 60 Hz ceiling at 1×.
+
+
+## Cockpit light and surveyed landscape — 2026-09-30
+
+This pass addresses the first two remaining priorities: cockpit material/light response and
+landscape structure. The source cockpit geometry, eye point, animated controls and GLB
+material values are retained. It adds CC0 scanned liner grain and woven upholstery, refines
+paint/frame/rubber roughness, and adds two broad side-window lights on high quality. The
+lights use the existing baked cabin occlusion; direct sunlight retains its frame shadows.
+Their diffuse integral is cached on the existing vertices in cabin coordinates, with
+separate front/back values. Per-pixel area lighting runs only for reflection captures.
+A regression test checks that translating/rotating the cockpit leaves this integral unchanged.
+Both tiers cache interior reflection maps from the fixed pilot eye, with separate above-
+and below-cloud captures. The cabin filter has its own PMREM generator. Looking down or
+leaning into the ND cannot move the capture point; captured cabin orientation follows the
+airframe. Scenario changes dispose the previous captures.
+
+The old 1.4 km-wide, almost approach-length flat strip and synthetic hills have been replaced
+with registered public-domain USGS 3DEP heights. Two bundled grids cover the same 80 km region
+and 24 km approach as the photographs; exact requests, sample spacing and hashes are recorded
+in the asset manifest. The fictional airport is locally levelled, with a rising terrain cap
+protecting final and climb-out. Ridges follow photographed forest bands and valleys carry
+the existing fields/roads. Shared edge normals and buried skirts close terrain-patch seams.
+Physics uses the same height data from startup; the hull support plane also follows ground
+height so valleys below airport datum do not produce invisible collisions.
+
+Validation:
+
+- `npm test` passes, including surveyed-height registration, flight below airport datum,
+  airport grading, approach clearance, source model dimensions and control bindings. The
+  game suite completes full approaches, adverse-weather landings, go-arounds and circuits.
+- `test/approach-scenery.mjs` passed on both tiers during the terrain pass: 2,165 building
+  footprints, foundations/roads matching terrain triangles, tree clearances, bounded
+  imagery/model pools and failure fallbacks. Maximum placement-query error was below 0.001 m.
+- Final `VISUAL_GPU=metal node test/cockpit-lighting.mjs` passes repeated day/night/weather
+  changes on both tiers, finite reflection pixels, bounded reuse across a cloud layer,
+  disposal on restart and missing-scan fallback. It measures non-emissive panel pixels so
+  a loaded-but-black cabin fails. Day and night brightness are checked separately.
+- Final `VISUAL_GPU=metal node test/visual-review.mjs` passes PFD/ND visibility, missing-model
+  recovery and cloud transitions. High sky/ground means were 98/99.09; low 98/98.54, with
+  distant lamp contribution 1/255 in both cases. Night screenshots were inspected.
+- A software-renderer day-to-night capture exposed a black-cabin candidate before the
+  capture/filter changes. Final software retries on 2026-09-30 could not complete browser
+  initialization (one reported WebGL context creation failure; another timed out). Those
+  retries are **not** counted as passes. Final render checks above use the Apple GPU.
+
+Matched before/after images and a local comparison are in
+`test/output/deck-terrain-review.html`; baseline is committed main `e66583b`.
+
+Final Apple M2 Pro renderer measurements against that baseline: high captain 30.1 → 28.5
+FPS, nearby 37.7 → 36.1 and storm 46.3 → 44.5 at 2160 × 1350 render pixels. Low remained
+at the 60 Hz ceiling at 1440 × 900. High captain p95 frame time increased from 33.5 to
+50.0 ms. Caching diffuse window illumination recovered most of the initial area-light
+cost, but the finished change still has a measured 4–5% high-tier average FPS cost.
+Draw calls are unchanged. See `RENDER-PERFORMANCE.md` and the retained JSON reports for
+the paused-physics method and limits; loading and capture stalls are not benchmarked.
+
+Remaining limits: cockpit finishes are still an interpretation rather than an aircraft
+photogrammetry set; reflections are captured from one point and are not continuously
+rebaked as sunlight moves during a turn. Airport grading modifies the real DEM locally.
+Distant mesh resolution, vegetation cards, simplified facades, cloud shapes, photographic
+shadows and the missing fitted windshield still limit realism. The camera-matched valley
+comparison shows a substantial change in landform; the cockpit change is more restrained.

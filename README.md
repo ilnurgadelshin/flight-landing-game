@@ -584,14 +584,19 @@ phone model has about 420,000 triangles and a 3.6 MB download, omits tiny molded
 and retains the live instruments. Phones also use 1024 px aerial images and fewer trees.
 The captain’s desktop view uses a 58° vertical field of view and an eye position fitted
 to the original cabin. The GLBs preserve the authored shell proportions and material values.
-Verified panel, trim, seat and yoke surfaces receive subtle runtime finishes; the baked cabin
-shading affects indirect light while retaining direct sunlight. Runway lights use smaller
+Verified panels, trim, seats and yokes receive distinct runtime finishes. High quality adds
+CC0 scanned liner grain and upholstery, plus broad side-window lighting. A cached reflection
+capture of the actual cabin gives materials interior reflections; baked cabin shading shapes
+indirect and window light while retaining direct sunlight. Runway lights use smaller
 daytime cores and fade with visibility in fog. Cloud surfaces are hidden inside
 the deck so they cannot cut a dark floor across the view. The ranked visual audit
 and remaining limits are in [`test/VISUAL-AUDIT.md`](test/VISUAL-AUDIT.md).
 
-This is an asset-based rendering foundation; the terrain heights and airport buildings
-are still synthetic. The approach footprints are geographically aligned with the photos;
+Bundled public-domain USGS 3DEP heights now follow the same registration as the aerial imagery,
+giving the approach real ridges and valleys. The fictional airport is locally graded, and a
+rising clearance envelope protects the approach and climb-out. Physics, radar altitude and
+rendering share the height data, including valleys below the airport datum.
+Airport buildings are still synthetic. The approach footprints are geographically aligned with the photos;
 roof styles, facades, road widths and fixtures are interpretations, not surveyed reproductions.
 Scenery buildings are visual objects and do not add collision bodies. Hardware frame rates
 depend on the device and graphics tier.
@@ -601,7 +606,7 @@ panel is dimmer than by day and the displays stand out. The high tier also draws
 cumulus as ray-marched 3D density volumes with self-shadowing. Each ray marches only through
 the box around its cloud and skips the noise outside the cloud's shape. The low tier uses the
 lighter sprite clouds. Cloud-deck visibility and storm physics are shared. All imported assets
-are public domain, CC0 or CC BY 4.0; licenses, attribution and reproducible asset preparation
+are public domain, CC0, CC BY 4.0 or CDLA Permissive 2.0; licenses, attribution and reproducible asset preparation
 commands are in [`assets/README.md`](assets/README.md). Players can open the credits from the menu.
 
 **Head-up view** (`js/hud.js`, `js/view.js`): the flight deck hidden and a
@@ -1200,6 +1205,12 @@ fog horizon and obscured distant lights on both graphics tiers. It saves desktop
 head-up, navigation, pedestal, overhead, night, airport and close-approach weather screenshots
 in `test/output/rebuild-*.png`.
 It uses the actual game renderer and requires Playwright Chromium, like the browser suite.
+
+`npm run test:lighting` checks rendered panel readability through repeated day/night/weather
+changes, finite cabin-reflection pixels, capture reuse across cloud layers, resource disposal
+and missing-scan fallback on both graphics tiers. The visual, scenery and lighting checks
+default to SwiftShader; `VISUAL_GPU=metal` runs them on macOS hardware. A backend that cannot
+create WebGL is a test-environment failure, not a successful graphics check.
 
 `npm run test:assets` also checks that both delivered cockpit models preserve the source
 windshield-frame dimensions, material colours/roughness and animated-control bindings.

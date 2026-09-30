@@ -19,7 +19,7 @@ export async function loadFlightDeck(cockpit) {
     return;
   }
   const c=cockpit, root=c.root;
-  applyCockpitSurfaces(model,{lowDetail:c.lowDetail});
+  await applyCockpitSurfaces(model,{lowDetail:c.lowDetail});
   // Keep the procedural deck only as a load-failure fallback. It is replaced as one unit,
   // rather than leaving another shell, another panel or overlapping seats underneath.
   const keep=new Set([c.camRig,c.dome,c.flood]);

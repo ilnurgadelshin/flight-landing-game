@@ -18,7 +18,9 @@ for(const b of [...data.buildings,...infill.buildings]){
   assert.ok(!protectedScenery(b.x,b.z,Math.hypot(b.w,b.d)/2+2),'Buildings and eaves must clear operational areas');
 }
 const {server,url}=await startServer(root);
-const browser=await chromium.launch({headless:true,args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist']});
+const angle=process.env.VISUAL_GPU||'swiftshader';
+const browser=await chromium.launch({headless:true,args:[`--use-angle=${angle}`,
+  ...(angle==='swiftshader'?['--enable-unsafe-swiftshader','--ignore-gpu-blocklist']:[])]});
 try{
   for(const tier of ['high','low']){
     const page=await browser.newPage({viewport:{width:1440,height:900}}),errors=[],treeRequests=[];

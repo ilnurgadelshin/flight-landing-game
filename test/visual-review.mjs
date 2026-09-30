@@ -8,7 +8,9 @@ import assert from 'node:assert/strict';
 const root=path.resolve(new URL('..',import.meta.url).pathname),out=path.join(root,'test/output');
 fs.mkdirSync(out,{recursive:true});
 const {server,url}=await startServer(root);
-const browser=await chromium.launch({headless:true,args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader','--ignore-gpu-blocklist']});
+const angle=process.env.VISUAL_GPU||'swiftshader';
+const browser=await chromium.launch({headless:true,args:[`--use-angle=${angle}`,
+  ...(angle==='swiftshader'?['--enable-unsafe-swiftshader','--ignore-gpu-blocklist']:[])]});
 // A compiled shader can still be wrong: missing shared haze uniforms made trees
 // black in fog, and the old cloud sheet cut a dark floor across the transition.
 // Compare actual horizon pixels, and the light contribution beyond visibility.

@@ -15,11 +15,11 @@ const FINISH = {
 };
 const FINISHES = {
   // Tile width and relief in metres; microdetail should disappear at a distance.
-  paint:  {tile: .12, relief: .000045, roughness: .70, variation: .09},
-  frame:  {tile: .12, relief: .000035, roughness: .82, variation: .06},
-  trim:   {tile: .12, relief: .00010,  roughness: .94, variation: .05},
-  fabric: {tile: .08, relief: .00022,  roughness: 1.0, variation: .02},
-  rubber: {tile: .08, relief: .000065, roughness: .62, variation: .08},
+  paint:  {tile: .12, relief: .000055, roughness: .64, variation: .16},
+  frame:  {tile: .12, relief: .00004, roughness: .73, variation: .08},
+  trim:   {tile: .30, relief: .00032, roughness: .88, variation: .06, scan:'liner'},
+  fabric: {tile: .27, relief: .00065, roughness: .98, variation: .02, scan:'upholstery'},
+  rubber: {tile: .08, relief: .000065, roughness: .53, variation: .12},
 };
 
 // Periodic, deterministic value noise. These small linear-data maps are original
@@ -94,6 +94,11 @@ function finishMaterial(material, kind, texture) {
     // it to indirect illumination keeps sunlight and instrument light intact.
     shader.fragmentShader=shader.fragmentShader
       .replace('#include <color_fragment>','')
+      .replace('#include <lights_fragment_begin>',THREE.ShaderChunk.lights_fragment_begin.replace(
+        'rectAreaLight = rectAreaLights[ i ];',`rectAreaLight = rectAreaLights[ i ];
+          #ifdef USE_COLOR
+            rectAreaLight.color *= vColor.r;
+          #endif`))
       .replace('#include <aomap_fragment>',/* glsl */`
         #include <aomap_fragment>
         #ifdef USE_COLOR
@@ -125,13 +130,23 @@ function finishMaterial(material, kind, texture) {
         normal=deckBump(normal,deckTexel.r*deckRelief,faceDirection);
       `);
   };
-  material.customProgramCacheKey=()=>`cockpit-surface-v1:${texture?kind:'occlusion'}`;
+  material.customProgramCacheKey=()=>`cockpit-surface-v2:${texture?kind:'occlusion'}`;
   material.userData.cockpitFinish=kind||'occlusion';
   material.needsUpdate=true;
 }
 
-export function applyCockpitSurfaces(model,{lowDetail=false}={}) {
+export async function applyCockpitSurfaces(model,{lowDetail=false}={}) {
   const maps=new Map(),materials=new Map(),geometries=new Set();
+  const errors=[];
+  if(!lowDetail)await Promise.all(Object.entries(FINISHES).filter(([,f])=>f.scan).map(async([kind,f])=>{
+    try{
+      const texture=await new THREE.TextureLoader().loadAsync(new URL(`../../assets/cockpit/${f.scan}.png`,import.meta.url).href);
+      texture.name=`Scanned cockpit ${kind}: height / roughness / colour modulation`;
+      texture.wrapS=texture.wrapT=THREE.RepeatWrapping;texture.anisotropy=4;
+      // Packed linear channels, not an sRGB colour photograph.
+      maps.set(kind,texture);
+    }catch(error){errors.push(`${kind}: ${error}`);} // original finish is a load-failure fallback
+  }));
   model.updateMatrixWorld(true);
   model.traverse(mesh=>{
     if(!mesh.isMesh)return;
@@ -156,11 +171,11 @@ export function applyCockpitSurfaces(model,{lowDetail=false}={}) {
       const material=source.clone();
       // Perfect black absorbs all diffuse light and loses the molded handle's
       // shape. Rubber has a small, neutral reflectance, even in unlit areas.
-      if(kind==='rubber')material.color.setRGB(.012,.012,.012);
+      if(kind==='rubber')material.color.setRGB(.022,.022,.022);
       if(kind&&lowDetail)material.roughness*=FINISHES[kind].roughness;
       finishMaterial(material,kind,maps.get(kind));materials.set(key,material);
     }
     mesh.material=materials.get(key);
   });
-  model.userData.surfaceDetail={materials:materials.size,maps:maps.size};
+  model.userData.surfaceDetail={materials:materials.size,maps:maps.size,errors};
 }

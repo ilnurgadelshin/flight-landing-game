@@ -1,6 +1,7 @@
 // A continuous photographed region, with nested resolution around the airfield.
 // All imagery is bundled: flying never calls a map service or needs an API key.
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { TERRAIN } from '../physics/terrain.js';
 import { makeGroundTexture } from './textures.js';
 import { addWoodland } from './woodland.js';
@@ -89,8 +90,35 @@ export function buildLandscape(world) {
     geometry.rotateX(-Math.PI/2); geometry.translate(x+5000,0,z+5000);
     const p = geometry.attributes.position;
     for (let i=0;i<p.count;i++) p.setY(i,TERRAIN.heightAt(p.getX(i),p.getZ(i))-0.05);
-    geometry.computeVertexNormals();
+    // Sample the same normal on both sides of a patch boundary. Deriving it
+    // independently from differently sized edge triangles leaves visible seams.
+    const normals=geometry.attributes.normal,probe=24;
+    for(let i=0;i<p.count;i++){
+      const px=p.getX(i),pz=p.getZ(i);
+      const nx=TERRAIN.heightAt(px-probe,pz)-TERRAIN.heightAt(px+probe,pz);
+      const nz=TERRAIN.heightAt(px,pz-probe)-TERRAIN.heightAt(px,pz+probe);
+      const length=Math.hypot(nx,2*probe,nz);normals.setXYZ(i,nx/length,2*probe/length,nz/length);
+    }
     const mesh = new THREE.Mesh(geometry,material); mesh.receiveShadow=true; terrain.add(mesh);
+    // Neighbouring patches use different resolutions. Hide their T-junction
+    // gaps with buried skirts; no extra ground layer covers the sampled surface.
+    const edge=[];
+    for(let i=0;i<segments;i++)edge.push(i);
+    for(let i=0;i<segments;i++)edge.push(i*(segments+1)+segments);
+    for(let i=segments;i>0;i--)edge.push(segments*(segments+1)+i);
+    for(let i=segments;i>0;i--)edge.push(i*(segments+1));
+    const skirtP=[],skirtN=[],indices=[];
+    for(const i of edge){
+      skirtP.push(p.getX(i),p.getY(i),p.getZ(i),p.getX(i),p.getY(i)-200,p.getZ(i));
+      for(let j=0;j<2;j++)skirtN.push(normals.getX(i),normals.getY(i),normals.getZ(i));
+    }
+    for(let i=0;i<edge.length;i++){const a=i*2,b=((i+1)%edge.length)*2;indices.push(a,a+1,b,b,a+1,b+1);}
+    const skirtGeo=new THREE.BufferGeometry();
+    skirtGeo.setAttribute('position',new THREE.Float32BufferAttribute(skirtP,3));
+    skirtGeo.setAttribute('normal',new THREE.Float32BufferAttribute(skirtN,3));
+    skirtGeo.setAttribute('uv',new THREE.Float32BufferAttribute(new Float32Array(edge.length*4),2));
+    skirtGeo.setIndex(indices);
+    mesh.geometry=mergeGeometries([geometry,skirtGeo]);geometry.dispose();skirtGeo.dispose();
   }
   world.scene.add(terrain);
   const loader = new THREE.TextureLoader();

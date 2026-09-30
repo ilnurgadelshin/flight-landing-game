@@ -28,12 +28,19 @@ the trim; comparison with the source in Blender exposed these integration errors
 have been removed. The downloaded glTF contains no texture images. The extra glazing planes
 fitted to the stretched shell were also removed; proper glass would need to follow the source panes.
 
-The runtime adds restrained surface finishes to verified parts of this model. The small,
-original procedural maps distinguish coated panels, molded liner, window framing, seat weave
-and yoke rubber. They store height, roughness and slight colour modulation, with metric scale,
-seamless projection and mipmaps; they are not photographic scans. The high tier uses relief
-and variation, while the low tier uses each finish's average roughness without detail maps.
-The yoke's pure-black grip alone is given 1.2% neutral diffuse reflectance, so its shape remains
+The runtime adds surface finishes to verified parts of this model. Original procedural maps
+distinguish coated panels, window framing and yoke rubber. On high quality, the liner and seats
+now use packed **CC0 Poly Haven scans**: [Leather White](https://polyhaven.com/a/leather_white)
+supplies neutral embossed grain for the molded liner, and
+[Poly Wool Herringbone](https://polyhaven.com/a/poly_wool_herringbone) supplies the seat weave.
+These are material interpretations, not photographs of the original aircraft's upholstery.
+`cockpit/liner.png` and `upholstery.png` store linear height, roughness and neutral colour
+modulation at 512², with metric scale, seamless projection and mipmaps. The source paint
+colours remain. Low quality uses average roughness without these maps; a failed scan download
+uses the original procedural finish. Exact source files and modifications are in
+`cockpit/sources.json`. Reproduce with `python3 tools/prepare-cockpit-finishes.py`.
+
+The yoke's pure-black grip alone is given 2.2% neutral diffuse reflectance, so its shape remains
 visible; screens, lettering and other black parts keep their original colours.
 
 The material assignments were checked in Blender against these source meshes:
@@ -52,8 +59,18 @@ The offline shading bake samples both close contacts and light access through th
 including the same added headliner used at runtime. The vertex values attenuate indirect
 illumination, rather than darkening the paint and direct sunlight. This remains an approximation
 of bounced light; it is not a full global-illumination bake.
-Daytime cabin lamps are reduced in favour of neutral sky illumination; night flood lighting
-and the instrument displays retain their existing brightness.
+Daytime cabin lamps are reduced in favour of sky illumination. Two broad side-window lights
+on high quality supply illumination, attenuated by the baked cabin shading. Their diffuse
+contribution is integrated once onto the existing vertices, separately for front/back faces
+in the cabin's local frame. Weather scales it at runtime. The more expensive area-light BRDFs
+run only while capturing cabin reflections, not in every frame. Direct sunshine
+still uses the frame shadow map. Both tiers cache a small PMREM reflection capture of the
+actual cabin and windows from the fixed pilot eye for each weather layer, instead of reflecting an unobstructed outdoor
+sky through the ceiling. The cabin uses a separate fixed-resolution PMREM generator. Captures rotate with the airframe and are disposed on a scenario
+change. This is a single-position approximation, not ray tracing or full global illumination;
+sunlit cabin reflections are not continuously rebaked during turns. Night flood lighting
+and the instrument displays retain their existing brightness. The two vendored Three.js area
+light helpers are unchanged MIT-licensed files from the installed Three.js version.
 
 To reproduce, download the freely licensed **glTF** archive from that page (Sketchfab requires
 sign-in), unzip it, run `npm install`, then:
@@ -99,7 +116,7 @@ Public-domain documentation:
 https://www.usgs.gov/centers/eros/science/usgs-eros-archive-aerial-photography-national-agriculture-imagery-program-naip
 
 Downloaded 2026-09-25–26. The Pennsylvania imagery is repositioned around the fictional
-Westhaven airport, with a maintained airfield overlay and synthetic terrain heights.
+Westhaven airport, with a maintained airfield overlay and locally graded USGS elevation data.
 It is scenery, not a geographic or navigation reference. Four images cover the 80 km region, 24 km approach, 8 km airfield and an additional
 8 km final-approach area at 2 m/px; phones load 1024 px variants. Exact export requests and extents are recorded
 in `scenery/sources.json`. Files are recompressed for delivery.
@@ -114,6 +131,30 @@ detail textures are resident; movement evicts/disposes old textures. Missing til
 the broad imagery visible. The complete high/low set is approximately 24 MB on disk.
 
 Reproduce with `python3 tools/fetch-ground-detail.py` (Pillow and curl required).
+
+### Elevation — public domain
+
+`scenery/elevation.js` contains two bundled **USGS 3DEP** bare-earth height grids, obtained
+2026-09-28 from the [3DEP elevation service](https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer).
+[USGS's dataset documentation](https://catalog.data.gov/dataset/1-arc-second-digital-elevation-models-dems-usgs-national-map-3dep-downloadable-data-collec)
+states that all 3DEP products are public domain. The grids share the imagery's EPSG:3857
+registration, corrected for pixel centres. The 80 km region is sampled every 156.25 m and the
+24 km approach every 46.875 m, each 513², quantized to 0.25 m. Sampling and quantization do
+not imply equivalent survey accuracy. The synchronous module is approximately 1.5 MB and
+requires no runtime service, token or delayed physics update. Exact requests and source TIFF
+hashes are in `scenery/elevation-sources.json`.
+
+The fictional airport datum is 350 m below the source elevations. A local earthwork blend
+keeps x ±3 km, z −300…650 m level; a rising obstacle-clearance envelope protects final and
+climb-out while retaining relief below it. Valleys may lie below airport altitude. The hull
+support plane now follows the local ground height, preventing invisible Y=0 collisions;
+wheel heights and radar altitude use the same query. As before, the hull support plane is
+locally horizontal, not a full terrain collision mesh. Outside the 80 km imagery bounds,
+heights hold the nearest grid edge, matching the clamped imagery.
+
+Terrain patches share boundary normals and have buried skirts to close gaps between their
+different mesh resolutions. Building/road/tree placement continues to follow each quality
+tier's actual terrain triangles. Reproduce with `python3 tools/prepare-elevation.py`.
 
 Below 650 m viewing distance, vegetation and warm soil colours receive finer scanned
 surface frequencies at 6 m and 10.7 m scales, with rotated sampling to reduce repetition.
