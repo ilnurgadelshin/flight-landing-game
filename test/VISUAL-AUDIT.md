@@ -369,3 +369,41 @@ comparison with the reviewer's machine. The final Node suites also passed. Separ
 checks cover both tiers, missing assets, tree budgets and placement; visual checks preserve
 PFD/ND visibility and cloud transitions. Performance and transfer measurements are retained
 in `RENDER-PERFORMANCE.md` with their limits.
+
+## Follow-up: reflection source, Retina recovery and hidden tabs — 2026-09-30
+
+The second external review found that rejecting invalid captures prevented a black cockpit
+but did not remove every source of invalid radiance. The surface-gradient bump shader could
+normalize a zero vector on degenerate/projected-flat geometry. It now preserves the original
+normal when the bumped vector has negligible magnitude; ordinary relief is unchanged. The
+shader cache key is updated. Capture validation and the lit fallback remain as safeguards.
+No cockpit geometry, asset files or material assignments were changed.
+
+Automatic desktop resolution still starts at 1×, but stable fast frames can now increase it
+to the native screen ratio, capped at 1.5×. Existing slow-frame backoff reduces that ceiling
+after a failed increase. Phones retain their existing starting ceiling, and explicit DRS
+settings are respected. This permits sharper output where measured pacing allows it; it is
+not a claim that the previously benchmarked M2 Pro can sustain high at 1.5×. Calibration now
+waits for a visible tab, discards interrupted samples and measures again in the foreground.
+
+Verification for this follow-up:
+
+- All Node suites passed, including fast-frame resolution recovery, backoff, native 1× and
+  manual limits, initially hidden calibration and a sample interrupted by hiding the tab.
+- The lighting suite passed on ANGLE Metal / Apple M2 Pro. A new rendered test uses the actual
+  surface GLSL with zero and near-zero derivatives: both preserve the unit normal `(0,0,1)`.
+  The ordinary case still applies relief. Both tiers produce finite, illuminated reflection
+  captures across day/night/weather changes; normal scenarios reject any use of the fallback.
+  Invalid-readback and failed-capture fault injection still verifies a lit fallback.
+- Delivery checks passed with a simulated hidden Retina startup followed by slow foreground
+  frames: calibration waits, then selects low from measured frames and retains a 1.5× ceiling.
+  Startup budgets, streamed downloads and terrain registration still pass.
+- Visual checks passed for loaded assets, PFD/ND visibility, missing-model fallback and cloud
+  transitions. The full functional browser suite was not rerun for this follow-up.
+
+The external reviewer independently reported 270/270 functional checks passing on their
+software renderer before this follow-up, and passing lighting checks with their own shader
+guard. Locally, a fresh SwiftShader probe still cannot create WebGL
+(`BindToCurrentSequence failed`), so this exact revision remains unverified on that backend.
+Streaming pop-in/decode stalls, the high cockpit download before automatic tier selection,
+phone framing/HUD placement and the retained historical asset bytes remain unchanged.

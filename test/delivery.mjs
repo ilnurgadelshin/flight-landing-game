@@ -29,16 +29,24 @@ try{
     const result={tier,startupBytes:startup,sceneryBytes:scenery,totalWithNearTreesBytes:complete};report.push(result);console.log(result);
     await page.close();
   }
-  const auto=await browser.newPage({viewport:{width:1024,height:576}});
+  const auto=await browser.newPage({viewport:{width:1024,height:576},deviceScaleFactor:2});
   // Simulate a slow display/renderer cadence; automatic mode must select low.
   await auto.addInitScript(()=>{const raf=window.requestAnimationFrame.bind(window);
+    let hidden=true;Object.defineProperty(document,'hidden',{get:()=>hidden});
+    window.__testVisibility=value=>{hidden=value;document.dispatchEvent(new Event('visibilitychange'));};
     window.requestAnimationFrame=fn=>raf(()=>setTimeout(()=>fn(performance.now()),40));});
-  await auto.goto(url+'/');await auto.waitForFunction(()=>window.__sim,null,{timeout:120000});
+  await auto.goto(url+'/');
+  await auto.waitForFunction(()=>document.getElementById('loading-msg')?.textContent.includes('Checking graphics'),null,{timeout:120000});
+  assert.equal(await auto.evaluate(()=>!!window.__sim),false,'A hidden tab waits for foreground calibration');
+  await auto.evaluate(()=>window.__testVisibility(false));
+  await auto.waitForFunction(()=>window.__sim,null,{timeout:120000});
   const selected=await auto.evaluate(()=>{
     const s=window.__sim;s.setDrawing(false);const w=s.world;
-    return {tier:w.quality,measurement:w.qualityMeasurement,composer:!!w.composer,shadows:w.renderer.shadowMap.enabled,adaptive:s.scaler.enabled};
+    return {tier:w.quality,measurement:w.qualityMeasurement,composer:!!w.composer,shadows:w.renderer.shadowMap.enabled,adaptive:s.scaler.enabled,ceiling:s.scaler.ceiling};
   });
   assert.equal(selected.tier,'low');assert.equal(selected.composer,false);assert.equal(selected.shadows,false);assert.equal(selected.adaptive,true);
+  assert.ok(selected.measurement.intervals.length>=24,'Selection uses measured foreground frames');
+  assert.equal(selected.ceiling,1.5,'Automatic Retina mode can recover above the initial scale');
   await auto.evaluate(async()=>{
     const w=window.__sim.world;await w.loadScenery();
     const T=await import('/vendor/three.module.js'),{sceneryGroundHeight}=await import('/js/world/scenery-ground.js');

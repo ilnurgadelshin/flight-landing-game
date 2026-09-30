@@ -62,7 +62,7 @@ function makeSurfaceMap(kind) {
   return texture;
 }
 
-const detailPars=/* glsl */`
+export const COCKPIT_SURFACE_GLSL=/* glsl */`
   uniform sampler2D deckSurface;
   uniform float deckTile;
   uniform float deckRelief;
@@ -82,7 +82,11 @@ const detailPars=/* glsl */`
     vec3 r1=cross(dy,n),r2=cross(n,dx);
     float det=dot(dx,r1)*faceDirection;
     vec3 gradient=sign(det)*(dFdx(height)*r1+dFdy(height)*r2);
-    return normalize(abs(det)*n-gradient);
+    // Degenerate/projected-flat triangles can have zero derivatives in a cube
+    // capture. normalize(0) is undefined and can poison the entire PMREM.
+    vec3 bumped=abs(det)*n-gradient;
+    float magnitude=dot(bumped,bumped);
+    return magnitude>1e-30 ? bumped*inversesqrt(magnitude) : n;
   }
 `;
 
@@ -118,7 +122,7 @@ function finishMaterial(material, kind, texture) {
       .replace('#include <common>','#include <common>\nattribute vec3 deckPosition;\nvarying vec3 vDeckPosition;')
       .replace('#include <begin_vertex>','#include <begin_vertex>\nvDeckPosition=deckPosition;');
     shader.fragmentShader=shader.fragmentShader
-      .replace('void main() {',detailPars+'\nvoid main() {')
+      .replace('void main() {',COCKPIT_SURFACE_GLSL+'\nvoid main() {')
       .replace('#include <roughnessmap_fragment>',/* glsl */`
         #include <roughnessmap_fragment>
         vec3 deckTexel=deckSample(vDeckPosition);
@@ -130,7 +134,7 @@ function finishMaterial(material, kind, texture) {
         normal=deckBump(normal,deckTexel.r*deckRelief,faceDirection);
       `);
   };
-  material.customProgramCacheKey=()=>`cockpit-surface-v2:${texture?kind:'occlusion'}`;
+  material.customProgramCacheKey=()=>`cockpit-surface-v3:${texture?kind:'occlusion'}`;
   material.userData.cockpitFinish=kind||'occlusion';
   material.needsUpdate=true;
 }

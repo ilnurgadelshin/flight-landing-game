@@ -544,6 +544,9 @@ Computers use **automatic quality** at an initial 1× render scale. A brief rend
 check retains high quality only when at least 90% of sampled frames take no more than
 22.5 ms. During flight, adaptive resolution responds to sustained slow rendering; if it
 is still slow at the resolution floor, expensive effects switch off without restarting.
+Stable fast frames gradually raise resolution toward the screen's native pixel ratio,
+capped at 1.5×; a scale that proves too slow lowers the ceiling to avoid oscillation.
+Calibration waits while the tab is hidden and restarts its sample after an interruption.
 The **high** graphics tier uses sun shadows, and the outside view
 drawn into a floating-point frame with 4× multisampling and a bloom pass (the
 sun, glints, the lights at night) before tone mapping. Phones and tablets get
@@ -1228,10 +1231,14 @@ It uses the actual game renderer and requires Playwright Chromium, like the brow
 
 `npm run test:lighting` checks rendered panel readability through repeated day/night/weather
 changes, finite cabin-reflection pixels, capture reuse across cloud layers, resource disposal
-and missing-scan fallback on both graphics tiers. It also injects invalid reflection pixels
+and missing-scan fallback on both graphics tiers. A rendered shader check covers zero and
+near-zero surface derivatives, preserving the normal without losing ordinary bump detail.
+It also injects invalid reflection pixels
 and a failed capture, checking that the cockpit stays lit and the failure is not retried
 every frame. `node test/delivery.mjs` checks actual startup requests, staged downloads and
-automatic quality selection under deliberately slow frame pacing. The visual, scenery and lighting checks
+foreground quality selection after a hidden-tab startup under deliberately slow frame pacing.
+Node checks cover interrupted calibration and Retina resolution recovery/backoff.
+The visual, scenery and lighting checks
 default to SwiftShader; `VISUAL_GPU=metal` runs them on macOS hardware. A backend that cannot
 create WebGL is a test-environment failure, not a successful graphics check.
 

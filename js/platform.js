@@ -119,9 +119,9 @@ export class Platform {
  * returning to a level that was too slow.
  */
 export class ResolutionScaler {
-  constructor(world, { enabled, start }) {
+  constructor(world, { enabled, start, maxRatio = start }) {
     this.world = world; this.enabled = enabled;
-    this.ratio = start; this.ceiling = start; this.min = Math.min(start, 0.7);
+    this.ratio = start; this.ceiling = Math.max(start,maxRatio); this.min = Math.min(start, 0.7);
     this.acc = 0; this.n = 0; this.good = 0; this.windows = 0;this.slow=0;this.stalls=0;
   }
   frame(dtMs, active) {

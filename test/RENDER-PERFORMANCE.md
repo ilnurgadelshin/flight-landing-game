@@ -101,11 +101,19 @@ tree selector to display more trees nearby (21 rather than 15 here), so reducing
 and per-tree geometry does not imply a lower scene triangle count.
 
 Desktop automatic mode uses a bounded initial frame sample at 1×. It selects low when
-measurement is incomplete or p90 exceeds 22.5 ms. Continued adaptive resolution and a
+foreground measurement is incomplete or p90 exceeds 22.5 ms. A hidden tab waits; hiding it
+during calibration discards that sample and retries after it becomes visible. Continued adaptive resolution and a
 low-effects fallback respond to sustained slow flight after scenery loads. Explicit
 `?quality=high` retains the user's fixed tier. The benchmark above explicitly selects
 tiers/scales; a separate browser check verifies that deliberately slow RAF cadence selects
 low, leaves scenery registered to the rendered terrain and never loads high-tier trees.
+
+The follow-up review fix separates the initial scale from its ceiling. Automatic desktop
+mode can rise by 10% after each ten seconds of fast frames (average below 18 ms), up to the
+native screen ratio or 1.5×, whichever is lower. A slow interval lowers that ceiling as
+before. This removes the permanent 1× limit; it does not establish that the M2 Pro or every
+Retina machine can sustain 1.5×. The table above remains a fixed-scale benchmark from the
+preceding revision, not a new measurement of adaptive behavior.
 
 ### Delivery
 

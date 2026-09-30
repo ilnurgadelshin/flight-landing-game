@@ -18,6 +18,39 @@ try{
     try{await page.waitForFunction(()=>window.__sim,null,{timeout:120000});}
     catch(error){throw new Error(`${tier} failed to initialize: ${errors.join('\n')||error.message}`);}
     await page.evaluate(()=>window.__sim.setDrawing(false));
+    if(tier==='high'){
+      // Exercise the production GLSL with collapsed derivatives explicitly. Real
+      // zero-area source triangles only trigger this on some drivers/cube views.
+      const normals=await page.evaluate(async()=>{
+        const T=await import('/vendor/three.module.js');
+        const {COCKPIT_SURFACE_GLSL}=await import('/js/cockpit/surfaces.js');
+        const renderer=window.__sim.world.renderer,previous=renderer.getRenderTarget();
+        const target=new T.WebGLRenderTarget(4,4,{type:T.HalfFloatType,depthBuffer:false});
+        const material=new T.ShaderMaterial({uniforms:{derivativeScale:{value:1}},
+          vertexShader:`uniform float derivativeScale; varying vec3 vViewPosition; varying vec3 vDeckPosition;
+            void main(){vDeckPosition=position;vViewPosition=-position*derivativeScale;gl_Position=vec4(position.xy,0.,1.);}`,
+          fragmentShader:`varying vec3 vViewPosition;\n${COCKPIT_SURFACE_GLSL}\n
+            void main(){vec3 n=deckBump(vec3(0.,0.,1.),vDeckPosition.x*.01,1.);gl_FragColor=vec4(n*.5+.5,1.);}`});
+        const quad=new T.Mesh(new T.PlaneGeometry(2,2),material),scene=new T.Scene();scene.add(quad);
+        const results=[];
+        try{
+          for(const scale of [0,1e-20,1]){
+            material.uniforms.derivativeScale.value=scale;
+            renderer.setRenderTarget(target);renderer.render(scene,new T.Camera());
+            const pixels=new Uint16Array(4*4*4);renderer.readRenderTargetPixels(target,0,0,4,4,pixels);
+            results.push({scale,normal:Array.from(pixels.slice(20,23),v=>T.DataUtils.fromHalfFloat(v)*2-1)});
+          }
+        }finally{renderer.setRenderTarget(previous);quad.geometry.dispose();material.dispose();target.dispose();}
+        return results;
+      });
+      for(const {scale,normal} of normals){
+        assert.ok(normal.every(Number.isFinite),`Finite surface normal at derivative scale ${scale}`);
+        assert.ok(Math.abs(Math.hypot(...normal)-1)<.003,'Bump output remains a unit normal');
+        if(scale<1)assert.deepEqual(normal,[0,0,1],'Degenerate bump preserves the original normal');
+        else assert.ok(normal[0]<-.005&&normal[2]>.99,'Ordinary surface relief is still applied');
+      }
+      console.log('Rendered degenerate/ordinary surface normals:',normals);
+    }
     for(const [scenarioId,night] of [['clear',false],['clear',true],['crosswind',false],['storm',true],['clear',false]]){
       const result=await page.evaluate(async({scenarioId,night})=>{
         const T=await import('/vendor/three.module.js'),s=window.__sim,w=s.world;

@@ -124,7 +124,11 @@ async function boot() {
     padWas = connected;
   };
   for (const ev of ['keydown', 'pointerdown']) window.addEventListener(ev, () => pad.otherDeviceUsed(), true);
-  const scaler = new ResolutionScaler(world, { enabled: params.has('drs') ? params.get('drs') !== '0' : touchFirst||autoQuality, start: world.pixelRatio });
+  const scaler = new ResolutionScaler(world, {
+    enabled: params.has('drs') ? params.get('drs') !== '0' : touchFirst||autoQuality,
+    start: world.pixelRatio,
+    maxRatio: autoQuality?Math.min(window.devicePixelRatio||1,1.5):world.pixelRatio,
+  });
   world.applyScenario(SCENARIOS.clear, false);
   if(autoQuality&&world.quality==='high'){
     ui.hideLoading('Checking graphics performance…');
