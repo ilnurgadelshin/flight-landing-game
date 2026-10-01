@@ -25,10 +25,19 @@ export async function loadFlightDeck(cockpit) {
   const keep=new Set([c.camRig,c.dome,c.flood]);
   for(const child of root.children)if(!keep.has(child))child.visible=false;
   model.name='Authored Boeing 737-800 flight deck';
+  // The flight deck's shadow map is redrawn every frame. Modeled lettering lies flush on the
+  // panels and parts under 3 cm cast shadows below one shadow texel, yet they are half of
+  // the deck's triangles: they receive shadows but do not cast them.
+  model.updateMatrixWorld(true);
+  const scale=new THREE.Vector3();
   model.traverse(o=>{
     if(!o.isMesh)return;
     o.material.side=THREE.DoubleSide;
-    o.castShadow=true;o.receiveShadow=true;
+    if(!o.geometry.boundingSphere)o.geometry.computeBoundingSphere();
+    o.getWorldScale(scale);
+    const radius=o.geometry.boundingSphere.radius*Math.max(scale.x,scale.y,scale.z);
+    o.userData.castsShadow=!/^Text/.test(o.name)&&radius>=.03;
+    o.castShadow=o.userData.castsShadow;o.receiveShadow=true;
   });
   root.add(model);c.authoredModel=model;
   // Fit the eye to the original cabin, measured in source coordinates. The old

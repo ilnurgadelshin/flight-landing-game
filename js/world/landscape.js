@@ -161,7 +161,8 @@ export function buildLandscape(world) {
         await roads.catch(()=>{});
         for(const mat of [world.runwayMat,...world.pavementMats,world.approachRoadMaterial].filter(Boolean)) detailPavement(mat,{color,normal,rough});
       }));
-    const results=await Promise.allSettled(jobs);
+    const progress=world.sceneryProgress;progress.total+=jobs.length;   // the loading screen's finer steps
+    const results=await Promise.allSettled(jobs.map(job=>job.finally(()=>progress.done++)));
     world.assetErrors.push(...results.filter(r=>r.status==='rejected').map(r=>String(r.reason)));
   });
 }

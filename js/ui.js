@@ -157,6 +157,7 @@ export class UI {
   show(name, on = true) { const e = this.el[name]; if (e) e.classList.toggle('hidden', !on); }
   showMenu() { this.show('menu', true); this.show('hud', false); this.show('results', false); this.show('pause', false); this.show('school', false); }
   hideLoading(msg) { if (msg) $('loading-msg').textContent = msg; else this.show('loading', false); }
+  showLoading(msg) { $('loading-msg').textContent = msg; this.show('loading', true); }
 
   // ---- HUD ------------------------------------------------------------------
   updateHUD(st, extra = {}) {

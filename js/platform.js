@@ -117,12 +117,27 @@ export class Platform {
  * Dynamic resolution for touch devices and desktop auto mode: lowers resolution when frames get
  * slow (GPUs throttle after a few minutes of sustained load) and slowly recovers, never
  * returning to a level that was too slow.
+ *
+ * Phones accept 40-55 fps. With `targetMs` (desktop auto mode, 60 fps) a frame rate between
+ * that and the target is not accepted: on a 60 Hz screen it alternates 16.7 and 33 ms frames,
+ * which judders. Missing the target steps down; on the high tier the effects go before the
+ * resolution falls below its starting scale (1×).
  */
 export class ResolutionScaler {
-  constructor(world, { enabled, start, maxRatio = start }) {
+  constructor(world, { enabled, start, maxRatio = start, targetMs }) {
     this.world = world; this.enabled = enabled;
-    this.ratio = start; this.ceiling = Math.max(start,maxRatio); this.min = Math.min(start, 0.7);
+    this.ratio = start; this.ceiling = this.maxCeiling = Math.max(start, maxRatio); this.min = Math.min(start, 0.7);
+    // 2 s averages: 1.05 × 16.7 ms is about three dropped frames a second
+    this.downMs = targetMs ? targetMs * 1.05 : 25;          // phones: below ~40 fps
+    this.upMs = targetMs ? targetMs * 1.02 : 18;            // phones: a solid 55+ fps
+    this.slowMs = targetMs ? this.downMs : 28;              // still this slow at the floor: drop effects
+    this.effectsFloor = targetMs ? Math.min(start, 1) : this.min;
+    this.paced = !!targetMs; this.probe = null;
     this.acc = 0; this.n = 0; this.good = 0; this.windows = 0;this.slow=0;this.stalls=0;
+  }
+  reduceEffects() {
+    this.world.reduceQuality();
+    this.slow = 0; this.probe = null; this.ceiling = this.maxCeiling;   // a cheaper scene may afford more pixels
   }
   frame(dtMs, active) {
     if (!this.enabled || !active) {this.stalls=0;return;}
@@ -136,15 +151,24 @@ export class ResolutionScaler {
     if (this.acc < 2000) return;
     const avg = this.acc / this.n; this.acc = 0; this.n = 0;
     if (++this.windows < 2) return;                         // the first seconds compile shaders
-    if(this.world.autoQuality&&this.world.quality==='high'){
-      this.slow=avg>28&&this.ratio<=this.min+.01?this.slow+1:0;
-      if(this.slow>=3){this.world.reduceQuality();this.slow=0;}
+    if (this.probe !== null) {                              // the window after a step up decides it
+      const before = this.probe; this.probe = null;
+      if (avg >= this.upMs) { this.ceiling = Math.min(this.ceiling, before); this.set(before); this.good = 0; return; }
     }
-    if (avg > 25 && this.ratio > this.min) {                // below ~40 fps: step down
+    const effects = this.world.autoQuality && this.world.quality === 'high';
+    const floor = effects ? this.effectsFloor : this.min;
+    if (effects) {
+      this.slow = avg > this.slowMs && this.ratio <= floor + .01 ? this.slow + 1 : 0;
+      if (this.slow >= 3) { this.reduceEffects(); return; }
+    }
+    if (avg > this.downMs && this.ratio > floor) {          // missing the target: step down
       this.ceiling = Math.min(this.ceiling, this.ratio * 0.95);
-      this.set(Math.max(this.min, this.ratio * 0.85)); this.good = 0;
-    } else if (avg < 18 && this.ratio < this.ceiling) {     // a solid 55+ fps for 10 s: step back up
-      if (++this.good >= 5) { this.set(Math.min(this.ceiling, this.ratio * 1.1)); this.good = 0; }
+      this.set(Math.max(floor, this.ratio * 0.85)); this.good = 0;
+    } else if (avg < this.upMs && this.ratio < this.ceiling) {   // fast for 10 s: step back up
+      if (++this.good >= 5) {
+        if (this.paced) this.probe = this.ratio;            // kept only if it still makes the target
+        this.set(Math.min(this.ceiling, this.ratio * 1.1)); this.good = 0;
+      }
     } else this.good = 0;
   }
   set(r) { this.ratio = r; this.world.setPixelRatio(r); }

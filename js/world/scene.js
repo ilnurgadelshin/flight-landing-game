@@ -151,7 +151,7 @@ export class World {
     this.night = false;
     this.rng = makeRng(21);
 
-    this.assetJobs = [];this.sceneryJobs=[];this.assetErrors=[];
+    this.assetJobs = [];this.sceneryJobs=[];this.assetErrors=[];this.sceneryProgress={done:0,total:0};
     this.buildLighting();
     this.buildSky();
     this.buildTerrain();
@@ -170,18 +170,88 @@ export class World {
     this.resize();
   }
 
-  /** Optional scenery starts after the flight is interactive. One shared promise
+  /** The detailed scenery loads behind the menu (see prepareScenery). One shared promise
    * also lets graphics tests explicitly wait for the complete scenery. */
   loadScenery() {
     return this.sceneryReady??=(async()=>{
       await this.assetsReady;
-      const results=await Promise.allSettled(this.sceneryJobs.map(job=>job()));
+      const progress=this.sceneryProgress;progress.total+=this.sceneryJobs.length;
+      const results=await Promise.allSettled(this.sceneryJobs.map(job=>Promise.resolve().then(job).finally(()=>progress.done++)));
       this.assetErrors.push(...results.filter(r=>r.status==='rejected').map(r=>String(r.reason)));
       if(this.sun.castShadow)this.sun.shadow.needsUpdate=true;
       const tod=this.night?'night':this.scenario?.timeOfDay;
       for(const m of this.approachBuildings?.materials||[])m.emissiveIntensity=tod==='night'?.55:tod==='dusk'?.2:0;
       this.approachBuildings?.updateShadows();
     })();
+  }
+
+  /** Everything a flight shows, loaded and on the graphics card before it starts: the scenery,
+   * on the high tier the nearby 3D trees, then the shaders and uploads (warmUp). Nothing
+   * appears or stalls in the first minutes of a flight. Progress: sceneryProgress. */
+  prepareScenery(canWarm=()=>true) {
+    return this.sceneryPrepared??=(async()=>{
+      const progress=this.sceneryProgress;progress.total+=2;   // the near trees and the warm-up
+      await this.loadScenery();
+      try{await this.loadNearTrees?.();}finally{progress.done++;}
+      // the warm-up is one long frame: not in the middle of a flight that already started
+      try{if(canWarm())await this.warmUp(canWarm);}catch(error){this.assetErrors.push(String(error));}finally{progress.done++;}
+    })();
+  }
+
+  /** Compile every shader now, and draw everything once into a tiny off-screen target so its
+   * textures and buffers are uploaded: otherwise each is, with a stall, when it first comes
+   * into view. One material at a time, in slices of about 12 ms between which the menu keeps
+   * drawing: without parallel shader compilation (or with software rendering) a program can
+   * take a good part of a second. */
+  async warmUp(keepGoing=()=>true) {
+    const r=this.renderer,camera=this.camera,target=new THREE.WebGLRenderTarget(16,16);
+    let slice=performance.now();
+    // false once a flight has started (e.g. after Start's time limit): stop, don't take its frames
+    const breathe=async()=>{
+      if(performance.now()-slice>12){await new Promise(done=>setTimeout(done,0));slice=performance.now();}
+      return keepGoing();
+    };
+    try{
+      for(const scene of [this.scene,this.cockpitScene]){
+        const byMaterial=new Map();
+        scene.traverse(o=>{
+          if(!(o.isMesh||o.isPoints||o.isLine||o.isSprite)||!o.material)return;
+          const m=[].concat(o.material)[0];if(!byMaterial.has(m))byMaterial.set(m,[]);byMaterial.get(m).push(o);
+        });
+        for(const [first] of byMaterial.values()){
+          const children=first.children;first.children=[];        // compile(object) would include its children
+          try{r.compile(first,camera,scene);}finally{first.children=children;}
+          if(!await breathe())return;
+        }
+        if(r.extensions.has('KHR_parallel_shader_compile'))await r.compileAsync(scene,camera);   // all programs ready
+        // Upload: each material's objects alone, nothing culled. Shadow maps are left to the
+        // next ordinary frame, and every slice restores what it changed before the menu draws.
+        // A shadow map that does not exist yet (no frame drawn) is made first, from the whole
+        // scene: the materials that receive it cannot be drawn without it.
+        let missing=false;scene.traverse(o=>{if(o.isLight&&o.castShadow&&!o.shadow.map)missing=true;});
+        if(missing){
+          const previous=r.getRenderTarget();r.setRenderTarget(target);
+          try{r.render(scene,camera);}finally{r.setRenderTarget(previous);}
+          if(!await breathe())return;
+        }
+        const drawables=[...byMaterial.values()].flat();
+        for(const objects of byMaterial.values()){
+          const show=new Set(objects),saved=drawables.map(o=>[o,o.visible,o.frustumCulled]);
+          for(const o of drawables){
+            // an empty instanced pool (the nearby trees) is hidden; draw it to upload its geometry
+            o.visible=show.has(o)&&(o.visible||(o.isInstancedMesh&&o.count===0));o.frustumCulled=false;
+          }
+          const previous=r.getRenderTarget(),shadows=r.shadowMap.autoUpdate;
+          r.shadowMap.autoUpdate=false;r.setRenderTarget(target);
+          try{r.render(scene,camera);}
+          finally{
+            r.setRenderTarget(previous);r.shadowMap.autoUpdate=shadows;
+            for(const [o,visible,culled] of saved){o.visible=visible;o.frustumCulled=culled;}
+          }
+          if(!await breathe())return;
+        }
+      }
+    }finally{target.dispose();}
   }
 
   /** Drop expensive effects without restarting a flight or moving its camera. */
@@ -270,7 +340,7 @@ export class World {
       if (!o.isMesh) return;
       const m = o.material;
       if (m.transparent || m.isMeshBasicMaterial) return;
-      o.castShadow = true; o.receiveShadow = true;
+      o.castShadow = o.userData.castsShadow !== false; o.receiveShadow = true;   // see cockpit/model.js
     });
   }
 
