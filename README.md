@@ -542,10 +542,13 @@ airport and perimeter-road lights that glow.
 
 Computers use **automatic quality** at an initial 1× render scale. A brief rendered-frame
 check retains high quality only when at least 90% of sampled frames take no more than
-22.5 ms. During flight, adaptive resolution responds to sustained slow rendering; if it
-is still slow at the resolution floor, expensive effects switch off without restarting.
-Stable fast frames gradually raise resolution toward the screen's native pixel ratio,
-capped at 1.5×; a scale that proves too slow lowers the ceiling to avoid oscillation.
+22.5 ms. During flight, adaptive resolution holds a **steady 60 fps**: 40–55 fps is not
+accepted, because on a 60 Hz screen it alternates 16.7 and 33 ms frames and judders. When the
+average of 2 s of frames misses 60 fps (above 17.5 ms) the resolution steps down; ten seconds
+of clean 60 fps try a step up (toward the screen's native pixel ratio, capped at 1.5×), which is
+kept only if the next two seconds are clean again, and otherwise becomes the ceiling. On the high
+tier the expensive effects (shadows, bloom, 3D clouds) switch off, without restarting, before
+the resolution goes below 1×. Phones keep accepting 40 fps and above.
 Calibration waits while the tab is hidden and restarts its sample after an interruption.
 The **high** graphics tier uses sun shadows, and the outside view
 drawn into a floating-point frame with 4× multisampling and a bloom pass (the
@@ -556,10 +559,22 @@ to choose a fixed tier and bypass automatic selection. `?drs=0` disables adaptiv
 resolution; `?drs=1` enables it even with a fixed tier. Automatic selection is a local
 measurement, not a guarantee of performance on every scene or device.
 
-Startup loads the flight deck, small terrain previews and, on high, the compressed cloud density. Detailed scenery streams after
-flight begins; high-quality near-tree models are requested only near woodland. The first
-view can therefore be less detailed while downloads finish. Asset failures retain the
-existing fallback surfaces and do not prevent flight.
+Startup loads the flight deck, small terrain previews and, on high, the compressed cloud
+density: the menu appears after those. The detailed scenery then **loads behind the menu**:
+the full aerial photographs, every ground detail tile (only the four nearest are on the
+graphics card at a time; the others wait in memory, so a flight decodes them rather than
+downloading them), buildings, roads, woodland, parked aircraft and, on high, the nearby 3D
+trees. Every shader is then compiled and every texture and buffer uploaded (one tiny
+off-screen frame with nothing culled). A flight starts once that is done, so nothing sharpens,
+appears or stalls in its first minutes; pressing Start earlier shows the progress (a very slow
+connection still gets its flight after a minute, and the rest streams in). Asset failures
+retain the existing fallback surfaces and do not prevent flight.
+
+Shadows are drawn only when they change. The airport's large sun shadow map is static; it is
+redrawn when scenery arrives and when the set of nearby 3D trees changes, at most once a second.
+The flight deck's shadow map follows the aircraft every frame, so it holds only what casts a
+visible shadow: modeled lettering (flush with the panels, but half the deck's triangles) and
+parts under 3 cm receive shadows without casting them.
 
 The visual assets are bundled locally and need no map service, account or API key:
 
@@ -1244,9 +1259,10 @@ and missing-scan fallback on both graphics tiers. A rendered shader check covers
 near-zero surface derivatives, preserving the normal without losing ordinary bump detail.
 It also injects invalid reflection pixels
 and a failed capture, checking that the cockpit stays lit and the failure is not retried
-every frame. `node test/delivery.mjs` checks actual startup requests, staged downloads and
+every frame. `node test/delivery.mjs` checks actual startup requests, the scenery prepared behind the menu (after which a flight downloads nothing) and
 foreground quality selection after a hidden-tab startup under deliberately slow frame pacing.
-Node checks cover interrupted calibration and Retina resolution recovery/backoff.
+Node checks cover interrupted calibration, Retina resolution recovery/backoff and the steady
+60 fps target (a modelled GPU: no 40–55 fps judder, effects before resolution, probed step-ups).
 The visual, scenery and lighting checks
 default to SwiftShader; `VISUAL_GPU=metal` runs them on macOS hardware. A backend that cannot
 create WebGL is a test-environment failure, not a successful graphics check.

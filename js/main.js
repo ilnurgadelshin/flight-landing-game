@@ -62,7 +62,7 @@ async function boot() {
     platform.onGameState(s);
     if (s === 'flying') {
       tilt.requestCenter();
-      // Let the first playable frame reach the display before scenery work.
+      // Normally loaded behind the menu already; a flight started another way streams it.
       requestAnimationFrame(()=>setTimeout(()=>world.loadScenery(),0));
     } else haptics.stop();
   });
@@ -128,6 +128,7 @@ async function boot() {
     enabled: params.has('drs') ? params.get('drs') !== '0' : touchFirst||autoQuality,
     start: world.pixelRatio,
     maxRatio: autoQuality?Math.min(window.devicePixelRatio||1,1.5):world.pixelRatio,
+    targetMs: autoQuality?1000/60:undefined,   // a computer holds a steady 60 fps (see ResolutionScaler)
   });
   world.applyScenario(SCENARIOS.clear, false);
   if(autoQuality&&world.quality==='high'){
@@ -146,9 +147,26 @@ async function boot() {
   // so an iPhone player with only a controller has both. Other browsers fire it without a gesture.
   window.addEventListener('gamepadconnected', () => { armAudio(); platform.setController(true); });
 
+  // The detailed scenery loads while the menu is up (prepareScenery, started below). A flight
+  // starts once it is ready, so no ground, trees or buildings sharpen or appear while flying;
+  // a press before that shows the progress. A very slow connection still gets its flight after
+  // a minute, and the rest streams in.
+  let sceneryReady = false, sceneryWait = null;
+  const prepareScenery = () => world.prepareScenery(() => game.state === 'menu')
+    .then(() => { sceneryReady = true; }, (err) => { console.warn('Scenery preparation failed:', err); sceneryReady = true; });
+  const afterScenery = (begin) => {
+    if (sceneryReady) return begin();
+    if (sceneryWait) return;                                   // already waiting: another press does nothing
+    const p = world.sceneryProgress;
+    const show = () => ui.showLoading(`Loading scenery… ${Math.round(100 * p.done / Math.max(1, p.total))}%`);
+    show(); const timer = setInterval(show, 250);
+    sceneryWait = Promise.race([prepareScenery(), new Promise((r) => setTimeout(r, 60000))]).then(() => {
+      clearInterval(timer); ui.hideLoading(); sceneryWait = null; begin();
+    });
+  };
   // starting a flight is a tap: on Android that is the moment full screen and landscape can be requested
-  ui.onStart = (opts) => { armAudio(); platform.enterFullscreen(); tiltFromTap(); game.start(opts); };
-  ui.onDemo = (opts) => { armAudio(); platform.enterFullscreen(); tiltFromTap(); game.start(Object.assign({}, opts, { demo: true })); };
+  ui.onStart = (opts) => { armAudio(); platform.enterFullscreen(); tiltFromTap(); afterScenery(() => game.start(opts)); };
+  ui.onDemo = (opts) => { armAudio(); platform.enterFullscreen(); tiltFromTap(); afterScenery(() => game.start(Object.assign({}, opts, { demo: true }))); };
   ui.onResume = () => game.togglePause();
   ui.onQuit = () => game.quitToMenu();
   ui.onAgain = () => { platform.enterFullscreen(); tiltFromTap(); game.start(Object.assign({}, game.opts, { skipSchool: true, demo: false })); };
@@ -217,6 +235,8 @@ async function boot() {
   window.addEventListener('error', (e) => window.__sim.errors.push(String(e.message)));
   window.addEventListener('unhandledrejection', (e) => window.__sim.errors.push(String(e.reason)));
   window.dispatchEvent(new Event('sim-ready'));
+  // after the menu's first frame (tests may replace the scenery loader on sim-ready)
+  requestAnimationFrame(() => setTimeout(prepareScenery, 0));
 }
 
 boot().catch((err) => { console.error(err); document.getElementById('loading-msg').textContent = 'Failed to start: ' + err.message; });

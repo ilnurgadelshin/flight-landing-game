@@ -63,7 +63,7 @@ export async function addNearTrees(world,trees,atlas) {
   const cells=new Map();
   for(const t of trees){const key=`${Math.floor(t.x/200)}:${Math.floor(t.z/200)}`;if(!cells.has(key))cells.set(key,[]);cells.get(key).push(t);}
   const active=new Map(),matrix=new THREE.Matrix4(),rotation=new THREE.Quaternion(),up=new THREE.Vector3(0,1,0);
-  let lastX=Infinity,lastZ=Infinity,targets=new Map();
+  let lastX=Infinity,lastZ=Infinity,targets=new Map(),shadowStale=false,shadowTime=-Infinity;
   const update=(dt,eye)=>{
     const moved=Math.hypot(eye.x-lastX,eye.z-lastZ)>12;
     // Also refresh on a vertical pass: selection uses true 3D distance to crowns.
@@ -124,7 +124,12 @@ export async function addNearTrees(world,trees,atlas) {
       if(mesh.count&&layoutDirty.has(pool)){mesh.instanceMatrix.needsUpdate=true;mesh.instanceColor.needsUpdate=true;mesh.computeBoundingSphere();}
     });});
     api.count=counts.reduce((a,b)=>a+b,0);api.triangles=triangleCount;
-    if(moved&&world.sun.castShadow)world.sun.shadow.needsUpdate=true;
+    // The airport's sun shadow map is large and static. Redraw it only when the set of
+    // shadow-casting trees changes, and not more than once a second.
+    if(layoutDirty.size)shadowStale=true;
+    if(shadowStale&&world.sun.castShadow&&world.time-shadowTime>=1){
+      shadowStale=false;shadowTime=world.time;world.sun.shadow.needsUpdate=true;
+    }
   };
   const api=world.nearWoodland={group,pools,active,update,count:0,triangles:0,settle:eye=>update(1,eye)};
   world.scene.add(group);

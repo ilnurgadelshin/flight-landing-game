@@ -34,6 +34,38 @@ for(const [start,maxRatio,enabled] of [[1,1,true],[1.5,undefined,true],[1,1.5,fa
   assert.equal(w.ratio,start,'Native 1×, existing touch ceiling and disabled scaling remain unchanged');
 }
 
+// Desktop auto mode holds a steady 60 fps. A modelled fill-bound GPU: the frame cost grows with
+// the pixel count, and the browser delivers frames no faster than the 60 Hz display.
+const paced=(highMs,lowMs,start=1)=>{
+  const w=world();w.ratio=start;
+  const s=new ResolutionScaler(w,{enabled:true,start,maxRatio:1.5,targetMs:1000/60});
+  const interval=()=>Math.max(1000/60,(w.quality==='high'?highMs:lowMs)*w.ratio*w.ratio);
+  const run=n=>{const seen=[];for(let i=0;i<n;i++){const t=interval();seen.push(t);s.frame(t,true);}return seen;};
+  return {w,s,run};
+};
+{ // 15 ms at 1×: 1.1× would cost 18 ms (55 fps, about five dropped frames a second)
+  const {w,s,run}=paced(15,8);run(9000);const last=run(1200);
+  assert.ok(last.every(t=>t<=1000/60+1e-9),'Settles where every frame makes 60 fps');
+  assert.ok(w.ratio>=1&&w.ratio<1.1&&w.quality==='high','Keeps the effects and the sharpest scale that holds 60 fps');
+  assert.ok(s.ceiling<1.1,'A step up that dropped frames is not tried again');
+}
+{ // the old thresholds accepted this: 18.2 ms frames sat between "slow" (25 ms) and "fast" (18 ms)
+  const old=world(),s=new ResolutionScaler(old,{enabled:true,start:1.1,maxRatio:1.5});old.ratio=1.1;
+  for(let i=0;i<9000;i++)s.frame(15*old.ratio*old.ratio,true);
+  assert.equal(old.ratio,1.1,'Phone thresholds accept 55 fps; the desktop target does not');
+}
+{ // 20 ms at 1× on high: the effects go before the resolution drops below 1×
+  const {w,s,run}=paced(20,9);run(400);
+  assert.equal(w.ratio,1,'Not below 1× while the high-tier effects are still on');
+  run(400);assert.equal(w.quality,'low','Missing 60 fps at 1× drops shadows, bloom and 3D clouds');
+  run(9000);const last=run(1200);
+  assert.ok(w.ratio>1&&last.every(t=>t<=1000/60+1e-9),'The cheaper scene climbs back above 1× at a steady 60 fps');
+}
+{ // a slow computer on the low tier may still go below 1×
+  const {w,run}=paced(60,40);run(9000);
+  assert.equal(w.quality,'low');assert.ok(Math.abs(w.ratio-.7)<1e-9,'The low tier keeps the 0.7× floor');
+}
+
 // Deterministic visibility/RAF fixture: background time must never be used to
 // classify the GPU, including when a visible sample is interrupted halfway.
 const saved={document:globalThis.document,requestAnimationFrame:globalThis.requestAnimationFrame,cancelAnimationFrame:globalThis.cancelAnimationFrame};

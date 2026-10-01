@@ -22,7 +22,14 @@ export async function loadGroundDetail(world,uniforms,fallback) {
   const res=await fetch(new URL('../../assets/scenery/detail/manifest.json',import.meta.url));
   if(!res.ok)throw new Error(`Ground detail: HTTP ${res.status}`);
   const {tiles}=await res.json(),low=world.lowDetail||world.quality==='low';
-  const cache=new Map(),loader=new THREE.TextureLoader(),errors=new Set();
+  const cache=new Map(),errors=new Set(),url=t=>new URL(`../../assets/scenery/detail/${t.id}${low?'-low':''}.webp`,import.meta.url).href;
+  // Only four tiles are on the graphics card at a time, but every file is downloaded with the
+  // scenery (12 MB, 3 MB on low): during a flight a tile is decoded from memory, not waited for.
+  const files=new Map(tiles.map(t=>[t.id,fetch(url(t)).then(r=>{if(!r.ok)throw new Error(`HTTP ${r.status}`);return r.blob();})]));
+  const image=async t=>{
+    const blob=await files.get(t.id),src=URL.createObjectURL(blob),img=new Image();
+    try{img.src=src;await img.decode();return img;}finally{URL.revokeObjectURL(src);}
+  };
   let desired=[],serial=0,lastX=Infinity,lastZ=Infinity,pending=Promise.resolve();
   const update=eye=>{
     if(Math.hypot(eye.x-lastX,eye.z-lastZ)<180)return pending;
@@ -40,9 +47,9 @@ export async function loadGroundDetail(world,uniforms,fallback) {
     pending=Promise.all(next.map(t=>{
       if(!cache.has(t.id)){
         const entry={};cache.set(t.id,entry);
-        entry.promise=loader.loadAsync(new URL(`../../assets/scenery/detail/${t.id}${low?'-low':''}.webp`,import.meta.url).href)
-          .then(texture=>{
-            if(entry.disposed){texture.dispose();return null;}
+        entry.promise=image(t).then(img=>{
+            if(entry.disposed)return null;
+            const texture=new THREE.Texture(img);texture.needsUpdate=true;
             texture.colorSpace=THREE.SRGBColorSpace;texture.anisotropy=world.maxAniso;entry.texture=texture;return texture;
           }).catch(()=>{errors.add(t.id);return null;});
       }
@@ -57,5 +64,6 @@ export async function loadGroundDetail(world,uniforms,fallback) {
     return pending;
   };
   world.groundDetail={update,cache,errors,get ready(){return pending;},settle:update};
+  await Promise.allSettled(files.values());
   await update(new THREE.Vector3(8500,0,0));
 }

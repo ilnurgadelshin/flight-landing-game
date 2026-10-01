@@ -194,3 +194,39 @@ Body bytes exclude the HTML document and HTTP overhead. The two canopy atlases s
 1,772,922 to 834,516 bytes; adding cloud density still reduces asset payload by **859,342
 bytes** overall. Scenery/model streaming and decoding stalls remain outside this warmed
 benchmark. No claims are made about other hardware or the unavailable local SwiftShader backend.
+
+## Smooth flight on a MacBook Pro — 2026-10-01
+
+Reported on an M2 MacBook Pro after `e5cc6ed`: sharper trees and ground appeared during the
+flight, with low-detail artefacts first, and flying felt laggy. Causes, as measured (SwiftShader
+counts what is submitted, not how fast an M2 draws it):
+
+| Cause | Before | After |
+| --- | ---: | ---: |
+| Airport sun shadow map (4096×2048, every airport caster) redrawn in 2 s at 270 ft | 12× | 1× |
+| Flight-deck shadow pass triangles (every frame) | 1,079 k | 492 k |
+| Captain view at 4 nm, per frame: draw calls / triangles | 1,427 / 2.81 M | 1,397 / 2.23 M |
+| Requests during the first 12 s of a flight (clear, storm, low) | photos, tiles, buildings, trees… | 0 |
+| Shader programs / textures / geometries created during that flight | not measured | 0 / 0 / 0 |
+
+1. **Scenery streamed into the flight.** Full photographs, detail tiles, buildings, woodland and
+   nearby tree models loaded after the flight began; each arrival sharpened or added something in
+   view and stalled frames to decode, upload and compile. It now loads behind the menu, all 16
+   detail tiles included (12 MB high, 3 MB low; four on the GPU, the rest decoded from memory),
+   then `World.warmUp()` compiles every shader and draws everything once into a 16×16 target.
+   Start waits for this, with progress. Menu bytes are unchanged (13.94 MB high, 8.54 MB low);
+   the scenery prepared behind it is 52.54 MB high and 14.97 MB low (`test/delivery.mjs`).
+2. **The airport shadow map was redrawn every 12 m.** The nearby-tree selector requested it on
+   every refresh, about 6 times a second on final, even with no 3D tree in view. It is now
+   requested when the set of shadow-casting trees changes, at most once a second.
+3. **The flight deck's shadow pass drew a million triangles a frame.** Half were modeled
+   lettering, flush with the panels. Lettering and parts under 3 cm no longer cast; on rendered
+   views 0.08% of pixels change, around the thrust-lever knob lettering.
+4. **Adaptive resolution settled into judder.** It stepped down only below 40 fps and up above
+   55 fps, so on the M2 it climbed past 1× and stayed at 40–55 fps, which on a 60 Hz screen
+   alternates 16.7 and 33 ms frames. Desktop auto mode now holds 60 fps: steps down above 17.5 ms
+   (2 s average), keeps a step up only if the following 2 s stay clean, and switches the high
+   tier's effects off before going below 1×. Phones keep their thresholds. Modelled in
+   `test/graphics-quality.test.mjs`.
+
+The frame rate on the M2 itself is to be confirmed on that machine.

@@ -9,7 +9,9 @@ import assert from 'node:assert/strict';
 const label=(process.argv[2]||'current').replace(/[^a-z0-9_-]/gi,'-');
 const baseline=!!process.env.REVIEW_ROOT;
 const {server,url}=await startServer(process.env.REVIEW_ROOT||process.cwd());
-const browser=await chromium.launch({headless:true,args:['--use-angle=metal']});
+const angle=process.env.VISUAL_GPU||'swiftshader';   // VISUAL_GPU=metal on macOS hardware
+const browser=await chromium.launch({headless:true,args:[`--use-angle=${angle}`,
+  ...(angle==='swiftshader'?['--enable-unsafe-swiftshader','--ignore-gpu-blocklist']:[])]});
 try{
   const page=await browser.newPage({viewport:{width:1440,height:900}}),errors=[];
   page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});

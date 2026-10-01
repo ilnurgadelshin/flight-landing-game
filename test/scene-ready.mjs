@@ -10,10 +10,10 @@ export async function completeScenery(page) {
 export async function functionalScene(page) {
   await page.addInitScript(()=>window.addEventListener('sim-ready',()=>{
     const s=window.__sim,w=s.world;s.setDrawing(false);
-    const load=w.loadScenery.bind(w),update=w.cabinEnvironment.update.bind(w.cabinEnvironment);
-    w.loadScenery=async()=>{};w.cabinEnvironment.update=()=>{};
+    const load=w.loadScenery.bind(w),update=w.cabinEnvironment.update.bind(w.cabinEnvironment),warm=w.warmUp.bind(w);
+    w.loadScenery=async()=>{};w.cabinEnvironment.update=()=>{};w.warmUp=async()=>{};
     window.__restoreVisualScene=async()=>{
-      w.loadScenery=load;w.cabinEnvironment.update=update;
+      w.loadScenery=load;w.cabinEnvironment.update=update;w.warmUp=warm;
       await load();await w.loadNearTrees?.();
     };
   },{once:true}));
