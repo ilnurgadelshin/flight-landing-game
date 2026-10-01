@@ -121,11 +121,11 @@ try{
         }else {s.drawNow();await w.groundDetail.ready;w.nearWoodland?.settle(s.view.eye);s.drawNow();}
         if(![0,1,2,3].some(i=>w.groundUniforms[`uDetailRect${i}`].value.w===1))throw new Error('Review camera has no active detail imagery');
       },shot);
-      await page.screenshot({path:path.join(out,`approach-${tier}-${shot}.png`)});
+      await page.screenshot({path:path.join(out,`approach-${tier}-${shot}.png`),timeout:300000});   // software rendering: a full frame can take over 30 s
       if(shot==='woodland'){
         await page.evaluate(()=>{const w=window.__sim.world;w.nearWoodland.group.visible=false;
           for(const {t} of w.nearWoodland.active.values()){t.fade.setX(t.index,0);t.fade.needsUpdate=true;}w.render();});
-        await page.screenshot({path:path.join(out,'approach-high-woodland-cards.png')});
+        await page.screenshot({path:path.join(out,'approach-high-woodland-cards.png'),timeout:300000});
       }
       if(shot==='ground'){
         const surfacePixels=await page.evaluate(()=>{
@@ -139,7 +139,7 @@ try{
         assert.ok(surfacePixels>.5,`${tier}: reconstructed surface must visibly reach the ground (${surfacePixels})`);
         console.log(tier,'close surface pixel delta',surfacePixels.toFixed(2));
         await page.evaluate(()=>{const w=window.__sim.world;w.groundUniforms.uSurfaceDetail.value=0;w.render();});
-        await page.screenshot({path:path.join(out,`approach-${tier}-ground-plain.png`)});
+        await page.screenshot({path:path.join(out,`approach-${tier}-ground-plain.png`),timeout:300000});
         await page.evaluate(()=>{const w=window.__sim.world;w.groundUniforms.uSurfaceDetail.value=1;w.render();});
       }
       if(shot==='nearby'){
@@ -161,7 +161,7 @@ try{
       }
       if(shot==='village'){
         await page.evaluate(()=>{const w=window.__sim.world;w.approachBuildings.group.visible=false;w.render();});
-        await page.screenshot({path:path.join(out,`approach-${tier}-before.png`)});
+        await page.screenshot({path:path.join(out,`approach-${tier}-before.png`),timeout:300000});
       }
     }
     assert.deepEqual(errors,[]);await page.close();

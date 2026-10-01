@@ -207,14 +207,17 @@ counts what is submitted, not how fast an M2 draws it):
 | Flight-deck shadow pass triangles (every frame) | 1,079 k | 492 k |
 | Captain view at 4 nm, per frame: draw calls / triangles | 1,427 / 2.81 M | 1,397 / 2.23 M |
 | Requests during the first 12 s of a flight (clear, storm, low) | photos, tiles, buildings, trees… | 0 |
-| Shader programs / textures / geometries created during that flight | not measured | 0 / 0 / 0 |
+| Shader programs / textures / geometries created after the flight's first frame | not measured | 0 / 0 / 0 |
 
 1. **Scenery streamed into the flight.** Full photographs, detail tiles, buildings, woodland and
    nearby tree models loaded after the flight began; each arrival sharpened or added something in
    view and stalled frames to decode, upload and compile. It now loads behind the menu, all 16
    detail tiles included (12 MB high, 3 MB low; four on the GPU, the rest decoded from memory),
-   then `World.warmUp()` compiles every shader and draws everything once into a 16×16 target.
-   Start waits for this, with progress. Menu bytes are unchanged (13.94 MB high, 8.54 MB low);
+   then `World.warmUp()` compiles every shader and draws everything once into a 16×16 target,
+   one material at a time in slices of about 12 ms so the menu stays responsive (software
+   rendering compiles a program at its first draw, up to 10 s for the largest: SwiftShader's
+   longest task fell from 54 s to that), and stops if a flight starts. Start waits for this,
+   with progress. The first flight frame still makes the cabin reflection capture. Menu bytes are unchanged (13.94 MB high, 8.54 MB low);
    the scenery prepared behind it is 52.54 MB high and 14.97 MB low (`test/delivery.mjs`).
 2. **The airport shadow map was redrawn every 12 m.** The nearby-tree selector requested it on
    every refresh, about 6 times a second on final, even with no 3D tree in view. It is now

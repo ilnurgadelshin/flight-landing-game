@@ -564,8 +564,8 @@ density: the menu appears after those. The detailed scenery then **loads behind 
 the full aerial photographs, every ground detail tile (only the four nearest are on the
 graphics card at a time; the others wait in memory, so a flight decodes them rather than
 downloading them), buildings, roads, woodland, parked aircraft and, on high, the nearby 3D
-trees. Every shader is then compiled and every texture and buffer uploaded (one tiny
-off-screen frame with nothing culled). A flight starts once that is done, so nothing sharpens,
+trees. Every shader is then compiled and every texture and buffer uploaded (tiny off-screen
+frames with nothing culled, one material at a time between menu frames). A flight starts once that is done, so nothing sharpens,
 appears or stalls in its first minutes; pressing Start earlier shows the progress (a very slow
 connection still gets its flight after a minute, and the rest streams in). Asset failures
 retain the existing fallback surfaces and do not prevent flight.

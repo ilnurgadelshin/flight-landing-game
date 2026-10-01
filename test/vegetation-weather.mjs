@@ -90,6 +90,7 @@ try{
     await failure.goto(url+'/?quality=high');await failure.waitForFunction(()=>window.__sim,null,{timeout:120000});
     const fallback=await failure.evaluate(()=>{const s=window.__sim;s.setDrawing(false);s.drawNow();return {error:s.world.cumulus.loadError,cached:!!s.world.cumulus.material.defines.CACHED_DENSITY};});
     assert.match(fallback.error,/dimensions/);assert.equal(fallback.cached,false);
+    await failure.evaluate(()=>window.__sim.world.prepareScenery());   // not reloading in the middle of it
     await failure.unroute('**/weather/cumulus-density.bin.gz');
     await failure.addInitScript(()=>{window.DecompressionStream=undefined;});
     await failure.reload();await failure.waitForFunction(()=>window.__sim,null,{timeout:120000});
@@ -97,6 +98,7 @@ try{
     // Some hosts already decode Content-Encoding: gzip. That body must not be
     // decompressed twice, and also works without DecompressionStream.
     const decoded=gunzipSync(await fs.readFile('assets/weather/cumulus-density.bin.gz'));
+    await failure.evaluate(()=>window.__sim.world.prepareScenery());
     await failure.route('**/weather/cumulus-density.bin.gz',r=>r.fulfill({body:decoded,contentType:'application/octet-stream'}));
     await failure.reload();await failure.waitForFunction(()=>window.__sim,null,{timeout:120000});
     assert.ok(await failure.evaluate(()=>{const s=window.__sim;s.setDrawing(false);s.drawNow();return !!s.world.cumulus.material.defines.CACHED_DENSITY&&!s.world.cumulus.loadError;}),'Host-decoded volume loads directly');
