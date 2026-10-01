@@ -57,7 +57,7 @@ export async function addNearTrees(world,trees,atlas) {
       mesh.name=`Nearby ${form.name} ${form.variant||''}`;meshes.push(mesh);group.add(mesh);
       triangles+=(geometry.index?.count||geometry.attributes.position.count)/3;
     });
-    pools.push({meshes,triangles});
+    pools.push({meshes,triangles,ids:[]});
   }
   for(const model of loaded)model.scene.traverse(o=>{if(o.isMesh)o.geometry.dispose();});
   const cells=new Map();
@@ -84,11 +84,15 @@ export async function addNearTrees(world,trees,atlas) {
         targets.set(t.id,t);triangles+=cost;
       }
     }
-    const dirty=new Set(),step=Math.min(1,Math.max(0,dt)/.35);
+    const dirty=new Set(),layoutDirty=new Set(),step=Math.min(1,Math.max(0,dt)/.35);
+    const setFade=(attr,index,value)=>{
+      if(Math.abs(attr.getX(index)-value)<1e-6)return;
+      attr.setX(index,value);dirty.add(attr);
+    };
     // Retiring trees keep their pool space until the complementary cards return.
     for(const [id,state] of active){
       if(targets.has(id))continue;
-      state.fade=Math.max(0,state.fade-step);state.t.fade.setX(state.t.index,state.fade);dirty.add(state.t.fade);
+      state.fade=Math.max(0,state.fade-step);setFade(state.t.fade,state.t.index,state.fade);
       if(!state.fade)active.delete(id);
     }
     let reserved=[...active.values()].reduce((sum,s)=>sum+pools[s.t.row].triangles,0);
@@ -100,19 +104,25 @@ export async function addNearTrees(world,trees,atlas) {
       const t=state.t,distance=Math.hypot(t.x-eye.x,t.z-eye.z,t.y+t.h*.55-eye.y);
       const goal=targets.has(id)?1-THREE.MathUtils.smoothstep(distance,INNER,OUTER):0;
       state.fade+=THREE.MathUtils.clamp(goal-state.fade,-step,step);
-      t.fade.setX(t.index,state.fade);dirty.add(t.fade);
+      setFade(t.fade,t.index,state.fade);
       if(state.fade<=0)continue;
       const i=counts[t.row]++,pool=pools[t.row],width=t.w/atlas.species[t.row].aspect;
-      rotation.setFromAxisAngle(up,t.yaw+t.type*Math.PI/2);
-      matrix.compose(new THREE.Vector3(t.x,t.y,t.z),rotation,new THREE.Vector3(width,t.h,width));
-      for(const mesh of pool.meshes){mesh.setMatrixAt(i,matrix);mesh.setColorAt(i,t.color);mesh.geometry.attributes.treeDetailFade.setX(i,state.fade);}
+      // Trees don't move. A changing LOD fade needs one scalar upload, not new
+      // transform/colour buffers and a bounding-sphere rebuild for every frame.
+      if(pool.ids[i]!==id){
+        pool.ids[i]=id;layoutDirty.add(pool);
+        rotation.setFromAxisAngle(up,t.yaw+t.type*Math.PI/2);
+        matrix.compose(new THREE.Vector3(t.x,t.y,t.z),rotation,new THREE.Vector3(width,t.h,width));
+        for(const mesh of pool.meshes){mesh.setMatrixAt(i,matrix);mesh.setColorAt(i,t.color);}
+      }
+      for(const mesh of pool.meshes)setFade(mesh.geometry.attributes.treeDetailFade,i,state.fade);
       triangleCount+=pool.triangles;
     }
     for(const attr of dirty)attr.needsUpdate=true;
-    pools.forEach((pool,row)=>pool.meshes.forEach(mesh=>{
+    pools.forEach((pool,row)=>{if(pool.ids.length!==counts[row]){pool.ids.length=counts[row];layoutDirty.add(pool);}pool.meshes.forEach(mesh=>{
       mesh.count=counts[row];mesh.visible=mesh.count>0;
-      if(mesh.count){mesh.instanceMatrix.needsUpdate=true;mesh.instanceColor.needsUpdate=true;mesh.geometry.attributes.treeDetailFade.needsUpdate=true;mesh.computeBoundingSphere();}
-    }));
+      if(mesh.count&&layoutDirty.has(pool)){mesh.instanceMatrix.needsUpdate=true;mesh.instanceColor.needsUpdate=true;mesh.computeBoundingSphere();}
+    });});
     api.count=counts.reduce((a,b)=>a+b,0);api.triangles=triangleCount;
     if(moved&&world.sun.castShadow)world.sun.shadow.needsUpdate=true;
   };

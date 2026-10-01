@@ -556,7 +556,7 @@ to choose a fixed tier and bypass automatic selection. `?drs=0` disables adaptiv
 resolution; `?drs=1` enables it even with a fixed tier. Automatic selection is a local
 measurement, not a guarantee of performance on every scene or device.
 
-Startup loads the flight deck and small terrain previews. Detailed scenery streams after
+Startup loads the flight deck, small terrain previews and, on high, the compressed cloud density. Detailed scenery streams after
 flight begins; high-quality near-tree models are requested only near woodland. The first
 view can therefore be less detailed while downloads finish. Asset failures retain the
 existing fallback surfaces and do not prevent flight.
@@ -575,10 +575,11 @@ The visual assets are bundled locally and need no map service, account or API ke
   rather than reproducing a real airport. Sixteen local detail tiles sharpen the last
   8 km of the approach, sampled at 0.5 m/px on high and 1 m/px on low, with four loaded
   at a time. The underlying NAIP survey is generally 0.6 m. Close woodland uses seven
-  authored broadleaf, pine and fir forms, baked into 28 canopy views from CC0 models.
+  authored broadleaf, pine and fir forms, baked into 84 canopy views from CC0 models.
   On high quality, nearby crowns transition to the same models' 3D branches and leaves
   within 180 m, with fixed instance and triangle budgets. Distant and low-quality trees
-  use camera-facing quads with blended viewing angles, avoiding crossed image planes.
+  use camera-facing quads blending four azimuths and side/oblique/overhead elevations,
+  so crowns retain their area when viewed from above. Settled near trees reuse their buffers.
 - **2,160 individual approach buildings** follow openly licensed Microsoft footprints,
   with pitched/flat roofs, twelve facade layouts, eaves, foundations and night windows.
   Houses have a principal entrance bay; nearby high-quality windows have beveled frames,
@@ -617,11 +618,19 @@ depend on the device and graphics tier.
 
 At night the flight deck's flood and dome lights are turned well down, as crews fly, so the
 panel is dimmer than by day and the displays stand out. The high tier also draws fair-weather
-cumulus as ray-marched 3D density volumes with self-shadowing. Each ray marches only through
-the box around its cloud and skips the noise outside the cloud's shape. The low tier uses the
+cumulus as ray-marched 3D density volumes with self-shadowing. Four original density fields
+are baked into a 1 MiB volume (about 79 KB compressed), replacing repeated per-pixel noise calculations. The clouds
+have varied connected billows, flatter bases and directional scattering; a failed density
+download retains the analytic shader. Both tiers use multiscale overcast detail, with closer
+mesh spacing around the eye and colour following the underside's relief. The low tier uses the
 lighter sprite clouds. Cloud-deck visibility and storm physics are shared. All imported assets
 are public domain, CC0, CC BY 4.0 or CDLA Permissive 2.0; licenses, attribution and reproducible asset preparation
 commands are in [`assets/README.md`](assets/README.md). Players can open the credits from the menu.
+
+`node test/vegetation-weather.mjs` checks rendered canopy coverage from side, oblique and
+overhead views, unchanged buffers for settled trees and the corrupt-volume fallback. It
+also captures matched vegetation, cumulus and overcast views. Fixed-resolution measurements
+for each improvement stage are recorded in [`test/RENDER-PERFORMANCE.md`](test/RENDER-PERFORMANCE.md).
 
 **Head-up view** (`js/hud.js`, `js/view.js`): the flight deck hidden and a
 conformal head-up display modelled on the 737's HGS (see *Views* above).

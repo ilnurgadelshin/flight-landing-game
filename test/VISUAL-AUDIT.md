@@ -28,8 +28,8 @@ ignored `test/output/visual-audit-before/` folder; current captures are `test/ou
 | 2 | Muddy cockpit colours and flattened material separation | Restored source material values in the GLBs. Verified part assignments in Blender, then added distinct, subtle coated-panel, molded-trim, frame, seat-weave and yoke-rubber finishes at runtime. Modeled lettering is retained. | Liner/upholstery now use CC0 scans, with procedural panel/frame/rubber detail. A uniquely authored aircraft wear/texture set remains absent. See the 2026-09-30 followups. |
 | 3 | A completely flat approach corridor | Registered USGS elevation follows the imagery; rendering, collision and navigation share it. The airport is locally graded and a rising terrain cap protects final. | Elevations are locally modified around the fictional airport. Distant mesh resolution and imagery shadows remain limitations. |
 | 4 | Blurry aerial imagery ahead of the airport | Sixteen local 1 km detail tiles along the last 8 km, sampled at 0.5 m/px high and 1 m/px low, feather into the existing imagery; four textures stay resident. Distance-faded scanned colour, normal and roughness detail reconstructs fine surface grain in nearby fields and soil. | Underlying NAIP is generally 0.6 m; exports cannot supply finer survey detail. Coverage is a 2 km wide corridor. Five reviewed farm roofs now fill prominent detection gaps. Other missing buildings and photographic shadows remain visible from very low views. |
-| 5 | Sparse, three-lobed tree blobs | Seven authored forms across broadleaf, pine and fir, four views each; one camera-facing quad blends adjacent source azimuths instead of exposing crossed planes. Crown proportions and smaller understory heights are retained. More of the fixed tree budget goes into approach stands. High quality now uses simplified 3D trunks/branches/leaves within 180 m, with complementary LOD fading and fixed geometry budgets. | Distant and low-tier trees remain impostors; steep overhead angles still expose the limits of upright images. Only one broadleaf source model is available, and simplified leaves and LOD transitions remain visible close up. |
-| 6 | Thin cloud rings and weak volume | Taller, denser cloud shapes; varied rotation; deeper bases and multiple sun-occlusion samples in the high-tier volume shader. | Fair-weather clouds remain simplified noise volumes. Low quality retains sprites; overcast is not a complete volumetric cloud system. |
+| 5 | Sparse, three-lobed tree blobs | Seven authored forms, now four azimuths at three elevations each. One quad faces the eye in yaw and pitch and blends neighboring views. High retains bounded 3D branches and leaves within 180 m. | Distant/low trees remain impostors; view blending and repeated species are still visible. Only one broadleaf source is available. |
+| 6 | Thin cloud rings and weak volume | Cached 3D density, connected billows, flatter bases, self-shadowing and directional scattering. Overcast has multiscale structure and matching near-eye relief. | Fair-weather volumes remain simplified and soft at close range. Low uses sprites; overcast is a surface plus shared fog, not a fully volumetric weather system. |
 | 7 | Runway lights look like a luminous rectangle by day | Smaller daytime cores, lower daylight intensity, distinct PAPI/beacon sizing and fog attenuation without a minimum visibility floor. Night bloom retained. | Point-based lights approximate optical glare; no lens-scattering simulation. |
 | 8 | Flat, muddy illumination and weak foreground depth | Reduced warm daytime lamps in favour of neutral sky light. Sun shadows plus a rebake of close contact and cabin sky access, including the fitted roof. Baked occlusion now affects indirect light rather than darkening the paint and direct sunlight. | No real-time global illumination. The bake approximates sky access and bounced light; it cannot replace fully authored materials. |
 | 9 | Box-like airport and disconnected jet bridges | Terminal length matches all five stands; roof seams, flashing, HVAC, hangar ribs, building bases and articulated bridge ends reaching the aircraft. | Buildings are still procedural architecture. A detailed terminal asset would offer a larger further improvement. |
@@ -407,3 +407,41 @@ guard. Locally, a fresh SwiftShader probe still cannot create WebGL
 (`BindToCurrentSequence failed`), so this exact revision remains unverified on that backend.
 Streaming pop-in/decode stalls, the high cockpit download before automatic tier selection,
 phone framing/HUD placement and the retained historical asset bytes remain unchanged.
+
+## Measured performance, vegetation and cloud sequence — 2026-10-01
+
+The sequence was implemented and benchmarked in separate stages at the same resolution.
+A cached density volume replaces the high-tier cloud shader's repeated noise calculations;
+near-tree instance buffers and bounds now change only when their content changes. On the
+M2 Pro at 1.5×, final captain FPS rises from 28.5–29.3 to 41.3 and nearby FPS from 34.7–37.4
+to 52.8. Storm remains within the baseline range; low stays near 60 FPS. Stage results,
+frame percentiles and measurement limits are in `RENDER-PERFORMANCE.md`.
+
+The existing CC0 source trees were rebaked into 84 views: four azimuths at side, 45° and
+90° elevations. Distant quads now pitch toward the eye, use source-specific padded framing
+and blend neighbouring elevation/azimuth samples with premultiplied alpha. A rendered
+regression measured zero overhead coverage for the old upright tree, versus 4,780 covered
+pixels for the new crown; the new side/oblique views cover 3,529 / 4,190 pixels. Geometry
+and instance budgets are unchanged. Smaller individual atlas frames reduce the combined
+atlas bytes from 1.77 MB to 0.83 MB, despite adding viewpoints.
+
+Four connected cloud shapes retain empty filtering borders in a cached density volume.
+Self-shadowing remains three-dimensional; a finer ray march and directional scattering
+change the lighting at roughly 1–3 FPS cost relative to the preceding optimized stages.
+Overcast now uses warped multiscale texture, correlated surface relief and denser sampling
+near the eye using the existing vertices. The prescribed ceiling, visibility, rain,
+lightning and flight physics are unchanged. Explicit gzip keeps cloud transfer to 79 KB;
+missing/corrupt data or unavailable decompression retains the analytic shader. The loader
+also accepts data already decoded by the host.
+
+Verification: Node suites, the approach-scenery suite on both tiers, 23 browser graphics
+checks, visual/fog/display checks and staged-delivery budgets pass on ANGLE Metal. The new
+vegetation/weather test covers overhead canopy area, stable settled-tree buffers, volume
+loading/disposal and fallback paths. The full functional browser suite and software
+renderer were not rerun. Matched local before/after views and stage measurements are in
+[the comparison page](output/performance-vegetation-clouds.html).
+
+Remaining limits: species repetition, image-based distant/low vegetation, simplified cloud
+microstructure, sprite clouds on low and a surface-based overcast deck. Tree model downloads
+and scenery streaming can still produce loading stalls. These changes do not add authored
+houses, windshield glazing/water, or change phone camera/HUD framing.

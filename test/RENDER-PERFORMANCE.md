@@ -148,3 +148,49 @@ panel remains, no area lights exist in the rendered scene, and failed captures a
 retried every frame. SwiftShader could not create WebGL on this Mac and is **unverified**;
 neither these GPU tests nor the 352-second runtime establish compatibility/performance on
 the external reviewer's driver or the earlier software-renderer reference machine.
+
+## Performance → vegetation → clouds — 2026-10-01
+
+Baseline is `74a0fe4`, served from an archived snapshot. Measurements use the same Apple M2
+Pro, Chromium 141 / ANGLE Metal and 1440×900 CSS viewport. High remains at **1.5×**, low at
+**1×**; there is no automatic resolution scaling in these runs. Each scene has all scenery
+loaded, four seconds of warm-up and twelve seconds of sampling, with paused flight physics.
+GPU benchmarks run sequentially. The baseline was repeated before the final run to expose
+normal run-to-run variation. The recorded JSON files are `benchmarks/2026-10-01-*.json`.
+
+| High scene | Before, two runs (FPS) | Optimization | + Vegetation | + Clouds, final |
+| --- | ---: | ---: | ---: | ---: |
+| Captain | 28.5–29.3 | 41.9 | 42.7 | 41.3 |
+| Nearby | 34.7–37.4 | 54.1 | 55.6 | 52.8 |
+| Storm | 42.6–45.2 | 44.7 | 45.5 | 44.5 |
+
+All low-tier scenes stayed near the 60 Hz ceiling. Captain p95 improved from **50.0 to
+33.4 ms**; nearby and storm p95 stayed approximately **33.3–33.4 ms**. This is a material
+improvement at the original resolution, but does not establish locked 60 FPS on high.
+Draw calls and submitted triangles remain unchanged in these benchmark views.
+
+1. **Optimization:** precomputed density replaces repeated procedural noise in the cumulus
+   view/shadow march. Settled nearby trees reuse transforms, colours and bounding spheres;
+   changing LOD fades only upload changed scalar attributes.
+2. **Vegetation:** four azimuths × three elevations retain canopy area from above. Each distant
+   tree remains one quad; four blended texture samples replace two. Smaller atlas frames
+   offset the added views. The measured cost stayed within ordinary variation.
+3. **Clouds:** four connected-billow variants, a 36-step rather than 28-step march and modest
+   directional scattering improve the volume. Overcast colour and relief share multiscale
+   structure; existing vertices are concentrated near the eye, with no extra triangles.
+   The final runs measured about 1–3 FPS below the vegetation stage. The repeated baseline
+   also varied by up to 2.7 FPS, so these are approximate costs, not isolated GPU timings.
+
+The cloud payload is 79,064 bytes compressed, expanding to a 1 MiB R8 volume. Earlier stage
+benchmark JSON includes an uncompressed prototype in its `startupBytes`; those values are
+not the final delivery measurement. Final request counts are in `2026-10-01-delivery.json`:
+
+| Tier | Until menu | With scenery | Including near trees |
+| --- | ---: | ---: | ---: |
+| High | 13.93 MB | 34.34 MB | 45.07 MB |
+| Low | 8.53 MB | 13.20 MB | 13.20 MB |
+
+Body bytes exclude the HTML document and HTTP overhead. The two canopy atlases shrink from
+1,772,922 to 834,516 bytes; adding cloud density still reduces asset payload by **859,342
+bytes** overall. Scenery/model streaming and decoding stalls remain outside this warmed
+benchmark. No claims are made about other hardware or the unavailable local SwiftShader backend.

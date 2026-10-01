@@ -228,26 +228,27 @@ export function makeCloudTexture() {
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.needsUpdate = true; return t;
 }
 
-/** Overcast layer seen from below: noisy grey alpha. */
+/** Seamless, warped multiscale cloud structure, shared by the deck's colour and relief. */
 export function makeOvercastTexture(top = false) {
-  const S = 512;
-  const c = canvas(S, S); const g = c.getContext('2d');
-  const rng = makeRng(8);
-  // underside: mid grey with darker bases; top: sunlit white with soft grey shading
-  g.fillStyle = top ? 'rgba(232,236,240,1)' : 'rgba(120,124,130,1)'; g.fillRect(0, 0, S, S);
-  // seamless: every blob is also drawn at the wrapped offsets
-  for (let i = 0; i < 900; i++) {
-    const x = rng() * S, y = rng() * S, r = 10 + rng() * 50;
-    const v = top ? 190 + Math.floor(rng() * 60) : 70 + Math.floor(rng() * 90);
-    for (const ox of [-S, 0, S]) for (const oy of [-S, 0, S]) {
-      const cx = x + ox, cy = y + oy;
-      if (cx + r < 0 || cx - r > S || cy + r < 0 || cy - r > S) continue;
-      const gg = g.createRadialGradient(cx, cy, 0, cx, cy, r);
-      gg.addColorStop(0, `rgba(${v},${v + 3},${v + 8},0.8)`); gg.addColorStop(1, `rgba(${v},${v},${v},0)`);
-      g.fillStyle = gg; g.fillRect(cx - r, cy - r, r * 2, r * 2);
-    }
+  const S=512,c=canvas(S,S),g=c.getContext('2d'),pixels=g.createImageData(S,S),rng=makeRng(8);
+  const fields=[4,8,16,32,64].map(size=>({size,data:Float32Array.from({length:size*size},()=>rng())}));
+  const sample=(field,u,v)=>{
+    const {size,data}=field,x=u*size,y=v*size,ix=Math.floor(x),iy=Math.floor(y);
+    let fx=x-ix,fy=y-iy;fx=fx*fx*(3-2*fx);fy=fy*fy*(3-2*fy);
+    const at=(a,b)=>data[((b%size+size)%size)*size+(a%size+size)%size];
+    return THREE.MathUtils.lerp(THREE.MathUtils.lerp(at(ix,iy),at(ix+1,iy),fx),
+      THREE.MathUtils.lerp(at(ix,iy+1),at(ix+1,iy+1),fx),fy);
+  };
+  const weights=[.44,.28,.16,.08,.04];
+  for(let y=0;y<S;y++)for(let x=0;x<S;x++){
+    const u=x/S,v=y/S,warpU=u+(sample(fields[0],u,v)-.5)*.24,warpV=v+(sample(fields[0],u+.37,v+.61)-.5)*.24;
+    let n=0;for(let j=0;j<fields.length;j++)n+=sample(fields[j],warpU,warpV)*weights[j];
+    const tone=top?184+n*64:65+n*135,i=(y*S+x)*4;
+    pixels.data.set([tone,tone+3,tone+7,255],i);
   }
-  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.wrapS = t.wrapT = THREE.RepeatWrapping; t.needsUpdate = true; return t;
+  g.putImageData(pixels,0,0);
+  const texture=new THREE.CanvasTexture(c);texture.colorSpace=THREE.SRGBColorSpace;
+  texture.wrapS=texture.wrapT=THREE.RepeatWrapping;return texture;
 }
 
 /** Simple building facade with lit windows. */

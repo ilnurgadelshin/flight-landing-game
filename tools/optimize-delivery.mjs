@@ -26,7 +26,10 @@ for(const name of ['region','approach','airport','final-approach']){
 }
 for(const file of await fs.readdir(path.join(source,'assets/scenery/detail')))
   if(file.endsWith('.jpg'))await image(`assets/scenery/detail/${file}`);
-for(const suffix of ['','-low'])await image(`assets/scenery/tree-variety${suffix}.png`,{quality:90});
+// New elevation atlases are final WebP from bake-woodland.mjs. Restoring the old
+// 28-view PNG here would mismatch their 84-view metadata and corrupt the trees.
+const canopy=JSON.parse(await fs.readFile('assets/scenery/tree-variety.json'));
+if(!canopy.elevations)for(const suffix of ['','-low'])await image(`assets/scenery/tree-variety${suffix}.png`,{quality:90});
 for(const name of ['liner','upholstery'])await image(`assets/cockpit/${name}.png`,{lossless:true});
 
 await Promise.all([MeshoptDecoder.ready,MeshoptEncoder.ready,MeshoptSimplifier.ready]);

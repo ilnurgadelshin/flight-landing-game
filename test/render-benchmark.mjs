@@ -10,12 +10,13 @@ import os from 'node:os';
 
 const label=(process.argv[2]||'current').replace(/[^a-z0-9_-]/gi,'-');
 const highPixelRatio=Number(process.env.BENCHMARK_DPR||1.5);
+const disabled=(process.env.BENCHMARK_DISABLE||'').split(',').filter(Boolean);
 const outputRoot=path.resolve(new URL('..',import.meta.url).pathname);
 const root=process.env.BENCHMARK_ROOT||outputRoot;
 const {server,url}=await startServer(root);
 const browser=await chromium.launch({headless:true,args:['--use-angle=metal']});
 const report={date:new Date().toISOString(),browser:browser.version(),platform:os.platform(),arch:os.arch(),
-  viewport:[1440,900],pixelRatio:{high:highPixelRatio,low:1},warmupSeconds:4,sampleSeconds:12,
+  viewport:[1440,900],pixelRatio:{high:highPixelRatio,low:1},disabled,warmupSeconds:4,sampleSeconds:12,
   method:'Private Chromium ANGLE Metal; fixed-resolution renderer and scenery updates, paused physics. RAF pacing is display capped; no gl.finish. CPU times exclude asynchronous GPU work.',results:[]};
 try{
   for(const tier of ['high','low']){
@@ -33,7 +34,7 @@ try{
     if(!/Apple|AMD|Intel|NVIDIA/i.test(gpu)||/SwiftShader|llvmpipe|software/i.test(gpu))throw new Error(`Hardware rendering not established: ${gpu}`);
     report.gpu=gpu;
     for(const scene of ['captain','nearby','storm']){
-      const result=await page.evaluate(async({scene,warmup,seconds,pixelRatio})=>{
+      const result=await page.evaluate(async({scene,warmup,seconds,pixelRatio,disabled})=>{
         const T=await import('/vendor/three.module.js'),s=window.__sim,w=s.world;
         w.camera=s.benchmarkCamera;if(w.composer)w.composer.passes[0].camera=w.camera;
         s.start({startId:'short',scenarioId:scene==='storm'?'storm':'clear',seed:5});s.setTimeScale(0);
@@ -47,6 +48,9 @@ try{
         }
         const eye=w.camera.getWorldPosition(new T.Vector3());
         await w.groundDetail.settle(eye);w.nearWoodland?.settle(eye);
+        if(disabled.includes('cumulus')&&w.cumulus)w.cumulus.group.visible=false;
+        if(disabled.includes('bloom')&&w.bloom)w.bloom.enabled=false;
+        if(disabled.includes('shadows'))w.renderer.shadowMap.enabled=false;
         const base=w.camera.position.clone(),state={...s.state(),alt:scene==='nearby'?18:115};
         const intervals=[],cpu=[],calls=[],triangles=[];let start,last;
         w.renderer.info.autoReset=false;
@@ -69,7 +73,7 @@ try{
         return {scene,frames:intervals.length,fps:1000*intervals.length/sum,p50FrameMs:q(intervals,.5),p95FrameMs:q(intervals,.95),p99FrameMs:q(intervals,.99),
           cpuP50Ms:q(cpu,.5),cpuP95Ms:q(cpu,.95),medianDrawCalls:q(calls,.5),medianTriangles:q(triangles,.5),
           nearTreesAtEnd:w.nearWoodland?.count||0,pixelRatio:w.renderer.getPixelRatio(),assets:w.assetErrors};
-      },{scene,warmup:report.warmupSeconds,seconds:report.sampleSeconds,pixelRatio:tier==='high'?highPixelRatio:1});
+      },{scene,warmup:report.warmupSeconds,seconds:report.sampleSeconds,pixelRatio:tier==='high'?highPixelRatio:1,disabled});
       report.results.push({tier,...result});console.log(tier,result);
     }
     if(errors.length)throw new Error(errors.join('\n'));await page.close();
