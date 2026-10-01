@@ -1,0 +1,155 @@
+{
+  "license": "Public domain \u2014 USDA NAIP / USGS",
+  "origin": [
+    -77.615,
+    40.828
+  ],
+  "highPixelMetres": 0.5,
+  "lowPixelMetres": 1,
+  "tiles": [
+    {
+      "id": "2_-1",
+      "center": [
+        2500,
+        -500
+      ],
+      "side": 1032,
+      "source": "https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer/exportImage?bbox=-8637440.282595443%2C4986983.5648699505%2C-8636076.422124239%2C4988347.425341154&bboxSR=3857&imageSR=3857&size=2064%2C2064&format=jpg&compressionQuality=94&renderingRule=%7B%22rasterFunction%22%3A+%22NaturalColor%22%7D&f=image"
+    },
+    {
+      "id": "2_0",
+      "center": [
+        2500,
+        500
+      ],
+      "side": 1032,
+      "source": "https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer/exportImage?bbox=-8637440.282595443%2C4985661.994645915%2C-8636076.422124239%2C4987025.855117119&bboxSR=3857&imageSR=3857&size=2064%2C2064&format=jpg&compressionQuality=94&renderingRule=%7B%22rasterFunction%22%3A+%22NaturalColor%22%7D&f=image"
+    },
+    {
+      "id": "3_-1",
+      "center": [
+        3500,
+        -500
+      ],
+      "side": 1032,
+      "source": "https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer/exportImage?bbox=-8636118.712371407%2C4986983.5648699505%2C-8634754.851900203%2C4988347.425341154&bboxSR=3857&imageSR=3857&size=2064%2C2064&format=jpg&compressionQuality=94&renderingRule=%7B%22rasterFunction%22%3A+%22NaturalColor%22%7D&f=image"
+    },
+    {
+      "id": "3_0",
+      "center": [
+        3500,
+        500
+      ],
+      "side": 1032,
+      "source": "https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer/exportImage?bbox=-8636118.712371407%2C4985661.994645915%2C-8634754.851900203%2C4987025.855117119&bboxSR=3857&imageSR=3857&size=2064%2C2064&format=jpg&compressionQuality=94&renderingRule=%7B%22rasterFunction%22%3A+%22NaturalColor%22%7D&f=image"
+    },
+    {
+      "id": "4_-1",
+      "center": [
+        4500,
+        -500
+      ],
+      "side": 1032,
+      "source": "https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer/exportImage?bbox=-8634797.142147372%2C4986983.5648699505%2C-8633433.281676168%2C4988347.425341154&bboxSR=3857&imageSR=3857&size=2064%2C2064&format=jpg&compressionQuality=94&renderingRule=%7B%22rasterFunction%22%3A+%22NaturalColor%22%7D&f=image"
+    },
+    {
+      "id": "4_0",
+      "center": [
+        4500,
+        500
+      ],
+      "side": 1032,
+      "source": "https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer/exportImage?bbox=-8634797.142147372%2C4985661.994645915%2C-8633433.281676168%2C4987025.855117119&bboxSR=3857&imageSR=3857&size=2064%2C2064&format=jpg&compressionQuality=94&renderingRule=%7B%22rasterFunction%22%3A+%22NaturalColor%22%7D&f=image"
+    },
+    {
+      "id": "5_-1",
+      "center": [
+        5500,
+        -500
+      ],
+      "side": 1032,
+      "source": "https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer/exportImage?bbox=-8633475.571923336%2C4986983.5648699505%2C-8632111.711452132%2C4988347.425341154&bboxSR=3857&imageSR=3857&size=2064%2C2064&format=jpg&compressionQuality=94&renderingRule=%7B%22rasterFunction%22%3A+%22NaturalColor%22%7D&f=image"
+    },
+    {
+      "id": "5_0",
+      "center": [
+        5500,
+        500
+      ],
+      "side": 1032,
+      "source": "https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer/exportImage?bbox=-8633475.571923336%2C4985661.994645915%2C-8632111.711452132%2C4987025.855117119&bboxSR=3857&imageSR=3857&size=2064%2C2064&format=jpg&compressionQuality=94&renderingRule=%7B%22rasterFunction%22%3A+%22NaturalColor%22%7D&f=image"
+    },
+    {
+      "id": "6_-1",
+      "center": [
+        6500,
+        -500
+      ],
+      "side": 1032,
+      "source": "https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer/exportImage?bbox=-8632154.001699302%2C4986983.5648699505%2C-8630790.141228097%2C4988347.425341154&bboxSR=3857&imageSR=3857&size=2064%2C2064&format=jpg&compressionQuality=94&renderingRule=%7B%22rasterFunction%22%3A+%22NaturalColor%22%7D&f=image"
+    },
+    {
+      "id": "6_0",
+      "center": [
+        6500,
+        500
+      ],
+      "side": 1032,
+      "source": "https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer/exportImage?bbox=-8632154.001699302%2C4985661.994645915%2C-8630790.141228097%2C4987025.855117119&bboxSR=3857&imageSR=3857&size=2064%2C2064&format=jpg&compressionQuality=94&renderingRule=%7B%22rasterFunction%22%3A+%22NaturalColor%22%7D&f=image"
+    },
+    {
+      "id": "7_-1",
+      "center": [
+        7500,
+        -500
+      ],
+      "side": 1032,
+      "source": "https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer/exportImage?bbox=-8630832.431475267%2C4986983.5648699505%2C-8629468.571004063%2C4988347.425341154&bboxSR=3857&imageSR=3857&size=2064%2C2064&format=jpg&compressionQuality=94&renderingRule=%7B%22rasterFunction%22%3A+%22NaturalColor%22%7D&f=image"
+    },
+    {
+      "id": "7_0",
+      "center": [
+        7500,
+        500
+      ],
+      "side": 1032,
+      "source": "https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer/exportImage?bbox=-8630832.431475267%2C4985661.994645915%2C-8629468.571004063%2C4987025.855117119&bboxSR=3857&imageSR=3857&size=2064%2C2064&format=jpg&compressionQuality=94&renderingRule=%7B%22rasterFunction%22%3A+%22NaturalColor%22%7D&f=image"
+    },
+    {
+      "id": "8_-1",
+      "center": [
+        8500,
+        -500
+      ],
+      "side": 1032,
+      "source": "https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer/exportImage?bbox=-8629510.861251231%2C4986983.5648699505%2C-8628147.000780027%2C4988347.425341154&bboxSR=3857&imageSR=3857&size=2064%2C2064&format=jpg&compressionQuality=94&renderingRule=%7B%22rasterFunction%22%3A+%22NaturalColor%22%7D&f=image"
+    },
+    {
+      "id": "8_0",
+      "center": [
+        8500,
+        500
+      ],
+      "side": 1032,
+      "source": "https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer/exportImage?bbox=-8629510.861251231%2C4985661.994645915%2C-8628147.000780027%2C4987025.855117119&bboxSR=3857&imageSR=3857&size=2064%2C2064&format=jpg&compressionQuality=94&renderingRule=%7B%22rasterFunction%22%3A+%22NaturalColor%22%7D&f=image"
+    },
+    {
+      "id": "9_-1",
+      "center": [
+        9500,
+        -500
+      ],
+      "side": 1032,
+      "source": "https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer/exportImage?bbox=-8628189.291027196%2C4986983.5648699505%2C-8626825.430555992%2C4988347.425341154&bboxSR=3857&imageSR=3857&size=2064%2C2064&format=jpg&compressionQuality=94&renderingRule=%7B%22rasterFunction%22%3A+%22NaturalColor%22%7D&f=image"
+    },
+    {
+      "id": "9_0",
+      "center": [
+        9500,
+        500
+      ],
+      "side": 1032,
+      "source": "https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer/exportImage?bbox=-8628189.291027196%2C4985661.994645915%2C-8626825.430555992%2C4987025.855117119&bboxSR=3857&imageSR=3857&size=2064%2C2064&format=jpg&compressionQuality=94&renderingRule=%7B%22rasterFunction%22%3A+%22NaturalColor%22%7D&f=image"
+    }
+  ]
+}

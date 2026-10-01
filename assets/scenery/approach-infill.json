@@ -1,0 +1,302 @@
+{
+  "license": "Public domain \u2014 original roof traces from USDA NAIP / USGS imagery",
+  "source": "detail/manifest.json",
+  "origin": [
+    -77.615,
+    40.828
+  ],
+  "modifications": "Five visually checked missing roofs. Heights, pitch and materials interpreted; roof traces are approximate, not surveyed footprints.",
+  "buildings": [
+    {
+      "id": "valley-barn-north",
+      "x": 2488.2,
+      "z": 300.8,
+      "w": 23.7,
+      "d": 9.0,
+      "angle": -1.59207,
+      "height": 7.5,
+      "estimatedHeight": false,
+      "pitched": true,
+      "roofKind": "metal",
+      "use": "farm",
+      "roof": [
+        164,
+        173,
+        172
+      ],
+      "outline": [
+        [
+          -4.7,
+          -11.8
+        ],
+        [
+          3.8,
+          -11.2
+        ],
+        [
+          4.8,
+          11.8
+        ],
+        [
+          -4.2,
+          11.8
+        ]
+      ],
+      "sourceTile": "2_0",
+      "sourcePixels": [
+        [
+          999,
+          610
+        ],
+        [
+          1016,
+          611
+        ],
+        [
+          1018,
+          657
+        ],
+        [
+          1000,
+          657
+        ]
+      ]
+    },
+    {
+      "id": "valley-barn-south",
+      "x": 2490.8,
+      "z": 327.8,
+      "w": 31.1,
+      "d": 12.0,
+      "angle": 1.52245,
+      "height": 6.3,
+      "estimatedHeight": false,
+      "pitched": true,
+      "roofKind": "metal",
+      "use": "farm",
+      "roof": [
+        203,
+        208,
+        202
+      ],
+      "outline": [
+        [
+          -6.8,
+          -15.2
+        ],
+        [
+          5.2,
+          -15.8
+        ],
+        [
+          6.8,
+          15.2
+        ],
+        [
+          -2.8,
+          15.2
+        ],
+        [
+          -3.2,
+          2.8
+        ],
+        [
+          -5.8,
+          2.8
+        ]
+      ],
+      "sourceTile": "2_0",
+      "sourcePixels": [
+        [
+          1000,
+          657
+        ],
+        [
+          1024,
+          656
+        ],
+        [
+          1027,
+          718
+        ],
+        [
+          1008,
+          718
+        ],
+        [
+          1007,
+          693
+        ],
+        [
+          1002,
+          693
+        ]
+      ]
+    },
+    {
+      "id": "north-farm-barn",
+      "x": 2387.7,
+      "z": -383.9,
+      "w": 41.1,
+      "d": 16.1,
+      "angle": -0.55086,
+      "height": 8.2,
+      "estimatedHeight": false,
+      "pitched": true,
+      "roofKind": "metal",
+      "use": "farm",
+      "roof": [
+        136,
+        128,
+        125
+      ],
+      "outline": [
+        [
+          -21.7,
+          3.9
+        ],
+        [
+          13.3,
+          -17.6
+        ],
+        [
+          21.3,
+          -3.6
+        ],
+        [
+          -12.7,
+          16.9
+        ]
+      ],
+      "sourceTile": "2_-1",
+      "sourcePixels": [
+        [
+          764,
+          1272
+        ],
+        [
+          834,
+          1229
+        ],
+        [
+          850,
+          1257
+        ],
+        [
+          782,
+          1298
+        ]
+      ]
+    },
+    {
+      "id": "north-farm-annex",
+      "x": 2397.7,
+      "z": -375.5,
+      "w": 15.7,
+      "d": 13.9,
+      "angle": 2.61352,
+      "height": 5.5,
+      "estimatedHeight": false,
+      "pitched": true,
+      "roofKind": "metal",
+      "use": "farm",
+      "roof": [
+        105,
+        101,
+        92
+      ],
+      "outline": [
+        [
+          -10.2,
+          -2.0
+        ],
+        [
+          3.3,
+          -10.0
+        ],
+        [
+          10.3,
+          2.0
+        ],
+        [
+          -3.2,
+          9.5
+        ]
+      ],
+      "sourceTile": "2_-1",
+      "sourcePixels": [
+        [
+          807,
+          1277
+        ],
+        [
+          834,
+          1261
+        ],
+        [
+          848,
+          1285
+        ],
+        [
+          821,
+          1300
+        ]
+      ]
+    },
+    {
+      "id": "east-farm-shed",
+      "x": 4768.0,
+      "z": 280.5,
+      "w": 25.0,
+      "d": 11.0,
+      "angle": 3.14159,
+      "height": 4.8,
+      "estimatedHeight": false,
+      "pitched": true,
+      "roofKind": "metal",
+      "use": "farm",
+      "roof": [
+        188,
+        192,
+        177
+      ],
+      "outline": [
+        [
+          -12.5,
+          -5.0
+        ],
+        [
+          12.0,
+          -5.5
+        ],
+        [
+          12.5,
+          5.5
+        ],
+        [
+          -12.5,
+          5.5
+        ]
+      ],
+      "sourceTile": "4_0",
+      "sourcePixels": [
+        [
+          1543,
+          583
+        ],
+        [
+          1592,
+          582
+        ],
+        [
+          1593,
+          604
+        ],
+        [
+          1543,
+          604
+        ]
+      ]
+    }
+  ]
+}

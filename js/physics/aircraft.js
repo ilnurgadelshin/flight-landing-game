@@ -475,6 +475,11 @@ export class Aircraft {
     this.hullContactImpulse = 0;
     // impact velocity is read before the solver changes the velocity
     const vyBefore = b.velocity.y;
+    // The hull's local support plane follows the shared terrain datum. Leaving
+    // it at Y=0 creates invisible collisions over valleys below the airport.
+    // Gear contacts still query each wheel independently, as before.
+    this.groundBody.position.y = this.terrain.heightAt(b.position.x, b.position.z);
+    this.groundBody.aabbNeedsUpdate = true;
     this.world.step(dt);
     for (const c of this.world.contacts) {
       if (c.bi !== b && c.bj !== b) continue;
@@ -488,7 +493,7 @@ export class Aircraft {
 
     // --- terrain crash check (hills far from the airport)
     const th = this.terrain.heightAt(b.position.x, b.position.z);
-    if (th > 0.5 && b.position.y < th + 1.5 && !this.damage.destroyed) {
+    if (Math.abs(th) > 0.5 && b.position.y < th + 1.5 && !this.damage.destroyed) {
       this.destroy('Controlled flight into terrain');
     }
 

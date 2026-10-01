@@ -1,0 +1,57 @@
+{
+  "license": "CC0-1.0",
+  "columns": 4,
+  "rows": 7,
+  "verticalMargin": 0.037037037037037035,
+  "species": [
+    {
+      "name": "tree_small_02",
+      "variant": null,
+      "row": 0,
+      "aspect": 1.0173664327778702,
+      "source": "https://polyhaven.com/a/tree_small_02"
+    },
+    {
+      "name": "pine_sapling_small",
+      "variant": "a",
+      "row": 1,
+      "aspect": 0.6549002351072951,
+      "source": "https://polyhaven.com/a/pine_sapling_small"
+    },
+    {
+      "name": "pine_sapling_small",
+      "variant": "b",
+      "row": 2,
+      "aspect": 0.7543687680838722,
+      "source": "https://polyhaven.com/a/pine_sapling_small"
+    },
+    {
+      "name": "pine_sapling_small",
+      "variant": "c",
+      "row": 3,
+      "aspect": 0.6515615397218192,
+      "source": "https://polyhaven.com/a/pine_sapling_small"
+    },
+    {
+      "name": "fir_sapling_medium",
+      "variant": "a",
+      "row": 4,
+      "aspect": 0.6455621799882668,
+      "source": "https://polyhaven.com/a/fir_sapling_medium"
+    },
+    {
+      "name": "fir_sapling_medium",
+      "variant": "b",
+      "row": 5,
+      "aspect": 0.5913989044274724,
+      "source": "https://polyhaven.com/a/fir_sapling_medium"
+    },
+    {
+      "name": "fir_sapling_medium",
+      "variant": "c",
+      "row": 6,
+      "aspect": 0.7874122361620115,
+      "source": "https://polyhaven.com/a/fir_sapling_medium"
+    }
+  ]
+}

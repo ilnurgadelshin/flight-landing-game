@@ -102,7 +102,7 @@ button.primary:hover { filter: brightness(1.1); }
 #gpws-caption.show { opacity: 1; }
 #gpws-caption.info { background: rgba(0, 80, 160, 0.75); }
 #gpws-caption.caution { background: rgba(200, 130, 0, 0.85); color: #111; }
-#hud-bottom { position: absolute; bottom: 0; left: 0; right: 0; display: flex; gap: 0; padding: 8px 8px 7px; background: rgba(13,19,23,0.82); border-top: 1px solid rgba(201,214,216,0.15); backdrop-filter: blur(12px); font-family: "Segoe UI", Roboto, Arial, sans-serif; font-variant-numeric: tabular-nums; font-size: 12px; flex-wrap: wrap; justify-content: center; }
+#hud-bottom { position: absolute; bottom: 8px; left: 12px; right: 12px; display: flex; gap: 0; padding: 7px 8px 6px; background: rgba(13,19,23,0.76); border: 1px solid rgba(201,214,216,0.13); border-radius: 10px; backdrop-filter: blur(12px); font-family: "Segoe UI", Roboto, Arial, sans-serif; font-variant-numeric: tabular-nums; font-size: 12px; flex-wrap: wrap; justify-content: center; }
 .hud-cell { display: flex; flex-direction: column; align-items: center; min-width: 50px; padding: 1px 9px; border-right: 1px solid rgba(201,214,216,0.1); }
 .hud-cell.wide { min-width: 88px; }
 .hud-cell .lbl { font-size: 8px; color: #91a1a6; letter-spacing: 1.3px; }

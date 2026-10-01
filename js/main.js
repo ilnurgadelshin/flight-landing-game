@@ -22,24 +22,27 @@ import { TiltControl, TILT } from './tilt.js';
 import { Haptics } from './haptics.js';
 import { GamepadInput, PAD } from './gamepad.js';
 import { setTilt, getScheme, setPad, controlsHtml } from './controls.js';
+import { selectGraphicsQuality } from './graphics-quality.js';
 
 const params = new URLSearchParams(location.search);
 // phones get the lighter scene; their resolution then adapts to the frame rate (see ResolutionScaler)
 const lowDetail = params.has('lowdetail') || phone;
-// graphics tier: 'high' (shadows, bloom, MSAA) on computers, 'low' on phones; ?quality= overrides
+// Desktop auto mode measures rendered frames; explicit ?quality= overrides it.
 const quality = ['high', 'low'].includes(params.get('quality')) ? params.get('quality') : undefined;
+const autoQuality=!quality&&!lowDetail&&!touchFirst;
 
 async function boot() {
   const ui = new UI();
   ui.hideLoading('Building the world…');
   await new Promise((r) => setTimeout(r, 30));
   const canvas = document.getElementById('gl');
-  const world = new World(canvas, { lowDetail, quality, pixelRatio: touchFirst ? Math.min(window.devicePixelRatio || 1, 1.5) : undefined });
-  await world.assetsReady;
-  ui.hideLoading('Building the flight deck…');
+  const world = new World(canvas, { lowDetail, quality, pixelRatio: autoQuality?1:touchFirst ? Math.min(window.devicePixelRatio || 1, 1.5) : undefined });
+  world.autoQuality=autoQuality;
+  ui.hideLoading('Loading flight deck…');
   await new Promise((r) => setTimeout(r, 10));
-  const cockpit = new Cockpit(world.camera);
-  world.setupCockpit(cockpit.root);
+  const cockpit = new Cockpit(world.camera, { lowDetail: world.lowDetail || world.quality === 'low' });
+  await Promise.all([world.assetsReady, cockpit.assetsReady]);
+  world.setupCockpit(cockpit.root,cockpit.eyeLocal);
   const input = new InputManager(canvas);
   const audio = new AudioSystem({ ios: isIOS });
   const gpws = new GPWS(audio);
@@ -55,7 +58,14 @@ async function boot() {
   const pad = new GamepadInput(input);
   haptics.pad = pad;
   // a flight that starts or resumes takes the way the phone is held as level; anything else stops vibrating
-  game.on('state', ({ state: s }) => { platform.onGameState(s); if (s === 'flying') tilt.requestCenter(); else haptics.stop(); });
+  game.on('state', ({ state: s }) => {
+    platform.onGameState(s);
+    if (s === 'flying') {
+      tilt.requestCenter();
+      // Let the first playable frame reach the display before scenery work.
+      requestAnimationFrame(()=>setTimeout(()=>world.loadScenery(),0));
+    } else haptics.stop();
+  });
 
   // ---- tilt steering and vibration options (remembered on this device)
   const pref = {
@@ -114,8 +124,16 @@ async function boot() {
     padWas = connected;
   };
   for (const ev of ['keydown', 'pointerdown']) window.addEventListener(ev, () => pad.otherDeviceUsed(), true);
-  const scaler = new ResolutionScaler(world, { enabled: params.has('drs') ? params.get('drs') !== '0' : touchFirst, start: world.pixelRatio });
+  const scaler = new ResolutionScaler(world, {
+    enabled: params.has('drs') ? params.get('drs') !== '0' : touchFirst||autoQuality,
+    start: world.pixelRatio,
+    maxRatio: autoQuality?Math.min(window.devicePixelRatio||1,1.5):world.pixelRatio,
+  });
   world.applyScenario(SCENARIOS.clear, false);
+  if(autoQuality&&world.quality==='high'){
+    ui.hideLoading('Checking graphics performance…');
+    await selectGraphicsQuality(world,view);
+  }
   ui.hideLoading();
   ui.showMenu();
 

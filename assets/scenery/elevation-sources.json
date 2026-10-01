@@ -1,0 +1,42 @@
+{
+  "service": "https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer",
+  "registration": {
+    "latitude": 40.828,
+    "longitude": -77.615,
+    "projection": "EPSG:3857",
+    "scale": 1.3215702240350862
+  },
+  "notes": "North-up pixel centres. Quantized to 0.25 m. Runtime subtracts a fictional 350 m datum and locally grades Westhaven airport; these are not navigation data.",
+  "sources": [
+    {
+      "name": "region",
+      "count": 513,
+      "x": -24000.0,
+      "z": -40000.0,
+      "step": 156.25,
+      "quantum": 0.25,
+      "source": "https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer/exportImage?bbox=-8671883.210970523%2C4934038.653358378%2C-8565951.09770021%2C5039970.766628691&bboxSR=3857&imageSR=3857&size=513%2C513&format=tiff&pixelType=F32&interpolation=RSP_BilinearInterpolation&renderingRule=%7B%22rasterFunction%22%3A+%22None%22%7D&f=image",
+      "sha256": "0ef07bdd88f36c7e411b7f986165afbc70af7639f72bc446d6b8e5216bd32909",
+      "elevationRange": [
+        107.60923767089844,
+        735.1171264648438
+      ],
+      "license": "Public domain \u2014 USGS 3DEP"
+    },
+    {
+      "name": "approach",
+      "count": 513,
+      "x": -7000.0,
+      "z": -12000.0,
+      "step": 46.875,
+      "quantum": 0.25,
+      "source": "https://elevation.nationalmap.gov/arcgis/rest/services/3DEPElevation/ImageServer/exportImage?bbox=-8649344.243790299%2C4971114.893002988%2C-8617564.609809205%2C5002894.526984082&bboxSR=3857&imageSR=3857&size=513%2C513&format=tiff&pixelType=F32&interpolation=RSP_BilinearInterpolation&renderingRule=%7B%22rasterFunction%22%3A+%22None%22%7D&f=image",
+      "sha256": "8db8f6079d34531d1617fe0e40b31dfa282f9cfa8b0fff3de0f0553a4c42ccad",
+      "elevationRange": [
+        210.5636749267578,
+        736.156005859375
+      ],
+      "license": "Public domain \u2014 USGS 3DEP"
+    }
+  ]
+}

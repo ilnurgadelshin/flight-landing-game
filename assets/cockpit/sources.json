@@ -1,0 +1,26 @@
+[
+  {
+    "file": "liner.webp",
+    "asset": "https://polyhaven.com/a/leather_white",
+    "license": "CC0 \u2014 Poly Haven",
+    "sources": [
+      "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/leather_white/leather_white_diff_1k.jpg",
+      "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/leather_white/leather_white_rough_1k.jpg",
+      "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/leather_white/leather_white_disp_1k.jpg"
+    ],
+    "tileMetres": 0.3,
+    "modifications": "512px linear height/roughness/neutral colour modulation; remapped roughness and colour range. Lossless WebP delivery encoding."
+  },
+  {
+    "file": "upholstery.webp",
+    "asset": "https://polyhaven.com/a/poly_wool_herringbone",
+    "license": "CC0 \u2014 Poly Haven",
+    "sources": [
+      "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/poly_wool_herringbone/poly_wool_herringbone_diff_1k.jpg",
+      "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/poly_wool_herringbone/poly_wool_herringbone_rough_1k.jpg",
+      "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/poly_wool_herringbone/poly_wool_herringbone_disp_1k.jpg"
+    ],
+    "tileMetres": 0.27,
+    "modifications": "512px linear height/roughness/neutral colour modulation; remapped roughness and colour range. Lossless WebP delivery encoding."
+  }
+]
