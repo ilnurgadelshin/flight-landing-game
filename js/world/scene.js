@@ -194,8 +194,7 @@ export class World {
     this.cockpitSunScale=.12;
     if(this.composer){for(const pass of this.composer.passes)pass.dispose?.();this.composer.dispose();this.composer=null;this.bloom=null;}
     if(this.cumulus){
-      this.cumulus.group.removeFromParent();
-      this.cumulus.group.traverse(o=>o.geometry?.dispose());this.cumulus.material.dispose();this.cumulus=null;
+      this.cumulus.dispose();this.cumulus=null;
     }
     this.cloudGroup.visible=this.scenario?.id!=='storm';
     this.requestNearTrees=null;
@@ -405,21 +404,37 @@ export class World {
       this.cloudGroup.add(sp);
     }
     this.scene.add(this.cloudGroup);
-    if (this.quality === 'high') this.cumulus = new Cumulus(this.scene, this.atmo);
+    if (this.quality === 'high') {
+      this.cumulus = new Cumulus(this.scene, this.atmo);this.assetJobs.push(this.cumulus.ready);
+    }
     // overcast deck
     const ovTex = makeOvercastTexture();
     ovTex.repeat.set(30, 30);
-    this.overcast = new THREE.Mesh(new THREE.PlaneGeometry(80000, 80000, 96, 96), new THREE.MeshBasicMaterial({ map: ovTex, side: THREE.DoubleSide, transparent: true, opacity: 0.97, fog: true, depthWrite: false }));
+    const deckGeometry=new THREE.PlaneGeometry(80000,80000,96,96),deckPositions=deckGeometry.attributes.position;
+    // Concentrate the existing vertices around the eye, retaining the distant
+    // horizon. Nearby relief no longer depends on 833 m-wide triangles.
+    for(let i=0;i<deckPositions.count;i++)for(let axis=0;axis<2;axis++){
+      const value=deckPositions.array[i*3+axis];
+      deckPositions.array[i*3+axis]=Math.sign(value)*Math.pow(Math.abs(value)/40000,1.8)*40000;
+    }
+    this.deckDrift={value:new THREE.Vector2()};
+    this.overcast = new THREE.Mesh(deckGeometry, new THREE.MeshBasicMaterial({ map: ovTex, side: THREE.DoubleSide, transparent: true, opacity: 0.97, fog: true, depthWrite: false }));
     this.overcast.material.onBeforeCompile=shader=>{
       THREE.Material.prototype.onBeforeCompile.call(this.overcast.material,shader);
-      shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>',`#include <begin_vertex>
+      shader.uniforms.deckNoise={value:ovTex};shader.uniforms.deckDrift=this.deckDrift;
+      shader.vertexShader=shader.vertexShader.replace('#include <common>',`#include <common>
+        uniform sampler2D deckNoise; uniform vec2 deckDrift; varying vec2 vDeckWeatherUv;`)
+        .replace('#include <begin_vertex>',`#include <begin_vertex>
         vec3 deckWorld=(modelMatrix*vec4(position,1.0)).xyz;
-        // Broad billows rise from the specified cloud base; they never lower the ceiling.
-        transformed.z-=30.0+14.0*sin(deckWorld.x*.0018+sin(deckWorld.z*.0008))
-                            +12.0*sin(deckWorld.z*.0027+deckWorld.x*.0013);`);
-      shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',`#include <map_fragment>
-        vec3 broad=texture2D(map,vMapUv*.173+vec2(.27,.61)).rgb;
-        diffuseColor.rgb*=.76+broad*.55;`);
+        vDeckWeatherUv=deckWorld.xz/3500.0+deckDrift;
+        float billow=texture2D(deckNoise,vDeckWeatherUv).r*.65+texture2D(deckNoise,vDeckWeatherUv*.271+vec2(.27,.61)).r*.35;
+        // Displace upwards only, preserving the charted ceiling and fog transition.
+        transformed.z-=25.0+billow*180.0;`);
+      shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nvarying vec2 vDeckWeatherUv;')
+        .replace('#include <map_fragment>',`
+        vec3 fine=texture2D(map,vDeckWeatherUv).rgb;
+        vec3 broad=texture2D(map,vDeckWeatherUv*.271+vec2(.27,.61)).rgb;
+        diffuseColor.rgb*=mix(fine,broad,.35)*1.2;`);
     };
     this.overcast.rotation.x = Math.PI / 2;
     this.overcast.visible = false;
@@ -689,7 +704,11 @@ export class World {
     }
     // overcast layer follows the camera horizontally so it never ends
     if (this.overcast.visible) { this.overcast.position.x = eye.x; this.overcast.position.z = eye.z; this.overcast.material.map.offset.set(eye.x / 80000 * 30 + this.time * 0.002, -eye.z / 80000 * 30); }
-    if (this.overcastTop.visible) { this.overcastTop.position.x = eye.x; this.overcastTop.position.z = eye.z; }
+    this.deckDrift.value.set(this.time*.0006,0);
+    if (this.overcastTop.visible) {
+      this.overcastTop.position.x = eye.x; this.overcastTop.position.z = eye.z;
+      this.overcastTop.material.map.offset.set(eye.x/80000*30+this.time*.0007875,-eye.z/80000*30);
+    }
     // rain in camera space: relative velocity = fall + aircraft speed (approx along the view axis)
     this.camera.getWorldQuaternion(this.rainRig.quaternion);
     this.rainRig.position.copy(eye);

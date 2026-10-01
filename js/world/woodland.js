@@ -13,12 +13,14 @@ function groveNoise(x,z) {
   return THREE.MathUtils.lerp(THREE.MathUtils.lerp(hash(ix,iz),hash(ix+1,iz),u),THREE.MathUtils.lerp(hash(ix,iz+1),hash(ix+1,iz+1),u),v);
 }
 
-function crownGeometry(rows,margin) {
-  // One camera-facing quad eliminates the edge-on planes of the old crossed cards.
-  const g=new THREE.BufferGeometry(),bottom=1-(1-margin)/rows,top=1-margin/rows;
-  g.setAttribute('position',new THREE.Float32BufferAttribute([-.5,0,0,.5,0,0,-.5,1,0,.5,1,0],3));
+function crownGeometry() {
+  const g=new THREE.BufferGeometry();
+  g.setAttribute('position',new THREE.Float32BufferAttribute([-.5,-.5,0,.5,-.5,0,-.5,.5,0,.5,.5,0],3));
   g.setAttribute('normal',new THREE.Float32BufferAttribute([0,0,1,0,0,1,0,0,1,0,0,1],3));
-  g.setAttribute('uv',new THREE.Float32BufferAttribute([0,bottom,1,bottom,0,top,1,top],2));
+  g.setAttribute('uv',new THREE.Float32BufferAttribute([0,0,1,0,0,1,1,1],2));
+  // Vertex shader lifts the centre and rotates the billboard in pitch. Include
+  // its padded frame in CPU culling bounds, including the narrow conifer forms.
+  g.boundingSphere=new THREE.Sphere(new THREE.Vector3(0,.5,0),2);
   g.setIndex([0,1,2,1,3,2]);return g;
 }
 
@@ -33,28 +35,42 @@ export async function addWoodland(world,photo,approachPhoto) {
   material.onBeforeCompile=shader=>{
     THREE.Material.prototype.onBeforeCompile.call(material,shader);
     shader.vertexShader=shader.vertexShader.replace('#include <common>',`#include <common>
-      attribute vec2 treeUvOffset; attribute float treeYaw;
-      varying vec2 vTreeViews; varying float vTreeBlend; varying vec2 vTreeUV;`)
+      attribute vec2 treeUvOffset; attribute float treeYaw; attribute vec2 treeFrame;
+      varying vec2 vTreeViews; varying float vTreeBlend; varying vec2 vTreeUV;
+      varying float vTreeElevation; varying float vTreeRow;`)
       .replace('#include <project_vertex>',`
         vec3 treeCenter=(modelMatrix*instanceMatrix*vec4(0.0,0.0,0.0,1.0)).xyz;
-        vec2 treeFacing=normalize(cameraPosition.xz-treeCenter.xz+vec2(.00001));
+        float treeHeight=length(instanceMatrix[1].xyz);
+        float treeWidth=length(instanceMatrix[0].xyz)/treeFrame.y;
+        treeCenter.y+=treeHeight*.5;
+        vec3 treeToEye=cameraPosition-treeCenter;
+        vec2 treeFacing=normalize(treeToEye.xz+vec2(.00001));
+        float treePitch=clamp(atan(treeToEye.y,max(length(treeToEye.xz),.0001)),0.0,1.57079632679);
         vec3 treeRight=vec3(treeFacing.y,0.0,-treeFacing.x);
-        vec3 treeWorld=treeCenter+treeRight*position.x*length(instanceMatrix[0].xyz)
-          +vec3(0.0,position.y*length(instanceMatrix[1].xyz),0.0);
+        vec3 treeUp=vec3(-treeFacing.x*sin(treePitch),cos(treePitch),-treeFacing.y*sin(treePitch));
+        vec3 treeWorld=treeCenter+treeRight*position.x*treeWidth*treeFrame.x
+          +treeUp*position.y*mix(treeHeight,treeWidth,pow(sin(treePitch),2.0))*treeFrame.x;
         vec4 mvPosition=viewMatrix*vec4(treeWorld,1.0);
         gl_Position=projectionMatrix*mvPosition;
         float treeView=mod((treeYaw-atan(treeFacing.x,treeFacing.y))/1.57079632679+treeUvOffset.x+8.0,4.0);
         vTreeViews=vec2(floor(treeView),mod(floor(treeView)+1.0,4.0));vTreeBlend=fract(treeView);
-        vTreeUV=vec2(uv.x,uv.y+treeUvOffset.y);
+        vTreeUV=uv;vTreeRow=treeUvOffset.y;vTreeElevation=treePitch/0.785398163397;
       `);
     shader.fragmentShader=shader.fragmentShader.replace('#include <common>',`#include <common>
-      varying vec2 vTreeViews; varying float vTreeBlend; varying vec2 vTreeUV;`)
+      varying vec2 vTreeViews; varying float vTreeBlend; varying vec2 vTreeUV;
+      varying float vTreeElevation; varying float vTreeRow;`)
+      .replace('#include <map_pars_fragment>',`#include <map_pars_fragment>
+      vec4 treeTexel(float view,float elevation){
+        vec2 tileUV=mix(vec2(.004),vec2(.996),vTreeUV);
+        return texture2D(map,vec2((view+tileUV.x)*.25,(20.0-vTreeRow*3.0-elevation+tileUV.y)/21.0));
+      }
+      vec4 treePremultiplied(vec4 c){return vec4(c.rgb*c.a,c.a);}`)
       .replace('#include <map_fragment>',`
-        vec4 treeA=texture2D(map,vec2((vTreeViews.x+mix(.002,.998,vTreeUV.x))*.25,vTreeUV.y));
-        vec4 treeB=texture2D(map,vec2((vTreeViews.y+mix(.002,.998,vTreeUV.x))*.25,vTreeUV.y));
-        float treeAlpha=mix(treeA.a,treeB.a,vTreeBlend);
-        vec3 treeColor=mix(treeA.rgb*treeA.a,treeB.rgb*treeB.a,vTreeBlend)/max(.001,treeAlpha);
-        diffuseColor*=vec4(treeColor,treeAlpha);
+        float treeLower=floor(vTreeElevation),treeUpper=min(2.0,treeLower+1.0);
+        vec4 treeA=mix(treePremultiplied(treeTexel(vTreeViews.x,treeLower)),treePremultiplied(treeTexel(vTreeViews.y,treeLower)),vTreeBlend);
+        vec4 treeB=mix(treePremultiplied(treeTexel(vTreeViews.x,treeUpper)),treePremultiplied(treeTexel(vTreeViews.y,treeUpper)),vTreeBlend);
+        vec4 treeColor=mix(treeA,treeB,fract(vTreeElevation));
+        diffuseColor*=vec4(treeColor.rgb/max(.001,treeColor.a),treeColor.a);
       `);
   };
   treeFadeShader(material,false);
@@ -94,7 +110,7 @@ export async function addWoodland(world,photo,approachPhoto) {
     patches.get(key).push({x,z,type,row,h,w,yaw:rng()*Math.PI});forms[row]++;count++;
   }
   const group=new THREE.Group();group.name='Photographed woodland stands';
-  const geometry=crownGeometry(atlas.rows,atlas.verticalMargin),matrix=new THREE.Matrix4(),q=new THREE.Quaternion(),up=new THREE.Vector3(0,1,0);
+  const geometry=crownGeometry(),matrix=new THREE.Matrix4(),q=new THREE.Quaternion(),up=new THREE.Vector3(0,1,0);
   const contact=document.createElement('canvas');contact.width=contact.height=64;
   const g=contact.getContext('2d'),fade=g.createRadialGradient(32,32,3,32,32,32);
   fade.addColorStop(0,'rgba(0,0,0,.24)');fade.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=fade;g.fillRect(0,0,64,64);
@@ -103,13 +119,14 @@ export async function addWoodland(world,photo,approachPhoto) {
   const contactGeo=new THREE.PlaneGeometry(1,1).rotateX(-Math.PI/2);
   const records=[];
   for(const trees of patches.values()){
-    const crown=geometry.clone(),offsets=new Float32Array(trees.length*2),yaws=new Float32Array(trees.length);
+    const crown=geometry.clone(),offsets=new Float32Array(trees.length*2),yaws=new Float32Array(trees.length),frames=new Float32Array(trees.length*2);
     const fades=new THREE.InstancedBufferAttribute(new Float32Array(trees.length),1).setUsage(THREE.DynamicDrawUsage);
     crown.setAttribute('treeDetailFade',fades);
     const mesh=new THREE.InstancedMesh(crown,material,trees.length);
     const shadows=new THREE.InstancedMesh(contactGeo,contactMat,trees.length);
     trees.forEach((t,i)=>{
-      offsets[i*2]=t.type;offsets[i*2+1]=-t.row/atlas.rows;yaws[i]=t.yaw;
+      offsets[i*2]=t.type;offsets[i*2+1]=t.row;yaws[i]=t.yaw;
+      frames[i*2]=atlas.species[t.row].frameScale;frames[i*2+1]=atlas.species[t.row].aspect;
       q.setFromAxisAngle(up,t.yaw);
       const y=sceneryGroundHeight(t.x,t.z,world.groundLowDetail);
       matrix.compose(new THREE.Vector3(t.x,y-.08,t.z),q,new THREE.Vector3(t.w,t.h,t.w));
@@ -120,6 +137,7 @@ export async function addWoodland(world,photo,approachPhoto) {
     });
     crown.setAttribute('treeUvOffset',new THREE.InstancedBufferAttribute(offsets,2));
     crown.setAttribute('treeYaw',new THREE.InstancedBufferAttribute(yaws,1));
+    crown.setAttribute('treeFrame',new THREE.InstancedBufferAttribute(frames,2));
     mesh.computeBoundingSphere();shadows.computeBoundingSphere();group.add(mesh,shadows);
   }
   geometry.dispose();

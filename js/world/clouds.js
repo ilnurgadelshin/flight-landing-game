@@ -26,6 +26,8 @@ const fragmentShader = /* glsl */`
   uniform vec3 uShade;
   uniform float uSeed;
   uniform float uFog;
+  uniform highp sampler3D uDensity;
+  uniform float uVariant;
   ${SKY_GLSL}
   #include <logdepthbuf_pars_fragment>
   float hash(vec3 p) { p = fract(p * 0.3183099 + vec3(0.17, 0.31, 0.47)); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
@@ -35,6 +37,12 @@ const fragmentShader = /* glsl */`
       mix(mix(hash(i+vec3(0,0,1)),hash(i+vec3(1,0,1)),f.x),mix(hash(i+vec3(0,1,1)),hash(i+vec3(1,1,1)),f.x),f.y),f.z);
   }
   float density(vec3 p) {
+    #ifdef CACHED_DENSITY
+      if(any(lessThan(p,vec3(-.5)))||any(greaterThan(p,vec3(.5))))return 0.0;
+      vec3 uv=((p+.5)*63.0+.5)/64.0;
+      uv.z=(uv.z+uVariant)/4.0;
+      return texture(uDensity,uv).r*5.0;
+    #else
     if (p.y < -0.32) return 0.0;
     p.xz += vec2(noise3(p*4.0+uSeed),noise3(p*4.0-uSeed))*.09-.045;
     float shape = max(1.0-length((p-vec3(-0.13,-0.06,0.0))*vec3(3.1,3.0,3.3)),
@@ -46,31 +54,32 @@ const fragmentShader = /* glsl */`
     vec3 n = p * 10.0 + uSeed;
     float erosion = noise3(n)*0.17 + noise3(n*2.07)*0.095 + noise3(n*4.11)*0.045;
     return max(0.0, shape - erosion) * smoothstep(-0.32,-0.22,p.y) * 5.0;
+    #endif
   }
   void main() {
     #include <logdepthbuf_fragment>
     vec3 rd = normalize(vLocal-uEye);
     vec3 inv = 1.0 / (rd + vec3(0.000001));
-    // march only through the box around the three lobes (smaller than the unit box the mesh
-    // draws), so rays that miss it cost nothing and the steps are shorter
-    vec3 a = (vec3(-0.48,-0.32,-0.34)-uEye)*inv, b = (vec3(0.44,0.44,0.34)-uEye)*inv;
+    // The baked variants share tight, empty-bordered bounds.
+    vec3 a = (vec3(-0.49,-0.32,-0.49)-uEye)*inv, b = (vec3(0.49,0.49,0.49)-uEye)*inv;
     vec3 lo = min(a,b), hi = max(a,b);
     float enter = max(max(lo.x,lo.y),lo.z), leave = min(min(hi.x,hi.y),hi.z);
     enter = max(enter,0.0);
     if (leave <= enter) discard;
-    float stepSize = (leave-enter)/28.0;
+    float stepSize = (leave-enter)/36.0;
     float jitter = fract(sin(dot(gl_FragCoord.xy,vec2(12.9898,78.233)))*43758.5453);
     float trans = 1.0; vec3 light = vec3(0.0);
-    for (int i=0;i<28;i++) {
+    vec3 sunRay=normalize(uSun/uScale);
+    float forward=pow(max(0.0,dot(normalize(rd*uScale),uSun)),6.0);
+    for (int i=0;i<36;i++) {
       vec3 p = uEye + rd*(enter + (float(i)+jitter)*stepSize);
       float d = density(p);
       if (d > 0.005) {
         // Transform the sun into the non-uniformly scaled volume's frame.
-        vec3 sunRay=normalize(uSun/uScale);
         float shadow = density(p+sunRay*.07)*.5 + density(p+sunRay*.16)*.32 + density(p+sunRay*.28)*.18;
         float sun = exp(-shadow*1.7);
         float alpha = 1.0-exp(-d*stepSize*22.0);
-        vec3 col = mix(uShade, uLit, sun);
+        vec3 col = mix(uShade, uLit*(.95+.25*forward), sun);
         col *= mix(.78,1.0,smoothstep(-.28,.22,p.y));
         light += trans*alpha*col; trans *= 1.0-alpha;
         if (trans < 0.025) break;
@@ -94,8 +103,9 @@ export class Cumulus {
       vertexShader, fragmentShader, side: THREE.BackSide, transparent: true, depthWrite: false,
       uniforms: { ...atmosphere.uniforms, uEye: { value: new THREE.Vector3() }, uScale: { value: new THREE.Vector3() },
         uRotation: {value:new THREE.Matrix3()},
-        uSun: { value: new THREE.Vector3() }, uLit: { value: new THREE.Color() }, uShade: { value: new THREE.Color() }, uSeed: { value: 0 }, uFog: { value: 0 } },
+        uSun: { value: new THREE.Vector3() }, uLit: { value: new THREE.Color() }, uShade: { value: new THREE.Color() }, uSeed: { value: 0 }, uFog: { value: 0 },uDensity:{value:null},uVariant:{value:0} },
     });
+    this.ready=this.loadDensity();
     const rng = makeRng(481), geo = new THREE.BoxGeometry(1,1,1);
     for (let i=0;i<26;i++) {
       const mesh = new THREE.Mesh(geo, this.material);
@@ -116,12 +126,38 @@ export class Cumulus {
         const u = this.material.uniforms;
         camera.getWorldPosition(u.uEye.value); mesh.worldToLocal(u.uEye.value);
         u.uScale.value.copy(mesh.scale); u.uSeed.value = mesh.userData.seed;
+        u.uVariant.value=i%4;
         u.uRotation.value.copy(mesh.userData.rotation);
         u.uSun.value.copy(this.sunDirection).applyAxisAngle(new THREE.Vector3(0,1,0),-mesh.rotation.y);
         this.material.uniformsNeedUpdate = true;
       };
       this.group.add(mesh);
     }
+  }
+  async loadDensity(){
+    try{
+      const response=await fetch(new URL('../../assets/weather/cumulus-density.bin.gz',import.meta.url));
+      if(!response.ok)throw new Error(`Cloud volume: HTTP ${response.status}`);
+      let data=new Uint8Array(await response.arrayBuffer());
+      // Explicit gzip keeps the static-host transfer small. Also accept a body
+      // already decoded by a host supplying Content-Encoding: gzip.
+      if(data[0]===0x1f&&data[1]===0x8b){
+        const stream=new Blob([data]).stream().pipeThrough(new DecompressionStream('gzip'));
+        data=new Uint8Array(await new Response(stream).arrayBuffer());
+      }
+      if(data.length!==64**3*4)throw new Error('Invalid cloud density dimensions');
+      if(this.disposed)return;
+      const texture=new THREE.Data3DTexture(data,64,64,256);
+      texture.format=THREE.RedFormat;texture.type=THREE.UnsignedByteType;
+      texture.minFilter=texture.magFilter=THREE.LinearFilter;texture.unpackAlignment=1;texture.needsUpdate=true;
+      this.material.uniforms.uDensity.value=texture;
+      this.material.defines.CACHED_DENSITY=1;this.material.needsUpdate=true;
+    }catch(error){this.loadError=String(error);} // Analytic cloud shader remains a usable fallback.
+  }
+  dispose(){
+    this.disposed=true;this.group.removeFromParent();
+    this.group.children[0]?.geometry.dispose();
+    this.material.uniforms.uDensity.value?.dispose();this.material.dispose();
   }
   configure(scenario, night, lightDir, color) {
     this.group.visible = scenario.id === 'clear';
