@@ -6,7 +6,9 @@ import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
 const label=(process.argv[2]||'current').replace(/[^a-z0-9_-]/gi,'-');
 const {server,url}=await startServer(process.env.REVIEW_ROOT||process.cwd());
-const browser=await chromium.launch({headless:true,args:['--use-angle=metal']});
+const angle=process.env.VISUAL_GPU||'swiftshader';   // VISUAL_GPU=metal on macOS hardware
+const browser=await chromium.launch({headless:true,args:[`--use-angle=${angle}`,
+  ...(angle==='swiftshader'?['--enable-unsafe-swiftshader','--ignore-gpu-blocklist']:[])]});
 const reports=[];
 try{
   for(const tier of ['high','low']){
