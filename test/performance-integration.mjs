@@ -59,7 +59,8 @@ try{
   await slow.route('**/approach-buildings.json',async route=>{await held;await route.continue();});
   await slow.goto(url+'/?quality=high');await slow.waitForFunction(()=>window.__sim,null,{timeout:120000});
   await slow.evaluate(()=>{const start=()=>window.__sim.ui.onStart({mode:'game',startId:'short',scenarioId:'clear',sound:false,skipSchool:true});start();start();});
-  await slow.waitForFunction(()=>window.__sim.game.state==='flying',null,{timeout:10000});
+  // The first flight frame makes the cabin reflection capture: over 10 s with software rendering.
+  await slow.waitForFunction(()=>window.__sim.game.state==='flying',null,{timeout:60000});
   assert.deepEqual(await slow.evaluate(()=>({starts:window.__starts,loading:!document.getElementById('loading').classList.contains('hidden')})),{starts:1,loading:false});
   release();await slow.evaluate(()=>window.__sim.world.sceneryPrepared);
   assert.equal(await slow.evaluate(()=>window.__warmCalls),0,'Delayed scenery must not begin warm-up in the timed-out flight');
