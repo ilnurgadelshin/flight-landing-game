@@ -1,7 +1,7 @@
 {
   "license": "CC0-1.0",
   "columns": 4,
-  "rows": 7,
+  "rows": 9,
   "elevations": [
     0,
     45,
@@ -64,6 +64,22 @@
       "aspect": 0.7874122361620115,
       "frameScale": 1.3746232319412814,
       "source": "https://polyhaven.com/a/fir_sapling_medium"
+    },
+    {
+      "name": "jacaranda_tree",
+      "variant": null,
+      "row": 7,
+      "aspect": 1.3544908636126538,
+      "frameScale": 1.8183317933604095,
+      "source": "https://polyhaven.com/a/jacaranda_tree"
+    },
+    {
+      "name": "island_tree_02",
+      "variant": null,
+      "row": 8,
+      "aspect": 1.3339861462358513,
+      "frameScale": 1.8005640800400529,
+      "source": "https://polyhaven.com/a/island_tree_02"
     }
   ]
 }

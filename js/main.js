@@ -148,8 +148,8 @@ async function boot() {
   window.addEventListener('gamepadconnected', () => { armAudio(); platform.setController(true); });
 
   // The detailed scenery loads while the menu is up (prepareScenery, started below). A flight
-  // starts once it is ready, so no ground, trees or buildings sharpen or appear while flying;
-  // a press before that shows the progress. A very slow connection still gets its flight after
+  // starts once it is ready, reducing visible scenery arrivals and first-use work;
+  // a press before that shows progress. A very slow connection still gets its flight after
   // a minute, and the rest streams in.
   let sceneryReady = false, sceneryWait = null;
   const prepareScenery = () => world.prepareScenery(() => game.state === 'menu')

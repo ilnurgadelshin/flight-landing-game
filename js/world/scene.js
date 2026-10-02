@@ -185,15 +185,15 @@ export class World {
     })();
   }
 
-  /** Everything a flight shows, loaded and on the graphics card before it starts: the scenery,
-   * on the high tier the nearby 3D trees, then the shaders and uploads (warmUp). Nothing
-   * appears or stalls in the first minutes of a flight. Progress: sceneryProgress. */
+  /** Prepare scenery and, on high, nearby trees behind the menu, then warm current
+   * shaders/uploads. Later tile uploads and scenario changes may still stall.
+   * Progress: sceneryProgress. */
   prepareScenery(canWarm=()=>true) {
     return this.sceneryPrepared??=(async()=>{
       const progress=this.sceneryProgress;progress.total+=2;   // the near trees and the warm-up
       await this.loadScenery();
       try{await this.loadNearTrees?.();}finally{progress.done++;}
-      // the warm-up is one long frame: not in the middle of a flight that already started
+      // Yielding warm-up stops if Start's timeout has already released the flight.
       try{if(canWarm())await this.warmUp(canWarm);}catch(error){this.assetErrors.push(String(error));}finally{progress.done++;}
     })();
   }
@@ -204,6 +204,7 @@ export class World {
    * drawing: without parallel shader compilation (or with software rendering) a program can
    * take a good part of a second. */
   async warmUp(keepGoing=()=>true) {
+    if(!keepGoing())return;
     const r=this.renderer,camera=this.camera,target=new THREE.WebGLRenderTarget(16,16);
     let slice=performance.now();
     // false once a flight has started (e.g. after Start's time limit): stop, don't take its frames
@@ -224,6 +225,7 @@ export class World {
           if(!await breathe())return;
         }
         if(r.extensions.has('KHR_parallel_shader_compile'))await r.compileAsync(scene,camera);   // all programs ready
+        if(!keepGoing())return;   // Start may have timed out while compilation was pending.
         // Upload: each material's objects alone, nothing culled. Shadow maps are left to the
         // next ordinary frame, and every slice restores what it changed before the menu draws.
         // A shadow map that does not exist yet (no frame drawn) is made first, from the whole
@@ -428,8 +430,9 @@ export class World {
       m.position.set(x, h / 2, z); return add(m);
     };
     this.buildingTex.repeat.set(4, 1);
-    box(700, 22, 60, 0, 460);                    // terminal — all five gates connect
-    box(120, 16, 60, -400, 470); box(120, 16, 60, 420, 470);
+    // Low connecting concourse between five separate glazed departure halls.
+    box(750, 8, 40, 0, 465);
+    box(105, 12, 55, -430, 492); box(105, 12, 55, 430, 492);
     const hangarMat = std({ color: 0x8e9298, roughness: 0.6, metalness: 0.3 });
     for (let i = 0; i < 3; i++) box(90, 24, 70, 700 + i * 110, 300, hangarMat); // hangars
     // control tower

@@ -1,5 +1,5 @@
 // Forest stands tied to the orthophoto. Camera-facing, multi-view impostors
-// replace crossed image planes. Seven authored forms across three CC0 species
+// replace crossed image planes. Nine authored forms across five CC0 sources
 // retain their crown proportions, with understory clustered below the broadleaf canopy.
 import * as THREE from 'three';
 import { makeRng } from '../physics/atmosphere.js';
@@ -62,7 +62,7 @@ export async function addWoodland(world,photo,approachPhoto) {
       .replace('#include <map_pars_fragment>',`#include <map_pars_fragment>
       vec4 treeTexel(float view,float elevation){
         vec2 tileUV=mix(vec2(.004),vec2(.996),vTreeUV);
-        return texture2D(map,vec2((view+tileUV.x)*.25,(20.0-vTreeRow*3.0-elevation+tileUV.y)/21.0));
+        return texture2D(map,vec2((view+tileUV.x)*.25,(${atlas.rows*3-1}.0-vTreeRow*3.0-elevation+tileUV.y)/${atlas.rows*3}.0));
       }
       vec4 treePremultiplied(vec4 c){return vec4(c.rgb*c.a,c.a);}`)
       .replace('#include <map_fragment>',`
@@ -102,8 +102,9 @@ export async function addWoodland(world,photo,approachPhoto) {
     // Mostly broadleaf woodland, with local groups of young pine/fir rather than
     // an alternating species pattern. Smaller saplings keep a believable scale.
     const conifer=groveNoise(x/170+27,z/170-19),choice=rng();
-    const row=choice<(conifer>.56?.55:.22)?(rng()<.4?1:4)+Math.floor(rng()*3):0;
-    const h=row===0?10+rng()*12:row<4?2.5+rng()*3.5:8+rng()*8;
+    const broadleaf=groveNoise(x/240-15,z/240+7);
+    const row=choice<(conifer>.56?.55:.22)?(rng()<.4?1:4)+Math.floor(rng()*3):broadleaf<.4?8:broadleaf>.6?7:0;
+    const h=row===0?10+rng()*12:row===7?14+rng()*8:row===8?10+rng()*7:row<4?2.5+rng()*3.5:8+rng()*8;
     const w=Math.min(23.5,h*atlas.species[row].aspect*(.88+rng()*.24));
     const type=Math.floor(rng()*4),key=`${Math.floor(x/(low?2000:1000))}:${Math.floor(z/(low?2000:1000))}`;
     if(!patches.has(key))patches.set(key,[]);
