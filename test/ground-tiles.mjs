@@ -31,8 +31,9 @@ try{
         if(changedAt===null&&now.some((t,i)=>t!==settled[i])){changedAt=frames;early=d.uploading>0;}
         if(frames%20===0)await new Promise(done=>setTimeout(done,0));   // decodes finish between frames
       }
-      while(d.uploading){d.update(new T.Vector3(5000,200,0));await new Promise(done=>setTimeout(done,0));}
-      await d.ready;
+      // keep flying frames (as the game does) until the new set is on screen
+      let ready=false;d.ready.then(()=>{ready=true;});
+      while(!ready){d.update(new T.Vector3(5000,200,0));await new Promise(done=>setTimeout(done,0));}
       R.copyTextureToTexture=copy;
       // The resident copy against the image itself, decoded by a 2D canvas: first and last rows.
       const [id,entry]=[...d.cache].find(([,e])=>e.texture);
