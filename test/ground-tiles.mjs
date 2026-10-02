@@ -45,7 +45,10 @@ try{
       // copy level 0 of the tile into a plain target to read it back
       const quad=new T.Mesh(new T.PlaneGeometry(2,2),new T.ShaderMaterial({uniforms:{map:{value:entry.texture}},
         vertexShader:'varying vec2 vUv;void main(){vUv=uv;gl_Position=vec4(position.xy,0.,1.);}',
-        fragmentShader:'uniform sampler2D map;varying vec2 vUv;void main(){gl_FragColor=textureLod(map,vUv,0.);}'}));
+        // the tile is sRGB: sampling returns linear values, so encode them back for the comparison
+        fragmentShader:`uniform sampler2D map;varying vec2 vUv;
+          vec3 srgb(vec3 c){return mix(c*12.92,1.055*pow(c,vec3(1./2.4))-.055,step(.0031308,c));}
+          void main(){gl_FragColor=vec4(srgb(textureLod(map,vUv,0.).rgb),1.);}`}));
       const scene=new T.Scene();scene.add(quad);const prev=R.getRenderTarget(),tone=R.toneMapping;
       R.setRenderTarget(target);R.render(scene,new T.Camera());R.setRenderTarget(prev);
       let worst=0;
