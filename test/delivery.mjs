@@ -31,7 +31,7 @@ try{
     const flight=(await resources()).slice(prepared.length).map(r=>r.name.replace(url,''));
     const status=await page.evaluate(()=>({errors:window.__sim.world.assetErrors,trees:window.__sim.world.nearWoodland?.pools.length||0}));
     assert.deepEqual(flight,[],'A flight downloads nothing: its scenery is already prepared');
-    assert.deepEqual(errors,[]);assert.deepEqual(status.errors,[]);assert.equal(status.trees,tier==='high'?7:0);
+    assert.deepEqual(errors,[]);assert.deepEqual(status.errors,[]);assert.equal(status.trees,tier==='high'?9:0);
     const result={tier,startupBytes:sum(startup),preparedBytes:sum(prepared)};report.push(result);console.log(result);
     await page.close();
   }

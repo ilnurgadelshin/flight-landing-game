@@ -542,7 +542,7 @@ airport and perimeter-road lights that glow.
 
 Computers use **automatic quality** at an initial 1× render scale. A brief rendered-frame
 check retains high quality only when at least 90% of sampled frames take no more than
-22.5 ms. During flight, adaptive resolution holds a **steady 60 fps**: 40–55 fps is not
+22.5 ms. During flight, adaptive resolution targets **60 fps**: 40–55 fps is not
 accepted, because on a 60 Hz screen it alternates 16.7 and 33 ms frames and judders. When the
 average of 2 s of frames misses 60 fps (above 17.5 ms) the resolution steps down; ten seconds
 of clean 60 fps try a step up (toward the screen's native pixel ratio, capped at 1.5×), which is
@@ -564,14 +564,17 @@ density: the menu appears after those. The detailed scenery then **loads behind 
 the full aerial photographs, every ground detail tile (only the four nearest are on the
 graphics card at a time; the others wait in memory, so a flight decodes them rather than
 downloading them), buildings, roads, woodland, parked aircraft and, on high, the nearby 3D
-trees. Every shader is then compiled and every texture and buffer uploaded (tiny off-screen
-frames with nothing culled, one material at a time between menu frames). A flight starts once that is done, so nothing sharpens,
-appears or stalls in its first minutes; pressing Start earlier shows the progress (a very slow
+trees. The current scene is then warmed with shader compilation and texture/buffer uploads
+(tiny off-screen frames, one material at a time between menu frames). A flight starts once
+that preparation is done; pressing Start earlier shows progress (a very slow
 connection still gets its flight after a minute, and the rest streams in). Asset failures
-retain the existing fallback surfaces and do not prevent flight.
+retain the existing fallback surfaces and do not prevent flight. Preloading reduces visible
+arrivals and first-use work; later tile decoding/uploads, scenario changes and the first cabin
+reflection capture can still stall. Preparation includes the authored facade kits and all
+five nearby-tree models on high quality.
 
 Shadows are drawn only when they change. The airport's large sun shadow map is static; it is
-redrawn when scenery arrives and when the set of nearby 3D trees changes, at most once a second.
+redrawn when scenery arrives and when nearby 3D trees or their fades change, at most once a second for tree updates.
 The flight deck's shadow map follows the aircraft every frame, so it holds only what casts a
 visible shadow: modeled lettering (flush with the panels, but half the deck's triangles) and
 parts under 3 cm receive shadows without casting them.
@@ -589,8 +592,9 @@ The visual assets are bundled locally and need no map service, account or API ke
   the scenery uses Pennsylvania imagery repositioned around fictional Westhaven,
   rather than reproducing a real airport. Sixteen local detail tiles sharpen the last
   8 km of the approach, sampled at 0.5 m/px on high and 1 m/px on low, with four loaded
-  at a time. The underlying NAIP survey is generally 0.6 m. Close woodland uses seven
-  authored broadleaf, pine and fir forms, baked into 84 canopy views from CC0 models.
+  at a time. The underlying NAIP survey is generally 0.6 m. Close woodland uses nine
+  authored forms from three broadleaf sources plus pine and fir, baked into 108 canopy views
+  from CC0 models. Spatial grouping varies the mature crown silhouettes.
   On high quality, nearby crowns transition to the same models' 3D branches and leaves
   within 180 m, with fixed instance and triangle budgets. Distant and low-quality trees
   use camera-facing quads blending four azimuths and side/oblique/overhead elevations,
@@ -600,14 +604,18 @@ The visual assets are bundled locally and need no map service, account or API ke
   Houses have a principal entrance bay; nearby high-quality windows have beveled frames,
   smoother panes and matching ledges. Wall roughness and siding relief separate the
   materials. Roof gables remain solid, and projected ground shadows have feathered edges.
+  Selected close-approach buildings (40 high / 16 low) use CC0 Poly Haven wall modules
+  with authored textures, recessed windows and doors, merged into spatial batches. Roofs
+  and unselected buildings retain their procedural forms.
   Five additional farm roofs traced from the public-domain imagery fill prominent gaps
   in the source footprints, with interpreted corrugated roofs and agricultural facades.
   Two imagery-checked valley roads use public-domain Census centerlines, terrain-following
   pavement and roadside markers. Woodland crowns leave clearance around buildings and roads.
 - **Scanned grass and asphalt materials** add surface detail around the runway,
   taxiways and apron. Nearby fields and soil gain finer scanned colour, normal and roughness
-  detail while retaining the aerial imagery's boundaries. The airport retains its terminal glazing, jet bridges and vehicles,
-  with authored **B737 and A320** models on the stands.
+  detail while retaining the aerial imagery's boundaries. Five glazed gate halls with curved
+  metal roofs and recessed structural bays replace the long terminal slab, joined by a low
+  concourse. Jet bridges and vehicles remain, with authored **B737 and A320** models on the stands.
 
 The desktop cockpit has about 1.02 million triangles and an 8.2 MB download. The lighter
 phone model has about 420,000 triangles and a 3.6 MB download, omits tiny molded labels,
@@ -1241,6 +1249,15 @@ are in [`test/PLAYTEST-FINDINGS.md`](test/PLAYTEST-FINDINGS.md).
 woodland separation from buildings/roads, both graphics tiers and missing-data fallback.
 It saves captain, village, close-building, ground-level and night views in `test/output/approach-*.png`.
 
+`npm run test:scenery` checks the imported facade kits on both tiers, their geometry budgets
+and missing-kit fallback, and captures airport, building and woodland views. The Node asset
+suite checks wall bounds/recess depth, payload budgets and leaf alpha masks in all five tree GLBs.
+`node test/streaming-flight.mjs current` runs a real-time autoland with normal scenery streaming
+and a cold browser resource cache through the real Start handler, recording the preparation
+wait separately from in-flight frame stalls and resource timing. `BENCHMARK_AUTO=1` also
+checks desktop automatic quality with a 2× device pixel ratio. These two
+review scripts use macOS Metal; local transfer timing is not an Internet download benchmark.
+
 `node test/render-benchmark.mjs current` measures the renderer on macOS Metal, rejects
 software rendering, and saves frame-time percentiles and draw counts. The measured M2 Pro
 comparison and its limits are in [`test/RENDER-PERFORMANCE.md`](test/RENDER-PERFORMANCE.md).
@@ -1253,13 +1270,17 @@ head-up, navigation, pedestal, overhead, night, airport and close-approach weath
 in `test/output/rebuild-*.png`.
 It uses the actual game renderer and requires Playwright Chromium, like the browser suite.
 
+`node test/performance-integration.mjs` checks tree-shadow refresh through LOD fades, stable
+shadow caching, warm-up cancellation and the UI Start gate (duplicate presses and timeout
+fallback). It uses the same renderer backend selection as the other graphics checks.
+
 `npm run test:lighting` checks rendered panel readability through repeated day/night/weather
 changes, finite cabin-reflection pixels, capture reuse across cloud layers, resource disposal
 and missing-scan fallback on both graphics tiers. A rendered shader check covers zero and
 near-zero surface derivatives, preserving the normal without losing ordinary bump detail.
 It also injects invalid reflection pixels
 and a failed capture, checking that the cockpit stays lit and the failure is not retried
-every frame. `node test/delivery.mjs` checks actual startup requests, the scenery prepared behind the menu (after which a flight downloads nothing) and
+every frame. `node test/delivery.mjs` checks actual startup requests, the scenery prepared behind the menu (then no further scenery downloads in the tested flight) and
 foreground quality selection after a hidden-tab startup under deliberately slow frame pacing.
 Node checks cover interrupted calibration, Retina resolution recovery/backoff and the steady
 60 fps target (a modelled GPU: no 40–55 fps judder, effects before resolution, probed step-ups).

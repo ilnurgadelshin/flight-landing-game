@@ -24,14 +24,15 @@ for(const name of assets){
     }
     node.setTranslation([0,0,0]).setRotation([0,0,0,1]).setScale([1,1,1]);
   }
-  const alpha=await sharp(`${folder}/leaves-alpha.png`).greyscale().raw().toBuffer();
+  const alpha=await sharp(`${folder}/leaves-alpha.png`).removeAlpha().greyscale().raw().toBuffer();
   for(const material of doc.getRoot().listMaterials()){
     material.setMetallicFactor(0).setRoughnessFactor(1);
     material.setMetallicRoughnessTexture(null).setOcclusionTexture(null);
     for(const extension of material.listExtensions())material.setExtension(extension.extensionName,null);
     if(/leaves|twig/.test(material.getName())){
       const texture=material.getBaseColorTexture(),{width,height}=await sharp(texture.getImage()).metadata();
-      texture.setImage(await sharp(texture.getImage()).removeAlpha().joinChannel(alpha,{raw:{width,height,channels:1}}).png().toBuffer()).setMimeType('image/png');
+      const rgb=await sharp(texture.getImage()).removeAlpha().toBuffer();
+      texture.setImage(await sharp(rgb).joinChannel(alpha,{raw:{width,height,channels:1}}).png().toBuffer()).setMimeType('image/png');
       material.setAlphaMode('MASK').setAlphaCutoff(.35).setDoubleSided(true);
     }
   }

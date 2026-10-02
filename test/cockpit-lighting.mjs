@@ -2,6 +2,7 @@
 // black cabin after a day/night change. VISUAL_GPU=metal selects macOS hardware.
 import {chromium} from 'playwright';
 import {startServer} from './server.mjs';
+import {completeScenery} from './scene-ready.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 const {server,url}=await startServer(process.cwd());
@@ -17,7 +18,7 @@ try{
     await page.goto(url+'/?quality='+tier);
     try{await page.waitForFunction(()=>window.__sim,null,{timeout:120000});}
     catch(error){throw new Error(`${tier} failed to initialize: ${errors.join('\n')||error.message}`);}
-    await page.evaluate(()=>window.__sim.setDrawing(false));
+    await completeScenery(page); // Match normal Start; do not probe captures during background warm-up.
     if(tier==='high'){
       // Exercise the production GLSL with collapsed derivatives explicitly. Real
       // zero-area source triangles only trigger this on some drivers/cube views.
@@ -104,6 +105,7 @@ try{
   const fallback=await browser.newPage({viewport:{width:1024,height:576}});
   await fallback.route('**/assets/cockpit/*.webp',route=>route.abort());
   await fallback.goto(url+'/?quality=high');await fallback.waitForFunction(()=>window.__sim,null,{timeout:120000});
+  await completeScenery(fallback);
   const recovered=await fallback.evaluate(()=>{
     const s=window.__sim;s.setDrawing(false);s.drawNow();
     return {loaded:s.cockpit.modelLoaded,...s.cockpit.authoredModel.userData.surfaceDetail};

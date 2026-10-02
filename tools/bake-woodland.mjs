@@ -19,15 +19,16 @@ try {
     const renderer=new T.WebGLRenderer({alpha:true,antialias:true,preserveDrawingBuffer:true});renderer.setSize(256,256);renderer.outputColorSpace=T.SRGBColorSpace;renderer.shadowMap.enabled=true;renderer.shadowMap.type=T.PCFSoftShadowMap;renderer.setClearColor(0,0);
     const camera=new T.OrthographicCamera(-.56,.56,1.04,-.04,.01,20);camera.position.set(0,0,4);camera.lookAt(0,0,0);
     window.bake={T,GLTFLoader,scene,renderer,camera};
-    const atlas=window.atlas=document.createElement('canvas');atlas.width=1024;atlas.height=5376;
+    const atlas=window.atlas=document.createElement('canvas');atlas.width=1024;atlas.height=6912;
   });
   const species=[];
-  const variants=[['tree_small_02',null],...['pine_sapling_small','fir_sapling_medium'].flatMap(name=>['a','b','c'].map(variant=>[name,variant]))];
+  const variants=[['tree_small_02',null],...['pine_sapling_small','fir_sapling_medium'].flatMap(name=>['a','b','c'].map(variant=>[name,variant])),['jacaranda_tree',null],['island_tree_02',null]];
   for(const [row,[name,variant]] of variants.entries()){
     const framing=await page.evaluate(async ({row,name,variant})=>{
       const {T,GLTFLoader,scene,renderer,camera}=window.bake;
-      const folder=name==='tree_small_02'?'/test/output/tree-source':`/test/output/tree-variety-source/${name}`;
-      const {scene:source}=await new GLTFLoader().loadAsync(`${folder}/tree.gltf`);
+      const additional=['jacaranda_tree','island_tree_02'].includes(name);
+      const folder=additional?`/test/output/authored-sources/${name}`:name==='tree_small_02'?'/test/output/tree-source':`/test/output/tree-variety-source/${name}`;
+      const {scene:source}=await new GLTFLoader().loadAsync(`${folder}/${additional?'source':'tree'}.gltf`);
       const model=variant?source.children.find(o=>o.name===`${name}_${variant}`||o.name===`${name}_${variant}_LOD0`):source;
       if(!model)throw new Error(`Missing ${name} ${variant}`);
       model.removeFromParent();model.position.set(0,0,0);
@@ -60,7 +61,7 @@ try {
   const data=await page.evaluate(()=>window.atlas.toDataURL('image/png').split(',')[1]);
   const source=Buffer.from(data,'base64');
   await sharp(source).webp({quality:90,alphaQuality:100}).toFile('assets/scenery/tree-variety.webp');
-  await sharp(source).resize(512,2688).webp({quality:90,alphaQuality:100}).toFile('assets/scenery/tree-variety-low.webp');
-  await fs.writeFile('assets/scenery/tree-variety.json',JSON.stringify({license:'CC0-1.0',columns:4,rows:7,elevations:[0,45,90],tileSize:256,species},null,2)+'\n');
-  console.log('Baked 84 canopy views into the high and low WebP atlases');
+  await sharp(source).resize(512,3456).webp({quality:90,alphaQuality:100}).toFile('assets/scenery/tree-variety-low.webp');
+  await fs.writeFile('assets/scenery/tree-variety.json',JSON.stringify({license:'CC0-1.0',columns:4,rows:9,elevations:[0,45,90],tileSize:256,species},null,2)+'\n');
+  console.log('Baked 108 canopy views into the high and low WebP atlases');
 }finally{await browser.close();server.close();}

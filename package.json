@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "npx http-server -p 8080 -c-1 .",
-    "test": "node test/physics.test.mjs && node test/terrain.test.mjs && node test/window-light.test.mjs && node test/graphics-quality.test.mjs && node test/phone.test.mjs && node test/gamepad.test.mjs && node test/weather-assets.test.mjs && node test/sky.test.mjs && node test/hud.test.mjs && node test/nav.test.mjs && node test/game.test.mjs && node test/cockpit-asset.test.mjs",
+    "test": "node test/physics.test.mjs && node test/terrain.test.mjs && node test/window-light.test.mjs && node test/graphics-quality.test.mjs && node test/phone.test.mjs && node test/gamepad.test.mjs && node test/weather-assets.test.mjs && node test/authored-assets.test.mjs && node test/sky.test.mjs && node test/hud.test.mjs && node test/nav.test.mjs && node test/game.test.mjs && node test/cockpit-asset.test.mjs",
     "test:assets": "node test/cockpit-asset.test.mjs",
     "test:e2e": "node test/e2e-parallel.mjs",
     "test:e2e:quick": "node test/e2e-parallel.mjs quick",
@@ -14,7 +14,8 @@
     "test:lighting": "node test/cockpit-lighting.mjs",
     "test:delivery": "node test/delivery.mjs",
     "test:all": "npm test && node test/e2e-parallel.mjs",
-    "test:vegetation": "node test/vegetation-weather.mjs"
+    "test:vegetation": "node test/vegetation-weather.mjs",
+    "test:scenery": "node test/authored-scenery.mjs"
   },
   "license": "MIT",
   "dependencies": {

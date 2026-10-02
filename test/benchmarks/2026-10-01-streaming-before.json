@@ -1,0 +1,405 @@
+{
+  "seconds": 126.0177999997139,
+  "frames": 7306,
+  "fps": 57.978789254322734,
+  "p50Ms": 16.69999999999709,
+  "p95Ms": 16.79999999998836,
+  "p99Ms": 16.80000000000291,
+  "worstMs": 1183.4,
+  "over50Ms": 13,
+  "over100Ms": 11,
+  "worstFrames": [
+    {
+      "seconds": 2.1325,
+      "ms": 1183.4,
+      "x": 8716.549779490251
+    },
+    {
+      "seconds": 3.249,
+      "ms": 1099.9,
+      "x": 8642.985929943885
+    },
+    {
+      "seconds": 0.9490999999999999,
+      "ms": 533.1999999999998,
+      "x": 8789.515004468281
+    },
+    {
+      "seconds": 0.31579999999999997,
+      "ms": 316.5999999999999,
+      "x": 8835.70878254046
+    },
+    {
+      "seconds": 74.8462,
+      "ms": 183.39999999999418,
+      "x": 3353.735496561534
+    },
+    {
+      "seconds": 20.965,
+      "ms": 183.29999999999927,
+      "x": 7328.532433649122
+    },
+    {
+      "seconds": 60.1134,
+      "ms": 166.70000000000437,
+      "x": 4440.388357903164
+    },
+    {
+      "seconds": 33.0645,
+      "ms": 166.6999999999971,
+      "x": 6426.044391644569
+    },
+    {
+      "seconds": 6.3822,
+      "ms": 166.59999999999945,
+      "x": 8414.787725728425
+    },
+    {
+      "seconds": 47.813900000000004,
+      "ms": 166.59999999999854,
+      "x": 5342.6655452924115
+    },
+    {
+      "seconds": 3.5656999999999996,
+      "ms": 150,
+      "x": 8619.887954588667
+    },
+    {
+      "seconds": 0.4159000000000001,
+      "ms": 50.100000000000136,
+      "x": 8827.808843798191
+    }
+  ],
+  "streamed": [
+    {
+      "file": "/assets/scenery/approach-infill.json",
+      "seconds": 0.32209999990463256,
+      "durationMs": 3.0999999046325684,
+      "bytes": 4673
+    },
+    {
+      "file": "/assets/scenery/approach-buildings.json",
+      "seconds": 0.3221999998092651,
+      "durationMs": 6.599999904632568,
+      "bytes": 439967
+    },
+    {
+      "file": "/assets/scenery/approach-roads.json",
+      "seconds": 0.32259999990463256,
+      "durationMs": 2.5999999046325684,
+      "bytes": 31777
+    },
+    {
+      "file": "/assets/scenery/detail/manifest.json",
+      "seconds": 0.3226999998092651,
+      "durationMs": 4.200000286102295,
+      "bytes": 7342
+    },
+    {
+      "file": "/assets/models/B737.glb",
+      "seconds": 0.3231999998092651,
+      "durationMs": 4.800000190734863,
+      "bytes": 174108
+    },
+    {
+      "file": "/assets/scenery/region.webp",
+      "seconds": 0.3232999997138977,
+      "durationMs": 24.300000190734863,
+      "bytes": 1122250
+    },
+    {
+      "file": "/assets/models/A320.glb",
+      "seconds": 0.3232999997138977,
+      "durationMs": 5.300000190734863,
+      "bytes": 250472
+    },
+    {
+      "file": "/assets/scenery/grass-color.jpg",
+      "seconds": 0.3235,
+      "durationMs": 17.40000009536743,
+      "bytes": 277959
+    },
+    {
+      "file": "/assets/scenery/grass-rough.jpg",
+      "seconds": 0.3235,
+      "durationMs": 17.09999990463257,
+      "bytes": 203308
+    },
+    {
+      "file": "/assets/scenery/grass-normal.jpg",
+      "seconds": 0.3235,
+      "durationMs": 36,
+      "bytes": 301488
+    },
+    {
+      "file": "/assets/scenery/asphalt-color.jpg",
+      "seconds": 0.3235,
+      "durationMs": 36.90000009536743,
+      "bytes": 382370
+    },
+    {
+      "file": "/assets/scenery/approach.webp",
+      "seconds": 0.3235,
+      "durationMs": 45.59999990463257,
+      "bytes": 4439290
+    },
+    {
+      "file": "/assets/scenery/final-approach.webp",
+      "seconds": 0.3235,
+      "durationMs": 47.69999980926514,
+      "bytes": 3593208
+    },
+    {
+      "file": "/assets/scenery/airport.webp",
+      "seconds": 0.3235,
+      "durationMs": 48.69999980926514,
+      "bytes": 3669750
+    },
+    {
+      "file": "/assets/scenery/asphalt-normal.jpg",
+      "seconds": 0.32359999990463256,
+      "durationMs": 37.30000019073486,
+      "bytes": 150931
+    },
+    {
+      "file": "/assets/scenery/asphalt-rough.jpg",
+      "seconds": 0.32359999990463256,
+      "durationMs": 41.30000019073486,
+      "bytes": 161682
+    },
+    {
+      "file": "/assets/scenery/tree-variety.json",
+      "seconds": 0.9592999997138977,
+      "durationMs": 4,
+      "bytes": 1697
+    },
+    {
+      "file": "/assets/scenery/detail/8_-1.webp",
+      "seconds": 0.9596999998092651,
+      "durationMs": 13.200000286102295,
+      "bytes": 725792
+    },
+    {
+      "file": "/assets/scenery/detail/8_0.webp",
+      "seconds": 0.9597999997138977,
+      "durationMs": 13.200000286102295,
+      "bytes": 803934
+    },
+    {
+      "file": "/assets/scenery/detail/7_-1.webp",
+      "seconds": 0.9597999997138977,
+      "durationMs": 12.200000286102295,
+      "bytes": 710294
+    },
+    {
+      "file": "/assets/scenery/detail/7_0.webp",
+      "seconds": 0.9599000000953675,
+      "durationMs": 13.099999904632568,
+      "bytes": 792914
+    },
+    {
+      "file": "/assets/scenery/detail/9_-1.webp",
+      "seconds": 2.134,
+      "durationMs": 7.599999904632568,
+      "bytes": 789848
+    },
+    {
+      "file": "/assets/scenery/detail/9_0.webp",
+      "seconds": 2.1340999999046324,
+      "durationMs": 7.699999809265137,
+      "bytes": 881924
+    },
+    {
+      "file": "/assets/scenery/tree-variety.webp",
+      "seconds": 2.1434000000953675,
+      "durationMs": 2.5999999046325684,
+      "bytes": 484430
+    },
+    {
+      "file": "/assets/scenery/tree_small_02-near.glb",
+      "seconds": 2.8135999999046324,
+      "durationMs": 487.90000009536743,
+      "bytes": 3264804
+    },
+    {
+      "file": "/assets/scenery/pine_sapling_small-near.glb",
+      "seconds": 2.8136999998092653,
+      "durationMs": 17.09999990463257,
+      "bytes": 1832468
+    },
+    {
+      "file": "/assets/scenery/fir_sapling_medium-near.glb",
+      "seconds": 2.8136999998092653,
+      "durationMs": 501.7000002861023,
+      "bytes": 5633612
+    },
+    {
+      "file": "/assets/scenery/detail/7_-1.webp",
+      "seconds": 6.204799999713898,
+      "durationMs": 8.900000095367432,
+      "bytes": 710294
+    },
+    {
+      "file": "/assets/scenery/detail/7_0.webp",
+      "seconds": 6.204900000095368,
+      "durationMs": 9.099999904632568,
+      "bytes": 792914
+    },
+    {
+      "file": "/assets/scenery/detail/6_-1.webp",
+      "seconds": 20.75459999990463,
+      "durationMs": 12.800000190734863,
+      "bytes": 824812
+    },
+    {
+      "file": "/assets/scenery/detail/6_0.webp",
+      "seconds": 20.754699999809265,
+      "durationMs": 13.400000095367432,
+      "bytes": 800462
+    },
+    {
+      "file": "/assets/scenery/detail/5_0.webp",
+      "seconds": 32.87090000009537,
+      "durationMs": 18.59999990463257,
+      "bytes": 773950
+    },
+    {
+      "file": "/assets/scenery/detail/5_-1.webp",
+      "seconds": 32.871,
+      "durationMs": 18.199999809265137,
+      "bytes": 702602
+    },
+    {
+      "file": "/assets/scenery/detail/4_0.webp",
+      "seconds": 47.6195,
+      "durationMs": 17.699999809265137,
+      "bytes": 723794
+    },
+    {
+      "file": "/assets/scenery/detail/4_-1.webp",
+      "seconds": 47.61959999990463,
+      "durationMs": 17.300000190734863,
+      "bytes": 691466
+    },
+    {
+      "file": "/assets/scenery/detail/3_0.webp",
+      "seconds": 59.935,
+      "durationMs": 11.599999904632568,
+      "bytes": 713096
+    },
+    {
+      "file": "/assets/scenery/detail/3_-1.webp",
+      "seconds": 59.93509999990463,
+      "durationMs": 11.599999904632568,
+      "bytes": 648258
+    },
+    {
+      "file": "/assets/scenery/detail/2_0.webp",
+      "seconds": 74.63590000009536,
+      "durationMs": 23.5,
+      "bytes": 736802
+    },
+    {
+      "file": "/assets/scenery/detail/2_-1.webp",
+      "seconds": 74.636,
+      "durationMs": 23.90000009536743,
+      "bytes": 847366
+    }
+  ],
+  "result": {
+    "outcome": "success",
+    "headline": "Excellent landing, Captain",
+    "score": 100,
+    "grade": "A",
+    "items": [
+      {
+        "label": "Vertical speed at touchdown",
+        "value": "115 fpm",
+        "points": 25,
+        "max": 25,
+        "note": "Greaser! Textbook touchdown.",
+        "ok": true
+      },
+      {
+        "label": "Touchdown point",
+        "value": "478 m past the threshold",
+        "points": 20,
+        "max": 20,
+        "note": "In the aiming zone.",
+        "ok": true
+      },
+      {
+        "label": "Centreline",
+        "value": "0.0 m left",
+        "points": 15,
+        "max": 15,
+        "note": "On the centreline.",
+        "ok": true
+      },
+      {
+        "label": "Airspeed at touchdown",
+        "value": "140 kts (Vref 142)",
+        "points": 15,
+        "max": 15,
+        "note": "Speed on target.",
+        "ok": true
+      },
+      {
+        "label": "Alignment",
+        "value": "0.1° crab, 0.1° bank",
+        "points": 15,
+        "max": 15,
+        "note": "Aligned with the runway, wings level.",
+        "ok": true
+      },
+      {
+        "label": "Configuration",
+        "value": "Flaps 30, gear down",
+        "points": 5,
+        "max": 5,
+        "note": "Landing flaps set.",
+        "ok": true
+      },
+      {
+        "label": "Stopping",
+        "value": "612 m roll-out",
+        "points": 5,
+        "max": 5,
+        "note": "Stopped after a 612 m roll-out using reversers, speedbrakes, brakes.",
+        "ok": true
+      }
+    ],
+    "failures": [],
+    "notes": [],
+    "touchdown": {
+      "t": 107.19166666669804,
+      "sink": 0.5836785279180173,
+      "ias": 139.76423023079647,
+      "groundSpeed": 70.26890340533396,
+      "alongRunway": 477.86005464645496,
+      "distFromThreshold": 477.86005464645496,
+      "lateralOffset": -0.03553324561757457,
+      "bank": -0.0009932442365948135,
+      "pitch": 0.0661623572857631,
+      "crabDeg": -0.07984508454883059,
+      "gearDown": true,
+      "flapIndex": 4,
+      "flapDeg": 30,
+      "surface": "runway",
+      "onRunway": true,
+      "direction": "27",
+      "x": 1013.3643285156334,
+      "z": 0.03313800789215193,
+      "gLoad": 1.1871260787489328,
+      "speedbrakeArmed": false,
+      "hull": false
+    },
+    "rollDistance": 612.1815703357104,
+    "success": true
+  },
+  "errors": [],
+  "pixelRatio": 1,
+  "nearTrees": 0,
+  "browser": "141.0.7390.37",
+  "method": "1440x900, forced high at fixed 1x, real-time physics/autoland, cold browser resource cache, normal optional streaming, local HTTP server, ANGLE Metal."
+}

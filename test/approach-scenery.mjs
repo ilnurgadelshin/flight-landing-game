@@ -82,13 +82,13 @@ try{
     console.log(tier,stats);
     assert.equal(stats.count,data.buildings.length+infill.buildings.length);assert.equal(stats.infillCount,5);assert.equal(stats.downwardRoofVertices,0);
     if(tier==='high'){
-      assert.ok(stats.windowSurfaces>5);assert.equal(stats.nearForms,7);assert.ok(stats.nearCount>5&&stats.nearCount<=48);assert.ok(stats.nearTriangles>10000&&stats.nearTriangles<=2400000);assert.ok(stats.fadedCards>5);
-      assert.equal(treeRequests.length,3);
+      assert.ok(stats.windowSurfaces>5);assert.equal(stats.nearForms,9);assert.ok(stats.nearCount>5&&stats.nearCount<=48);assert.ok(stats.nearTriangles>10000&&stats.nearTriangles<=2400000);assert.ok(stats.fadedCards>5);
+      assert.equal(treeRequests.length,5);
     }else {assert.equal(stats.nearForms,0);assert.equal(treeRequests.length,0);}
     assert.ok(stats.softShadowVertices>100&&stats.transparentShadowVertices>100);assert.equal(stats.intrudingTrees,0);assert.deepEqual(stats.assetErrors,[]);assert.ok(stats.trees>5000);
     assert.equal(stats.roadSections,3);assert.ok(stats.roadsFaceUp);
     assert.ok(stats.groundError<.001,'Scenery must meet the actual rendered terrain on this tier');
-    assert.equal(stats.treeForms.length,7);assert.ok(stats.treeForms.every(n=>n>50));
+    assert.equal(stats.treeForms.length,9);assert.ok(stats.treeForms.every(n=>n>50));
     assert.equal(stats.facadeProfiles.length,12);assert.ok(stats.facadeProfiles.every(n=>n>0));
     assert.ok(stats.largestCache<=4);assert.deepEqual(stats.detailErrors,[]);
     assert.equal(stats.residentTiles.length,4);assert.ok(stats.residentTiles.every(([x,y])=>x===(tier==='high'?2064:1032)&&y===x));
@@ -104,7 +104,9 @@ try{
           const camera=new T.PerspectiveCamera(50,innerWidth/innerHeight,1,60000);
           if(shot==='woodland'){
             w.nearWoodland.settle(new T.Vector3(2530,18,352));
-            const t=[...w.nearWoodland.active.values()].find(s=>s.t.row===0&&s.fade>.7).t;
+            const stand=[...w.nearWoodland.active.values()].find(s=>(s.t.row===0||s.t.row>=7)&&s.fade>.7);
+            if(!stand)throw new Error('Expected a visible mature broadleaf tree for the close-up');
+            const t=stand.t;
             camera.position.set(t.x+26,t.y+11,t.z+24);camera.lookAt(t.x,t.y+t.h*.5,t.z);
           }
           else if(shot==='ground'){

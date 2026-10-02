@@ -195,7 +195,11 @@ Body bytes exclude the HTML document and HTTP overhead. The two canopy atlases s
 bytes** overall. Scenery/model streaming and decoding stalls remain outside this warmed
 benchmark. No claims are made about other hardware or the unavailable local SwiftShader backend.
 
-## Smooth flight on a MacBook Pro — 2026-10-01
+## Remote performance changes — 2026-10-01
+
+The following measurements and diagnosis were supplied with remote commits `858f9d5` /
+`e0b0b69`, before integration with the authored facade/tree work. The integration section
+below records the local M2 measurements and corrections.
 
 Reported on an M2 MacBook Pro after `e5cc6ed`: sharper trees and ground appeared during the
 flight, with low-detail artefacts first, and flying felt laggy. Causes, as measured (SwiftShader
@@ -227,9 +231,178 @@ counts what is submitted, not how fast an M2 draws it):
    views 0.08% of pixels change, around the thrust-lever knob lettering.
 4. **Adaptive resolution settled into judder.** It stepped down only below 40 fps and up above
    55 fps, so on the M2 it climbed past 1× and stayed at 40–55 fps, which on a 60 Hz screen
-   alternates 16.7 and 33 ms frames. Desktop auto mode now holds 60 fps: steps down above 17.5 ms
+   alternates 16.7 and 33 ms frames. Desktop auto mode now targets 60 fps: steps down above 17.5 ms
    (2 s average), keeps a step up only if the following 2 s stay clean, and switches the high
    tier's effects off before going below 1×. Phones keep their thresholds. Modelled in
    `test/graphics-quality.test.mjs`.
 
-The frame rate on the M2 itself is to be confirmed on that machine.
+At the time of those remote commits, hardware frame rates on the M2 had not been measured.
+
+
+## Authored facades, gate halls and mature trees — 2026-10-01
+
+Baseline is `e5cc6ed`, including the preceding cloud/vegetation optimization. The intermediate
+snapshot contains only the new facade kits and airport halls; the final snapshot also includes
+two new broadleaf forms and repaired alpha masks in all nearby tree models. Reports are
+`benchmarks/2026-10-01-architecture-{before,stage,final}.json`. All runs use the same Apple
+M2 Pro, Chromium 141.0.7390.37 / ANGLE Metal, 1440×900 CSS, **high 1.5× / low 1×**, four-second
+warm-up and twelve-second sampling per scene. GPU tests run sequentially; all optional assets
+are loaded and physics is paused in this first comparison.
+
+| High scene | Before FPS | Architecture FPS | Final FPS | Final p95 |
+| --- | ---: | ---: | ---: | ---: |
+| Captain | 41.5 | 41.4 | 42.1 | 33.4 ms |
+| Nearby | 52.6 | 53.9 | 55.3 | 33.3 ms |
+| Storm | 44.4 | 44.8 | 44.5 | 33.4 ms |
+
+Low stays at the 60 Hz ceiling, with p95 16.7–16.8 ms. Differences of a few FPS are within
+normal variation and do not prove an optimization. Captain draw calls rise from 938 to 947,
+with 2.45 → 2.63 million submitted triangles. The nearby view rises from 408 to 420 calls,
+but triangles fall from 2.10 to 1.48 million: the new, cheaper broadleaf forms replace some
+of the heavy original trees, allowing 32 visible instances versus 21 within the same budget.
+That comparison therefore measures different geometry, not just more species at equal cost.
+
+### Real-time flight with normal streaming
+
+`test/streaming-flight.mjs` runs a complete clear-weather short-final autoland at actual
+1× time, including physics, instruments and normal deferred scenery. Both runs use a fresh
+private browser/context, cold browser resource cache, 1440×900 and forced high at **fixed 1×**
+with adaptive resolution disabled. This differs from the 1.5× warmed benchmark above.
+Localhost tests transfer/decode/upload behavior, not Internet download speed; the OS file
+cache is not cleared. Reports are `benchmarks/2026-10-01-streaming-{before,after}.json`.
+
+| Metric | Before | Final |
+| --- | ---: | ---: |
+| Duration | 126.02 s | 125.88 s |
+| Average FPS | 57.98 | 57.92 |
+| p95 frame | 16.8 ms | 16.7 ms |
+| p99 frame | 16.8 ms | 16.8 ms |
+| Worst frame | 1,183.4 ms | 1,133.3 ms |
+| Frames over 50 ms | 13 | 13 |
+| Frames over 100 ms | 11 | 12 |
+| Landing result | 100 / A, success | 100 / A, success |
+
+The largest stalls occur in the first four seconds, while scenery arrives. Near-tree
+requests start at 2.81 s before / 3.32 s after in this short approach. Further 167–217 ms
+frames occur during descent as detail tiles change. Resource timing records overlap these
+pauses, but do not isolate JavaScript, decoding, shader compilation or GPU-upload cost.
+**Streaming stalls remain unresolved**, despite the approximately 58 FPS average. This test
+makes them visible rather than treating the warmed scene as complete performance evidence.
+
+### Delivery cost
+
+`benchmarks/2026-10-01-architecture-delivery.json` records actual resource body bytes:
+
+| Tier | Until menu | With scenery | Including near trees |
+| --- | ---: | ---: | ---: |
+| High | 13.94 MB | 37.09 MB | 51.49 MB |
+| Low | 8.54 MB | 14.02 MB | 14.02 MB |
+
+Both facade kits together add 2.51 MB high / 0.67 MB low, requested after flight starts.
+The two new nearby trees add 2.73 MB; restoring leaf alpha in the old three adds 0.94 MB.
+The nine-form atlases total 1.21 MB versus 0.83 MB for seven forms. Total streamed high-tier
+body bytes rise by approximately 6.42 MB from the preceding 45.07 MB measurement. No near-tree
+GLBs load on low. The download test still passes startup budgets and hidden-tab/slow-device
+quality selection. These are resource body sizes, excluding the main HTML and HTTP overhead.
+Neither these runs nor the low tier on this Mac establish performance on a phone, an ordinary
+laptop, another graphics driver or the unavailable local SwiftShader backend.
+
+
+## Remote performance integration — reviewed 2026-10-02
+
+Remote main advanced from `e5cc6ed` to `858f9d5` and `e0b0b69`. The comparison here keeps
+all local authored facades, terminal halls, nine canopy forms and repaired leaf alpha on
+both sides; only the remote performance work and the integration corrections differ.
+The baseline was preserved before pulling. No assets or cockpit shell geometry were removed.
+
+The optimizations fit the renderer's implementation: the airport shadow map is static,
+most cockpit lettering does not need a shadow-casting pass, and shaders/textures previously
+arrived during flight. Desktop auto mode's 60 FPS target is also reasonable as a pacing
+policy; it may trade high-tier effects for smoother frames, with explicit quality overrides
+still available. It is a target, not a guarantee on every device or display.
+
+Two corrections were needed:
+
+- Shadow invalidation must include **tree fade changes**, not only changed instance IDs.
+  Both the visible and depth shaders use the fade. A regression reproduced unchanged
+  membership with no completed-fade shadow refresh on the remote code. The integration
+  refreshes at the same one-second limit (1.017 s in the test), then stops redrawing once
+  trees settle.
+- A cancelled warm-up still compiled its first object, and asynchronous compilation could
+  finish after Start's timeout. Check cancellation before beginning and after that await.
+  The test now submits zero work when already cancelled and verifies renderer/object state
+  restoration. A held-asset UI test verifies duplicate Start suppression and that delayed
+  preparation does not warm the scene after the timeout has released the flight.
+
+The delivery check now expects the local **nine tree forms / five source models**. Lighting
+checks await menu preparation before inspecting captures; archived comparison helpers retain
+support for the former loader. Documentation no longer promises stall-free rendering.
+
+### Matched hardware measurements
+
+Apple M2 Pro, Chromium 141.0.7390.37 / ANGLE Metal, sequential private-browser runs. Warmed
+scenes use 1440×900 CSS, high **1.5×**, low **1×**, four seconds warm-up and twelve seconds
+sampling, with physics paused. Reports: `benchmarks/2026-10-02-merge-render-{before,after}.json`.
+
+| High scene | Before FPS | Integrated FPS | Integrated p95 |
+| --- | ---: | ---: | ---: |
+| Captain | 40.6 | 40.6 | 33.4 ms |
+| Nearby | 51.2 | 54.2 | 33.3 ms |
+| Storm | 43.5 | 44.9 | 33.4 ms |
+
+All low scenes remain near 60 FPS. Captain draw calls fall from 947 to 917; submitted
+triangles fall from 2,626,954 to 2,040,609 (586,345 fewer, about 22%). This is a real reduction
+in work, but the captain view's measured FPS is unchanged. Nearby/storm gains are modest;
+these short samples are not isolated GPU timings or evidence of high-tier 60 FPS.
+
+### Complete flight through the real Start handler
+
+Both runs use cold browser resource caches and the same clear-weather short-final autoland,
+1440×900 at forced high **fixed 1×**, with real-time physics and adaptive scaling disabled.
+Start is invoked immediately after the menu becomes available. Start wait ends at the first
+observed in-flight RAF; frame intervals begin after that observation, including normal frame
+work and tile changes. Reports: `benchmarks/2026-10-02-merge-flight-{before,after}.json`.
+
+| Metric | Local scenery before integration | Integrated |
+| --- | ---: | ---: |
+| Start → first flight frame | 0.60 s | 5.73 s |
+| Average FPS | 57.68 | 59.39 |
+| p95 / p99 frame | 16.8 / 16.8 ms | 16.7 / 16.8 ms |
+| Worst recorded interval | 1,216.6 ms | 183.3 ms |
+| Intervals over 100 ms | 13 | 8 |
+| Resource requests begun during flight | 69 | 0 |
+| Landing | success, 100/A | success, 100/A |
+
+Preparation removes the multi-second cluster of asset-arrival stalls from the flight, by
+moving much of that work behind the menu. It does **not** remove all stalls: tile decoding,
+GPU uploads and scenario/cabin work still produce approximately 183 ms intervals. Localhost
+wait times do not predict Internet download speed, mobile performance or a cold OS cache.
+
+The delivery check measures **13.95 MB high / 8.54 MB low** until the menu, and **58.96 MB
+high / 15.80 MB low** after full preparation. All sixteen compressed ground files now load
+before Start, while only four decoded textures remain resident on the GPU. This is more
+up-front transfer than the previous staged check (which included only the current tile set).
+It does not mean the complete flight downloads more: the two actual high flights recorded
+60.61 MB before versus 59.12 MB after, with the new compressed-file cache avoiding repeated
+tile requests. HTML and HTTP overhead are excluded; flight sound is disabled in this check.
+
+Validation on Metal: all Node suites; the new performance-integration regression; both-tier
+approach and authored-scenery checks including missing assets; delivery and slow/hidden-tab
+quality selection; **139 browser checks** covering menu, school, landing, mobile/controller
+controls and graphics; and the cockpit lighting/capture suite. The full 270-check suite was
+not rerun. SwiftShader remains unavailable on this local machine.
+
+
+### Desktop automatic quality on a Retina-sized viewport
+
+A further complete flight uses the same M2 Pro at 1440×900 CSS with device pixel ratio **2**
+and desktop automatic quality enabled. It averages **59.37 FPS**, p95/p99 **16.7/16.8 ms**,
+worst **183.3 ms**, with seven intervals over 100 ms and no new flight-time resource requests.
+The landing again scores 100/A. Start → first observed flight frame takes 8.10 s in this run.
+Report: `benchmarks/2026-10-02-merge-flight-auto.json`.
+
+It **keeps high-tier effects at 1×**, probes 1.1× after 18.04 s, and returns to 1× after
+20.08 s because the probe misses the pacing target. There are no further oscillations or
+effect reductions in this flight. This verifies the intended policy on this machine, with
+a visible tradeoff: automatic Retina rendering is softer than forced 1.5×, which still
+renders the captain view at roughly 41 FPS. Explicit high/DRS overrides remain available.

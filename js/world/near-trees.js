@@ -41,7 +41,7 @@ export async function addNearTrees(world,trees,atlas) {
   };
   for(const form of atlas.species){
     const scene=loaded[names.indexOf(form.name)].scene;scene.updateMatrixWorld(true);
-    const name=form.variant?`${form.name}_${form.variant}`:'tree_small_02_LOD0';
+    const name=form.variant?`${form.name}_${form.variant}`:`${form.name}_LOD0`;
     const source=scene.getObjectByName(name)||scene.getObjectByName(name+'_LOD0');
     if(!source)throw new Error(`Missing tree form: ${name}`);
     const meshes=[];let triangles=0;
@@ -125,8 +125,10 @@ export async function addNearTrees(world,trees,atlas) {
     });});
     api.count=counts.reduce((a,b)=>a+b,0);api.triangles=triangleCount;
     // The airport's sun shadow map is large and static. Redraw it only when the set of
-    // shadow-casting trees changes, and not more than once a second.
-    if(layoutDirty.size)shadowStale=true;
+    // shadow-casting trees or their leaf fades change, at most once a second.
+    // Membership can stay fixed as a tree finishes fading in; its depth shader
+    // uses the fade too, so otherwise the map retains the first partial shadow.
+    if(layoutDirty.size||dirty.size)shadowStale=true;
     if(shadowStale&&world.sun.castShadow&&world.time-shadowTime>=1){
       shadowStale=false;shadowTime=world.time;world.sun.shadow.needsUpdate=true;
     }

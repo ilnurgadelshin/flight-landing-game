@@ -16,6 +16,6 @@ for(let layer=0;layer<4;layer++){
 }
 assert.equal(signatures.size,4,'Distinct cloud variants');
 const atlas=JSON.parse(await fs.readFile(new URL('../assets/scenery/tree-variety.json',import.meta.url)));
-assert.deepEqual(atlas.elevations,[0,45,90]);assert.equal(atlas.species.length,7);
+assert.deepEqual(atlas.elevations,[0,45,90]);assert.equal(atlas.species.length,9);
 for(const form of atlas.species)assert.ok(form.frameScale>1&&form.frameScale<2&&form.aspect>.5&&form.aspect<1.5);
 console.log('Weather density bounds, distinct variants and elevation-atlas framing passed');

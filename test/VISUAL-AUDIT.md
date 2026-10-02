@@ -28,27 +28,29 @@ ignored `test/output/visual-audit-before/` folder; current captures are `test/ou
 | 2 | Muddy cockpit colours and flattened material separation | Restored source material values in the GLBs. Verified part assignments in Blender, then added distinct, subtle coated-panel, molded-trim, frame, seat-weave and yoke-rubber finishes at runtime. Modeled lettering is retained. | Liner/upholstery now use CC0 scans, with procedural panel/frame/rubber detail. A uniquely authored aircraft wear/texture set remains absent. See the 2026-09-30 followups. |
 | 3 | A completely flat approach corridor | Registered USGS elevation follows the imagery; rendering, collision and navigation share it. The airport is locally graded and a rising terrain cap protects final. | Elevations are locally modified around the fictional airport. Distant mesh resolution and imagery shadows remain limitations. |
 | 4 | Blurry aerial imagery ahead of the airport | Sixteen local 1 km detail tiles along the last 8 km, sampled at 0.5 m/px high and 1 m/px low, feather into the existing imagery; four textures stay resident. Distance-faded scanned colour, normal and roughness detail reconstructs fine surface grain in nearby fields and soil. | Underlying NAIP is generally 0.6 m; exports cannot supply finer survey detail. Coverage is a 2 km wide corridor. Five reviewed farm roofs now fill prominent detection gaps. Other missing buildings and photographic shadows remain visible from very low views. |
-| 5 | Sparse, three-lobed tree blobs | Seven authored forms, now four azimuths at three elevations each. One quad faces the eye in yaw and pitch and blends neighboring views. High retains bounded 3D branches and leaves within 180 m. | Distant/low trees remain impostors; view blending and repeated species are still visible. Only one broadleaf source is available. |
+| 5 | Sparse, three-lobed tree blobs | Nine authored forms from three broadleaf sources plus pine/fir, four azimuths at three elevations each. Leaf masks are preserved in all nearby GLBs. One quad faces the eye in yaw and pitch and blends neighboring views. High retains bounded 3D branches and leaves within 180 m. | Distant/low trees remain impostors; view blending and repeated species are still visible. The wider palette is artistic, not a local botanical survey; crown density and close-up silhouettes still expose the approximations. |
 | 6 | Thin cloud rings and weak volume | Cached 3D density, connected billows, flatter bases, self-shadowing and directional scattering. Overcast has multiscale structure and matching near-eye relief. | Fair-weather volumes remain simplified and soft at close range. Low uses sprites; overcast is a surface plus shared fog, not a fully volumetric weather system. |
 | 7 | Runway lights look like a luminous rectangle by day | Smaller daytime cores, lower daylight intensity, distinct PAPI/beacon sizing and fog attenuation without a minimum visibility floor. Night bloom retained. | Point-based lights approximate optical glare; no lens-scattering simulation. |
 | 8 | Flat, muddy illumination and weak foreground depth | Reduced warm daytime lamps in favour of neutral sky light. Sun shadows plus a rebake of close contact and cabin sky access, including the fitted roof. Baked occlusion now affects indirect light rather than darkening the paint and direct sunlight. | No real-time global illumination. The bake approximates sky access and bounced light; it cannot replace fully authored materials. |
-| 9 | Box-like airport and disconnected jet bridges | Terminal length matches all five stands; roof seams, flashing, HVAC, hangar ribs, building bases and articulated bridge ends reaching the aircraft. | Buildings are still procedural architecture. A detailed terminal asset would offer a larger further improvement. |
+| 9 | Box-like airport and disconnected jet bridges | Five glazed gate halls with curved metal roofs and recessed piers connect through a lower concourse. Existing jet bridges reach their aircraft; roof seams, plant, hangar ribs and bases remain. | Buildings are still procedural architecture. A detailed terminal asset would offer a larger further improvement. |
 | 10 | Clean rectangular pavement pasted onto the terrain | Irregular runway shoulders, softer grass margins, subtle mowing, asphalt variation, apron slabs and expansion joints. | Ground-level wear, drainage and small debris remain sparse. |
 | 11 | Windshields appear absent | Removed the approximation planes fitted to the incorrectly stretched shell during the source-fidelity correction. | Glazing should follow the actual source panes. Refraction, water droplets and optical distortion remain unimplemented; the separate cockpit pass limits physical transmission. |
 | 12 | Hard black fog horizon, a dark sheet inside the cloud transition, and lights visible through opaque cloud | Fixed shared atmospheric uniforms on foliage/deck shaders; show cloud surfaces only from outside the deck; removed the lights' 3% fog visibility floor. Added rendered regression checks. | The earlier audit incorrectly blamed a CSS rain overlay: it was already disabled. Existing rain uses 3D streaks driven by relative velocity; realistic water on glass remains future work. |
 | 13 | Jagged foliage, grain and inconsistent fine-detail sharpness | Alpha-to-coverage for foliage, anisotropic filtering and mipmapped, metric-scale cockpit finishes. Removed the cockpit shadow normal offset that stippled the double-sided liner; existing 4× world MSAA and cockpit antialiasing remain. | No temporal AA. Thin modeled labels, shadow edges and branches can still shimmer at distance. |
-| 14 | Repeating facade grids and weak building contact | Twelve approach facade bays share an atlas: house fronts with doors/shutters, upper floors, sparse sides, barns and loading bays. Houses have a principal entry bay; nearby bevels, smoother panes, canopies and thresholds add depth. Siding relief and roughness separate materials. Gables stay solid. Terrain-following projected shadows now have feathered edges. | These are procedural interpretations. Shared bays and simple roof forms remain recognizable close up; individually authored houses would improve architectural detail. |
+| 14 | Repeating facade grids and weak building contact | Twelve approach facade bays share an atlas: house fronts with doors/shutters, upper floors, sparse sides, barns and loading bays. Houses have a principal entry bay; nearby bevels, smoother panes, canopies and thresholds add depth. Siding relief and roughness separate materials. Gables stay solid. Terrain-following projected shadows now have feathered edges. | Forty nearby buildings on high / sixteen low now use CC0 authored wall modules with recessed openings and PBR maps. Roofs and most buildings remain interpreted; complete authored house/farm models would improve silhouette and material continuity. |
 | 15 | Prototype-like desktop readout bar | Inset, quieter translucent status strip with restrained borders and spacing; controls and readouts retained. | The simulator intentionally retains training/status UI. This matters less than asset quality. |
 
 Further cockpit work should begin with a source-versus-game comparison, not a replacement
 model. The approach now has matching building footprints and two valley roads. The next large
-scenery gaps are additional mature tree species, authored house/farm assets and wider coverage for missing building detections;
+scenery gaps are complete authored house/farm assets, wider coverage for missing building detections and more convincing crown density;
 weather still needs better overcast and windshield water. An engine migration alone would not
 provide those assets or effects.
 
 All imported assets remain free and openly licensed. The foliage atlases use
-[Tree Small 02](https://polyhaven.com/a/tree_small_02), [Pine Sapling Small](https://polyhaven.com/a/pine_sapling_small)
-and [Fir Sapling Medium](https://polyhaven.com/a/fir_sapling_medium) from Poly Haven, CC0.
+[Tree Small 02](https://polyhaven.com/a/tree_small_02), [Pine Sapling Small](https://polyhaven.com/a/pine_sapling_small),
+[Fir Sapling Medium](https://polyhaven.com/a/fir_sapling_medium),
+[Jacaranda Tree](https://polyhaven.com/a/jacaranda_tree) and
+[Island Tree 02](https://polyhaven.com/a/island_tree_02) from Poly Haven, CC0.
 Sources, modifications and repeatable preparation commands are in
 [`assets/README.md`](../assets/README.md).
 
@@ -445,3 +447,78 @@ Remaining limits: species repetition, image-based distant/low vegetation, simpli
 microstructure, sprite clouds on low and a surface-based overcast deck. Tree model downloads
 and scenery streaming can still produce loading stalls. These changes do not add authored
 houses, windshield glazing/water, or change phone camera/HUD framing.
+
+
+## Authored architecture and mature-tree diversity — 2026-10-01
+
+This pass follows `e5cc6ed`, addressing buildings/airport first and vegetation second, with
+separate stage measurements. Two CC0 Poly Haven kits by James Ray Cock supply recessed
+windows, doors, brick/plaster finishes and utility bays. They replace walls on 40 selected
+close-approach buildings on high quality (306 bays, 211,908 triangles, 24 batches), or 16 on
+low (125 bays, 72,279 triangles, 15 batches). Source UVs and material maps remain; normalized
+attributes are decoded before world transforms, and the source +Z facade normal faces out.
+Footprints, roofs, foundations and feathered ground shadows retain their registration.
+If a kit fails, all 2,165 procedural buildings remain available.
+
+The airport's long slab becomes five glazed gate halls with curved metal roofs, recessed
+piers and entrance canopies, joined by a low concourse. These are original procedural
+architecture, not a downloaded complete terminal. They give the stands a more articulated
+silhouette, but still lack the clutter, material variation and bespoke detail of a major
+commercial simulator's airport.
+
+Jacaranda Tree and Island Tree 02 add two CC0 mature crown silhouettes, spatially grouped
+alongside the original broadleaf and conifers. Nine forms now have 108 baked views; high
+quality uses all five source GLBs within the existing 32 target / 48 hard instance and
+1.8M target / 2.4M hard triangle budgets. The new palette is fictional, not a claim that
+these species occur in the Pennsylvania source imagery. Total tree counts and building/road
+clearance rules remain unchanged. Distant/low crowns are still image-based.
+
+Close-up inspection also found a pre-existing conversion defect: Sharp removed the newly
+joined leaf alpha, leaving opaque leaf rectangles in all three original near-tree GLBs.
+The corrected pipeline separates alpha removal and joining. Delivered original models
+have repaired masks without geometry changes; the two additions use the corrected pipeline.
+A Node regression checks both transparent and opaque pixels in every MASK material.
+
+Validation: the Node suites, authored-scenery integration/fallback test, approach-scenery
+test on both tiers, download/automatic-quality test, vegetation/cloud fallback test, and
+23 browser graphics checks pass on Chromium 141 / ANGLE Metal. Both matched real-time
+streaming autolands finish with score 100/A. The complete functional browser suite was not
+rerun for this scenery-only change; SwiftShader cannot initialize on this local machine.
+Matched farm, village, airport and woodland views, plus final close-building/night views,
+are available in [the local review](output/authored-scenery-review.html).
+
+High at 1.5× remains about 42 FPS captain / 55 nearby / 45 storm on the M2 Pro; low remains
+60 FPS. New detail did not cause a material measured FPS regression, but high streamed
+payload rises from 45.07 to 51.49 MB. The real-time high 1× flight averages about 58 FPS,
+with approximately 1.1-second startup stalls and shorter descent stalls still present.
+See [the staged measurements and limits](RENDER-PERFORMANCE.md#authored-facades-gate-halls-and-mature-trees--2026-10-01).
+
+Remaining priorities: streaming/decode/upload stalls; complete authored roofs/building
+models and missing-footprint coverage; ground-level photographic blur/shadows; distant
+canopy transitions and density; windshield water and more detailed overcast. The cockpit
+source geometry is unchanged in this pass.
+
+
+## Remote performance integration — 2026-10-02
+
+Remote commits `858f9d5` / `e0b0b69` have been combined with the local authored scenery.
+Their shadow-pass reduction and menu preparation address actual costs without removing
+cockpit geometry or the new assets. Tree fade changes now invalidate the cached shadow map,
+within its one-second limit; cancellation is checked before warm-up and after asynchronous
+shader compilation. These corrections have regression coverage.
+
+With the same local assets on both sides, the M2 captain view stays at 40.6 FPS at 1.5×,
+although about 586k fewer triangles are submitted per frame. In the complete high 1× flight,
+worst recorded frame time improves from 1.22 s to 183 ms and average FPS from 57.7 to 59.4.
+Start waits 5.73 s rather than 0.60 s on localhost; no scenery requests begin during the
+prepared flight. Smaller stalls remain, so the earlier remaining-stalls priority is reduced,
+not closed. Menu preparation transfers about 59 MB on high before normal Start completes.
+
+Both complete landings, the selected 139 browser checks, Node suites, scenery fallbacks,
+download/quality selection and cockpit lighting checks pass. See the detailed methodology,
+tradeoffs and saved reports in [the integration measurements](RENDER-PERFORMANCE.md#remote-performance-integration--reviewed-2026-10-02).
+
+
+A complete desktop-auto flight at device pixel ratio 2 also succeeds: 59.37 FPS, high effects
+retained, a single 1.1× probe rejected and the rest at 1×. This smoothness comes with lower
+Retina sharpness than forced 1.5×. It does not establish 60 FPS at full high resolution.

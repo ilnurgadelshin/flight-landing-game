@@ -177,8 +177,8 @@ origin 40.828° N, 77.615° W; local x east and z south. Low-confidence/tiny det
 buildings inside the fictional airport or approach-light clearance are excluded. Coordinates
 are rounded to 10 cm. Source height estimates are capped and missing heights get defaults;
 these are not surveyed elevations. The original polygon outlines are retained. Roof colour
-is sampled from the public-domain photo; roof pitch, facades, windows and eaves are original
-procedural interpretations. Ground shadows approximate the building silhouette in the sun's
+is sampled from the public-domain photo; roof pitch and most facades/windows/eaves are
+procedural interpretations. Selected nearby walls use the authored CC0 kits described below. Ground shadows approximate the building silhouette in the sun's
 direction, with terrain-following triangles and a roughly 0.6–1.8 m feathered edge. Contrast
 is reduced under overcast; they supplement existing photographic shadows rather than removing them.
 Twelve original facade bays share one atlas: house fronts, upper floors, sparse side walls,
@@ -222,6 +222,38 @@ python3 tools/prepare-approach-scenery.py buildings.geojsonl.gz local-roads.geoj
 
 The converter requires Pillow, uses bundled imagery for roof colours, and runs offline.
 
+## Authored approach facades — CC0
+
+Forty nearby buildings on high quality, sixteen on low, use four selected modules from each
+of these **CC0** Poly Haven kits, both by **James Ray Cock**:
+
+- [Modular Factory Facade](https://polyhaven.com/a/modular_factory_facade): blank wall, window, door and garage.
+- [Modular Urban Apartments Facade](https://polyhaven.com/a/modular_urban_apartments_facade): blank wall, two window sizes and door.
+
+The modules retain source UVs, recessed openings, frames and material maps. Geometry is
+simplified and Meshopt-compressed; WebP maps are 1024 px high / 512 px low. Wall bay width
+and height fit the existing footprint and storey, with source depth retained in metres.
+Glass becomes an opaque reflective material with night emission. Runtime batches group
+walls by material and spatial tile. Roofs, foundations and unselected walls keep their
+existing interpreted forms; these are not complete authored houses or surveyed architecture.
+A missing kit retains the full procedural building layer.
+
+Both kits together are **2,512,888 bytes high / 670,672 bytes low**, loaded with scenery
+behind the menu, before a normal UI Start completes. File sizes, author records, module dimensions and triangle counts are
+in `scenery/facade-sources.json`. The five new curved-roof airport halls and connecting
+concourse are original project geometry, not imported Poly Haven assets.
+
+Reproduce (original downloads are cached under ignored `test/output/authored-sources/`):
+
+```sh
+python3 tools/fetch-authored-scenery.py
+node tools/prepare-facades.mjs
+```
+
+The preparation downloader uses an identifying User-Agent and verifies the checksums from
+Poly Haven's saved download manifests. It obtains current manifests on the first download;
+it is not a version-pinned mirror. The game never calls the Poly Haven API.
+
 ## Woodland — CC0
 
 `scenery/tree-variety.webp`, its smaller `-low` variant and `tree-variety.json` are baked
@@ -230,44 +262,59 @@ from these **CC0** Poly Haven assets (https://polyhaven.com/license):
 - **Tree Small 02**, Rico Cilliers: https://polyhaven.com/a/tree_small_02
 - **Pine Sapling Small**, model by Rico Cilliers, photos by Rob Tuytel: https://polyhaven.com/a/pine_sapling_small
 - **Fir Sapling Medium**, model by Rico Cilliers, photos by Rob Tuytel: https://polyhaven.com/a/fir_sapling_medium
+- **Jacaranda Tree**, Rico Cilliers, guidance by Rob Tuytel: https://polyhaven.com/a/jacaranda_tree
+- **Island Tree 02**, scanning/processing by Rob Tuytel, cleanup/processing by Rico Cilliers: https://polyhaven.com/a/island_tree_02
 
-Seven authored forms have four azimuths at three elevations (0°, 45°, 90°), 84 views in total. The simulator retains crown
+Nine authored forms have four azimuths at three elevations (0°, 45°, 90°), 108 views in total. The simulator retains crown
 proportions, varies orientation/scale/tint, and groups smaller conifers beneath broadleaf
 woodland. Each distant tree uses one quad facing the eye in yaw and pitch, blending adjacent
 azimuth and elevation views with premultiplied alpha. Source framing is recorded per form;
 the quad still costs two triangles. These remain impostors: azimuth transitions, repeated
 species and extreme close-up silhouettes are less convincing than full 3D branches.
-The atlases are 1024×5376 (high, 484,430 bytes) and 512×2688 (low, 350,086 bytes). Smaller
+The atlases are 1024×6912 (high, 717,724 bytes) and 512×3456 (low, 496,386 bytes). Smaller
 individual frames are sufficient for distant crowns and offset the added elevation views.
-The full models stay in ignored `test/output/tree-source` and `tree-variety-source`;
-they are not shipped. These atlases replace the older single-species `tree-canopies.png`.
+The three broadleaf sources are spatially grouped to break up repeated mature crowns.
+They are an artistic palette for fictional Westhaven, not an ecological reconstruction of Pennsylvania.
+The full models stay in ignored `test/output/tree-source`, `tree-variety-source` and
+`authored-sources`; they are not shipped. These atlases replace the older single-species `tree-canopies.png`.
 To reproduce the atlas (curl, Python 3, Node and Playwright Chromium required):
 
 ```sh
 python3 tools/fetch-woodland.py
 python3 tools/fetch-tree-variety.py
+python3 tools/fetch-authored-scenery.py
 node tools/bake-woodland.mjs
 ```
 
-The three `scenery/*-near.glb` assets use the **same CC0 sources and seven forms** for
+The five `scenery/*-near.glb` assets use the **same CC0 sources and nine forms** for
 real nearby branches, trunks and leaf geometry on the high tier. They are normalized
 to unit height, simplified separately for foliage and wood, texture-packed and Meshopt
-compressed. The broadleaf keeps about 159,000 triangles to retain its canopy; conifers
-use about 19,000–79,000. Files total approximately 10.7 MB (decimal). Exact sizes, triangle
+compressed. The original broadleaf keeps about 159,000 triangles to retain its canopy; the added
+broadleaf forms use 50,288 and 27,871 triangles, and conifers use about 19,000–79,000.
+Files total **14,398,432 bytes** (14.40 MB decimal), including 2,729,492 bytes for the two additions. Exact sizes, triangle
 counts and source URLs are in `tree-geometry.json`.
 
 At runtime, nearby trees transition between geometry and cards over 90–180 m using
 complementary dithering. Selection targets at most 32 trees / 1.8 million triangles;
 retiring instances share a hard 48-tree / 2.4-million-triangle budget. Distant trees and
 the low tier retain the cheaper atlas. Low quality never requests the GLBs. If they fail
-to load, all foliage cards remain visible. Downloads start only after the flight starts and
-a tree crown is within 450 m of the camera. These assets add no collision bodies.
+to load, all foliage cards remain visible. Normal menu preparation now loads the high-tier
+models before flight; a flight begun directly by an automation hook can still request them
+when a tree crown is within 450 m of the camera. These assets add no collision bodies.
 
-Regenerate after the source downloads above (Node dependencies include Sharp):
+Regenerate the initial model reductions after the source downloads above (Node dependencies include Sharp):
 
 ```sh
 node tools/prepare-trees.mjs
+node tools/prepare-broadleaf.mjs
 ```
+
+Leaf base-colour textures include the original silhouette alpha masks. An earlier Sharp
+conversion removed the newly joined alpha channel, making nearby leaves opaque rectangles;
+`prepare-trees.mjs` now separates those operations. `tools/repair-tree-alpha.mjs` repairs
+legacy optimized GLBs without changing their geometry. Restoring alpha added 938,056 bytes
+to the original three delivered models. The asset test checks transparent and opaque
+pixels in every MASK material, including the new broadleaf models.
 
 ## Scanned surfaces — CC0
 
@@ -292,9 +339,12 @@ The bundled Meshopt decoder is MIT licensed (`vendor/addons/libs/meshoptimizer-L
 
 ## Delivery optimization — 2026-09-30
 
-The initial scene loads four 512px previews, the selected flight deck and (on high) 79 KB of cloud density. The flight becomes
-interactive before full imagery, roads, buildings, planting and parked aircraft load. Detail
-tiles stay bounded to four; near-tree models are separately requested only near woodland.
+The initial scene loads four 512px previews, the selected flight deck and (on high) 79 KB of cloud density. The menu appears
+before full imagery, roads, buildings, planting and parked aircraft load. Current menu
+preparation then fetches all sixteen detail files, all high-tier near-tree models and facade
+kits, and warms their GPU resources before normal Start completes. Four detail textures stay
+on the GPU; the other compressed tile blobs stay in memory. Direct automation starts can
+still stream resources, and the UI stops waiting after a minute on slow connections.
 `world.loadScenery()` and `world.loadNearTrees()` allow visual checks to explicitly await these
 stages. Each stage preserves existing fallback surfaces when a request fails.
 
@@ -312,7 +362,12 @@ assets with the original JPG/PNG names):
 node tools/optimize-delivery.mjs /path/to/source-snapshot
 ```
 
-The older preparation commands produce inputs to this conversion step. The canopy baker
+The older preparation commands produce inputs to this conversion step. To reproduce the
+current near-tree delivery starting from that historical snapshot, run the conversion first,
+then `node tools/repair-tree-alpha.mjs` (original leaf masks must be downloaded), followed
+by `node tools/prepare-broadleaf.mjs`. The conversion rewrites the tree manifest from its
+source snapshot, so the two new forms must be appended afterwards. Current tree sizes in
+`scenery/tree-geometry.json` supersede the historical `delivery.json` entries. The canopy baker
 now writes final WebP directly; the conversion preserves those newer atlases.
 Original JPG/PNG delivery copies and unused area-light lookup tables are not shipped.
 

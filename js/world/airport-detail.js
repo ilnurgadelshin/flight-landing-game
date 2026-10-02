@@ -10,23 +10,51 @@ export function addAirportDetail(scene, lowDetail) {
     const m = new THREE.Matrix4().compose(new THREE.Vector3(x,y,z), new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0),yaw),new THREE.Vector3(w,h,d));
     batches.get(key).transforms.push(m);
   };
-  // Terminal curtain wall, horizontal bands and roof plant.
-  for (let x=-345;x<=345;x+=9) {
-    add(0x354f58,x,11,429.75,7.8,15,0.25,0,true);
-    add(0xc7c8bf,x+4.25,11,429.4,0.55,20,0.8,0,true);
+  // Five gate halls have a visible roof profile, recessed curtain walls, deep
+  // eaves and clerestories. They share one low concourse and the existing gates.
+  const roofPositions=[],roofUV=[],roofColors=[];
+  const roofQuad=(a,b,c,d,tone=1)=>{
+    roofPositions.push(...a,...b,...c,...a,...c,...d);roofUV.push(0,0,1,0,1,1,0,0,1,1,0,1);
+    for(let i=0;i<6;i++)roofColors.push(tone,tone,tone);
+  };
+  for(let gate=0;gate<5;gate++){
+    const center=-320+gate*160,width=112,front=426,back=497;
+    const roofY=z=>20+6*Math.sin((z-416)/91*Math.PI);
+    for(const z of [front,back]){
+      for(let x=center-width/2+3;x<center+width/2;x+=6){
+        add(0x354f58,x,11,z,5.65,18,.22,0,true);
+        add(0xb6beb9,x+3,11,z-.35,.24,20,.5,0,true);
+      }
+      for(const y of [2,8,14,20])add(0xaab4b2,center,y,z-.5,width,.24,.55,0,true);
+    }
+    for(const x of [center-width/2,center+width/2])for(let z=front+3;z<back;z+=6){
+      const h=roofY(z)-1;
+      add(0x354f58,x,h/2,z,.22,h,5.7,0,true);
+      add(0xaab4b2,x-.3,h/2,z+3,.5,h,.25,0,true);
+    }
+    for(let z=416;z<507;z+=7){
+      const end=Math.min(507,z+7),a=roofY(z),b=roofY(end),left=center-61,right=center+61;
+      roofQuad([left,a,z],[left,b,end],[right,b,end],[right,a,z]);
+      for(const x of [left,right]){
+        // Substantial fascia reveals the roof thickness from the runway.
+        roofQuad([x,a-.7,z],[x,a,z],[x,b,end],[x,b-.7,end]);
+      }
+      for(let x=left+3;x<right;x+=4)
+        roofQuad([x,a+.06,z],[x,b+.06,end],[x+.055,b+.06,end],[x+.055,a+.06,z],.68);
+    }
+    // Shaded entrance recesses, structural piers and boarding lounge floor.
+    add(0x747f7b,center,.35,462,width,.7,71);
+    for(const x of [center-48,center,center+48])add(0xc1c2b7,x,10,421,.75,20,.9);
+    add(0x9ba39e,center,7.2,420,115,.55,10,0,true);
+    // Landside plant stays behind each roof crest, not repeated across one slab.
+    add(0x626b66,center,22.2,491,17,2.4,8,0,true);
+    add(0x313c37,center,23.45,491,15,.08,6);
   }
-  for (const y of [4,11,18]) add(0xa6aaa4,0,y,429.3,700,0.5,0.8,0,true);
-  add(0x8e9695,0,22.5,454,715,1.2,78,0,true);
-  // Standing-seam roof, perimeter flashing, plant curbs and dark ventilation grilles.
-  for(let x=-354;x<358;x+=6) add(0x697675,x,23.15,454,.09,.13,77,0,true);
-  for(const z of [415.4,492.6])add(0xadb4ae,0,23.15,z,715,.35,.3,0,true);
-  for (let x=-320;x<340;x+=36){
-    add(0x515e5c,x,23.5,467,11,.8,9);
-    add(0x899491,x,24.7,467,10,2,8,0,true);
-    add(0x333e3b,x,25.75,467,8.5,.06,6.5);
-    for(let z=464;z<471;z+=.6)add(0x747f7a,x,25.82,z,8.7,.08,.18,0,true);
-  }
-  add(0x6c716b,0,.4,429.1,700,.8,.6); // weathered plinth meets the apron
+  const roofGeometry=new THREE.BufferGeometry();roofGeometry.setAttribute('position',new THREE.Float32BufferAttribute(roofPositions,3));
+  roofGeometry.setAttribute('uv',new THREE.Float32BufferAttribute(roofUV,2));roofGeometry.computeVertexNormals();
+  roofGeometry.setAttribute('color',new THREE.Float32BufferAttribute(roofColors,3));
+  const roofMesh=new THREE.Mesh(roofGeometry,new THREE.MeshStandardMaterial({color:0x8f9c9d,roughness:.66,metalness:.35,side:THREE.DoubleSide,vertexColors:true}));
+  roofMesh.name='Five departure hall roofs';roofMesh.castShadow=roofMesh.receiveShadow=true;scene.add(roofMesh);
   // Hangar door reveals, ribs and roof ridge caps.
   for (let i=0;i<3;i++) {
     const x=700+i*110;

@@ -1,0 +1,76 @@
+[
+  {
+    "file": "assets/scenery/modular_factory_facade.glb",
+    "lowFile": "assets/scenery/modular_factory_facade-low.glb",
+    "source": "https://polyhaven.com/a/modular_factory_facade",
+    "license": "CC0-1.0",
+    "authors": {
+      "James Ray Cock": "All"
+    },
+    "bytes": 1822476,
+    "lowBytes": 480628,
+    "modules": [
+      {
+        "name": "blank",
+        "width": 3,
+        "height": 3,
+        "triangles": 138
+      },
+      {
+        "name": "window",
+        "width": 2.9999914169311523,
+        "height": 2.999999523162842,
+        "triangles": 746
+      },
+      {
+        "name": "door",
+        "width": 3.0000001192092896,
+        "height": 3.000000238418579,
+        "triangles": 461
+      },
+      {
+        "name": "garage",
+        "width": 6.000000953674316,
+        "height": 3.000000298023224,
+        "triangles": 656
+      }
+    ]
+  },
+  {
+    "file": "assets/scenery/modular_urban_apartments_facade.glb",
+    "lowFile": "assets/scenery/modular_urban_apartments_facade-low.glb",
+    "source": "https://polyhaven.com/a/modular_urban_apartments_facade",
+    "license": "CC0-1.0",
+    "authors": {
+      "James Ray Cock": "All"
+    },
+    "bytes": 690412,
+    "lowBytes": 190044,
+    "modules": [
+      {
+        "name": "blank",
+        "width": 3.000000476837158,
+        "height": 3.000000476837158,
+        "triangles": 552
+      },
+      {
+        "name": "window",
+        "width": 3.000000476837158,
+        "height": 3.000000476837158,
+        "triangles": 988
+      },
+      {
+        "name": "windowWide",
+        "width": 3.000000476837158,
+        "height": 3.000000476837158,
+        "triangles": 1303
+      },
+      {
+        "name": "door",
+        "width": 3.000000476837158,
+        "height": 3.000000476837158,
+        "triangles": 1084
+      }
+    ]
+  }
+]

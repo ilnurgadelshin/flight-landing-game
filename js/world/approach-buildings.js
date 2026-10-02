@@ -5,6 +5,7 @@ import { makeRng } from '../physics/atmosphere.js';
 import { sceneryGroundHeight } from './scenery-ground.js';
 import { createFacadeAtlas } from './facade-atlas.js';
 import { buildShadowMeshes } from './building-shadows.js';
+import { loadFacadeKit } from './authored-facades.js';
 
 function roofMaterial(aniso,metal=false) {
   const c=document.createElement('canvas');c.width=c.height=256;const g=c.getContext('2d'),rng=makeRng(592);
@@ -51,10 +52,17 @@ export async function addApproachBuildings(world) {
   if(!response.ok)throw new Error(`Approach buildings: HTTP ${response.status}`);
   const {buildings}=await response.json(),low=world.lowDetail||world.quality==='low';
   const extra=await infill.catch(()=>({buildings:[]}));buildings.push(...extra.buildings);
+  const authored=await loadFacadeKit(world).catch(error=>{world.assetErrors.push(String(error));return null;});
+  // Concentrate authored geometry on buildings visible from the final corridor.
+  // Keep the photographed footprint/roof, and cap added geometry on each tier.
+  const candidates=buildings.filter(b=>b.x>2150&&b.x<7500&&Math.abs(b.z)<1000&&b.w<65&&b.d<35&&b.height<12)
+    .sort((a,b)=>(a.id?-10000:0)+Math.abs(a.z)*3+a.x-((b.id?-10000:0)+Math.abs(b.z)*3+b.x));
+  const authoredBuildings=new Set(authored?candidates.slice(0,low?16:40):[]);
   const atlas=createFacadeAtlas(world.maxAniso,low),materials=[atlas.material],roof=roofMaterial(world.maxAniso),metalRoof=roofMaterial(world.maxAniso,true);
   const glass=new THREE.MeshStandardMaterial({map:atlas.material.map,emissiveMap:atlas.material.emissiveMap,
     emissive:0xffd3a0,emissiveIntensity:0,roughness:.24,metalness:.08,envMapIntensity:.7,vertexColors:true});
   materials.push(glass);
+  if(authored)materials.push(...authored.materials);
   const wallFill=new THREE.MeshStandardMaterial({roughness:.93,vertexColors:true});
   const trim=new THREE.MeshStandardMaterial({color:0xaca99e,roughness:.87,vertexColors:true});
   const foundation=new THREE.MeshStandardMaterial({color:0x77766e,roughness:1,vertexColors:true});
@@ -99,9 +107,20 @@ export async function addApproachBuildings(world) {
           const entrance=i===front&&level===0&&bay===Math.floor(bays/2);
           const profile=entrance?atlas.profiles[farm?9:style*3]:ordinary;profileCounts[profile.id]++;
           const x=bay*bayWidth;
-          wall.quad(at(x,y),at(x,y+storey),at(x+bayWidth,y+storey),at(x+bayWidth,y),
+          if(authoredBuildings.has(b)){
+            // Sparse utility walls and one entrance, rather than a garage door
+            // on every bay. Preserve the source's recessed frames and PBR maps.
+            const kind=entrance?(farm?'garage':'door'):farm?(i===front&&bay%3===1?'window':'blank'):
+              (i===front||bay%2===0?(style===1?'windowWide':'window'):'blank');
+            const origin=at(x,y),end=at(x+bayWidth,y);
+            const dx=(end[0]-origin[0])/bayWidth,dz=(end[2]-origin[2])/bayWidth;
+            // Source bays face +Z, with their recesses behind z=0. Reverse the
+            // local X direction as well, preserving winding and outward normals.
+            const matrix=new THREE.Matrix4().set(-dx*bayWidth,0,dz,end[0],0,storey,0,y,-dz*bayWidth,0,-dx,end[2],0,0,0,1);
+            authored.add(farm,kind,key,matrix,tint);
+          }else wall.quad(at(x,y),at(x,y+storey),at(x+bayWidth,y+storey),at(x+bayWidth,y),
             [[0,0],[0,1],[1,1],[1,0]].map(([u,v])=>atlas.uv(profile,u,v)),tint);
-          if(!low&&b.x>1800&&Math.abs(b.z)<1500&&b.w<90&&b.height<15){
+          if(!authoredBuildings.has(b)&&!low&&b.x>1800&&Math.abs(b.z)<1500&&b.w<90&&b.height<15){
             const detail=details.get(key).trim,glazing=details.get(key).glass,sx=bayWidth/profile.width,sy=storey/profile.height;
             for(const opening of profile.windows){
               const left=x+opening.x*sx,right=left+opening.w*sx,bottom=y+opening.y*sy,top=bottom+opening.h*sy;
@@ -171,6 +190,7 @@ export async function addApproachBuildings(world) {
     const lod=new THREE.LOD();lod.name=`Window ${kind} ${key}`;lod.position.copy(center);
     lod.addLevel(mesh,0);lod.addLevel(new THREE.Object3D(),kind==='glass'?650:1200,.15);group.add(lod);
   }
+  const authoredStats=authored?.finish(group);
   world.approachBuildingExcludes=(x,z)=>{
     for(const b of index.get(`${Math.floor(x/100)}:${Math.floor(z/100)}`)||[]){
       const dx=x-b.x,dz=z-b.z,c=Math.cos(b.angle),s=Math.sin(b.angle);
@@ -190,7 +210,8 @@ export async function addApproachBuildings(world) {
     for(const mesh of [...shadows.children]){mesh.geometry.dispose();shadows.remove(mesh);}
     shadows.add(...buildShadowMeshes(buildings,sun,ground,shadowMat));
   };
-  world.approachBuildings={group,shadows,count:buildings.length,infillCount:extra.buildings.length,materials,footprints:buildings,profileCounts,updateShadows};
+  world.approachBuildings={group,shadows,count:buildings.length,infillCount:extra.buildings.length,materials,footprints:buildings,profileCounts,updateShadows,
+    authored:authoredStats?{...authoredStats,buildings:authoredBuildings.size}:null};
   world.scene.add(group);
   updateShadows();
   for(const m of materials)m.emissiveIntensity=world.night?.55:0;
