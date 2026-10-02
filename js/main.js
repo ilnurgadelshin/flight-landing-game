@@ -23,6 +23,7 @@ import { Haptics } from './haptics.js';
 import { GamepadInput, PAD } from './gamepad.js';
 import { setTilt, getScheme, setPad, controlsHtml } from './controls.js';
 import { selectGraphicsQuality } from './graphics-quality.js';
+import { SHORT_FINAL_EYE } from './world/ground-detail.js';
 
 const params = new URLSearchParams(location.search);
 // phones get the lighter scene; their resolution then adapts to the frame rate (see ResolutionScaler)
@@ -64,7 +65,11 @@ async function boot() {
       tilt.requestCenter();
       // Normally loaded behind the menu already; a flight started another way streams it.
       requestAnimationFrame(()=>setTimeout(()=>world.loadScenery(),0));
-    } else haptics.stop();
+    } else {
+      haptics.stop();
+      // back in the menu: stream the short final's ground tiles again (the only start inside them)
+      if (s === 'menu') world.groundDetail?.prefetch(SHORT_FINAL_EYE);
+    }
   });
 
   // ---- tilt steering and vibration options (remembered on this device)

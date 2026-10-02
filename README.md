@@ -572,6 +572,9 @@ retain the existing fallback surfaces and do not prevent flight. Preloading redu
 arrivals and first-use work. During a flight a new ground detail tile (one per kilometre of
 final) is decoded off the main thread and copied to the graphics card one sixteenth per frame,
 then appears complete, about 0.3 s later and far ahead; the tiles on screen stay until then.
+The tiles prepared behind the menu are the short final's (the one start inside them), and the
+menu brings them back after a flight; a jump of more than a kilometre (a new flight elsewhere,
+a reposition) copies its tiles at once, as the view changes anyway.
 Scenario changes and the first cabin reflection capture can still stall. Preparation includes the authored facade kits and all
 five nearby-tree models on high quality.
 
@@ -1285,8 +1288,8 @@ and a failed capture, checking that the cockpit stays lit and the failure is not
 every frame. `node test/delivery.mjs` checks actual startup requests, the scenery prepared behind the menu (then no further scenery downloads in the tested flight) and
 foreground quality selection after a hidden-tab startup under deliberately slow frame pacing.
 `node test/ground-tiles.mjs` checks, on both tiers, that a flight copies one strip of a new
-ground tile per frame, keeps the tiles on screen until the new set is complete, holds four tiles
-and that the copy has exactly the image's pixels.
+ground tile per animation frame, shows only complete tiles (keeping the old ones until then),
+copies at once after a jump, holds four tiles and that the copy has exactly the image's pixels.
 Node checks cover interrupted calibration, Retina resolution recovery/backoff and the steady
 60 fps target (a modelled GPU: no 40–55 fps judder, effects before resolution, probed step-ups).
 The visual, scenery and lighting checks

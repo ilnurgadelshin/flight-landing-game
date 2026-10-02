@@ -423,11 +423,13 @@ eight tiles each):
 | Low, 1032 px | 26–37 ms | 0.4–1 ms |
 
 A tile is now decoded off the main thread (`createImageBitmap`), copied unflipped into a
-preallocated texture one sixteenth per frame (the last strip builds the mip chain, which costs
+preallocated texture one sixteenth per animation frame (the last strip builds the mip chain,
 about 0.1 ms) and swapped in complete; the ground shader samples the unflipped layout. The
-first upload of this kind in a page has a one-time cost (seconds in software), paid by the
-preparation behind the menu. Rendered low-tier ground views are identical to the previous build (largest
-difference one colour level). With software rendering the GPU-side work is deferred by the
+menu preparation holds the short final's four tiles (it held 7/8 rather than 8/9 before, so
+two arrived at that start); a jump of more than a kilometre copies at once. The first upload of
+this kind in a page has a one-time cost (seconds in software), paid by that preparation.
+Rendered ground views on both tiers are identical to the previous build (largest difference
+one colour level). With software rendering the GPU-side work is deferred by the
 driver and done when the tile completes, so SwiftShader cannot show the GPU half; measuring
 the flight on the M2 (`VISUAL_GPU=metal node test/streaming-flight.mjs`) is the confirmation
 that remains.

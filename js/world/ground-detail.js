@@ -1,5 +1,9 @@
 // Bounded, local-only imagery: sharper final-approach tiles, no map API at runtime.
 import * as THREE from 'three';
+import { RUNWAY, APPROACH_STARTS } from '../config.js';
+
+/** Where the short final starts: the one start inside the detail tiles (sim.js reposition). */
+export const SHORT_FINAL_EYE=new THREE.Vector3(RUNWAY.thresholdX+APPROACH_STARTS.short.distanceNm*1852,0,0);
 
 export const GROUND_DETAIL_GLSL=/* glsl */`
   uniform sampler2D uDetail0,uDetail1,uDetail2,uDetail3;
@@ -39,13 +43,16 @@ export async function loadGroundDetail(world,uniforms,fallback) {
   // A 2064 px tile is 17 MB of pixels. Uploaded at once, as a texture normally is when it is
   // first drawn (and flipped on the way), it held up a frame for 170-180 ms each time the
   // aircraft crossed into a new tile: every kilometre of final. During a flight a tile is copied
-  // into its texture one strip (a sixteenth) per frame instead, and appears once complete: about
-  // 0.3 s later, far ahead of the aircraft. A fixed strip, not a time budget: the browser does
-  // the copy in its GPU process, so the time the call takes here does not show its cost. Tests
-  // and the preparation behind the menu (settle) copy at once.
+  // into its texture one strip (a sixteenth) per animation frame instead, and appears once
+  // complete: about 0.3 s later, far ahead of the aircraft. A fixed strip, not a time budget: the
+  // browser does the copy in its GPU process, so the time the call takes here does not show its
+  // cost. The preparation behind the menu, tests (settle) and a jump of the eye (a new flight, a
+  // reposition: the view changes anyway) copy at once.
   const renderer=world.renderer,queue=[],region=new THREE.Box2(),at=new THREE.Vector2();
   const STRIPS=16;
-  let immediate=0;
+  let immediate=0,scheduled=false;
+  const tick=()=>{scheduled=false;pump(1);schedule();};
+  const schedule=()=>{if(queue.length&&!scheduled){scheduled=true;requestAnimationFrame(tick);}};
   const step=entry=>{
     const source=entry.source,{width,height}=source;
     if(!entry.target){                                       // storage for the full mip chain, no pixels
@@ -83,7 +90,7 @@ export async function loadGroundDetail(world,uniforms,fallback) {
     decode(t).then(source=>{
       if(entry.disposed){source.close?.();return;}
       entry.source=source;queue.push(entry);
-      if(immediate)pump(Infinity);
+      if(immediate)pump(Infinity);else schedule();
     }).catch(()=>{errors.add(t.id);entry.resolve(null);});
     return entry;
   };
@@ -108,12 +115,20 @@ export async function loadGroundDetail(world,uniforms,fallback) {
     });
     return pending;
   };
-  const update=eye=>{const result=choose(eye);if(queue.length)pump(immediate?Infinity:1);return result;};
   const settle=async eye=>{
     immediate++;
     try{const result=choose(eye);pump(Infinity);await result;return result;}finally{immediate--;}
   };
-  world.groundDetail={update,settle,cache,errors,get ready(){return pending;},get uploading(){return queue.length;}};
+  // Every frame of a flight (World.update). More than a kilometre since the last frame is a jump.
+  let lastEye=null;
+  const update=eye=>{
+    const jumped=!lastEye||Math.hypot(eye.x-lastEye.x,eye.z-lastEye.z)>1000;
+    (lastEye??=new THREE.Vector3()).copy(eye);
+    return jumped?settle(eye):choose(eye);
+  };
+  // Streams the tiles for a likely next view, e.g. the short final while the menu is up.
+  const prefetch=eye=>choose(eye);
+  world.groundDetail={update,settle,prefetch,cache,errors,get ready(){return pending;},get uploading(){return queue.length;}};
   await Promise.allSettled(files.values());
-  await settle(new THREE.Vector3(8500,0,0));
+  await settle(SHORT_FINAL_EYE);
 }
