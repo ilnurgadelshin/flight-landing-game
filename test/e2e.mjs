@@ -572,7 +572,9 @@ if (!quick && want('keyboard')) {
   const scale = Math.max(0.35, Math.min(1, fps / 10));
   await page.evaluate((sc) => window.__sim.setTimeScale(sc), scale);
   console.log(`    render rate ${fmt(fps, 1)} fps -> simulation time scale ${fmt(scale, 2)}`);
-  await tap('KeyX'); await tap('KeyN'); await tap('KeyN'); await tap('KeyN');   // arm speedbrake, autobrake 3
+  const cfg = await I();
+  check('the short final starts configured: speedbrake armed, autobrake 2', cfg.speedbrakeArmed && cfg.autobrake === 2, `armed ${cfg.speedbrakeArmed}, autobrake ${cfg.autobrake}`);
+  await tap('KeyN');                                                             // autobrake 3
   await page.mouse.click(400, 225); await frames(2);                             // engage the mouse yoke
   check('mouse yoke engaged for the landing', await page.evaluate(() => window.__sim.inputManager.mouseEngaged));
   // The pilot runs inside the page at frame rate and only produces the events a person would:
@@ -848,7 +850,7 @@ if (!quick && want('touchland')) {
   const scale = Math.max(0.35, Math.min(1, fps / 10));
   await mp.evaluate((sc) => window.__sim.setTimeScale(sc), scale);
   console.log(`    render rate ${fmt(fps, 1)} fps -> simulation time scale ${fmt(scale, 2)}`);
-  await mp.tap('#t-arm'); await mp.tap('#t-autobrake'); await mp.tap('#t-autobrake'); await mp.tap('#t-autobrake'); await mf(1);   // real taps: arm, autobrake 3
+  await mp.tap('#t-autobrake'); await mf(1);   // a real tap: the short final starts armed at autobrake 2, now 3
   // the same human-like pilot, flying through the stick, thrust lever, rudder strip, REV gate and BRAKE button
   await mp.addScriptTag({ path: path.join(root, 'test', 'human-pilot.browser.js') });
   await mp.evaluate(() => window.installHumanPilot({ input: 'touch' }));
@@ -1012,7 +1014,7 @@ if (!quick && want('tiltland')) {
   console.log(`    render rate ${fmt(fps, 1)} fps -> simulation time scale ${fmt(scale, 2)}`);
   const ready = await mp.evaluate(() => ({ active: window.__sim.inputManager.tilt.active, tilt: document.body.classList.contains('tilt') }));
   check('tilt steering is on and centred for the approach', ready.active && ready.tilt, JSON.stringify(ready));
-  await mp.tap('#t-arm'); await mp.tap('#t-autobrake'); await mp.tap('#t-autobrake'); await mp.tap('#t-autobrake'); await mf(1);
+  await mp.tap('#t-autobrake'); await mf(1);
   // the human-like pilot: pitch and roll by tilting the phone, thrust, rudder, reversers and buttons by touch
   await mp.addScriptTag({ path: path.join(root, 'test', 'human-pilot.browser.js') });
   await mp.evaluate(() => window.installHumanPilot({ input: 'tilt' }));

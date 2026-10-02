@@ -711,7 +711,7 @@ tyre friction.
 
 | Starting point | Distance and height | Configuration | Duration |
 | --- | --- | --- | --- |
-| Short final | 4 nm, 1300 ft, 145 kts | flaps 30, gear down | about 2 min |
+| Short final | 4 nm, 1300 ft, 145 kts | flaps 30, gear down, speedbrake armed, autobrake 2 (3 on a wet runway) | about 2 min |
 | Standard final | 10 nm, 3000 ft, 175 kts | flaps 5, gear up | about 5 min |
 | Full approach | 26 nm, 7000 ft, 210 kts | flaps 1, gear up | about 12 min |
 
