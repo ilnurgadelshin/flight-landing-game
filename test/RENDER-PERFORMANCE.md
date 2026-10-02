@@ -406,3 +406,28 @@ It **keeps high-tier effects at 1×**, probes 1.1× after 18.04 s, and returns t
 effect reductions in this flight. This verifies the intended policy on this machine, with
 a visible tradeoff: automatic Retina rendering is softer than forced 1.5×, which still
 renders the captain view at roughly 41 FPS. Explicit high/DRS overrides remain available.
+
+
+## Ground detail tiles during a flight — 2026-10-02
+
+The M2 flight recordings above (`2026-10-02-merge-flight-*.json`) put every remaining 167–183 ms
+frame at x ≈ 8.3, 7.4, 6.4, 5.5, 4.4 and 3.5 km: once per kilometre, where the aircraft enters a
+new 1,032 m ground detail tile. The tile (2064 px on high, 17 MB of pixels) was uploaded whole at
+its first draw, flipped on the way. In Chrome that is main-thread work. Measured here
+(SwiftShader, main-thread time of the frame's JavaScript/WebGL calls, without waiting for the GPU;
+eight tiles each):
+
+| One tile | Before: the frame that first draws it | After: worst frame of the strips |
+| --- | ---: | ---: |
+| High, 2064 px | 119–248 ms | 1–7 ms, with occasional ~40 ms |
+| Low, 1032 px | 26–37 ms | 0.4–1 ms |
+
+A tile is now decoded off the main thread (`createImageBitmap`), copied unflipped into a
+preallocated texture one sixteenth per frame (the last strip builds the mip chain, which costs
+about 0.1 ms) and swapped in complete; the ground shader samples the unflipped layout. The
+first upload of this kind in a page has a one-time cost (seconds in software), paid by the
+preparation behind the menu. Rendered low-tier ground views are identical to the previous build (largest
+difference one colour level). With software rendering the GPU-side work is deferred by the
+driver and done when the tile completes, so SwiftShader cannot show the GPU half; measuring
+the flight on the M2 (`VISUAL_GPU=metal node test/streaming-flight.mjs`) is the confirmation
+that remains.

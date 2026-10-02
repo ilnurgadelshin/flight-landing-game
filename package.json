@@ -15,7 +15,8 @@
     "test:delivery": "node test/delivery.mjs",
     "test:all": "npm test && node test/e2e-parallel.mjs",
     "test:vegetation": "node test/vegetation-weather.mjs",
-    "test:scenery": "node test/authored-scenery.mjs"
+    "test:scenery": "node test/authored-scenery.mjs",
+    "test:tiles": "node test/ground-tiles.mjs"
   },
   "license": "MIT",
   "dependencies": {

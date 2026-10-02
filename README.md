@@ -569,8 +569,10 @@ trees. The current scene is then warmed with shader compilation and texture/buff
 that preparation is done; pressing Start earlier shows progress (a very slow
 connection still gets its flight after a minute, and the rest streams in). Asset failures
 retain the existing fallback surfaces and do not prevent flight. Preloading reduces visible
-arrivals and first-use work; later tile decoding/uploads, scenario changes and the first cabin
-reflection capture can still stall. Preparation includes the authored facade kits and all
+arrivals and first-use work. During a flight a new ground detail tile (one per kilometre of
+final) is decoded off the main thread and copied to the graphics card one sixteenth per frame,
+then appears complete, about 0.3 s later and far ahead; the tiles on screen stay until then.
+Scenario changes and the first cabin reflection capture can still stall. Preparation includes the authored facade kits and all
 five nearby-tree models on high quality.
 
 Shadows are drawn only when they change. The airport's large sun shadow map is static; it is
@@ -1282,6 +1284,9 @@ It also injects invalid reflection pixels
 and a failed capture, checking that the cockpit stays lit and the failure is not retried
 every frame. `node test/delivery.mjs` checks actual startup requests, the scenery prepared behind the menu (then no further scenery downloads in the tested flight) and
 foreground quality selection after a hidden-tab startup under deliberately slow frame pacing.
+`node test/ground-tiles.mjs` checks, on both tiers, that a flight copies one strip of a new
+ground tile per frame, keeps the tiles on screen until the new set is complete, holds four tiles
+and that the copy has exactly the image's pixels.
 Node checks cover interrupted calibration, Retina resolution recovery/backoff and the steady
 60 fps target (a modelled GPU: no 40–55 fps judder, effects before resolution, probed step-ups).
 The visual, scenery and lighting checks
