@@ -86,6 +86,7 @@ export class InputManager {
         case 'KeyX': this.emit('armSpeedbrake'); break;
         case 'KeyN': this.emit('autobrake'); break;
         case 'KeyT': this.emit('toga'); break;
+        case 'KeyQ': this.emit('autothrottle'); break;        // beside the thrust keys, as the A/T switch is on the levers
         case 'KeyP': this.emit('pause'); break;
         case 'KeyH': this.emit('help'); break;
         case 'KeyM': this.toggleMouse(); break;

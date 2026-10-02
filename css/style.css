@@ -288,6 +288,9 @@ body.touch #efis-rng { display: none; }           /* the ND shows its range at i
 #t-lever { position: absolute; left: 0; bottom: 0; width: calc(60px * var(--k)); height: calc(206px * var(--k)); display: flex; flex-direction: column; gap: calc(5px * var(--k)); }
 #t-toga { width: 100%; height: calc(44px * var(--k)); flex: none; border-color: #3fd0ff; background: rgba(63,208,255,0.14); }
 #t-toga b { font-size: calc(12px * var(--k)); color: #bdf; }
+/* the autothrottle: beside the lever, above the rudder strip */
+#t-at { position: absolute; left: calc(70px * var(--k)); bottom: calc(52px * var(--k)); width: calc(56px * var(--k)); }
+#t-at small { white-space: nowrap; }
 #t-lever-body { position: relative; flex: 1; border-radius: 10px; background: rgba(10,16,24,0.45); border: 1px solid rgba(255,255,255,0.28); }
 #t-lever.active #t-lever-body { border-color: var(--accent); }
 .tmark { position: absolute; left: 3px; font-size: calc(7.5px * var(--k)); color: #8a9aaa; }
@@ -328,7 +331,7 @@ body.tilt #t-center { display: flex; }
 #t-brake.down { background: rgba(255,77,77,0.4); }
 
 /* compact layout for short screens (body.compact, set by js/touch.js when the full layout does not
-   fit): the configuration buttons in two rows of three, TO/GA beside the thrust lever above the
+   fit): the configuration buttons in two rows of three, TO/GA and A/T beside the thrust lever above the
    rudder, the lever taking the height that is left, and the head-up display a little narrower */
 body.compact #t-config { grid-template-columns: repeat(3, calc(56px * var(--k))); }
 body.compact #t-spd { display: contents; }
@@ -337,6 +340,7 @@ body.compact #t-ext { grid-column: 3; grid-row: 2; }
 body.compact #t-flaps { grid-column: 1 / span 2; grid-row: 2; }
 body.compact #t-lever { top: calc(100px * var(--k)); height: auto; }
 body.compact #t-toga { position: absolute; left: calc(70px * var(--k)); bottom: calc(52px * var(--k)); width: calc(56px * var(--k)); }
+body.compact #t-at { bottom: calc(102px * var(--k)); }
 body.compact #t-brake { height: calc(44px * var(--k)); }
 body.touch.compact #hud-top { left: calc(var(--sal) + 208px * var(--k)); }
 body.compact #hgs { width: min(40vw, 420px); }

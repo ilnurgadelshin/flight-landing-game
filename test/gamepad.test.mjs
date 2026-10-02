@@ -58,6 +58,9 @@ console.log('\n[G2] Standard controller: sticks, triggers, buttons');
   for (const n of ['LB', 'RB', 'Left', 'View', 'Menu']) { R.set(n, 1); R.poll(); R.set(n, 0); R.poll(); }
   check('LB / RB = flaps up / down, D-pad ← = autobrake, View = TO/GA or back on final, Menu = pause / start', ['flapsUp', 'flapsDown', 'autobrake', 'togaOrReposition', 'padButton:Menu'].every((a) => R.actions.includes(a)), R.actions.join(', '));
   R.actions.length = 0;
+  R.set('Left', 1); for (let i = 0; i < 50; i++) R.poll(0.016); R.set('Left', 0); R.poll();
+  check(`D-pad ← held ${PAD.autothrottleHold} s = autothrottle, and no autobrake step on release`, R.actions.filter((a) => a === 'autothrottle').length === 1 && !R.actions.includes('autobrake'), R.actions.join(', '));
+  R.actions.length = 0;
   R.set('Right', 1); R.poll(0.016); R.poll(0.2); R.set('Right', 0); R.poll();
   check('D-pad → tapped = speedbrakes armed', R.actions.includes('armSpeedbrake') && !R.actions.includes('speedbrake'), R.actions.join(', '));
   R.actions.length = 0;

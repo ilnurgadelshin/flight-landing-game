@@ -28,6 +28,7 @@ export const CONTROLS = {
   speedbrake:   { key: kbd('Space'),                          touch: chip('EXT'), pad: () => `hold ${pb('D-pad →')}` },
   brakes:       { key: kbd('B'),                              touch: chip('BRAKE'), pad: (L) => pb(L.X) },
   autobrake:    { key: kbd('N'),                              touch: chip('A/BRK'), pad: () => pb('D-pad ←') },
+  autothrottle: { key: kbd('Q'),                              touch: chip('A/T'), pad: () => `hold ${pb('D-pad ←')}` },
   reverse:      { key: `hold ${kbd('R')}`,                    touch: `pull the ${chip('THRUST')} lever down past idle into ${chip('REV')}`, pad: (L) => `at idle on the ground, keep holding ${pb(L.B)}` },
   reverseStow:  { key: `release ${kbd('R')}`,                 touch: `push the ${chip('THRUST')} lever up out of ${chip('REV')}`, pad: (L) => `press ${pb(L.A)}` },
   trim:         { key: `${kbd('[')} / ${kbd(']')} (or PageUp / PageDown): trim nose up / down`, touch: 'Trim is automatic: hold a steady stick input and the stabiliser follows it', pad: () => `${pb('D-pad ↑')} / ${pb('D-pad ↓')}: trim nose down / up` },

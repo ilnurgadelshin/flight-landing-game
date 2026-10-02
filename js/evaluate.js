@@ -95,11 +95,13 @@ export function evaluateLanding(ac, ctx = {}) {
   // in gusts the full gust increment is carried to touchdown (only the half-headwind part of the
   // wind additive is bled off), so the target moves up by it
   const scenario = ctx.scenario || (ac.atmosphere && ac.atmosphere.scenario);
-  const gust = Math.min(20, (scenario && scenario.gustKts) || 0);
+  // (flown on the player's autothrottle the command speed is Vref + 5 with no gust additive, as
+  // Boeing has it: its gust protection holds the speed, and RETARD bleeds it in the flare)
+  const gust = ctx.atTouchdown ? 0 : Math.min(20, (scenario && scenario.gustKts) || 0);
   const dv = td.ias - (td.flapIndex >= 4 ? (td.flapIndex >= 5 ? AC.vref40 : AC.vref30) : AC.vref15) - gust;
   let spdPts, spdNote;
   // the flare bleeds 5-10 kts, so a touchdown a little below Vref is normal
-  if (dv >= -9 && dv <= 8) { spdPts = 15; spdNote = gust ? `Speed on target (Vref + the ${Math.round(gust)} kt gust additive).` : 'Speed on target.'; }
+  if (dv >= -9 && dv <= 8) { spdPts = 15; spdNote = gust ? `Speed on target (Vref + the ${Math.round(gust)} kt gust additive).` : (ctx.atTouchdown ? 'Speed on target (the autothrottle).' : 'Speed on target.'); }
   else if (dv > 8 && dv <= 18) { spdPts = 8; spdNote = 'Fast — extra float and a longer roll-out.'; }
   else if (dv > 18) { spdPts = 0; spdNote = 'Far too fast.'; failures.push('Excess speed'); }
   else if (dv < -9 && dv >= -15) { spdPts = 7; spdNote = 'Slow — a long flare bled too much speed.'; }

@@ -154,7 +154,8 @@
         if (st.ias > tgt + 15 && inp.speedbrake < 0.5 && !P.sbOut) { P.sbOut = 1; IO.tap('Space'); note('speedbrakes out (fast)'); }
         if (st.ias < tgt + 4 && P.sbOut) { P.sbOut = 0; IO.tap('Space'); note('speedbrakes in'); }
       } else if (P.sbOut) { P.sbOut = 0; IO.tap('Space'); note('speedbrakes in'); }
-      if (d < 5.5 * NM && inp.autobrake === 0 && !P.did.ab) { P.did.ab = 1; for (let i = 0; i < o.autobrake; i++) setTimeout(() => IO.tap('KeyN'), i * 250); note('autobrake ' + o.autobrake); }
+      // the autobrake it wants (a short final starts at 2, or 3 on a wet runway): the knob only steps up, round to OFF
+      if (d < 5.5 * NM && inp.autobrake !== o.autobrake && !P.did.ab) { P.did.ab = 1; for (let i = 0; i < (o.autobrake - inp.autobrake + 5) % 5; i++) setTimeout(() => IO.tap('KeyN'), i * 250); note('autobrake ' + o.autobrake); }
     };
     function tick() {
       const now = performance.now(); const dt = Math.min(0.25, (now - P.last) / 1000); P.last = now; P.dt = dt * (window.__sim.game.sim.timeScale || 1);

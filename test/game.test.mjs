@@ -401,6 +401,64 @@ console.log('\n[R10] The navigation display, the FMA and the MCP through a go-ar
   }
 }
 
+console.log('\n[R11] The player\'s autothrottle on a manual landing');
+{
+  // a manual landing: the pilot flies pitch, roll and rudder (the flight director's law, on its copy
+  // of the controls) and brakes after touchdown; the thrust levers are the autothrottle's
+  const manual = (scenarioId, seed = 3) => {
+    const R = rig({ scenarioId, seed }), g = R.game, inp = g.sim.aircraft.input, st = g.sim.state;
+    g.controls.enableDirector();
+    const sh = g.controls.shadow;
+    R.player.update = function (dt, input) { this.updates++; input.pitch = sh.pitch; input.roll = sh.roll; input.yaw = sh.yaw; if (st.onGround) input.brake = sh.brake; };
+    g.action('autothrottle');
+    const at = g.controls.autothrottle, engaged = { mode: at.mode, msg: R.of('message').map((m) => m.text).join(' | ') };
+    const modes = [], L = [];
+    let tdT = null, offT = null, thrTd = null, retardThr = null, retardAgl = null;
+    for (let t = 0; t < 300 && g.state !== 'finished'; t += 1 / 30) {
+      g.update(1 / 30);
+      const m = at.mode; if (modes[modes.length - 1] !== m) { modes.push(m); if (m === 'RETARD') { retardThr = inp.throttle; retardAgl = st.agl / FT; } }
+      if (!st.onGround && st.agl < 1000 * FT && st.agl > 100 * FT) L.push(st.ias);
+      if (tdT === null && g.sim.aircraft.touchdown) { tdT = g.time; thrTd = inp.throttle; }
+      if (tdT !== null && offT === null && !at.engaged) offT = g.time;
+    }
+    const mean = L.reduce((a, b) => a + b, 0) / L.length;
+    return { R, g, engaged, modes, mean, lo: Math.min(...L), hi: Math.max(...L), vref: g.sim.aircraft.input.flapIndex >= 5 ? 138 : 142, tdT, offT, thrTd, retardThr, retardAgl, log: g.events.filter((e) => /A\/T/.test(e.text)).map((e) => e.text) };
+  };
+  const C = manual('clear');
+  check('engaged in flight: MCP SPD at Vref + 5, announced', C.engaged.mode === 'MCP SPD' && C.engaged.msg.includes(`A/T ENGAGED — MCP SPD ${C.vref + 5} kts`), C.engaged.msg);
+  check('MCP SPD holds Vref + 5 down the glideslope (1000–100 ft)', Math.abs(C.mean - (C.vref + 5)) < 2 && C.lo > C.vref + 1 && C.hi < C.vref + 10, `mean ${C.mean.toFixed(1)}, ${C.lo.toFixed(0)}–${C.hi.toFixed(0)} kts`);
+  check('RETARD from 27 ft, the levers at idle by touchdown, then off 2 s after it', C.modes.join(' → ') === 'MCP SPD → RETARD → ' && C.retardAgl < 27.5 && C.retardThr > 0.2 && C.thrTd < 0.05 && C.offT - C.tdT >= 1.9 && C.offT - C.tdT < 3,
+    `${C.modes.join(' → ')}OFF; RETARD at ${C.retardAgl.toFixed(0)} ft from ${(C.retardThr * 100).toFixed(0)} %, ${(C.thrTd * 100).toFixed(0)} % at touchdown, off ${(C.offT - C.tdT).toFixed(1)} s later`);
+  const spd = C.g.result.items.find((i) => i.label === 'Airspeed at touchdown');
+  check('a good landing; the debrief judges the speed against Vref (no gust additive on the autothrottle)', C.g.result.success && spd.points === 15 && /autothrottle/.test(spd.note), `${C.g.result.score} points, ${spd.value}: ${spd.note}`);
+  check('the log: engaged, then disengaged after touchdown', C.log.join(', ') === 'A/T engaged, A/T disengaged after touchdown', C.log.join(', '));
+  // the storm (gusts +14 kt) at Vref + 5, as Boeing has it with the autothrottle: its gust protection
+  // (thrust added twice as fast as it is taken off) keeps the average speed at the command speed.
+  // The test pilot's flare is tuned for the autoland's Vref + 20, so one landing in six may be hard.
+  const storms = [1, 2, 3, 4, 5, 6].map((seed) => manual('storm', seed));
+  const sMean = storms.reduce((a, x) => a + x.mean, 0) / storms.length, sLo = Math.min(...storms.map((x) => x.lo)), landed = storms.filter((x) => x.g.result.success).length;
+  check('in the storm: the average speed held at Vref + 5 (gust protection), never below Vref − 12, and the landings made', Math.abs(sMean - 147) < 1.5 && sLo > 142 - 12 && landed >= 5, `mean ${sMean.toFixed(1)}, lowest ${sLo.toFixed(0)} kts; ${landed} of 6 landed (${storms.map((x) => x.g.result.score).join(', ')} points)`);
+
+  // disconnecting it
+  const R = rig(), g = R.game, inp = g.sim.aircraft.input, at = g.controls.autothrottle;
+  g.action('autothrottle'); R.fly(1);
+  R.player.update = function (dt, input) { this.updates++; input.throttle = Math.min(1, input.throttle + 0.05); };
+  R.fly(0.2);
+  check('moving the thrust levers by hand disconnects it, announced', !at.engaged && R.of('message').some((m) => m.text === 'A/T DISCONNECT') && g.events.some((e) => e.text === 'A/T disconnected: thrust levers moved'));
+  R.player.update = function () { this.updates++; };
+  g.action('autothrottle'); g.action('toga'); R.fly(2);
+  check('TO/GA: GA mode, holding the go-around thrust', at.engaged && at.mode === 'GA' && inp.throttle === 1);
+  R.fly(3); g.action('reposition'); R.fly(1);
+  check('a reposition: MCP SPD again from the new start', at.engaged && at.mode === 'MCP SPD' && inp.throttle < 0.9, `${at.mode}, levers ${(inp.throttle * 100).toFixed(0)} %`);
+  g.action('autothrottle');
+  check('the switch again: off', !at.engaged && at.mode === '' && R.of('message').filter((m) => m.text === 'A/T DISCONNECT').length === 2);
+  g.action('autothrottle'); g.controls.engageAutopilot({});
+  check('the autoland flies its own autothrottle: the player\'s goes off', !at.engaged);
+  const Gr = rig(); Gr.game.sim.aircraft.place({ x: 0, y: 0, z: 0, headingDeg: 270, iasKts: 0, flapIndex: 4, gearDown: true }); Gr.fly(0.5);
+  Gr.game.action('autothrottle');
+  check('on the ground it does not engage, and says so', !Gr.game.controls.autothrottle.engaged && Gr.of('message').some((m) => /engages in flight only/.test(m.text)));
+}
+
 console.log('\n[R7] Every phrase the game speaks has a recording');
 {
   // the phrases in the code: the strings on the lines that speak (say, announce, the height callouts)

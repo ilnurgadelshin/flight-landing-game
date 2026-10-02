@@ -138,6 +138,11 @@ if (want('keys')) {
   check('brakes release', (await I()).brake < 0.1);
   await page.keyboard.down('KeyR'); await frames(3); const ir = await I(); check('R selects reverse (and closes the thrust levers)', ir.reverse === true && ir.throttle === 0); await page.keyboard.up('KeyR'); await frames(3);
   check('reverse stows on release', (await I()).reverse === false);
+  const AT = () => page.evaluate(() => ({ on: window.__sim.game.controls.autothrottle.engaged, fma: window.__sim.cockpit.pfd.fma[0], mcp: window.__sim.cockpit._mcpKey }));
+  await tap('KeyQ'); await frames(3); const at1 = await AT();
+  check('Q engages the autothrottle: MCP SPD on the FMA, the flap speed on the MCP', at1.on && at1.fma === 'MCP SPD' && at1.mcp.startsWith('175|'), JSON.stringify(at1));
+  await holdKey('KeyS', 200); await frames(3); const at2 = await AT();
+  check('moving the thrust levers (S) disconnects it, and the FMA blanks', !at2.on && at2.fma === '', JSON.stringify(at2));
   const sR = await S(); check('reversers cannot deploy in flight', sR.reverser < 0.05, `reverser ${fmt(sR.reverser, 2)}`);
   const tr0 = (await I()).trim; await holdKey('BracketLeft', 400); const tr = (await I()).trim; check('[ trims nose up', tr > tr0, `${fmt(tr0, 2)} -> ${fmt(tr, 2)}`);
   // primary controls: hold and look at the physics response
@@ -728,6 +733,10 @@ if (want('mobile')) {
   check('GEAR, FLAPS +, ARM and A/BRK buttons drive the aircraft', i1.gearDown !== i0.gearDown && i1.flapIndex === i0.flapIndex + 1 && i1.speedbrakeArmed && i1.autobrake === 2, `gear ${i1.gearDown}, flaps ${i0.flapIndex}→${i1.flapIndex}, armed ${i1.speedbrakeArmed}, autobrake ${i1.autobrake}`);
   const btnTxt = await mp.evaluate(() => ({ flaps: document.getElementById('t-flaps-val').textContent, ab: document.querySelector('#t-autobrake b').textContent, armOn: document.getElementById('t-arm').classList.contains('on') }));
   check('the buttons show the new settings', btnTxt.ab === '2' && btnTxt.armOn && Number(btnTxt.flaps) > 0, JSON.stringify(btnTxt));
+  const atBtn = () => mp.evaluate(() => ({ on: window.__sim.game.controls.autothrottle.engaged, lit: document.getElementById('t-at').classList.contains('on'), mode: document.querySelector('#t-at small').textContent }));
+  await mp.tap('#t-at'); await mf(2); const atOn = await atBtn();
+  await mp.tap('#t-at'); await mf(2); const atOff = await atBtn();
+  check('A/T beside the lever engages the autothrottle and shows its mode; again, off', atOn.on && atOn.lit && atOn.mode === 'MCP SPD' && !atOff.on && !atOff.lit && atOff.mode === 'OFF', `${JSON.stringify(atOn)} → ${JSON.stringify(atOff)}`);
   await mp.tap('#t-flaps-up'); await mp.tap('#t-ext'); await mf(2);
   const i2 = await MI();
   check('FLAPS − and EXT (speedbrakes out) work', i2.flapIndex === i0.flapIndex && i2.speedbrake === 1 && !i2.speedbrakeArmed, `flaps ${i2.flapIndex}, speedbrake ${i2.speedbrake}`);

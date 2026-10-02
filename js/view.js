@@ -17,6 +17,7 @@
 // flight deck's; nothing copies it over the view.
 import * as THREE from 'three';
 import { DEG } from './config.js';
+import { commandSpeed } from './autothrottle.js';
 
 const COCKPIT_PITCH = -14 * DEG, HUD_PITCH = -6 * DEG, COCKPIT_FOV = 58;
 const ND_FOV = 50;                          // the ND view's vertical field of view (deg)
@@ -115,6 +116,8 @@ export class GameView {
     const demo = !!g.demoAp;
     // what the autoland has selected and the modes it flies (the pilot's defaults without it)
     const fma = demo ? g.demoAp.fma : null, mcp = demo ? g.demoAp.mcp : null;
+    // the player's autothrottle: its mode on the FMA, and the speed it holds on the speed tape
+    const at = g.controls.autothrottle, atSpd = at.engaged && !st.onGround ? commandSpeed(inp, st) : null;
     // the flight deck is drawn while the camera leans in to the ND or back out of it, and the field
     // of view narrows with the move (it eases: cockpit.focus)
     const f = this.cockpit.focus, s = f * f * (3 - 2 * f);
@@ -127,9 +130,9 @@ export class GameView {
     if (Math.abs(cam.fov - fov) > 1e-3) { cam.fov = fov; cam.updateProjectionMatrix(); }
     this.world.drawCockpit = !hud;
     this.cockpit.update(st, inp, frameDt, {
-      // the selected speed: the autoland's on its MCP, otherwise the approach's Vref + 5
-      look, fd: g.fdCommand(), targetSpeed: !st.onGround ? (mcp ? mcp.spd : st.vref + 5) : null, papi: this.world.lights.papiWhites(this.eye), checklist: g.checklist(),
-      gaMode: g.ctx.gaMode, rain: this.raining, autothrottle: fma ? fma.at : '',
+      // the selected speed: the autoland's on its MCP, the player's autothrottle's, otherwise the approach's Vref + 5
+      look, fd: g.fdCommand(), targetSpeed: !st.onGround ? (mcp ? mcp.spd : (atSpd || st.vref + 5)) : null, papi: this.world.lights.papiWhites(this.eye), checklist: g.checklist(),
+      gaMode: g.ctx.gaMode, rain: this.raining, autothrottle: fma ? fma.at : at.mode,
       rollMode: fma ? fma.roll : (g.mode === 'training' ? 'FD' : ''), pitchMode: fma ? fma.pitch : (g.mode === 'training' ? 'FD' : ''),
       mcp, efis: g.efis, nd: g.ndOpts(),
       hidden: hud, viewPitch: headUp ? HUD_PITCH : COCKPIT_PITCH,

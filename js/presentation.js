@@ -11,7 +11,7 @@ import { chartModel, drawChart } from './chart.js';
 import { debriefModel, drawDebrief } from './debrief.js';
 import { getScheme } from './controls.js';
 
-const CONTROL_SOUNDS = { gear: 'gear', flapsDown: 'flaps', flapsUp: 'flaps', speedbrake: 'click', armSpeedbrake: 'click', autobrake: 'click', toga: 'chime', ndRange: 'click', ndMode: 'click' };
+const CONTROL_SOUNDS = { gear: 'gear', flapsDown: 'flaps', flapsUp: 'flaps', speedbrake: 'click', armSpeedbrake: 'click', autobrake: 'click', autothrottle: 'click', toga: 'chime', ndRange: 'click', ndMode: 'click' };
 const ND_PERIOD = 1 / 15;            // s between redraws of the ND view's sharp copy of the display
 const CHART_PERIOD = 0.25;           // s between redraws of the approach chart (its own-ship)
 
@@ -149,7 +149,7 @@ export class Presentation {
     const view = this.view.shown;
     this.ui.setView(view);
     this.ui.updateHUD(st, { mouse: this.input.mouseEngaged, pad: this.input.pad.active, configWarning, fd: g.fdCommand(), headUp: view === 'hud' });
-    if (this.touch) this.touch.sync(st, inp, { gaMode: g.ctx.gaMode, view });
+    if (this.touch) this.touch.sync(st, inp, { gaMode: g.ctx.gaMode, view, at: g.controls.autothrottle.mode });
     if (this.gpws) this.ui.setCaption(this.gpws.caption, this.gpws.captionKind);
     this.ui.setChecklist(g.state === 'flying' ? g.checklist() : null);
     this.navDisplay(frameDt);

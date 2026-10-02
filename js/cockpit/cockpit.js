@@ -9,6 +9,7 @@ import { PFD, ND, UpperDU, LowerDU, makeMCPTexture, makePanelTexture, makeOverhe
 import { surfaceGrain, rounded, detailFlightDeck } from './finish.js';
 import { ND_RANGES } from '../nd.js';
 import { loadFlightDeck } from './model.js';
+import { commandSpeed } from '../autothrottle.js';
 
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 
@@ -407,7 +408,7 @@ export class Cockpit {
     if (this.frame % 3 === 0) this.standby.draw(st);
     // MCP windows: what the autoland has selected; flown by hand, the speed for the flap setting,
     // the runway heading and the missed-approach altitude
-    const mcp = extra.mcp || { spd: Math.round(input.flapIndex >= 4 ? st.vref + 5 : (input.flapIndex >= 3 ? 165 : (input.flapIndex >= 2 ? 175 : 210))), hdg: 270, alt: 3000 };
+    const mcp = extra.mcp || { spd: commandSpeed(input, st), hdg: 270, alt: 3000 };
     const mcpKey = `${mcp.spd}|${mcp.hdg}|${mcp.alt}`;
     if (mcpKey !== this._mcpKey) { this._mcpKey = mcpKey; this.mcp = mcp; this.mcpTex.userData.draw({ ias: String(mcp.spd), hdg: String(mcp.hdg % 360).padStart(3, '0'), alt: String(mcp.alt), vs: '' }); }
     if (this.frame % 2 === 0) this.nd.draw(st, extra.efis, extra.nd);

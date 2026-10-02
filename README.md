@@ -150,6 +150,7 @@ flight deck.
 | Roll | `←` / `→` (or mouse yoke) |
 | Rudder / nose-wheel steering | `A` / `D` — essential for crosswind landings |
 | Throttle | `W` up / `S` down · `T` = TOGA (go-around thrust) |
+| Autothrottle (optional) | `Q` engages / disconnects it; moving the thrust levers also disconnects it |
 | Flaps | `F` extend one notch · `V` retract one notch |
 | Landing gear | `G` |
 | Speedbrakes / spoilers | `Space` extend/retract · `X` arm for automatic deployment at touchdown |
@@ -189,7 +190,8 @@ own buttons throughout the game.
 | Landing gear | Y |
 | Flaps | LB up / RB down |
 | Speedbrakes | D-pad →: tap to arm, hold to extend / retract |
-| Autobrake | D-pad ← cycles OFF/1/2/3/MAX |
+| Autobrake | D-pad ← (tap) cycles OFF/1/2/3/MAX |
+| Autothrottle (optional) | D-pad ← held 0.6 s engages / disconnects it; A or B (thrust) also disconnects it |
 | Trim | D-pad ↑ nose down / ↓ nose up |
 | TO/GA | View; pressed again during the go-around, it puts you back on final |
 | Look around / views | Right stick (lets go straight ahead) · press it for the next view: cockpit → panel → head-up |
@@ -233,7 +235,7 @@ thrust lever that stays where it is left for the other.
 | Control | Touch |
 | --- | --- |
 | Pitch and roll | **Stick** (right thumb): it appears where the thumb lands in the lower right and springs back to centre when released. The aircraft then holds its attitude and trims itself. Stick up = nose up (tick *Pilot-style pitch* for stick up = nose down). Or tick **Tilt to fly** (below) |
-| Thrust | **Thrust lever** at the left edge: drag it, and it stays where you leave it. **TO/GA** on top (beside it on short screens) gives go-around thrust |
+| Thrust | **Thrust lever** at the left edge: drag it, and it stays where you leave it. **TO/GA** on top (beside it on short screens) gives go-around thrust. **A/T** beside the lever, above the rudder strip, engages the autothrottle and shows its mode; dragging the lever disconnects it |
 | Thrust reversers | On the ground, pull the lever down past idle into **REV**. It stays there until you push it back up |
 | Rudder / nose-wheel steering | **RUDDER** strip next to the lever; springs back to centre |
 | Gear, flaps, speedbrakes, autobrake | **GEAR**, **FLAPS − / +**, **ARM** and **EXT** (speedbrakes), **A/BRK** buttons at the top left. Each shows its current setting |
@@ -254,7 +256,7 @@ and highlight them.
 iPhone's page only 265–330 px tall (Chrome on Android about 300). When the
 full layout does not fit, a compact one takes over. The gear, autobrake,
 flaps and speedbrake buttons sit in two rows of three, and TO/GA moves beside
-the thrust lever, above the rudder strip. The lever takes the height that is
+the thrust lever, above the rudder strip, with A/T above it. The lever takes the height that is
 left. Added to the Home Screen, the game has the whole screen. On short
 screens the menu and results scroll.
 
@@ -363,11 +365,12 @@ qualified against.
   moderate to severe in the storm (34 kt, from "22 kt gusting 36"). Clear
   weather has smooth air.
 
-**Autothrottle** (`js/autopilot.js`, the autoland demo and the test pilot):
-modelled on a 737's in speed mode.
+**Autothrottle** (`js/autothrottle.js`): modelled on a 737's in speed mode.
+The autoland demo and the test pilot (`js/autopilot.js`) fly it, and the
+player can engage the same one for a manual landing (below).
 
-- The approach speed is Vref plus the wind additive: half the steady headwind
-  plus the full gust, between 5 and 20 kt.
+- The autoland's approach speed is Vref plus the wind additive: half the steady
+  headwind plus the full gust, between 5 and 20 kt.
 - The speed it controls is the airspeed blended with the aircraft's inertial
   acceleration (a 5 s complementary filter). Gusts barely reach the thrust
   levers, while a real change of speed shows at once.
@@ -384,6 +387,32 @@ modelled on a 737's in speed mode.
 In the storm the levers move a few percent at a time, as a real 737's do,
 between about 45 and 70 %. Before this model they swung between idle and full
 several times a second, chasing every gust.
+
+**The player's autothrottle** (`js/autothrottle.js`, optional): a manual
+landing with the autothrottle engaged, as many 737 crews fly one. `Q`, the
+**A/T** touch button or holding D-pad ← engages it in flight.
+
+- **MCP SPD:** it holds the speed on the mode control panel: the flap speeds
+  on the way in (210, 175, 165 kt), then Vref + 5 with flaps 30 or 40. Boeing's
+  training manual says to set Vref + 5 with the autothrottle and add no wind
+  additive: thrust that comes in fast and goes out slowly is the gust
+  protection. The speed bug and the MCP window show that speed.
+- **RETARD:** from 27 ft radio altitude with flaps 15 or more, the levers come
+  back to idle and reach it about as the wheels touch. You fly the flare with
+  pitch alone.
+- **Disengaging:** it disengages 2 s after touchdown. Moving the thrust levers
+  yourself (`W`/`S`, the touch lever, the controller's A/B) or selecting
+  reverse disconnects it, as the disconnect switch under a pilot's thumb does.
+  The game then shows "A/T DISCONNECT".
+- **TO/GA:** in a go-around it holds the go-around thrust (GA) until you take
+  the levers. After a reposition it is back in MCP SPD.
+- **FMA:** the primary flight display's first column shows the mode.
+- **Debrief:** a touchdown flown on the autothrottle is judged against Vref
+  with no gust additive.
+
+On a short final in clear air it holds 147 kt (Vref + 5) to within about
+±3 kt down the glideslope. In the storm, with gusts of 14 kt, the average stays
+at Vref + 5.
 
 **Go-around** (`js/autopilot.js`, the autoland demo and the test pilot): when
 an approach or a landing goes bad, the autoland goes around, as Boeing's
@@ -779,7 +808,7 @@ a module to what it uses; nothing points back up.
 | `js/tilt.js`, `js/haptics.js`, `js/gamepad.js` | Tilt steering from the motion sensor; vibration and controller rumble; game controllers |
 | `manifest.webmanifest`, `icons/`, `tools/make-icons.mjs` | Home-screen app: manifest, icons, and the script that renders the icons |
 | `js/evaluate.js` | Landing grading and outcomes |
-| `js/autopilot.js` | Test pilot used by the tests and the autoland demo |
+| `js/autopilot.js`, `js/autothrottle.js` | Test pilot used by the tests and the autoland demo; the autothrottle it flies, and the player's optional one |
 | `vendor/` | Three.js, its post-processing add-ons (`vendor/addons/`) and cannon-es (no install needed to play) |
 | `test/` | Test suites, playtest harness and findings (below) |
 
@@ -1072,7 +1101,8 @@ a camera placed like the game's:
 `test/game.test.mjs` runs the game's rules in Node, with no browser, recording their events:
 
 1. a flight starts and the physics advances;
-2. every action: the control moves, it is announced and logged; flaps stop at the ends; TO/GA
+2. every action: the control moves, it is announced and logged; flaps stop at the ends; the
+   short final starts with the speedbrake armed and autobrake 2 (3 on a wet runway); TO/GA
    starts a go-around; repositioning; pause stops time and actions;
 3. the autoland demo has command, the devices only keep time, and grabbing a control or a
    configuration action takes over;
@@ -1131,6 +1161,15 @@ a camera placed like the game's:
      the automatic range, the APP pointers only with their signals, LOC and G/S only with them,
      the route or the missed approach active as the phase says, the bug on the MCP heading, and
      the path's colour.
+11. the player's autothrottle on a manual landing, the pitch flown by the flight director's law:
+   - engaged in MCP SPD at Vref + 5 and announced; the speed held within a few knots down the
+     glideslope; RETARD from 27 ft with the levers at idle by touchdown; off 2 s later; the
+     debrief judges the speed against Vref; the log records it;
+   - in the storm over six seeds: the average speed at Vref + 5, never below Vref − 12, and the
+     landings made;
+   - moving the levers disconnects it, with "A/T DISCONNECT"; TO/GA gives GA with the go-around
+     thrust; a reposition returns it to MCP SPD; the autoland's own autothrottle replaces it; it
+     does not engage on the ground.
 
 `test/nav.test.mjs` checks the navigation in Node, each figure against the geometry it should
 show:
