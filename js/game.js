@@ -307,6 +307,12 @@ export class Game {
   track(dt) {
     const ac = this.sim.aircraft, st = ac.state, inp = ac.input, c = this.ctx;
     if (st.reverser > 0.5) c.usedReversers = true;
+    // the roll-out's "sixty knots": reverse idle from here (max reverse kept below it is noted in
+    // the debrief, with 5 kts for the pilot to react)
+    const revKts = AC.engines.reverseIdleKts;
+    if (st.onGround && ac.touchdown && st.reverser > 0.5 && c.iasPrev > revKts && st.ias <= revKts) this.message(`${revKts} KNOTS`, '', 2);
+    if (st.onGround && inp.reverse && inp.reverseLevel > 0.5 && st.ias < revKts - 5 && st.groundSpeed > 5 * KTS) c.maxReverseSlow = true;
+    c.iasPrev = st.ias;
     if (st.speedbrake > 0.5 && st.onGround) c.usedSpeedbrake = true;
     c.maxBrake = Math.max(c.maxBrake, st.brake);
     if (!st.onGround) c.minAglOnApproach = Math.min(c.minAglOnApproach, st.agl);
@@ -397,8 +403,12 @@ export class Game {
     const hints = [];
     if (this.demoAp) { this.emit('instructor', { html: 'Watch the demo: notice the small, smooth control inputs and how thrust is used to hold the speed.' }); return; }
     if (st.onGround && this.sim.aircraft.touchdown) {
-      if (st.groundSpeed > 30 * KTS) hints.push('<b>Rolling out.</b> Reverse thrust: [[reverse]]; brakes: hold [[brakes]]. Keep straight with [[rudder]].');
-      else if (st.groundSpeed > 1) hints.push('Stow the reversers below 60 kts ([[reverseStow]]) and brake to a stop.');
+      // Boeing's roll-out: max reverse to 60 kts, then reverse idle; stowed by taxi speed
+      const revMax = inp.reverse && inp.reverseLevel > 0.5, revKts = AC.engines.reverseIdleKts;
+      if (st.ias > revKts) hints.push('<b>Rolling out.</b> Max reverse: [[reverse]]; brakes: hold [[brakes]]. Keep straight with [[rudder]].');
+      else if (revMax) hints.push(`<b>${revKts} knots:</b> reverse idle ([[reverseIdle]]).`);
+      else if (inp.reverse && st.groundSpeed < 30 * KTS) hints.push('Taxi speed: stow the reversers ([[reverseStow]]) and brake to a stop.');
+      else if (st.groundSpeed > 1) hints.push('Brake to a stop ([[brakes]]) and keep straight with [[rudder]].');
     } else if (c.gaMode) {
       hints.push('<b>Go-around:</b> pitch to +12° with full thrust, gear up when climbing ([[gear]]), flaps 15 ([[flapsUp]]). Above 1000 ft press [[reposition]] to reposition.');
     } else if (aglFt < 60) {

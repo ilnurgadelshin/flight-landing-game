@@ -196,6 +196,17 @@ console.log('\n[8] Failure states produce the right consequences');
   const r = flyApproach({ scenarioId: 'crosswind', startId: 'short', seed: 4, apOpts: { noDecrab: true } });
   console.log(`  crosswind without decrab: ${summary(r)}`);
   check('crosswind landing without decrab -> crab recorded at touchdown', r.td && Math.abs(r.td.crabDeg) > 4, r.td ? `${fmt(r.td.crabDeg)}°` : '');
+  // Boeing permits a crab touchdown; on a dry runway it recommends de-crabbing, as the aircraft
+  // tracks toward the upwind edge while it straightens
+  const al = r.evalRes.items.find((i) => i.label === 'Alignment');
+  check('...a landing, the gear intact; the debrief: 10 of 15 and the upwind edge (dry runway)', r.evalRes.success && !r.sim.aircraft.damage.gearCollapsed && al.points === 10 && /upwind edge/.test(al.note), `${al.value}: ${al.note}`);
+  // the same touchdown scored on other runways and crabs (the grading alone, on that aircraft)
+  const td = r.sim.aircraft.touchdown, crab0 = td.crabDeg, bank0 = td.bank;
+  const score = (crabDeg, scenario) => { td.crabDeg = crabDeg; td.bank = 1 * DEG; return evaluateLanding(r.sim.aircraft, Object.assign({}, r.ctx, { scenario })).items.find((i) => i.label === 'Alignment'); };
+  const dry = r.sim.aircraft.atmosphere.scenario, wet = Object.assign({}, dry, { wet: true });
+  const a45 = score(4.5, dry), a7w = score(7, wet), a13 = score(13, dry), a16 = score(16, dry);
+  td.crabDeg = crab0; td.bank = bank0;
+  check('a crab up to 5° (8° on a wet runway) with the wings level scores full; 13° (a full crab at 33 kt) 4; past the gear\'s 15°, 0', a45.points === 15 && a7w.points === 15 && a13.points === 4 && a16.points === 0, `4.5° ${a45.points}, 7° wet ${a7w.points}, 13° ${a13.points}, 16° ${a16.points}`);
 }
 {
   const r = flyApproach({ scenarioId: 'clear', startId: 'short', apOpts: { targetSpeedOffset: 30, flareHeight: 9 } });
@@ -261,6 +272,23 @@ console.log('\n[11] Ground handling: hands off in a crosswind the aircraft weath
   // a pilot holding the heading with the pedals (proportional rudder, as a person would)
   const held = rollout((st) => clamp(-(st.heading / DEG - 270) * 0.15 - (st.r / DEG) * 0.1, -1, 1));
   check('pedal inputs keep the roll-out within 2° of the runway heading', held.maxDev < 2, `max heading deviation ${fmt(held.maxDev, 2)}°`);
+}
+
+console.log('\n[11b] Reverse thrust: reverse idle and max reverse');
+{
+  // on the runway at 120 kt, the reversers selected for 8 s at a reverse lever position
+  const roll = (level) => {
+    const sim = new Simulation({ scenarioId: 'clear', startId: 'short', seed: 3 });
+    const ac = sim.aircraft;
+    ac.place({ x: RUNWAY.thresholdX - 400, y: 3.35, z: 0, headingDeg: 270, iasKts: 120, flapIndex: 4, gearDown: true, throttle: 0, onGround: true });
+    ac.body.velocity.set(-120 * KTS, 0, 0);
+    ac.input.reverse = true; ac.input.reverseLevel = level;
+    for (let i = 0; i < 120 * 8; i++) sim.stepOnce();
+    return { n1: ac.engines[0].n1, thrust: ac.engines.reduce((a, e) => a + e.thrust, 0), rev: sim.state.reverser, gs: sim.state.groundSpeed / KTS };
+  };
+  const idle = roll(0), max = roll(1);
+  check('reverse idle: the reversers deployed, the engines at idle N1 and no forward thrust', idle.rev > 0.95 && Math.abs(idle.n1 - AIRCRAFT.engines.idleN1) < 0.02 && idle.thrust <= 0, `N1 ${fmt(idle.n1 * 100, 0)} %, thrust ${fmt(idle.thrust / 1000, 1)} kN`);
+  check('max reverse: about 88 % N1 and strong reverse thrust, slowing the aircraft more', max.n1 > 0.85 && max.thrust < -40000 && max.gs < idle.gs - 5, `N1 ${fmt(max.n1 * 100, 0)} %, thrust ${fmt(max.thrust / 1000, 0)} kN; ${fmt(max.gs, 0)} vs ${fmt(idle.gs, 0)} kt after 8 s`);
 }
 
 console.log('\n[12] Flight School flight director: computes guidance on its own controls and never flies the aircraft');

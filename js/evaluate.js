@@ -110,10 +110,18 @@ export function evaluateLanding(ac, ctx = {}) {
 
   const crab = Math.abs(td.crabDeg);
   const bank = Math.abs(td.bank) / DEG;
+  // Boeing permits a touchdown in a crab and recommends de-crabbing on a dry runway: there the
+  // aircraft tracks toward the upwind edge as it straightens (further the larger the crab); on a
+  // wet or slippery one a crab touchdown is less of a problem
+  const wet = !!(scenario && scenario.wet), crabOk = wet ? 8 : AC.gear.crabTouchdownDeg;
   let alignPts, alignNote;
-  if (crab <= 3 && bank <= 4) { alignPts = 15; alignNote = 'Aligned with the runway, wings level.'; }
-  else if (crab <= 7 && bank <= 6) { alignPts = 10; alignNote = 'Some crab / bank at touchdown — side load on the gear.'; }
-  else if (crab <= AC.gear.maxCrabDeg && bank <= 8) { alignPts = 4; alignNote = 'Large crab or bank — tyres scrubbed hard.'; }
+  if (crab <= crabOk && bank <= 4) {
+    alignPts = 15;
+    alignNote = crab <= 3 ? 'Aligned with the runway, wings level.' : `A ${crab.toFixed(0)}° crab, wings level: ${wet ? 'on a wet runway a crab touchdown is acceptable' : 'within what the gear takes routinely'}.`;
+  } else if (crab <= 8 && bank <= 6) {
+    alignPts = 10;
+    alignNote = crab > crabOk ? 'A crab touchdown on a dry runway: permitted, but the aircraft tracks toward the upwind edge as it straightens. De-crab with rudder in the flare.' : 'Some bank at touchdown — side load on the gear.';
+  } else if (crab <= AC.gear.maxCrabDeg && bank <= 8) { alignPts = 4; alignNote = 'Large crab or bank — tyres scrubbed hard, and a swing toward the runway edge.'; }
   else { alignPts = 0; alignNote = 'Sideways touchdown.'; }
   add('Alignment', `${crab.toFixed(1)}° crab, ${bank.toFixed(1)}° bank`, alignPts, 15, alignNote, alignPts >= 10);
 
@@ -134,6 +142,9 @@ export function evaluateLanding(ac, ctx = {}) {
     if (ctx.maxBrake > 0.2 || ac.input.autobrake > 0) used.push('brakes');
     decelNote = `Stopped after a ${roll.toFixed(0)} m roll-out using ${used.join(', ') || 'aerodynamic drag only'}.`;
     if (!ctx.usedSpeedbrake) { decelPts -= 2; decelNote += ' Speedbrakes were not deployed.'; }
+    // Boeing: max reverse to 60 kts, then reverse idle (at low speed the exhaust can be blown back
+    // into the inlets and throw up debris)
+    if (ctx.maxReverseSlow) { decelPts -= 2; decelNote += ` Max reverse was held below ${AC.engines.reverseIdleKts} kts: bring it to reverse idle at ${AC.engines.reverseIdleKts}.`; }
   } else {
     decelNote = 'Did not stop on the runway.';
   }

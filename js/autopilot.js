@@ -13,7 +13,7 @@
 // towards 15°, flaps 15, the gear up with a positive rate of climb, flaps 5 at 1000 ft and a climb
 // to 3000 ft, then radar vectors round a left-hand circuit to a 30° intercept of the localizer
 // and another approach. After two go-arounds a crew would divert; the autoland then lands.
-import { RUNWAY, KTS, FT, DEG, NM } from './config.js';
+import { RUNWAY, KTS, FT, DEG, NM, AIRCRAFT as AC } from './config.js';
 import { MISSED } from './nav.js';
 import { AUTOTHROTTLE, SpeedMode, retard } from './autothrottle.js';
 
@@ -287,8 +287,12 @@ export class Autopilot {
       const driftG = (st.lateralOffset - (this.prevLat === undefined ? st.lateralOffset : this.prevLat)) / dt; // + = drifting right
       this.prevLat = st.lateralOffset;
       inp.yaw = clamp(-st.lateralOffset * 0.05 - driftG * 0.12 - st.crabDeg * 0.15, -1, 1);
+      // reverse: max reverse to 60 kt (the "sixty knots" call), reverse idle below it, stowed by
+      // 30 kt ground speed; less reverse thrust at low speed keeps the exhaust from being blown
+      // back into the inlets and debris from being thrown up
       if (o.useReversers && st.groundSpeed > 30 * KTS) inp.reverse = true; else inp.reverse = false;
       if (st.groundSpeed < 30 * KTS && inp.reverse) inp.reverse = false;
+      inp.reverseLevel = st.ias > AC.engines.reverseIdleKts ? 1 : 0;
       if (!o.noBrakes) inp.brake = st.groundSpeed > 1 ? 0.8 : 1; else inp.brake = 0;
       if (st.groundSpeed < 0.5) { this.phase = 'stopped'; }
     }

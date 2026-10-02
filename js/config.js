@@ -38,6 +38,7 @@ export const AIRCRAFT = {
     idleN1: 0.21,
     reverseMaxN1: 0.85,
     reverseFraction: 0.42,     // fraction of forward thrust available in reverse
+    reverseIdleKts: 60,        // reverse idle by this airspeed (Boeing: max reverse to 60 kt, then idle reverse)
     thrustArmY: -1.4,          // engine thrust line below CG (m) -> nose-up moment with thrust
     // spool dynamics (first order), seconds
     tauUpLow: 3.2,             // slow spool below ~55 % N1
@@ -115,7 +116,10 @@ export const AIRCRAFT = {
     grassCollapseKts: 70, // leaving the pavement faster than this digs the gear into soft ground
     hardSink: 3.05,     // ~600 fpm  -> hard landing (structural inspection)
     collapseSink: 4.6,  // ~900 fpm  -> gear collapse
-    maxCrabDeg: 11,     // gear side-load limit
+    // gear side-load limit: past it the main gear fails. Boeing permits a touchdown in a crab, and a
+    // full crab at the demonstrated 33 kt crosswind is about 13° at approach speed
+    maxCrabDeg: 15,
+    crabTouchdownDeg: 5, // a crab the gear takes routinely; more, on a dry runway, is not recommended
   },
 
   tyres: {

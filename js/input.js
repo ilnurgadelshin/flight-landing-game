@@ -16,7 +16,7 @@
 // roll from how the device is held, used like a stick that is always held.
 // A game controller (js/gamepad.js) writes this.pad; while it is the device in use its stick,
 // triggers (rudder) and buttons (thrust, brakes, trim) drive the aircraft.
-import { AIRCRAFT as AC } from './config.js';
+import { AIRCRAFT as AC, FT } from './config.js';
 
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 // touch stick shaping, the same as the mouse yoke's: a small dead zone around centre, then a
@@ -28,6 +28,8 @@ export class InputManager {
   constructor(canvas, opts = {}) {
     this.canvas = canvas;
     this.keys = new Set();
+    this.kbReverse = false;     // reverse selected from the keyboard (R), until W stows it
+    this.kbStow = false;        // the W press that stowed it, until W is let go
     this.opts = Object.assign({ invertPitch: false, mouseSensitivity: 1.0 }, opts);
     this.mouseEngaged = false;
     this.tapped = new Set();
@@ -56,6 +58,7 @@ export class InputManager {
   resetTouch() {
     Object.assign(this.touch, { stickHeld: false, pitch: 0, roll: 0, rudderHeld: false, yaw: 0, leverHeld: false, throttle: null, reverse: false, brake: false });
     Object.assign(this.pad, { reverse: false, stowing: false, revHold: 0, holdoff: true });
+    this.kbReverse = false; this.kbStow = false;
   }
   /** The controller is in use and being moved (used to take over from the autoland demo). */
   padFlying() { const p = this.pad; return p.active && (Math.abs(p.pitch) > 0.3 || Math.abs(p.roll) > 0.3 || Math.abs(p.yaw) > 0.3 || p.thrust !== 0); }
@@ -193,20 +196,30 @@ export class InputManager {
       // keyboard overrides the mouse while a key is held
     }
     inp.pitch = pitch; inp.roll = roll; inp.yaw = this.axes.yaw;
+    // ---- the reverse levers, as a 737's: they unlock only on the ground (or in the last 10 ft),
+    // and reverse stays selected until it is stowed. R selects it; W stows it, and that press adds
+    // no thrust (W again does)
+    const ground = !!st && (st.onGround || st.agl < 10 * FT);
+    if (!ground) this.kbReverse = false;
+    else if (K('KeyR')) this.kbReverse = true;
+    if (this.kbReverse && K('KeyW') && !K('KeyR')) { this.kbReverse = false; this.kbStow = true; }
+    if (this.kbStow && !K('KeyW')) this.kbStow = false;
     // ---- throttle: the touch lever sets a position, the keys move it at a fixed rate
     if (T.throttle !== null) { inp.throttle = clamp(T.throttle, 0, 1); T.throttle = null; }
     const tr = 0.35 * dt;
-    if (K('KeyW')) inp.throttle = clamp(inp.throttle + tr, 0, 1);
+    if (K('KeyW') && !this.kbStow) inp.throttle = clamp(inp.throttle + tr, 0, 1);
     if (K('KeyS')) inp.throttle = clamp(inp.throttle - tr, 0, 1);
     if (padOn) this.padThrust(dt, tr, inp, st);
-    // ---- brakes (hold), reversers (hold)
+    // ---- brakes (hold); reversers: selected (above), held for max reverse, let go for reverse idle
     const bTarget = K('KeyB') || T.brake || (padOn && PD.brake) ? 1 : 0;
     this.brake = bTarget ? Math.min(1, this.brake + dt * 2.5) : Math.max(0, this.brake - dt * 4);
     inp.brake = this.brake;
-    const rev = K('KeyR') || T.reverse || (padOn && PD.reverse);
+    const rev = this.kbReverse || T.reverse || (padOn && PD.reverse);
     if (rev && !inp.reverse) { inp.reverse = true; inp.throttle = 0; this.emit('reverse', true); }
     if (!rev && inp.reverse) { inp.reverse = false; this.emit('reverse', false); }
     if (inp.reverse) inp.throttle = 0;
+    // max reverse while R, the lever in REV or B is held; reverse idle once it is let go
+    inp.reverseLevel = inp.reverse && ((this.kbReverse && K('KeyR')) || (T.reverse && T.leverHeld) || (padOn && PD.reverse && PD.thrust < 0)) ? 1 : 0;
     // ---- trim
     const trimRate = AC.controls.trimRateDegPerSec * dt * 1.6;
     if (K('BracketRight') || K('PageDown')) inp.trim = clamp(inp.trim - trimRate, -AC.controls.maxTrimDeg, AC.controls.maxTrimDeg);

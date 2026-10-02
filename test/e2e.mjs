@@ -136,8 +136,7 @@ if (want('keys')) {
   const ab0 = (await I()).autobrake; await tap('KeyN'); check('N cycles the autobrake', (await I()).autobrake === (ab0 + 1) % 5);
   await page.keyboard.down('KeyB'); await simWait(0.4); check('B applies the wheel brakes', (await I()).brake > 0.5, `${fmt((await I()).brake, 2)}`); await page.keyboard.up('KeyB'); await simWait(0.4);
   check('brakes release', (await I()).brake < 0.1);
-  await page.keyboard.down('KeyR'); await frames(3); const ir = await I(); check('R selects reverse (and closes the thrust levers)', ir.reverse === true && ir.throttle === 0); await page.keyboard.up('KeyR'); await frames(3);
-  check('reverse stows on release', (await I()).reverse === false);
+  await page.keyboard.down('KeyR'); await frames(3); const ir = await I(); check('R in flight: the reverse levers stay locked (they unlock only on the ground)', ir.reverse === false); await page.keyboard.up('KeyR'); await frames(3);
   const AT = () => page.evaluate(() => ({ on: window.__sim.game.controls.autothrottle.engaged, fma: window.__sim.cockpit.pfd.fma[0], mcp: window.__sim.cockpit._mcpKey }));
   await tap('KeyQ'); await frames(3); const at1 = await AT();
   check('Q engages the autothrottle: MCP SPD on the FMA, the flap speed on the MCP', at1.on && at1.fma === 'MCP SPD' && at1.mcp.startsWith('175|'), JSON.stringify(at1));
@@ -589,10 +588,11 @@ if (!quick && want('keyboard')) {
   await page.evaluate(() => window.installHumanPilot({}));
   const done = await waitFor(() => window.__sim.game.state === 'finished', 600000, 'landing to finish');
   await page.evaluate(() => window.__sim.setTimeScale(1));
-  const r = await page.evaluate(() => ({ result: window.__sim.result(), state: window.__sim.game.state, log: window.__sim.events().filter((e) => e.type === 'input').map((e) => e.text).slice(0, 12), trace: (window.__pilot.trace || []).slice(-24).map((x) => JSON.stringify(x)) }));
+  const r = await page.evaluate(() => ({ result: window.__sim.result(), rev: { used: !!window.__sim.game.ctx.usedReversers, slow: !!window.__sim.game.ctx.maxReverseSlow }, state: window.__sim.game.state, log: window.__sim.events().filter((e) => e.type === 'input').map((e) => e.text).slice(0, 12), trace: (window.__pilot.trace || []).slice(-24).map((x) => JSON.stringify(x)) }));
   if (!(r.result && r.result.success)) console.log('    trace:\n    ' + r.trace.join('\n    '));
   console.log(`  mouse+keyboard landing: ${r.result ? `${r.result.outcome} ${r.result.score} ${r.result.grade} — ${r.result.headline}` : 'not finished'} | inputs: ${r.log.join(', ')}`);
   check('mouse-yoke + keyboard approach ends with the aircraft stopped on the runway', done && r.result && r.result.success, r.result ? r.result.headline : 'no result');
+  check('the roll-out: R held for max reverse, let go at 60 kts for reverse idle (nothing for the debrief)', r.rev.used && !r.rev.slow, JSON.stringify(r.rev));
   await shot('e2e-manual-landing');
   await page.setViewportSize({ width: VW, height: VH });
 }
@@ -866,12 +866,13 @@ if (!quick && want('touchland')) {
   let done = true;
   try { await mp.waitForFunction(() => window.__sim.game.state === 'finished', null, { timeout: 600000 }); } catch (e) { done = false; console.log('    (timeout waiting for the landing to finish)'); }
   await mp.evaluate(() => window.__sim.setTimeScale(1));
-  const r = await mp.evaluate(() => ({ result: window.__sim.result(), log: window.__sim.events().filter((e) => e.type === 'input').map((e) => e.text), mouse: window.__sim.inputManager.mouseEngaged, trace: (window.__pilot.trace || []).slice(-24).map((x) => JSON.stringify(x)) }));
+  const r = await mp.evaluate(() => ({ result: window.__sim.result(), rev: { used: !!window.__sim.game.ctx.usedReversers, slow: !!window.__sim.game.ctx.maxReverseSlow }, log: window.__sim.events().filter((e) => e.type === 'input').map((e) => e.text), mouse: window.__sim.inputManager.mouseEngaged, trace: (window.__pilot.trace || []).slice(-24).map((x) => JSON.stringify(x)) }));
   if (!(r.result && r.result.success)) console.log('    trace:\n    ' + r.trace.join('\n    '));
   console.log(`  touch landing: ${r.result ? `${r.result.outcome} ${r.result.score} ${r.result.grade} — ${r.result.headline}` : 'not finished'} | inputs: ${r.log.slice(0, 14).join(', ')}`);
   if (r.result) console.log('    ' + r.result.items.map((it) => `${it.label}: ${it.value}`).join(' · '));
   check('a landing flown only with the touch controls ends stopped on the runway', done && r.result && r.result.success, r.result ? r.result.headline : 'no result');
   check('the roll-out used the REV gate on the thrust lever, and no mouse yoke', r.log.includes('reverse on') && r.log.includes('reverse off') && !r.mouse);
+  check('held in REV for max reverse, let go at 60 kts for reverse idle (nothing for the debrief)', r.rev.used && !r.rev.slow, JSON.stringify(r.rev));
   await snap(mp, 'e2e-phone-landing');
   await ctx.close();
 }
@@ -1030,12 +1031,13 @@ if (!quick && want('tiltland')) {
   let done = true;
   try { await mp.waitForFunction(() => window.__sim.game.state === 'finished', null, { timeout: 600000 }); } catch (e) { done = false; console.log('    (timeout waiting for the landing to finish)'); }
   await mp.evaluate(() => window.__sim.setTimeScale(1));
-  const r = await mp.evaluate(() => ({ result: window.__sim.result(), log: window.__sim.events().filter((e) => e.type === 'input').map((e) => e.text), vib: window.__vib.slice(), stick: window.__sim.inputManager.touch.stickHeld, trace: (window.__pilot.trace || []).slice(-24).map((x) => JSON.stringify(x)) }));
+  const r = await mp.evaluate(() => ({ result: window.__sim.result(), rev: { used: !!window.__sim.game.ctx.usedReversers, slow: !!window.__sim.game.ctx.maxReverseSlow }, log: window.__sim.events().filter((e) => e.type === 'input').map((e) => e.text), vib: window.__vib.slice(), stick: window.__sim.inputManager.touch.stickHeld, trace: (window.__pilot.trace || []).slice(-24).map((x) => JSON.stringify(x)) }));
   if (!(r.result && r.result.success)) console.log('    trace:\n    ' + r.trace.join('\n    '));
   console.log(`  tilt landing: ${r.result ? `${r.result.outcome} ${r.result.score} ${r.result.grade} — ${r.result.headline}` : 'not finished'} | inputs: ${r.log.slice(0, 14).join(', ')}`);
   if (r.result) console.log('    ' + r.result.items.map((it) => `${it.label}: ${it.value}`).join(' · '));
   check('a landing flown by tilting the phone ends stopped on the runway', done && r.result && r.result.success, r.result ? r.result.headline : 'no result');
   const td = r.vib.filter((p) => (typeof p === 'number' && p >= 18 && p <= 60 && p !== 20 && p !== 25) || (Array.isArray(p) && p[0] === 70));
+  check('reverse idle from 60 kts (nothing for the debrief)', r.rev.used && !r.rev.slow, JSON.stringify(r.rev));
   check('the roll-out used the REV gate, and the touchdown was felt as a vibration', r.log.includes('reverse on') && r.log.includes('reverse off') && td.length > 0 && !r.stick, `touchdown vibration ${JSON.stringify(td[0])}`);
   await snap(mp, 'e2e-phone-tilt-landing');
   await ctx.close();
@@ -1282,12 +1284,13 @@ if (!quick && want('padland')) {
   let done = true;
   try { await pp.waitForFunction(() => window.__sim.game.state === 'finished', null, { timeout: 600000 }); } catch (e) { done = false; console.log('    (timeout waiting for the landing to finish)'); }
   await pp.evaluate(() => window.__sim.setTimeScale(1));
-  const r = await pp.evaluate(() => ({ result: window.__sim.result(), log: window.__sim.events().filter((e) => e.type === 'input').map((e) => e.text), mouse: window.__sim.inputManager.mouseEngaged, active: window.__sim.inputManager.pad.active, rumble: window.__rumble.slice(), trace: (window.__pilot.trace || []).slice(-24).map((x) => JSON.stringify(x)) }));
+  const r = await pp.evaluate(() => ({ result: window.__sim.result(), rev: { used: !!window.__sim.game.ctx.usedReversers, slow: !!window.__sim.game.ctx.maxReverseSlow }, log: window.__sim.events().filter((e) => e.type === 'input').map((e) => e.text), mouse: window.__sim.inputManager.mouseEngaged, active: window.__sim.inputManager.pad.active, rumble: window.__rumble.slice(), trace: (window.__pilot.trace || []).slice(-24).map((x) => JSON.stringify(x)) }));
   if (!(r.result && r.result.success)) console.log('    trace:\n    ' + r.trace.join('\n    '));
   console.log(`  controller landing: ${r.result ? `${r.result.outcome} ${r.result.score} ${r.result.grade} — ${r.result.headline}` : 'not finished'} | inputs: ${r.log.slice(0, 14).join(', ')}`);
   if (r.result) console.log('    ' + r.result.items.map((it) => `${it.label}: ${it.value}`).join(' · '));
   check('a landing flown with the controller ends stopped on the runway', done && r.result && r.result.success, r.result ? r.result.headline : 'no result');
   const td = r.rumble.filter((x) => x.duration === 200 || x.duration === 450);
+  check('B held for max reverse, let go at 60 kts for reverse idle (nothing for the debrief)', r.rev.used && !r.rev.slow, JSON.stringify(r.rev));
   check('reverse by holding B at idle, stowed with A; the touchdown rumbled; no mouse or keys', r.log.includes('reverse on') && r.log.includes('reverse off') && td.length > 0 && !r.mouse && r.active, `touchdown rumble ${JSON.stringify(td[0])}`);
   await snap(pp, 'e2e-pad-landing');
   await ctx.close();

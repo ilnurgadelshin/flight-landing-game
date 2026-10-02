@@ -38,7 +38,8 @@
       decrab: (st) => { key('KeyD', st.crabDeg < -2); key('KeyA', st.crabDeg > 2); },
       steer: (want, have) => { key('KeyD', want > have + 0.06); key('KeyA', want < have - 0.06); },
       pedalsOff: () => { key('KeyA', false); key('KeyD', false); },
-      reverse: (on) => key('KeyR', on),
+      // reverse ('max', 'idle' or 'stow'): R held for max reverse, let go for reverse idle, W stows
+      reverse: (want, inp) => { key('KeyR', want === 'max' || (want === 'idle' && !inp.reverse)); if (want === 'stow' && inp.reverse) tap('KeyW'); },
       brake: (on) => key('KeyB', on),
       releaseAll: () => { for (const c of [...held]) key(c, false); },
     };
@@ -49,7 +50,10 @@
     const pe = (el, type, id, x, y) => el.dispatchEvent(new PointerEvent(type, { pointerId: id, pointerType: 'touch', isPrimary: id === 1, clientX: x, clientY: y, bubbles: true, cancelable: true }));
     const centre = (el) => { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, r }; };
     const k = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--k')) || 1;
-    const touch = { stick: null, rudder: null, brake: false };
+    const touch = { stick: null, rudder: null, brake: false, lever: null };
+    // the thumb kept on the lever (reverse: max while held), and let go
+    const leverHold = (dy) => { const body = $('t-lever-body'), c = centre(document.querySelector('#t-lever .thandle')); pe(body, 'pointerdown', 6, c.x, c.y); pe(body, 'pointermove', 6, c.x, c.y + dy); touch.lever = { x: c.x, y: c.y + dy }; };
+    const leverLetGo = () => { if (!touch.lever) return; pe($('t-lever-body'), 'pointerup', 6, touch.lever.x, touch.lever.y); touch.lever = null; };
     const leverDrag = (dy) => { const body = $('t-lever-body'), h = document.querySelector('#t-lever .thandle'); const c = centre(h); pe(body, 'pointerdown', 3, c.x, c.y); pe(body, 'pointermove', 3, c.x, c.y + dy); pe(body, 'pointerup', 3, c.x, c.y + dy); };
     const trackH = () => document.querySelector('#t-lever .ttrack').getBoundingClientRect().height;
     const touchIO = {
@@ -73,16 +77,19 @@
         if (!touch.rudder) { const c = centre(strip); touch.rudder = { x: c.x, y: c.y }; pe(strip, 'pointerdown', 4, c.x, c.y); }
         pe(strip, 'pointermove', 4, touch.rudder.x + v * travel, touch.rudder.y);
       },
-      // reverse: pull the lever down through the idle gate (it stays there); stow by pushing it back up
-      reverse: (on, inp) => {
+      // reverse: pull the lever down through the idle gate (it stays there) and keep the thumb on it
+      // for max reverse; let go for reverse idle; stow by pushing it back up
+      reverse: (want, inp) => {
         const gate = document.querySelector('#t-lever .trev').getBoundingClientRect().height;
-        if (on && !inp.reverse && window.__sim.state().onGround) leverDrag(inp.throttle * trackH() + gate + 6);
-        if (!on && inp.reverse) leverDrag(-gate);
+        if (want !== 'stow' && !inp.reverse && !touch.lever && window.__sim.state().onGround) leverHold(inp.throttle * trackH() + gate + 6);
+        else if (want === 'max' && inp.reverse && !touch.lever) leverHold(0);
+        else if (want !== 'max' && inp.reverse && touch.lever) leverLetGo();
+        if (want === 'stow' && inp.reverse && !touch.lever) leverDrag(-gate);
       },
       brake: (on) => { const b = $('t-brake'); if (on === touch.brake) return; const c = centre(b); pe(b, on ? 'pointerdown' : 'pointerup', 5, c.x, c.y); touch.brake = on; },
       releaseAll: () => {
         if (touch.stick) { pe($('t-stick-zone'), 'pointerup', 1, touch.stick.x, touch.stick.y); touch.stick = null; }
-        touchIO.rudderTo(0); touchIO.brake(false);
+        touchIO.rudderTo(0); touchIO.brake(false); leverLetGo();
       },
     };
     // Tilt: pitch and roll are the phone's tilt from where it was held at the start, with a slight
@@ -126,10 +133,12 @@
         decrab: (st) => io.rudderTo(clamp(-st.crabDeg * 0.12, -0.8, 0.8)),
         steer: (want) => io.rudderTo(want),
         pedalsOff: () => io.rudderTo(0),
-        // reverse: keep B held at idle on the ground until it is selected; stow with a press of A
-        reverse: (on, inp) => {
-          if (on && !inp.reverse && window.__sim.state().onGround && inp.throttle <= 0.005) F.set('B', 1);
-          if (!on && inp.reverse && !queue.some((q) => q.btn === 'A') && !(cur && cur.btn === 'A')) queue.push({ btn: 'A', hold: 0 });
+        // reverse: keep B held at idle on the ground until it is selected, and held for max reverse;
+        // released for reverse idle; stow with a press of A
+        reverse: (want, inp) => {
+          if (want !== 'stow' && !inp.reverse && window.__sim.state().onGround && inp.throttle <= 0.005) F.set('B', 1);
+          else if (want !== 'stow' && inp.reverse) F.set('B', want === 'max' ? 1 : 0);
+          if (want === 'stow' && inp.reverse && !queue.some((q) => q.btn === 'A') && !(cur && cur.btn === 'A')) queue.push({ btn: 'A', hold: 0 });
         },
         brake: (on) => F.set('X', on ? 1 : 0),
         releaseAll: () => { F.set('A', 0); F.set('B', 0); F.set('X', 0); io.rudderTo(0); F.stick('left', 0, 0); },
@@ -217,7 +226,8 @@
         if (st.onGround && st.mainsOnGround) { P.phase = 'rollout'; IO.pedalsOff(); note('touchdown'); }
       } else if (P.phase === 'rollout') {
         IO.idle(inp);
-        IO.reverse(o.useReversers && st.groundSpeed > 30 * 0.5144, inp); IO.brake(!o.noBrakes && (inp.autobrake === 0 || st.groundSpeed < 25));
+        // Boeing's roll-out: max reverse to 60 kts, reverse idle below, stowed by taxi speed (30 kts)
+        IO.reverse(!o.useReversers || st.groundSpeed < 30 * 0.5144 ? 'stow' : (st.ias > 60 ? 'max' : 'idle'), inp); IO.brake(!o.noBrakes && (inp.autobrake === 0 || st.groundSpeed < 25));
         pitchIn = st.groundSpeed > 30 ? -0.1 : 0; rollIn = clamp(-st.roll * 3, -1, 1);
         // roll-out: decide the pedal position wanted (heading error, yaw rate, lateral offset) and
         // hold or release A / D to move the keyboard rudder axis toward it, as a keyboard player does

@@ -197,7 +197,8 @@ export class TouchControls {
   // ------------------------------------------------------------------ thrust lever
   // Dragged, not tapped: the lever moves by the thumb's travel from wherever it was, so a touch
   // never jumps the thrust. Below idle is a gate: on the ground, pulling past it selects reverse,
-  // which stays selected (like the real reverse levers) until the lever is pushed back up.
+  // which stays selected (like the real reverse levers) until the lever is pushed back up. Held in
+  // REV it is max reverse; let go, reverse idle.
   bindLever() {
     const { leverBody, track, rev } = this.el, T = this.input.touch;
     let id = null, y0 = 0, p0 = 0, h = 100, gate = 0.3;
@@ -278,7 +279,8 @@ export class TouchControls {
     this.cls(this.el.brake, 'brakeBtn', st.onGround ? (this.input.touch.brake ? 'down' : '') : 'hidden');
     // thrust lever
     const pct = Math.round(inp.throttle * 100);
-    this.text(this.el.handle.firstChild, 'handle', s.reverse ? 'REV' : String(pct));
+    // in REV the handle reads REV while held (max reverse) and IDLE once let go (reverse idle)
+    this.text(this.el.handle.firstChild, 'handle', s.reverse ? (inp.reverseLevel > 0.5 ? 'REV' : 'IDLE') : String(pct));
     // tilt steering: the stick's circle shows how far the phone is tilted from level
     const tl = this.input.tilt, tilting = document.body.classList.contains('tilt');
     this.text(this.el.stickLabel, 'stickLabel', tilting ? (tl.active ? 'TILT' : 'TILT — hold level') : 'STICK');

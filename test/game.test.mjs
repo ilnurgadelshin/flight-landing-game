@@ -104,6 +104,16 @@ console.log('\n[R4] A whole landing, flown by the test pilot');
   check('finished: graded, the state machine at finished, the simulation stopped', !!fin && fin.result.success && R.game.state === 'finished' && R.game.sim.paused && R.game.result === fin.result, fin ? `${fin.result.score} ${fin.result.grade}` : '');
   check('the GPWS called out the approach through its voice output', R.said.includes('Minimums') && R.said.includes('Fifty'), R.said.slice(0, 6).join(', '));
   check('the log has the flight\'s story', ['start', 'touchdown', 'systems', 'result'].every((t) => R.game.events.some((e) => e.type === t)));
+  const stop = fin.result.items.find((i) => i.label === 'Stopping');
+  check('the roll-out: "60 KNOTS", then reverse idle as Boeing has it, so the debrief has nothing to say about it', R.of('message').some((m) => m.text === '60 KNOTS') && !R.game.ctx.maxReverseSlow && stop.points === 5, stop.note);
+  // the same landing with max reverse held to 30 kts
+  const H = rig({ scenarioId: 'crosswind', seed: 3 });
+  H.game.engageAutopilot();
+  const pre = H.game.sim.preStep, hin = H.game.sim.aircraft.input;
+  H.game.sim.preStep = (dt) => { pre(dt); hin.reverseLevel = 1; };
+  H.fly(400);
+  const hstop = H.game.result.items.find((i) => i.label === 'Stopping');
+  check('max reverse held below 60 kts: noted in the debrief, 2 points off the stopping', H.game.ctx.maxReverseSlow && hstop.points === 3 && /Max reverse was held below 60 kts/.test(hstop.note), hstop.note);
 }
 
 console.log('\n[R5] Training: Flight School first, flight director, checklist, instructor');

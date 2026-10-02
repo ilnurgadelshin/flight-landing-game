@@ -99,7 +99,8 @@ deployment" in the Actions tab).
 5. Below 100 ft, hold the approach attitude: the glideslope is too sensitive
    to chase that low, and in gusts the nose should not chase the vertical
    speed either. At "thirty" raise the nose 2–3°, close the throttles, touch
-   down in the touchdown zone, reversers, brakes, stop. If a gust balloons
+   down in the touchdown zone, max reverse, brakes; at 60 kts reverse idle,
+   stow by taxi speed, stop. If a gust balloons
    you in the flare, hold the attitude and add a little thrust. Never push
    the nose down to regain the runway.
 6. Not stable below 500 ft? **Go around**: TOGA, pitch up, gear up, flaps 15,
@@ -155,7 +156,7 @@ flight deck.
 | Landing gear | `G` |
 | Speedbrakes / spoilers | `Space` extend/retract · `X` arm for automatic deployment at touchdown |
 | Wheel brakes | `B` (hold) · `N` cycles the autobrake OFF/1/2/3/MAX |
-| Thrust reversers | `R` (hold, ground only) |
+| Thrust reversers | `R` on the ground selects reverse: held, max reverse; let go, reverse idle (it stays selected). `W` stows it (that press adds no thrust). In the air the reverse levers are locked |
 | Trim | `[` / `]` or `PageUp` / `PageDown` (a trim follow-up also runs the stabiliser after a sustained input) |
 | Look down at the pedestal | `L` (hold) · right-mouse drag to look around |
 | View: cockpit / head-up | `C` |
@@ -185,7 +186,7 @@ own buttons throughout the game.
 | Pitch and roll | Left stick (stick up = nose up; tick *Pilot-style pitch* for push forward = nose down) |
 | Rudder / nose-wheel steering | LT / RT, analog |
 | Thrust | A (more) / B (less), held |
-| Thrust reversers | On the ground at idle, keep holding B: reverse is selected and stays until A |
+| Thrust reversers | On the ground at idle, keep holding B: reverse is selected, max reverse while B is held, reverse idle once it is let go. It stays until A |
 | Wheel brakes | X (hold) |
 | Landing gear | Y |
 | Flaps | LB up / RB down |
@@ -236,7 +237,7 @@ thrust lever that stays where it is left for the other.
 | --- | --- |
 | Pitch and roll | **Stick** (right thumb): it appears where the thumb lands in the lower right and springs back to centre when released. The aircraft then holds its attitude and trims itself. Stick up = nose up (tick *Pilot-style pitch* for stick up = nose down). Or tick **Tilt to fly** (below) |
 | Thrust | **Thrust lever** at the left edge: drag it, and it stays where you leave it. **TO/GA** on top (beside it on short screens) gives go-around thrust. **A/T** beside the lever, above the rudder strip, engages the autothrottle and shows its mode; dragging the lever disconnects it |
-| Thrust reversers | On the ground, pull the lever down past idle into **REV**. It stays there until you push it back up |
+| Thrust reversers | On the ground, pull the lever down past idle into **REV**: max reverse while you hold it, reverse idle once you let go (the handle reads IDLE). It stays there until you push it back up |
 | Rudder / nose-wheel steering | **RUDDER** strip next to the lever; springs back to centre |
 | Gear, flaps, speedbrakes, autobrake | **GEAR**, **FLAPS − / +**, **ARM** and **EXT** (speedbrakes), **A/BRK** buttons at the top left. Each shows its current setting |
 | Wheel brakes | **BRAKE** (hold): appears on the ground, above the stick's area |
@@ -329,7 +330,7 @@ cannon-es with realistic 737-800 mass and inertia, driven by a
 coefficient-based aerodynamic model — lift curve with a smooth stall per flap
 setting, induced and parasite drag (flaps, gear, spoilers), ground effect,
 pitch/roll/yaw stability and control derivatives, a yaw damper, engine spool
-dynamics with reverse thrust, a progressive oleo landing gear with tyre
+dynamics with reverse thrust (from reverse idle to max reverse, about 88 % N1), a progressive oleo landing gear with tyre
 cornering and braking friction (dry / wet / grass), nose-wheel steering,
 anti-skid, autobrake, and a collision hull for tail, wing, nacelle and belly
 strikes. The physics runs at a fixed 120 Hz through a frame-time accumulator,
@@ -720,10 +721,25 @@ code, add it to the list and run the tool; `test/game.test.mjs` fails while a
 spoken phrase has no recording.
 
 **Evaluation** (`js/evaluate.js`): touchdown point, vertical speed, centreline,
-speed (in gusts, Vref plus the gust increment carried to touchdown),
-alignment (crab and bank), configuration and stopping are scored;
-failures produce the matching outcome (crash, gear collapse, belly landing,
-runway excursion, overrun, landed short, missed the runway).
+speed (in gusts, Vref plus the gust increment carried to touchdown; on the
+autothrottle, Vref), alignment (crab and bank), configuration and stopping are
+scored; failures produce the matching outcome (crash, gear collapse, belly
+landing, runway excursion, overrun, landed short, missed the runway).
+
+- **Crab at touchdown.** Boeing permits touching down in a crab, and on a dry
+  runway recommends de-crabbing: there the aircraft tracks toward the upwind
+  edge as it straightens, the further the larger the crab. With the wings
+  level, a crab up to 5° (8° on a wet runway) scores full marks. Up to 8°
+  scores 10 of 15, with that note. Up to the gear's 15° side-load limit scores
+  4. A full crab at the demonstrated 33 kt crosswind is about 13°. In the
+  simulation a 7–8° crab touchdown in the crosswind moves the aircraft 1.5–3 m
+  upwind in the first two seconds.
+- **Stopping.** Max reverse to 60 kts, then reverse idle, as Boeing has it: at
+  low speed max reverse can blow the exhaust back into the engines and throw
+  up debris. During the roll-out the game shows "60 KNOTS" as the
+  pilot-monitoring calls it. Max reverse held below 55 kts costs 2 of the 5
+  stopping points, with a note in the debrief, as does landing without the
+  speedbrakes.
 
 ## Scenarios and starting points
 
@@ -883,14 +899,19 @@ queued when a flight starts can hold frames back for up to a second some time la
 6. an autoland succeeds in every scenario;
 7. the short-final and full-approach starts are flyable;
 8. gear up, no flare, a push into the runway, no brakes, landing beside the
-   runway, no decrab and landing too fast each produce the right outcome;
+   runway, no decrab and landing too fast each produce the right outcome. The
+   crab touchdown without decrab lands with the gear intact, scoring 10 of 15
+   for alignment with the note about the upwind edge. A crab up to 5° (8° on a
+   wet runway) scores full, 13° scores 4, past the gear's 15° scores 0;
 9. a go-around climbs away and the reposition works;
 10. leaving the runway at speed collapses the gear;
-11. hands off in a crosswind the aircraft weathervanes into the wind, and pedal
+11. reverse idle deploys the reversers with the engines at idle N1 and no forward
+    thrust, and max reverse reaches about 88 % N1 and slows the aircraft more;
+12. hands off in a crosswind the aircraft weathervanes into the wind, and pedal
     inputs hold the roll-out within 2° of the runway heading;
-12. the Flight School flight director computes its guidance on its own copy of
+13. the Flight School flight director computes its guidance on its own copy of
     the controls and never moves the aircraft's, from the approach to the stop;
-13. the turbulence follows the Dryden model. At 50 and 500 ft it checks the
+14. the turbulence follows the Dryden model. At 50 and 500 ft it checks the
     along-track and lateral intensities and the along-track gusts' time scale
     L_u / V against the specification, and the vertical intensity at 500 ft.
     It checks that near the ground the vertical gusts are quicker and
@@ -910,6 +931,9 @@ controls a player has. It flies as a pilot does:
   bank limited to 6° and brought back towards 4° at the ground.
 - In a balloon it holds the attitude and never pushes the nose down through
   it. In the last 6 ft it holds the attitude it has reached.
+- On the roll-out it uses max reverse to 60 kts, then reverse idle, and stows
+  the reversers at 30 kts ground speed. It sets its own autobrake with flaps
+  30 (on a short final, which starts at the runway's setting, too).
 
 Over 80 autolands (the four windy and clear scenarios, both final starts,
 10 turbulence seeds each), every one lands on the runway. The average
@@ -1107,7 +1131,9 @@ a camera placed like the game's:
 3. the autoland demo has command, the devices only keep time, and grabbing a control or a
    configuration action takes over;
 4. a whole landing by the test pilot: touchdown, spoilers, the finish and grade, the GPWS
-   callouts through its voice output;
+   callouts through its voice output; "60 KNOTS" on the roll-out and reverse idle from there,
+   with nothing in the debrief, while the same landing with max reverse held below 60 kts
+   loses 2 stopping points with a note;
 5. training: Flight School before and during the flight, the flight director, the checklist, the
    instructor;
 6. one owner of the controls: actions report what changed; the flight director never moves the
@@ -1202,7 +1228,10 @@ show:
    handing back to other devices; rumble only while in use; unplugging;
 3. joysticks with their own layout: stick only;
 4. thrust at the keyboard's rate; the hold-off after a start; reverse only on
-   the ground after 0.4 s of B at idle; stowing with A without added thrust;
+   the ground after 0.4 s of B at idle, max reverse while B is held and reverse
+   idle once it is let go; stowing with A without added thrust; the keyboard's
+   R locked in the air, held for max reverse and let go for reverse idle on the
+   ground, and W stowing it without added thrust;
    pilot-style pitch; a controller not in use drives nothing;
 5. controllers as Safari on iPhone and iPad reports them: each family by its name, a PS5 controller's
    Options and Create, the PS button doing nothing, no rumble;
