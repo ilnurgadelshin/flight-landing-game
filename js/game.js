@@ -240,8 +240,8 @@ export class Game {
     if (on) {
       this.message(`A/T ENGAGED — MCP SPD ${commandSpeed(this.sim.aircraft.input, st)} kts. Moving the thrust levers disconnects it`, '', 3);
       this.log('input', 'A/T engaged');
-    } else if (reason === 'landed') {
-      this.log('systems', 'A/T disengaged after touchdown');
+    } else if (reason === 'landed' || reason === 'reverse') {
+      this.log('systems', reason === 'reverse' ? 'A/T disengaged: reverse selected' : 'A/T disengaged after touchdown');
     } else {
       this.message('A/T DISCONNECT', '', 2);
       this.log('input', reason === 'manual' ? 'A/T disconnected: thrust levers moved' : 'A/T disconnected');

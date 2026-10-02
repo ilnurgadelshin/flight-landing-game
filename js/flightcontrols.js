@@ -54,10 +54,12 @@ export class FlightControls {
       return this.grabbing() && this.disengageAutopilot();
     }
     if (this.player) {
-      // the levers moved by hand (or reverse selected) while the autothrottle has them: disconnect
+      // the levers moved by hand while the autothrottle has them: disconnect; reverse selected after
+      // touchdown: it disengages, as it would 2 s later anyway
       const inp = this.ac.input, lever = inp.throttle, rev = inp.reverse;
       this.player.update(dt, inp, state);
-      if (this.autothrottle.engaged && (inp.throttle !== lever || (inp.reverse && !rev))) this.setAutothrottle(false, 'manual');
+      if (this.autothrottle.engaged && inp.reverse && !rev) this.setAutothrottle(false, 'reverse');
+      else if (this.autothrottle.engaged && inp.throttle !== lever) this.setAutothrottle(false, 'manual');
     }
     return false;
   }

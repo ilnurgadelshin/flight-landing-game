@@ -380,7 +380,8 @@ export class Cockpit {
     // levers
     this.throttles.forEach((t) => {
       t.piv.rotation.x = 0.55 - input.throttle * 1.1;
-      t.rev.rotation.x = -st.reverser * 1.2;
+      // the reverse levers: up to the interlock at reverse idle, all the way aft at max reverse
+      t.rev.rotation.x = -st.reverser * (0.7 + 0.5 * (input.reverse && input.reverseLevel !== undefined ? input.reverseLevel : 1));
     });
     this.sbLever.rotation.x = 0.5 - st.speedbrake * 0.9 - (input.speedbrakeArmed ? 0.12 : 0);
     if(this.flapLever.userData.rotaryGate){
