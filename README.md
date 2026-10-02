@@ -402,9 +402,10 @@ landing with the autothrottle engaged, as many 737 crews fly one. `Q`, the
   back to idle and reach it about as the wheels touch. You fly the flare with
   pitch alone.
 - **Disengaging:** it disengages 2 s after touchdown. Moving the thrust levers
-  yourself (`W`/`S`, the touch lever, the controller's A/B) or selecting
-  reverse disconnects it, as the disconnect switch under a pilot's thumb does.
-  The game then shows "A/T DISCONNECT".
+  yourself (`W`/`S`, the touch lever, the controller's A/B) disconnects it,
+  as the disconnect switch under a pilot's thumb does, and the game shows
+  "A/T DISCONNECT". Selecting reverse after touchdown disengages it without a
+  warning.
 - **TO/GA:** in a go-around it holds the go-around thrust (GA) until you take
   the levers. After a reposition it is back in MCP SPD.
 - **FMA:** the primary flight display's first column shows the mode.
@@ -1193,7 +1194,8 @@ a camera placed like the game's:
      debrief judges the speed against Vref; the log records it;
    - in the storm over six seeds: the average speed at Vref + 5, never below Vref − 12, and the
      landings made;
-   - moving the levers disconnects it, with "A/T DISCONNECT"; TO/GA gives GA with the go-around
+   - moving the levers disconnects it, with "A/T DISCONNECT"; selecting reverse disengages it
+     without a warning; TO/GA gives GA with the go-around
      thrust; a reposition returns it to MCP SPD; the autoland's own autothrottle replaces it; it
      does not engage on the ground.
 
