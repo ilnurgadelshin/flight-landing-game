@@ -5,7 +5,7 @@
 //   LT / RT     rudder left / right          A / B        thrust up / down (hold)
 //   X           wheel brakes (hold)          Y            landing gear
 //   LB / RB     flaps up / down              D-pad ↑ / ↓  trim nose down / nose up
-//   D-pad ←     autobrake                    D-pad →      speedbrakes: tap = arm, hold = extend / retract
+//   D-pad ←     tap = autobrake, hold = autothrottle    D-pad →  speedbrakes: tap = arm, hold = extend / retract
 //   View        TO/GA; in a go-around, back on final      Menu  pause · start · fly again
 //   L3 (left stick press)  navigation display: tap = next range, hold = next mode (MAP / APP / PLN)
 // On the ground at idle, keeping B held selects reverse thrust, which stays until A (like pulling
@@ -37,6 +37,7 @@ export const PAD = {
   stickDeadZone: 0.12,    // worn sticks drift: ignore this much deflection, then rescale to full
   triggerDeadZone: 0.05,
   speedbrakeHold: 0.6,    // s: D-pad → held this long (and for 3+ reads, so a quick tap at a low frame rate still arms) extends / retracts
+  autothrottleHold: 0.6,  // s: D-pad ← held this long (and for 3+ reads) engages / disconnects the autothrottle; a tap steps the autobrake
   ndModeHold: 0.6,        // s: L3 held this long (and for 3+ reads) changes the navigation display's mode; a tap its range
   activeAt: 0.3,          // deflection that makes the controller the device in use
 };
@@ -66,6 +67,7 @@ export class GamepadInput {
     this.rightPolls = 0;      // reads while it is held
     this.rightFired = false;
     this.l3Since = -1; this.l3Polls = 0; this.l3Fired = false;   // L3: tap = ND range, hold = ND mode
+    this.leftSince = -1; this.leftPolls = 0; this.leftFired = false;   // D-pad ←: tap = autobrake, hold = autothrottle
     this.onChange = null;     // ({ connected, active, labels, id }) => void
   }
 
@@ -115,6 +117,7 @@ export class GamepadInput {
       this.prev[i] = on;
     }
     if (this.standard && this.rightSince >= 0 && !this.rightFired && ++this.rightPolls >= 3 && now - this.rightSince >= PAD.speedbrakeHold) { this.rightFired = true; this.input.emit('speedbrake'); }
+    if (this.standard && this.leftSince >= 0 && !this.leftFired && ++this.leftPolls >= 3 && now - this.leftSince >= PAD.autothrottleHold) { this.leftFired = true; this.input.emit('autothrottle'); }
     if (this.standard && this.l3Since >= 0 && !this.l3Fired && ++this.l3Polls >= 3 && now - this.l3Since >= PAD.ndModeHold) { this.l3Fired = true; this.input.emit('ndMode'); }
     if (busy) this.setActive(true);
   }
@@ -127,7 +130,7 @@ export class GamepadInput {
       case BUTTONS.Y: I.emit('gear'); break;
       case BUTTONS.LB: I.emit('flapsUp'); break;
       case BUTTONS.RB: I.emit('flapsDown'); break;
-      case BUTTONS.Left: I.emit('autobrake'); break;
+      case BUTTONS.Left: this.leftSince = now; this.leftPolls = 0; this.leftFired = false; break;
       case BUTTONS.Right: this.rightSince = now; this.rightPolls = 0; this.rightFired = false; break;
       case BUTTONS.View: I.emit('togaOrReposition'); break;
       case BUTTONS.R3: I.emit('camera', 'cycle'); break;              // cockpit → panel → head-up
@@ -138,6 +141,10 @@ export class GamepadInput {
   }
 
   release(i) {
+    if (this.standard && i === BUTTONS.Left) {
+      if (!this.leftFired && this.leftSince >= 0) this.input.emit('autobrake');
+      this.leftSince = -1; this.leftFired = false;
+    }
     if (this.standard && i === BUTTONS.Right) {
       if (!this.rightFired) this.input.emit('armSpeedbrake');
       this.rightSince = -1; this.rightFired = false;

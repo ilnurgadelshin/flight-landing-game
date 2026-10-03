@@ -36,6 +36,12 @@ export class Simulation {
       x, y: alt, z: 0, headingDeg: RUNWAY.headingDeg, iasKts: s.iasKts,
       flapIndex: s.flaps, gearDown: s.gear, gammaDeg: s.id === 'short' ? -3 : 0,
     });
+    // "fully configured" is the landing checklist done, as a crew completes it before 1000 ft:
+    // speedbrake ARMED and the autobrake set (2 on a dry runway, 3 on a wet one)
+    if (s.id === 'short') {
+      this.aircraft.input.speedbrakeArmed = true;
+      this.aircraft.input.autobrake = this.scenario.wet ? 3 : 2;
+    }
     this.accumulator = 0;
     this.stepCount = 0;
   }

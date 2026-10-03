@@ -6,12 +6,16 @@
 // autobrake, TO/GA) are applied here, whoever asks for them. The Flight School flight director
 // flies the same autopilot law on a copy of the controls, so its guidance never moves the aircraft.
 //
+// The player can also engage the autothrottle (js/autothrottle.js) for a manual landing: it moves
+// the thrust levers before every physics step, and the player's devices moving them disconnect it.
+//
 // The player's devices are anything with this shape:
 //   update(dt, input, state)  move the controls for dt of simulated time
 //   idle(dt)                  time passes while the autoland flies
 //   grabbing()                the player is holding a flight control right now
 import { AIRCRAFT as AC } from './config.js';
 import { Autopilot } from './autopilot.js';
+import { Autothrottle } from './autothrottle.js';
 
 export class FlightControls {
   constructor(aircraft, player = null) {
@@ -20,13 +24,16 @@ export class FlightControls {
     this.autopilot = null;      // the demo autoland, while it has command
     this.director = null;       // the flight director: an autopilot flying `shadow`
     this.shadow = null;
+    this.autothrottle = new Autothrottle();   // the player's, for a manual landing
+    this.onAutothrottle = null;               // (engaged, reason): it engaged or disengaged
   }
 
   get input() { return this.ac.input; }
   get commander() { return this.autopilot ? 'autopilot' : 'player'; }
   grabbing() { return !!(this.player && this.player.grabbing()); }
 
-  engageAutopilot(opts = {}) { this.autopilot = new Autopilot(this.ac, opts); return this.autopilot; }
+  /** The autoland flies its own autothrottle: the player's disengages without a word. */
+  engageAutopilot(opts = {}) { this.autothrottle.disengage(); this.autopilot = new Autopilot(this.ac, opts); return this.autopilot; }
   /** Hand command back to the player. Returns whether the autoland had it. */
   disengageAutopilot() { const had = !!this.autopilot; this.autopilot = null; return had; }
 
@@ -46,8 +53,22 @@ export class FlightControls {
       if (this.player) this.player.idle(wallDt);
       return this.grabbing() && this.disengageAutopilot();
     }
-    if (this.player) this.player.update(dt, this.ac.input, state);
+    if (this.player) {
+      // the levers moved by hand while the autothrottle has them: disconnect; reverse selected after
+      // touchdown: it disengages, as it would 2 s later anyway
+      const inp = this.ac.input, lever = inp.throttle, rev = inp.reverse;
+      this.player.update(dt, inp, state);
+      if (this.autothrottle.engaged && inp.reverse && !rev) this.setAutothrottle(false, 'reverse');
+      else if (this.autothrottle.engaged && inp.throttle !== lever) this.setAutothrottle(false, 'manual');
+    }
     return false;
+  }
+
+  /** Engage or disengage the player's autothrottle. Returns whether it changed. */
+  setAutothrottle(on, reason = '') {
+    const changed = on ? !this.autothrottle.engaged && this.autothrottle.engage(this.ac.state) : this.autothrottle.disengage();
+    if (changed && this.onAutothrottle) this.onAutothrottle(on, reason);
+    return changed;
   }
 
   /** Before every physics step: the autoland flies; the flight director computes its guidance. Returns true on a takeover. */
@@ -56,6 +77,8 @@ export class FlightControls {
     if (this.autopilot) {
       this.autopilot.update(dt);
       takeover = this.grabbing() && this.disengageAutopilot();
+    } else if (this.autothrottle.engaged && this.autothrottle.update(dt, this.ac.input, this.ac.state) && this.onAutothrottle) {
+      this.onAutothrottle(false, 'landed');
     }
     if (this.director && !this.autopilot) {
       const inp = this.ac.input;
@@ -78,7 +101,7 @@ export class FlightControls {
       case 'speedbrake': inp.speedbrake = inp.speedbrake > 0.5 ? 0 : 1; inp.speedbrakeArmed = false; return { name, value: inp.speedbrake };
       case 'armSpeedbrake': inp.speedbrakeArmed = !inp.speedbrakeArmed; if (inp.speedbrakeArmed) inp.speedbrake = 0; return { name, value: inp.speedbrakeArmed };
       case 'autobrake': inp.autobrake = (inp.autobrake + 1) % 5; return { name, value: inp.autobrake };
-      case 'toga': inp.throttle = 1; inp.reverse = false; inp.speedbrake = 0; return { name, value: true };
+      case 'toga': inp.throttle = 1; inp.reverse = false; inp.speedbrake = 0; this.autothrottle.goAround(); return { name, value: true };
       default: return null;
     }
   }

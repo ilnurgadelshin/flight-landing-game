@@ -23,6 +23,7 @@
 //   finish       { result }
 import { Simulation } from './sim.js';
 import { FlightControls } from './flightcontrols.js';
+import { commandSpeed } from './autothrottle.js';
 import { evaluateLanding } from './evaluate.js';
 import { terrainAhead } from './avionics.js';
 import { ND_RANGES, ND_MODES, autoRange } from './nd.js';
@@ -115,6 +116,7 @@ export class Game {
     const scenario = SCENARIOS[opts.scenarioId];
     this.sim = new Simulation({ scenarioId: opts.scenarioId, startId: opts.startId, seed: opts.seed || (Date.now() % 1000) + 1 });
     this.controls = new FlightControls(this.sim.aircraft, this.player);
+    this.controls.onAutothrottle = (on, reason) => this.announceAutothrottle(on, reason);
     if (this.mode === 'training') this.controls.enableDirector();
     this.sim.preStep = (dt) => {
       if (this.controls.step(dt)) this.announceTakeover();
@@ -181,6 +183,12 @@ export class Game {
         if (name === 'toga') this.beginGoAround(true);
         break;
       }
+      case 'autothrottle': {
+        // the autoland flies its own; on the ground there is nothing to engage
+        if (this.demoAp) break;
+        if (!this.controls.setAutothrottle(!this.controls.autothrottle.engaged, 'switch') && st.onGround) this.message('A/T — engages in flight only', '', 2);
+        break;
+      }
       case 'reposition': if (this.ctx.gaMode || st.alt > 900 || st.onGround) this.reposition(); break;
       case 'ndRange': {
         // the range knob: from the range shown now, one step (or round the ranges, from a controller)
@@ -225,6 +233,21 @@ export class Game {
     this.log('demo', 'disengaged');
   }
 
+  /** The player's autothrottle engaged or disengaged: the switch, the levers taken by hand, or 2 s after touchdown. */
+  announceAutothrottle(on, reason) {
+    const st = this.sim.state;
+    this.emit('control', { name: 'autothrottle', value: on });
+    if (on) {
+      this.message(`A/T ENGAGED — MCP SPD ${commandSpeed(this.sim.aircraft.input, st)} kts. Moving the thrust levers disconnects it`, '', 3);
+      this.log('input', 'A/T engaged');
+    } else if (reason === 'landed' || reason === 'reverse') {
+      this.log('systems', reason === 'reverse' ? 'A/T disengaged: reverse selected' : 'A/T disengaged after touchdown');
+    } else {
+      this.message('A/T DISCONNECT', '', 2);
+      this.log('input', reason === 'manual' ? 'A/T disconnected: thrust levers moved' : 'A/T disconnected');
+    }
+  }
+
   togglePause() {
     if (this.state === 'flying') { this.sim.paused = true; this.setState('paused'); }
     else if (this.state === 'paused') { this.sim.paused = false; this.setState('flying'); }
@@ -238,6 +261,7 @@ export class Game {
     // the autoland flies the new approach from the start (it keeps count of its go-arounds)
     const ap = this.controls.autopilot;
     if (ap) this.controls.engageAutopilot(Object.assign({}, ap.opts, { goAroundsFlown: ap.goArounds }));
+    this.controls.autothrottle.repositioned(this.sim.state);
     if (this.gpws) this.gpws.reset();
     this.path.seg++; this.path.wait = 0;
     this.message(`REPOSITIONED — ${this.sim.start.distanceNm} nm final`, 'ga', 2.5);
@@ -283,6 +307,12 @@ export class Game {
   track(dt) {
     const ac = this.sim.aircraft, st = ac.state, inp = ac.input, c = this.ctx;
     if (st.reverser > 0.5) c.usedReversers = true;
+    // the roll-out's "sixty knots": reverse idle from here (max reverse kept below it is noted in
+    // the debrief, with 5 kts for the pilot to react)
+    const revKts = AC.engines.reverseIdleKts;
+    if (st.onGround && ac.touchdown && st.reverser > 0.5 && c.iasPrev > revKts && st.ias <= revKts) this.message(`${revKts} KNOTS`, '', 2);
+    if (st.onGround && inp.reverse && inp.reverseLevel > 0.5 && st.ias < revKts - 5 && st.groundSpeed > 5 * KTS) c.maxReverseSlow = true;
+    c.iasPrev = st.ias;
     if (st.speedbrake > 0.5 && st.onGround) c.usedSpeedbrake = true;
     c.maxBrake = Math.max(c.maxBrake, st.brake);
     if (!st.onGround) c.minAglOnApproach = Math.min(c.minAglOnApproach, st.agl);
@@ -303,7 +333,7 @@ export class Game {
       }
       // climbing away after a touch-and-go: that contact is not the landing to grade
       if (!st.onGround && st.agl > 50 * FT && (ac.touchdown || (ac.landingTouches && ac.landingTouches.length))) {
-        ac.forgetTouchdown(); c.touchAndGo = false; c.touchdownSeen = false;
+        ac.forgetTouchdown(); c.touchAndGo = false; c.touchdownSeen = false; c.atTouchdown = undefined;
       }
       // the go-around ends if the pilot is back on a stabilised approach below 1000 ft
       if (c.gaTimer > 30 && st.agl < 1000 * FT && st.vs < 0 && inp.throttle < 0.8) { c.gaMode = false; this._gaHint = false; this.message(''); this.log('goaround', 'ended, approach resumed'); }
@@ -312,6 +342,8 @@ export class Game {
     for (const e of ac.events.splice(0)) {
       if (e.type === 'touchdown') {
         c.touchdownSeen = true;
+        // the touchdown that is graded: flown onto the runway by the player's autothrottle or not
+        if (c.atTouchdown === undefined) c.atTouchdown = this.controls.autothrottle.engaged;
         this.emit('touchdown', { sink: e.sink, hard: e.sink > AC.gear.hardSink, distFromThreshold: e.distFromThreshold });
         this.log('touchdown', `${(e.sink / 0.00508).toFixed(0)} fpm at ${e.distFromThreshold.toFixed(0)} m`);
         // the wheels on the runway in the first seconds of a go-around, or with go-around thrust
@@ -367,16 +399,21 @@ export class Game {
     this._instT = 0;
     const st = this.sim.state, inp = this.sim.aircraft.input, c = this.ctx;
     const aglFt = st.agl / FT, dNm = st.distToThreshold / NM;
-    const target = st.vref + 5;
+    const target = st.vref + 5, atOn = this.controls.autothrottle.engaged;
     const hints = [];
     if (this.demoAp) { this.emit('instructor', { html: 'Watch the demo: notice the small, smooth control inputs and how thrust is used to hold the speed.' }); return; }
     if (st.onGround && this.sim.aircraft.touchdown) {
-      if (st.groundSpeed > 30 * KTS) hints.push('<b>Rolling out.</b> Reverse thrust: [[reverse]]; brakes: hold [[brakes]]. Keep straight with [[rudder]].');
-      else if (st.groundSpeed > 1) hints.push('Stow the reversers below 60 kts ([[reverseStow]]) and brake to a stop.');
+      // Boeing's roll-out: max reverse to 60 kts, then reverse idle; stowed by taxi speed
+      const revMax = inp.reverse && inp.reverseLevel > 0.5, revKts = AC.engines.reverseIdleKts;
+      if (st.ias > revKts) hints.push('<b>Rolling out.</b> Max reverse: [[reverse]]; brakes: hold [[brakes]]. Keep straight with [[rudder]].');
+      else if (revMax) hints.push(`<b>${revKts} knots:</b> reverse idle ([[reverseIdle]]).`);
+      else if (inp.reverse && st.groundSpeed < 30 * KTS) hints.push('Taxi speed: stow the reversers ([[reverseStow]]) and brake to a stop.');
+      else if (st.groundSpeed > 1) hints.push('Brake to a stop ([[brakes]]) and keep straight with [[rudder]].');
     } else if (c.gaMode) {
       hints.push('<b>Go-around:</b> pitch to +12° with full thrust, gear up when climbing ([[gear]]), flaps 15 ([[flapsUp]]). Above 1000 ft press [[reposition]] to reposition.');
     } else if (aglFt < 60) {
-      hints.push(aglFt < 35 ? '<b>Flare!</b> Raise the nose 2–3° and close the throttle ([[thrustDown]]). Hold it… let it settle.' : 'Approaching the flare. Wings level, aim for the touchdown zone, throttle coming back.');
+      if (atOn) hints.push(aglFt < 35 ? '<b>Flare!</b> Raise the nose 2–3°; the autothrottle brings the levers to idle (RETARD). Hold it… let it settle.' : 'Approaching the flare. Wings level, aim for the touchdown zone; the autothrottle will close the levers.');
+      else hints.push(aglFt < 35 ? '<b>Flare!</b> Raise the nose 2–3° and close the throttle ([[thrustDown]]). Hold it… let it settle.' : 'Approaching the flare. Wings level, aim for the touchdown zone, throttle coming back.');
       if (Math.abs(st.crabDeg) > 3) hints.push(`Kick off the crab: ${st.crabDeg > 0 ? 'left rudder ([[rudderLeft]])' : 'right rudder ([[rudderRight]])'} to align with the runway.`);
     } else {
       // configuration schedule
@@ -388,7 +425,8 @@ export class Game {
       // energy
       // target speeds per configuration: flaps 5 ~175, flaps 15 ~162, landing flaps Vref+5
       const dv = st.ias - (inp.flapIndex >= 4 ? target : (inp.flapIndex >= 3 ? 162 : (inp.flapIndex >= 2 ? 175 : 210)));
-      if (dv > 12) hints.push(`Speed high (+${dv.toFixed(0)}): reduce thrust ([[thrustDown]]).`);
+      // (with the autothrottle engaged the speed is its job; the pilot flies the path)
+      if (atOn) { /* the autothrottle holds the speed */ } else if (dv > 12) hints.push(`Speed high (+${dv.toFixed(0)}): reduce thrust ([[thrustDown]]).`);
       else if (dv < -10) hints.push(`Speed low (${dv.toFixed(0)}): add thrust ([[thrustUp]]) — do not raise the nose to hold altitude.`);
       // glideslope
       if (dNm < 12 && st.gsDev > 0.4) hints.push('Above the glideslope: lower the nose a little, reduce thrust.');

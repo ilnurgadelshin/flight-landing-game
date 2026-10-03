@@ -3,7 +3,8 @@
 //   right thumb  a floating flight stick: it appears under the thumb and springs back to centre
 //   left thumb   the thrust lever, which stays where it is left, with TO/GA on its handle and a
 //                reverse position below idle on the ground, and a spring-return rudder strip
-//   buttons      gear, flaps −/+, speedbrake arm/extend, autobrake, view, pause, help, plus
+//   buttons      gear, flaps −/+, speedbrake arm/extend, autobrake, the autothrottle (A/T, beside
+//                the lever), view, pause, help, plus
 //                BRAKE (hold) on the ground and REPOSITION after a go-around
 // With tilt steering on (body.tilt), the stick's circle shows the tilt instead and a CENTER button
 // makes the way the phone is held now level.
@@ -33,6 +34,7 @@ const MARKUP = `
   </div>
   <div id="t-lever">
     <div id="t-toga" class="tbtn" role="button"><b>TO/GA</b></div>
+    <div id="t-at" class="tbtn" role="button"><b>A/T</b><small>OFF</small></div>
     <div id="t-lever-body">
       <span class="tmark max">MAX</span><span class="tmark idle">IDLE</span>
       <div class="ttrack"><div class="tfill"></div><div class="thandle"><b>0</b></div></div>
@@ -63,7 +65,7 @@ export class TouchControls {
     const $ = (id) => this.root.querySelector('#' + id);
     this.el = {
       gear: $('t-gear'), autobrake: $('t-autobrake'), flapsUp: $('t-flaps-up'), flapsDn: $('t-flaps-dn'), flapsVal: $('t-flaps-val'), flaps: $('t-flaps'),
-      arm: $('t-arm'), ext: $('t-ext'), toga: $('t-toga'), lever: $('t-lever'), leverBody: $('t-lever-body'),
+      arm: $('t-arm'), ext: $('t-ext'), toga: $('t-toga'), at: $('t-at'), atMode: this.root.querySelector('#t-at small'), lever: $('t-lever'), leverBody: $('t-lever-body'),
       track: this.root.querySelector('.ttrack'), fill: this.root.querySelector('.tfill'), handle: this.root.querySelector('.thandle'), rev: this.root.querySelector('.trev'),
       rudder: $('t-rudder'), rudderKnob: this.root.querySelector('#t-rudder .tknob'),
       zone: $('t-stick-zone'), base: this.root.querySelector('.tbase'), knob: this.root.querySelector('.tbase .tknob'),
@@ -82,6 +84,7 @@ export class TouchControls {
     this.tap(this.el.arm, emit('armSpeedbrake'));
     this.tap(this.el.ext, emit('speedbrake'));
     this.tap(this.el.toga, emit('toga'));
+    this.tap(this.el.at, emit('autothrottle'));
     this.tap(this.el.pause, emit('pause'));
     this.tap(this.el.help, emit('help'));
     this.tap(this.el.reposition, emit('reposition'));
@@ -194,7 +197,8 @@ export class TouchControls {
   // ------------------------------------------------------------------ thrust lever
   // Dragged, not tapped: the lever moves by the thumb's travel from wherever it was, so a touch
   // never jumps the thrust. Below idle is a gate: on the ground, pulling past it selects reverse,
-  // which stays selected (like the real reverse levers) until the lever is pushed back up.
+  // which stays selected (like the real reverse levers) until the lever is pushed back up. Held in
+  // REV it is max reverse; let go, reverse idle.
   bindLever() {
     const { leverBody, track, rev } = this.el, T = this.input.touch;
     let id = null, y0 = 0, p0 = 0, h = 100, gate = 0.3;
@@ -264,6 +268,9 @@ export class TouchControls {
     this.cls(this.el.flaps, 'flaps', Math.abs(st.flapDeg - detent) > 0.3 ? 'warn' : '');
     this.cls(this.el.arm, 'arm', inp.speedbrakeArmed ? 'on' : '');
     this.cls(this.el.ext, 'ext', st.speedbrake > 0.05 ? 'on' : '');
+    // the autothrottle: its mode (MCP SPD, RETARD, GA) while engaged
+    this.text(this.el.atMode, 'atMode', ctx.at || 'OFF');
+    this.cls(this.el.at, 'at', ctx.at ? 'on' : '');
     // VIEW names the view shown: the cockpit, its panel, or the head-up view
     const view = ctx.view === 'hud' ? 'HEAD-UP' : (ctx.view === 'nd' ? 'MAP' : (this.input.look.down ? 'PANEL' : 'COCKPIT'));
     this.text(this.el.viewMode, 'viewMode', view);
@@ -272,7 +279,8 @@ export class TouchControls {
     this.cls(this.el.brake, 'brakeBtn', st.onGround ? (this.input.touch.brake ? 'down' : '') : 'hidden');
     // thrust lever
     const pct = Math.round(inp.throttle * 100);
-    this.text(this.el.handle.firstChild, 'handle', s.reverse ? 'REV' : String(pct));
+    // in REV the handle reads REV while held (max reverse) and IDLE once let go (reverse idle)
+    this.text(this.el.handle.firstChild, 'handle', s.reverse ? (inp.reverseLevel > 0.5 ? 'REV' : 'IDLE') : String(pct));
     // tilt steering: the stick's circle shows how far the phone is tilted from level
     const tl = this.input.tilt, tilting = document.body.classList.contains('tilt');
     this.text(this.el.stickLabel, 'stickLabel', tilting ? (tl.active ? 'TILT' : 'TILT — hold level') : 'STICK');

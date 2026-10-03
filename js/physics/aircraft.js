@@ -104,6 +104,7 @@ export class Aircraft {
       throttle: 0,    // 0..1 lever position
       brake: 0,       // 0..1
       reverse: false,
+      reverseLevel: 1, // with reverse selected: 0 reverse idle .. 1 max reverse
       speedbrake: 0,  // 0..1 lever
       speedbrakeArmed: false,
       gearDown: true,
@@ -201,6 +202,7 @@ export class Aircraft {
     this.input.speedbrake = 0;
     this.input.speedbrakeArmed = false;
     this.input.reverse = false;
+    this.input.reverseLevel = 1;
     this.input.brake = 0;
     this.reverserPos = 0;
     this.speedbrakePos = 0;
@@ -363,7 +365,8 @@ export class Aircraft {
 
     // --- engines: N1 spool dynamics
     let throttleForN1 = inp.throttle;
-    if (reverseAllowed) throttleForN1 = Math.max(inp.throttle, E.reverseMaxN1);
+    // the reverse levers: from reverse idle (idle N1, the reversers deployed) to max reverse
+    if (reverseAllowed) throttleForN1 = E.reverseMaxN1 * clamp(inp.reverseLevel === undefined ? 1 : inp.reverseLevel, 0, 1);
     else if (this.reverserPos > 0.3) throttleForN1 = 0; // stowing: engines go to idle first
     const n1Target = lerp(E.idleN1, 1.0, clamp(throttleForN1, 0, 1));
     const rhoRatio = this.atmosphere.density(b.position.y) / 1.225;
