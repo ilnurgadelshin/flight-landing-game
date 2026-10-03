@@ -601,7 +601,9 @@ export class Aircraft {
       let fx = fwd.x, fz = fwd.z;
       const fl = Math.hypot(fx, fz) || 1; fx /= fl; fz /= fl;
       if (g.name === 'nose') {
-        const maxSteer = g.cfg.steerMaxDeg * DEG * clamp(1.4 - gsNow / 40, 0.35, 1);
+        // the pedals' nosewheel steering: ±7° at any speed, as on a 737 (at speed the rudder does
+        // most of the work; the nosewheel is lightly loaded)
+        const maxSteer = g.cfg.steerMaxDeg * DEG;
         g.steer = inp.yaw * maxSteer;
         const cs = Math.cos(g.steer), sn = Math.sin(g.steer);
         // rotate the forward vector clockwise (seen from above, +Y up) by the

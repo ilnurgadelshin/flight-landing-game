@@ -309,10 +309,10 @@ export class Game {
   track(dt) {
     const ac = this.sim.aircraft, st = ac.state, inp = ac.input, c = this.ctx;
     if (st.reverser > 0.5) c.usedReversers = true;
-    // the roll-out's "sixty knots": reverse idle from here (max reverse kept below it is noted in
-    // the debrief, with 5 kts for the pilot to react)
+    // the pilot monitoring's "sixty knots" on the roll-out: reverse idle from here (max reverse kept
+    // below it is noted in the debrief, with 5 kts for the pilot to react)
     const revKts = AC.engines.reverseIdleKts;
-    if (st.onGround && ac.touchdown && st.reverser > 0.5 && c.iasPrev > revKts && st.ias <= revKts) this.message(`${revKts} KNOTS`, '', 2);
+    if (st.onGround && ac.touchdown && c.iasPrev > revKts && st.ias <= revKts) { this.message(`${revKts} KNOTS`, '', 2); this.emit('sixtyKnots'); }
     if (st.onGround && inp.reverse && inp.reverseLevel > 0.5 && st.ias < revKts - 5 && st.groundSpeed > 5 * KTS) c.maxReverseSlow = true;
     c.iasPrev = st.ias;
     if (st.speedbrake > 0.5 && st.onGround) c.usedSpeedbrake = true;
