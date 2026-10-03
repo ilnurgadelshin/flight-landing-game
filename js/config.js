@@ -132,6 +132,17 @@ export const AIRCRAFT = {
     corneringSlipPeakRad: 0.14,
   },
 
+  // Autobrake: the deceleration each setting holds (m/s²); MAX is Boeing's 12 ft/s² above 80 kts
+  // and 14 ft/s² below (on a wet runway the anti-skid limits it). Like the real system it disarms
+  // after landing (AUTO BRAKE DISARM, the selector back to OFF) on manual braking, the thrust
+  // levers advanced after the first 3 s on the ground, or the speedbrake lever stowed.
+  autobrake: {
+    decel: [0, 1.1, 1.7, 2.3],
+    maxHigh: 3.66, maxLow: 4.27, maxSplitKts: 80,
+    disarmBrake: 0.3,       // pedal braking past this
+    disarmThrottle: 0.1, disarmAfterS: 3,
+  },
+
   // Collision hull (body frame) used for belly / nacelle / tail / wing strikes.
   // The fuselage tapers aft so a tail strike happens at ~10° pitch with the
   // struts compressed, nacelle strike at ~7° bank, wing tip at ~10° bank.

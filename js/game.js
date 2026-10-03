@@ -207,6 +207,8 @@ export class Game {
       }
       case 'mouse': this.log('input', `mouse yoke ${arg ? 'on' : 'off'}`); break;
       case 'reverse': this.log('input', `reverse ${arg ? 'on' : 'off'}`); break;
+      // the reverse levers only lift with the thrust levers at idle (the interlock)
+      case 'reverseLocked': this.message('REVERSE — close the thrust levers first ([[thrustDown]])', '', 2.5); this.log('input', 'reverse: thrust levers not at idle'); break;
       default: break;
     }
   }
@@ -353,6 +355,11 @@ export class Game {
         this.mark(c.touchAndGo && c.gaMode ? 'touchandgo' : 'touchdown', `${(e.sink / 0.00508).toFixed(0)} fpm`);
       } else if (e.type === 'spoilers') { this.emit('spoilers'); this.log('systems', 'ground spoilers deployed'); }
       else if (e.type === 'liftoff') { this.log('bounce', `bounce ${e.bounce}`); }
+      else if (e.type === 'autobrakeDisarm') {
+        this.message('AUTOBRAKE DISARM', '', 2.5);
+        this.emit('control', { name: 'autobrake', value: 0 });
+        this.log('systems', `autobrake disarmed: ${e.reason}`);
+      }
       else if (DAMAGE.includes(e.type)) {
         this.emit('damage', { type: e.type, reason: e.reason });
         this.log('damage', e.reason || e.type);

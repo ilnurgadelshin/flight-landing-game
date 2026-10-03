@@ -196,12 +196,17 @@ export class InputManager {
       // keyboard overrides the mouse while a key is held
     }
     inp.pitch = pitch; inp.roll = roll; inp.yaw = this.axes.yaw;
-    // ---- the reverse levers, as a 737's: they unlock only on the ground (or in the last 10 ft),
-    // and reverse stays selected until it is stowed. R selects it; W stows it, and that press adds
-    // no thrust (W again does)
+    // ---- the reverse levers, as a 737's: they lift only on the ground (or in the last 10 ft) with
+    // the thrust levers at idle, and reverse stays selected until it is stowed. R selects it (with
+    // thrust still set the levers stay down, and the game says why); W stows it, and that press
+    // adds no thrust (W again does). The touch lever and the controller pass idle on the way.
     const ground = !!st && (st.onGround || st.agl < 10 * FT);
+    const rPressed = K('KeyR') && !this._rWas; this._rWas = K('KeyR');
     if (!ground) this.kbReverse = false;
-    else if (K('KeyR')) this.kbReverse = true;
+    else if (K('KeyR') && !this.kbReverse) {
+      if (inp.throttle <= 0.005) this.kbReverse = true;
+      else if (rPressed) this.emit('reverseLocked');
+    }
     if (this.kbReverse && K('KeyW') && !K('KeyR')) { this.kbReverse = false; this.kbStow = true; }
     if (this.kbStow && !K('KeyW')) this.kbStow = false;
     // ---- throttle: the touch lever sets a position, the keys move it at a fixed rate
@@ -215,9 +220,9 @@ export class InputManager {
     this.brake = bTarget ? Math.min(1, this.brake + dt * 2.5) : Math.max(0, this.brake - dt * 4);
     inp.brake = this.brake;
     const rev = this.kbReverse || T.reverse || (padOn && PD.reverse);
-    if (rev && !inp.reverse) { inp.reverse = true; inp.throttle = 0; this.emit('reverse', true); }
+    if (rev && !inp.reverse) { inp.reverse = true; this.emit('reverse', true); }
     if (!rev && inp.reverse) { inp.reverse = false; this.emit('reverse', false); }
-    if (inp.reverse) inp.throttle = 0;
+    if (inp.reverse) inp.throttle = 0;          // the thrust levers stay at idle while reverse is up
     // max reverse while R, the lever in REV or B is held; reverse idle once it is let go
     inp.reverseLevel = inp.reverse && ((this.kbReverse && K('KeyR')) || (T.reverse && T.leverHeld) || (padOn && PD.reverse && PD.thrust < 0)) ? 1 : 0;
     // ---- trim

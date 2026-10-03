@@ -225,7 +225,7 @@ export class Aircraft {
     this._hullTouching = false;
     this.brakeTemp = 0;
     this.stallWarning = false; this.stalled = false;
-    this._mainsGroundT = 0; this._abInt = 0; this._lastGs = undefined; this._holdT = 0; this._holdSign = 0;
+    this._mainsGroundT = 0; this._abInt = 0; this._lastGs = undefined; this._sbUpOnGround = false; this._holdT = 0; this._holdSign = 0;
 
     const psi = headingDeg * DEG;
     const rho = this.atmosphere.density(y);
@@ -542,11 +542,20 @@ export class Aircraft {
     // gears are on the ground (wheel spin-up) with the throttles closed, and ramps the
     // pressure in over a second, so it can never brake one wheel and slew the aircraft.
     let autoBrakeCmd = 0;
+    const AB = AC.autobrake;
     const bothMains = this.gear.left.wasOnGround && this.gear.right.wasOnGround;
     this._mainsGroundT = bothMains ? (this._mainsGroundT || 0) + dt : 0;
+    // disarm on the ground after landing: the pilot's pedals, the thrust levers advanced (after the
+    // first 3 s), or the speedbrake lever stowed once the spoilers were up
+    if (inp.autobrake > 0 && this.touchdown && bothMains) {
+      if (inp.speedbrake >= 1) this._sbUpOnGround = true;
+      const why = inp.brake > AB.disarmBrake ? 'manual braking'
+        : (inp.throttle > AB.disarmThrottle && this._mainsGroundT > AB.disarmAfterS) ? 'thrust levers advanced'
+          : (this._sbUpOnGround && inp.speedbrake < 0.5) ? 'speedbrake lever stowed' : '';
+      if (why) { inp.autobrake = 0; this.events.push({ t: this.time, type: 'autobrakeDisarm', reason: why }); }
+    }
     if (inp.autobrake > 0 && this.touchdown && this._mainsGroundT > 0.5 && inp.throttle < 0.05 && gsNow > 1) {
-      const targets = [0, 1.1, 1.7, 2.3, 3.2];  // m/s^2
-      const target = targets[inp.autobrake];
+      const target = inp.autobrake >= 4 ? (gsNow > AB.maxSplitKts * KTS ? AB.maxHigh : AB.maxLow) : AB.decel[inp.autobrake];  // m/s²
       const decel = this._lastGs === undefined ? 0 : -(gsNow - this._lastGs) / dt;
       this._abInt = clamp((this._abInt || 0) + (target - decel) * dt * 0.35, 0, 1);
       autoBrakeCmd = clamp((target - decel) * 0.25 + this._abInt, 0, 1) * clamp((this._mainsGroundT - 0.5) / 1.0, 0, 1);

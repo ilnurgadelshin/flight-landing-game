@@ -293,7 +293,11 @@ export class Autopilot {
       if (o.useReversers && st.groundSpeed > 30 * KTS) inp.reverse = true; else inp.reverse = false;
       if (st.groundSpeed < 30 * KTS && inp.reverse) inp.reverse = false;
       inp.reverseLevel = st.ias > AC.engines.reverseIdleKts ? 1 : 0;
-      if (!o.noBrakes) inp.brake = st.groundSpeed > 1 ? 0.8 : 1; else inp.brake = 0;
+      // braking: as a crew does, the autobrake to taxi speed, then the pedals (which disarm it) to
+      // the stop; with no autobrake set, the pedals from touchdown
+      if (o.noBrakes) inp.brake = 0;
+      else if (inp.autobrake > 0 && st.groundSpeed > 30 * KTS) inp.brake = 0;
+      else inp.brake = st.groundSpeed > 1 ? 0.8 : 1;
       if (st.groundSpeed < 0.5) { this.phase = 'stopped'; }
     }
   }
