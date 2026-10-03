@@ -272,6 +272,16 @@ console.log('\n[11] Ground handling: hands off in a crosswind the aircraft weath
   // a pilot holding the heading with the pedals (proportional rudder, as a person would)
   const held = rollout((st) => clamp(-(st.heading / DEG - 270) * 0.15 - (st.r / DEG) * 0.1, -1, 1));
   check('pedal inputs keep the roll-out within 2° of the runway heading', held.maxDev < 2, `max heading deviation ${fmt(held.maxDev, 2)}°`);
+  // full pedal turns the nosewheel 7°, at taxi speed as at 100 kts (a 737's pedal steering)
+  const steerAt = (kts) => {
+    const sim = new Simulation({ scenarioId: 'clear', startId: 'short', seed: 3 }), ac = sim.aircraft;
+    ac.place({ x: RUNWAY.thresholdX - 400, y: 3.35, z: 0, headingDeg: 270, iasKts: kts, flapIndex: 4, gearDown: true, throttle: 0, onGround: true });
+    ac.body.velocity.set(-kts * KTS, 0, 0);
+    for (let i = 0; i < 60; i++) { ac.input.yaw = 1; sim.stepOnce(); }
+    return Math.abs(sim.state.noseSteer) / DEG;
+  };
+  const s20 = steerAt(20), s100 = steerAt(100);
+  check('full pedal: the nosewheel at 7°, at 20 kts and at 100 kts', Math.abs(s20 - 7) < 0.01 && Math.abs(s100 - 7) < 0.01, `${fmt(s20, 2)}° and ${fmt(s100, 2)}°`);
 }
 
 console.log('\n[11b] Reverse thrust: reverse idle and max reverse');

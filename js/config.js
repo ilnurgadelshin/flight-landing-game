@@ -107,7 +107,7 @@ export const AIRCRAFT = {
     retractTime: 8.0,   // s
     // attach point, strut rest length (m), stiffness (N/m), damping (N s/m), max travel (m)
     // struts are progressive gas springs: F = k x (1 + 3 (x/travel)^2) + c dx/dt
-    nose: { pos: [0, -1.55, -13.2], rest: 1.95, k: 5.0e5, c: 7.0e4, travel: 0.45, steerMaxDeg: 14 },
+    nose: { pos: [0, -1.55, -13.2], rest: 1.95, k: 5.0e5, c: 7.0e4, travel: 0.45, steerMaxDeg: 7 },   // the rudder pedals steer the nosewheel ±7° (the tiller's 78° is for taxiing)
     left: { pos: [-2.86, -1.55, 1.6], rest: 1.95, k: 1.25e6, c: 1.6e5, travel: 0.55 },
     right: { pos: [2.86, -1.55, 1.6], rest: 1.95, k: 1.25e6, c: 1.6e5, travel: 0.55 },
     bottomOutK: 2.0e7,

@@ -68,6 +68,7 @@ export class Presentation {
     on('instructor', ({ html }) => ui.setInstructor(html));
     on('control', ({ name }) => audio.play(CONTROL_SOUNDS[name]));
     on('goaround', () => audio.say('Go around, flaps fifteen', { priority: 1 }));
+    on('sixtyKnots', () => audio.say('Sixty knots'));        // the pilot monitoring's call on the roll-out
     on('demo', () => audio.play('apdisc'));
     on('touchdown', ({ sink, hard }) => {
       audio.play(hard ? 'hardlanding' : 'touchdown');

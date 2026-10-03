@@ -27,7 +27,7 @@ function rig(opts = {}) {
   const gpws = new GPWS({ say: (t) => { said.push(t); return true; }, play: (t) => said.push('sound:' + t), setConfigHorn() {} });
   const game = new Game({ player, gpws });
   const got = [];
-  for (const t of ['state', 'start', 'school', 'message', 'instructor', 'control', 'goaround', 'reposition', 'demo', 'touchdown', 'spoilers', 'damage', 'finish']) game.on(t, (d) => got.push({ type: t, ...d }));
+  for (const t of ['state', 'start', 'school', 'message', 'instructor', 'control', 'goaround', 'reposition', 'demo', 'touchdown', 'spoilers', 'damage', 'finish', 'sixtyKnots']) game.on(t, (d) => got.push({ type: t, ...d }));
   const fly = (seconds, frame = 0.1) => { let sim = 0; for (let t = 0; t < seconds && game.state !== 'finished'; t += frame) sim += game.update(frame); return sim; };
   game.start(Object.assign({ mode: 'game', scenarioId: 'clear', startId: 'short', seed: 3 }, opts));
   return { game, player, got, said, fly, of: (t) => got.filter((e) => e.type === t) };
@@ -109,7 +109,7 @@ console.log('\n[R4] A whole landing, flown by the test pilot');
   // the roll-out as a crew flies it: the autobrake to taxi speed, then the pedals, which disarm it
   check('the autobrake does the braking to taxi speed, then the pedals disarm it ("AUTOBRAKE DISARM"): a roll-out of about 1,100 m', R.of('message').some((m) => m.text === 'AUTOBRAKE DISARM') && R.game.events.some((e) => e.text === 'autobrake disarmed: manual braking') && R.game.sim.aircraft.landingRollDistance > 950 && R.game.sim.aircraft.landingRollDistance < 1400, `${R.game.sim.aircraft.landingRollDistance.toFixed(0)} m`);
   const stop = fin.result.items.find((i) => i.label === 'Stopping');
-  check('the roll-out: "60 KNOTS", then reverse idle as Boeing has it, so the debrief has nothing to say about it', R.of('message').some((m) => m.text === '60 KNOTS') && !R.game.ctx.maxReverseSlow && stop.points === 5, stop.note);
+  check('the roll-out: "60 KNOTS" (on screen, and the call for the voice, once), then reverse idle as Boeing has it, so the debrief has nothing to say about it', R.of('message').some((m) => m.text === '60 KNOTS') && R.of('sixtyKnots').length === 1 && !R.game.ctx.maxReverseSlow && stop.points === 5, stop.note);
   // the same landing with max reverse held to 30 kts
   const H = rig({ scenarioId: 'crosswind', seed: 3 });
   H.game.engageAutopilot();

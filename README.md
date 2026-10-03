@@ -331,7 +331,9 @@ coefficient-based aerodynamic model — lift curve with a smooth stall per flap
 setting, induced and parasite drag (flaps, gear, spoilers), ground effect,
 pitch/roll/yaw stability and control derivatives, a yaw damper, engine spool
 dynamics with reverse thrust (from reverse idle to max reverse, about 88 % N1), a progressive oleo landing gear with tyre
-cornering and braking friction (dry / wet / grass), nose-wheel steering,
+cornering and braking friction (dry / wet / grass), nose-wheel steering from
+the rudder pedals (±7° at any speed, as on a 737: at speed the rudder does most
+of the work),
 anti-skid, an autobrake (settings 1/2/3 hold 1.1/1.7/2.3 m/s²; MAX holds Boeing's 12 ft/s² above
 80 kts and full braking below, about 4 m/s²; after landing it disarms, with "AUTOBRAKE DISARM", on
 manual braking, the thrust levers advanced after the first 3 s, or the speedbrake lever stowed),
@@ -714,12 +716,13 @@ scrape), and thunder follows lightning. The warnings and impacts are pitched
 and set so that a phone speaker, which plays almost nothing below 400 Hz, still
 plays them well above the engines.
 
-The voice is a set of short recordings in `audio/voice/` (26 phrases, about
-220 KB), played through Web Audio like every other sound. Browsers' built-in
+The voice is a set of short recordings in `audio/voice/` (27 phrases, about
+160 KB), played through Web Audio like every other sound. Browsers' built-in
 speech sounds different on each device and often stays silent on iPhone, so it
 is used only for a phrase whose recording failed to load. The phrase list is
 `audio/voice/phrases.json`. `tools/make-voice.py` renders the clips with the
-open Kokoro text-to-speech model (Apache-2.0; its docstring has the setup), and
+open Kokoro text-to-speech model (Apache-2.0; its docstring has the setup;
+`--missing` renders only a new phrase and leaves the others as they are), and
 band-limits them like a flight-deck speaker. After changing a phrase in the
 code, add it to the list and run the tool; `test/game.test.mjs` fails while a
 spoken phrase has no recording.
@@ -740,8 +743,8 @@ landing, runway excursion, overrun, landed short, missed the runway).
   upwind in the first two seconds.
 - **Stopping.** Max reverse to 60 kts, then reverse idle, as Boeing has it: at
   low speed max reverse can blow the exhaust back into the engines and throw
-  up debris. During the roll-out the game shows "60 KNOTS" as the
-  pilot-monitoring calls it. Max reverse held below 55 kts costs 2 of the 5
+  up debris. On every roll-out the pilot monitoring calls "sixty knots", in
+  the recorded voice and as "60 KNOTS" on screen. Max reverse held below 55 kts costs 2 of the 5
   stopping points, with a note in the debrief, as does landing without the
   speedbrakes.
 
@@ -915,7 +918,8 @@ queued when a flight starts can hold frames back for up to a second some time la
     braking, the thrust levers advanced and the speedbrake lever stowed each
     disarm the autobrake, with the selector back to OFF;
 12. hands off in a crosswind the aircraft weathervanes into the wind, and pedal
-    inputs hold the roll-out within 2° of the runway heading;
+    inputs hold the roll-out within 2° of the runway heading; full pedal turns
+    the nosewheel 7° at 20 kts and at 100 kts;
 13. the Flight School flight director computes its guidance on its own copy of
     the controls and never moves the aircraft's, from the approach to the stop;
 14. the turbulence follows the Dryden model. At 50 and 500 ft it checks the
@@ -1143,7 +1147,8 @@ a camera placed like the game's:
    configuration action takes over;
 4. a whole landing by the test pilot: touchdown, spoilers, the finish and grade, the GPWS
    callouts through its voice output; the autobrake braking to taxi speed, then the pedals
-   disarming it ("AUTOBRAKE DISARM"), about 1,100–1,250 m of roll-out; "60 KNOTS" on the
+   disarming it ("AUTOBRAKE DISARM"), about 1,100–1,250 m of roll-out; "60 KNOTS" (shown and
+   called once, for the voice) on the
    roll-out and reverse idle from there,
    with nothing in the debrief, while the same landing with max reverse held below 60 kts
    loses 2 stopping points with a note;

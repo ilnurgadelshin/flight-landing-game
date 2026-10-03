@@ -11,6 +11,8 @@ Voice: Kokoro (https://github.com/thewh1teagle/kokoro-onnx, Apache-2.0 model). S
     curl -LO https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/kokoro-v1.0.onnx
     curl -LO https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/voices-v1.0.bin
     ./venv/bin/python tools/make-voice.py --model kokoro-v1.0.onnx --voices voices-v1.0.bin
+Add --missing to render only the phrases that have no clip yet (a new phrase), leaving the others
+as they are.
 If espeak-ng reports that it cannot find its data under a /home/runner/work/... path (the path
 compiled into the espeakng-loader wheel), link that path to the venv's
 espeakng_loader/espeak-ng-data directory.
@@ -67,10 +69,13 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--model', required=True)
     ap.add_argument('--voices', required=True)
+    ap.add_argument('--missing', action='store_true', help='only the phrases without a clip yet')
     args = ap.parse_args()
     spec = json.load(open(os.path.join(OUT, 'phrases.json')))
     tts = Kokoro(args.model, args.voices)
     for text in spec['phrases']:
+        if args.missing and os.path.exists(os.path.join(OUT, slug(text) + '.mp3')):
+            continue
         samples, fs = tts.create(text, voice=spec['voice'], speed=spec['speed'], lang='en-us')
         x = trim(np.asarray(samples, dtype=np.float64), fs)
         x = biquad(x, 'hp', 250, fs)
