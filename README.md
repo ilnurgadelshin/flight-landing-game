@@ -155,8 +155,8 @@ flight deck.
 | Flaps | `F` extend one notch · `V` retract one notch |
 | Landing gear | `G` |
 | Speedbrakes / spoilers | `Space` extend/retract · `X` arm for automatic deployment at touchdown |
-| Wheel brakes | `B` (hold) · `N` cycles the autobrake OFF/1/2/3/MAX |
-| Thrust reversers | `R` on the ground selects reverse: held, max reverse; let go, reverse idle (it stays selected). `W` stows it (that press adds no thrust). In the air the reverse levers are locked |
+| Wheel brakes | `B` (hold) · `N` cycles the autobrake OFF/1/2/3/MAX. Braking with `B` after touchdown disarms the autobrake |
+| Thrust reversers | `R` on the ground, with the thrust levers at idle, selects reverse: held, max reverse; let go, reverse idle (it stays selected). `W` stows it (that press adds no thrust). In the air the reverse levers are locked |
 | Trim | `[` / `]` or `PageUp` / `PageDown` (a trim follow-up also runs the stabiliser after a sustained input) |
 | Look down at the pedestal | `L` (hold) · right-mouse drag to look around |
 | View: cockpit / head-up | `C` |
@@ -332,7 +332,10 @@ setting, induced and parasite drag (flaps, gear, spoilers), ground effect,
 pitch/roll/yaw stability and control derivatives, a yaw damper, engine spool
 dynamics with reverse thrust (from reverse idle to max reverse, about 88 % N1), a progressive oleo landing gear with tyre
 cornering and braking friction (dry / wet / grass), nose-wheel steering,
-anti-skid, autobrake, and a collision hull for tail, wing, nacelle and belly
+anti-skid, an autobrake (settings 1/2/3 hold 1.1/1.7/2.3 m/s²; MAX holds Boeing's 12 ft/s² above
+80 kts and full braking below, about 4 m/s²; after landing it disarms, with "AUTOBRAKE DISARM", on
+manual braking, the thrust levers advanced after the first 3 s, or the speedbrake lever stowed),
+reverse levers that lift only on the ground with the thrust levers at idle, and a collision hull for tail, wing, nacelle and belly
 strikes. The physics runs at a fixed 120 Hz through a frame-time accumulator,
 so it is independent of the rendering frame rate.
 
@@ -908,6 +911,9 @@ queued when a flight starts can hold frames back for up to a second some time la
 10. leaving the runway at speed collapses the gear;
 11. reverse idle deploys the reversers with the engines at idle N1 and no forward
     thrust, and max reverse reaches about 88 % N1 and slows the aircraft more;
+    autobrake MAX holds 3.66 m/s² above 80 kts and full braking below; manual
+    braking, the thrust levers advanced and the speedbrake lever stowed each
+    disarm the autobrake, with the selector back to OFF;
 12. hands off in a crosswind the aircraft weathervanes into the wind, and pedal
     inputs hold the roll-out within 2° of the runway heading;
 13. the Flight School flight director computes its guidance on its own copy of
@@ -934,7 +940,10 @@ controls a player has. It flies as a pilot does:
   it. In the last 6 ft it holds the attitude it has reached.
 - On the roll-out it uses max reverse to 60 kts, then reverse idle, and stows
   the reversers at 30 kts ground speed. It sets its own autobrake with flaps
-  30 (on a short final, which starts at the runway's setting, too).
+  30 (on a short final, which starts at the runway's setting, too) and lets it
+  brake to 30 kts, then the pedals (which disarm it) bring it to a stop. That
+  is about 1,100 m of roll-out in still air, Boeing's figure for autobrake 3.
+  It used to brake hard by hand from touchdown and stop in about 600 m.
 
 Over 80 autolands (the four windy and clear scenarios, both final starts,
 10 turbulence seeds each), every one lands on the runway. The average
@@ -1127,12 +1136,15 @@ a camera placed like the game's:
 
 1. a flight starts and the physics advances;
 2. every action: the control moves, it is announced and logged; flaps stop at the ends; the
-   short final starts with the speedbrake armed and autobrake 2 (3 on a wet runway); TO/GA
-   starts a go-around; repositioning; pause stops time and actions;
+   short final starts with the speedbrake armed and autobrake 2 (3 on a wet runway); R with
+   thrust set is refused with a message; TO/GA starts a go-around; repositioning; pause stops
+   time and actions;
 3. the autoland demo has command, the devices only keep time, and grabbing a control or a
    configuration action takes over;
 4. a whole landing by the test pilot: touchdown, spoilers, the finish and grade, the GPWS
-   callouts through its voice output; "60 KNOTS" on the roll-out and reverse idle from there,
+   callouts through its voice output; the autobrake braking to taxi speed, then the pedals
+   disarming it ("AUTOBRAKE DISARM"), about 1,100–1,250 m of roll-out; "60 KNOTS" on the
+   roll-out and reverse idle from there,
    with nothing in the debrief, while the same landing with max reverse held below 60 kts
    loses 2 stopping points with a note;
 5. training: Flight School before and during the flight, the flight director, the checklist, the
@@ -1232,8 +1244,9 @@ show:
 4. thrust at the keyboard's rate; the hold-off after a start; reverse only on
    the ground after 0.4 s of B at idle, max reverse while B is held and reverse
    idle once it is let go; stowing with A without added thrust; the keyboard's
-   R locked in the air, held for max reverse and let go for reverse idle on the
-   ground, and W stowing it without added thrust;
+   R locked in the air and with thrust set (said once), held for max reverse
+   and let go for reverse idle on the ground at idle, and W stowing it without
+   added thrust;
    pilot-style pitch; a controller not in use drives nothing;
 5. controllers as Safari on iPhone and iPad reports them: each family by its name, a PS5 controller's
    Options and Create, the PS button doing nothing, no rumble;

@@ -62,6 +62,8 @@ console.log('\n[R2] Actions');
   R.game.action('armSpeedbrake');
   const wet = rig({ scenarioId: 'storm' }).game.sim.aircraft.input, far = rig({ startId: 'standard' }).game.sim.aircraft.input;
   check('a wet short final starts at autobrake 3; the 10 nm start is left to the pilot', wet.speedbrakeArmed && wet.autobrake === 3 && !far.speedbrakeArmed && far.autobrake === 0);
+  R.game.action('reverseLocked');
+  check('R with thrust still set: the reverse levers stay down, and the game says why', R.of('message').some((m) => /REVERSE — close the thrust levers first/.test(m.text)));
   R.game.action('toga');
   check('TO/GA: full thrust and a go-around, announced', inp.throttle === 1 && R.game.ctx.gaMode && R.of('goaround').some((e) => e.manual) && R.of('message').some((e) => /GO-AROUND/.test(e.text)));
   R.fly(4);
@@ -104,6 +106,8 @@ console.log('\n[R4] A whole landing, flown by the test pilot');
   check('finished: graded, the state machine at finished, the simulation stopped', !!fin && fin.result.success && R.game.state === 'finished' && R.game.sim.paused && R.game.result === fin.result, fin ? `${fin.result.score} ${fin.result.grade}` : '');
   check('the GPWS called out the approach through its voice output', R.said.includes('Minimums') && R.said.includes('Fifty'), R.said.slice(0, 6).join(', '));
   check('the log has the flight\'s story', ['start', 'touchdown', 'systems', 'result'].every((t) => R.game.events.some((e) => e.type === t)));
+  // the roll-out as a crew flies it: the autobrake to taxi speed, then the pedals, which disarm it
+  check('the autobrake does the braking to taxi speed, then the pedals disarm it ("AUTOBRAKE DISARM"): a roll-out of about 1,100 m', R.of('message').some((m) => m.text === 'AUTOBRAKE DISARM') && R.game.events.some((e) => e.text === 'autobrake disarmed: manual braking') && R.game.sim.aircraft.landingRollDistance > 950 && R.game.sim.aircraft.landingRollDistance < 1400, `${R.game.sim.aircraft.landingRollDistance.toFixed(0)} m`);
   const stop = fin.result.items.find((i) => i.label === 'Stopping');
   check('the roll-out: "60 KNOTS", then reverse idle as Boeing has it, so the debrief has nothing to say about it', R.of('message').some((m) => m.text === '60 KNOTS') && !R.game.ctx.maxReverseSlow && stop.points === 5, stop.note);
   // the same landing with max reverse held to 30 kts

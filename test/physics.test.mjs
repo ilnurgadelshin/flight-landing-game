@@ -291,6 +291,36 @@ console.log('\n[11b] Reverse thrust: reverse idle and max reverse');
   check('max reverse: about 88 % N1 and strong reverse thrust, slowing the aircraft more', max.n1 > 0.85 && max.thrust < -40000 && max.gs < idle.gs - 5, `N1 ${fmt(max.n1 * 100, 0)} %, thrust ${fmt(max.thrust / 1000, 0)} kN; ${fmt(max.gs, 0)} vs ${fmt(idle.gs, 0)} kt after 8 s`);
 }
 
+console.log('\n[11c] Autobrake: MAX, and disarming as the real system does');
+{
+  // the autoland on a short final with autobrake MAX and no reverse: the deceleration it holds above
+  // and below 80 kts (Boeing: 12 and 14 ft/s²)
+  const decel = [];
+  let prev = null;
+  const max = flyApproach({ scenarioId: 'clear', startId: 'short', seed: 3, apOpts: { autobrake: 4, useReversers: false }, onStep: (sim) => {
+    const st = sim.state, gs = st.groundSpeed / KTS;
+    if (sim.aircraft.touchdown && st.onGround && prev && sim.input.autobrake === 4) decel.push({ gs, a: (prev - st.groundSpeed) / sim.fixedDt });
+    prev = st.groundSpeed;
+  } });
+  const avg = (lo, hi) => { const x = decel.filter((d) => d.gs > lo && d.gs < hi); return x.reduce((a, d) => a + d.a, 0) / x.length; };
+  const hi = avg(90, 120), lo = avg(40, 70);
+  // (below 80 kts it asks for 4.27 and gets full braking, which the tyres and anti-skid hold at
+  // about 4.05 on a dry runway)
+  check('MAX holds 3.66 m/s² above 80 kts, and full braking (about 4 m/s²) below on a dry runway', Math.abs(hi - 3.66) < 0.15 && lo > 3.9 && lo < 4.4, `${fmt(hi, 2)} and ${fmt(lo, 2)} m/s²; roll ${fmt(max.sim.aircraft.landingRollDistance, 0)} m`);
+  // disarming: the pedals, the thrust levers advanced after 3 s, the speedbrake lever stowed
+  const disarm = (what) => {
+    let tdT = null, ev = null;
+    flyApproach({ scenarioId: 'clear', startId: 'short', seed: 3, apOpts: { autobrake: 3, useReversers: false, noBrakes: true }, maxTime: 200, onStep: (sim, ap, t) => {
+      if (sim.aircraft.touchdown && tdT === null) tdT = t;
+      if (tdT !== null && t - tdT > 5) what(sim.input);
+      for (const e of sim.aircraft.events) if (e.type === 'autobrakeDisarm' && !ev) ev = { reason: e.reason, ab: sim.input.autobrake };
+    } });
+    return ev;
+  };
+  const pedals = disarm((inp) => { inp.brake = 0.5; }), thrust = disarm((inp) => { inp.throttle = 0.3; }), lever = disarm((inp) => { inp.speedbrake = 0; });
+  check('manual braking, the thrust levers advanced and the speedbrake lever stowed each disarm it (selector to OFF)', pedals && pedals.reason === 'manual braking' && thrust && thrust.reason === 'thrust levers advanced' && lever && lever.reason === 'speedbrake lever stowed' && [pedals, thrust, lever].every((e) => e.ab === 0), JSON.stringify([pedals, thrust, lever]));
+}
+
 console.log('\n[12] Flight School flight director: computes guidance on its own controls and never flies the aircraft');
 {
   const sim = new Simulation({ scenarioId: 'clear', startId: 'standard', seed: 11 });
