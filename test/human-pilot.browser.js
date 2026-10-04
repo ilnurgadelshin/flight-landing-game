@@ -227,7 +227,9 @@
       } else if (P.phase === 'rollout') {
         IO.idle(inp);
         // Boeing's roll-out: max reverse to 60 kts, reverse idle below, stowed by taxi speed (30 kts)
-        IO.reverse(!o.useReversers || st.groundSpeed < 30 * 0.5144 ? 'stow' : (st.ias > 60 ? 'max' : 'idle'), inp); IO.brake(!o.noBrakes && (inp.autobrake === 0 || st.groundSpeed < 25));
+        // (reverse idle from the first time through 60 kts, as at the "sixty knots" call)
+        if (st.ias <= 60) P.revIdle = true;
+        IO.reverse(!o.useReversers || st.groundSpeed < 30 * 0.5144 ? 'stow' : (P.revIdle ? 'idle' : 'max'), inp); IO.brake(!o.noBrakes && (inp.autobrake === 0 || st.groundSpeed < 25));
         pitchIn = st.groundSpeed > 30 ? -0.1 : 0; rollIn = clamp(-st.roll * 3, -1, 1);
         // roll-out: decide the pedal position wanted (heading error, yaw rate, lateral offset) and
         // hold or release A / D to move the keyboard rudder axis toward it, as a keyboard player does

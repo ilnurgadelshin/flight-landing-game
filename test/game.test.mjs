@@ -110,6 +110,15 @@ console.log('\n[R4] A whole landing, flown by the test pilot');
   check('the autobrake does the braking to taxi speed, then the pedals disarm it ("AUTOBRAKE DISARM"): a roll-out of about 1,100 m', R.of('message').some((m) => m.text === 'AUTOBRAKE DISARM') && R.game.events.some((e) => e.text === 'autobrake disarmed: manual braking') && R.game.sim.aircraft.landingRollDistance > 950 && R.game.sim.aircraft.landingRollDistance < 1400, `${R.game.sim.aircraft.landingRollDistance.toFixed(0)} m`);
   const stop = fin.result.items.find((i) => i.label === 'Stopping');
   check('the roll-out: "60 KNOTS" (on screen, and the call for the voice, once), then reverse idle as Boeing has it, so the debrief has nothing to say about it', R.of('message').some((m) => m.text === '60 KNOTS') && R.of('sixtyKnots').length === 1 && !R.game.ctx.maxReverseSlow && stop.points === 5, stop.note);
+  // in gusts the airspeed crosses 60 kts more than once: one call per landing all the same, and the
+  // autoland stays at reverse idle after it (12 crosswind and storm landings)
+  const calls = [];
+  for (const sc of ['crosswind', 'storm']) for (let seed = 1; seed <= 6; seed++) {
+    const G = rig({ scenarioId: sc, seed, demo: true });
+    G.fly(400);
+    calls.push({ n: G.of('sixtyKnots').length, slow: !!G.game.ctx.maxReverseSlow });
+  }
+  check('gusty roll-outs: "sixty knots" called once each, and no max reverse after it', calls.every((c) => c.n === 1 && !c.slow), calls.map((c) => c.n + (c.slow ? '!' : '')).join(' '));
   // the same landing with max reverse held to 30 kts
   const H = rig({ scenarioId: 'crosswind', seed: 3 });
   H.game.engageAutopilot();
@@ -452,6 +461,30 @@ console.log('\n[R11] The player\'s autothrottle on a manual landing');
   const storms = [1, 2, 3, 4, 5, 6].map((seed) => manual('storm', seed));
   const sMean = storms.reduce((a, x) => a + x.mean, 0) / storms.length, sLo = Math.min(...storms.map((x) => x.lo)), landed = storms.filter((x) => x.g.result.success).length;
   check('in the storm: the average speed held at Vref + 5 (gust protection), never below Vref − 12, and the landings made', Math.abs(sMean - 147) < 1.5 && sLo > 142 - 12 && landed >= 5, `mean ${sMean.toFixed(1)}, lowest ${sLo.toFixed(0)} kts; ${landed} of 6 landed (${storms.map((x) => x.g.result.score).join(', ')} points)`);
+
+  // a balloon in RETARD: the pilot pulls up for 2 s as RETARD begins. Back above 37 ft it returns
+  // to MCP SPD and adds thrust as the speed decays (it used to hold idle all the way up and down:
+  // 62 ft, 21 kts lost and a 1,235 fpm touchdown); below 27 ft RETARD comes again
+  {
+    const B = rig(), bg = B.game, bin = bg.sim.aircraft.input, bst = bg.sim.state, bat = bg.controls.autothrottle;
+    bg.controls.enableDirector();
+    const sh = bg.controls.shadow;
+    let pullT = null;
+    B.player.update = function (dt, input) { this.updates++; input.pitch = pullT !== null && bg.time - pullT < 2 ? 0.7 : sh.pitch; input.roll = sh.roll; input.yaw = sh.yaw; };
+    bg.action('autothrottle');
+    const seq = [];
+    let peak = 0, thrBack = null, thrLow = null;
+    for (let t = 0; t < 300 && !bst.onGround; t += 1 / 30) {
+      bg.update(1 / 30);
+      if (seq[seq.length - 1] !== bat.mode) seq.push(bat.mode);
+      if (bat.mode === 'RETARD' && pullT === null) pullT = bg.time;
+      if (pullT !== null) peak = Math.max(peak, bst.agl / FT);
+      if (seq.length === 3 && thrBack === null) thrBack = bin.throttle;
+      if (seq.length === 3) thrLow = bin.throttle;
+    }
+    check('a balloon in RETARD back above 37 ft: MCP SPD again, adding thrust; RETARD again below 27 ft', seq.join(' → ') === 'MCP SPD → RETARD → MCP SPD → RETARD' && peak > 37 && thrLow > thrBack + 0.2,
+      `${seq.join(' → ')}; balloon to ${peak.toFixed(0)} ft, levers ${(thrBack * 100).toFixed(0)} → ${(thrLow * 100).toFixed(0)} % before RETARD again`);
+  }
 
   // disconnecting it
   const R = rig(), g = R.game, inp = g.sim.aircraft.input, at = g.controls.autothrottle;

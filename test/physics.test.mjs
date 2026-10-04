@@ -206,7 +206,7 @@ console.log('\n[8] Failure states produce the right consequences');
   const dry = r.sim.aircraft.atmosphere.scenario, wet = Object.assign({}, dry, { wet: true });
   const a45 = score(4.5, dry), a7w = score(7, wet), a13 = score(13, dry), a16 = score(16, dry);
   td.crabDeg = crab0; td.bank = bank0;
-  check('a crab up to 5° (8° on a wet runway) with the wings level scores full; 13° (a full crab at 33 kt) 4; past the gear\'s 15°, 0', a45.points === 15 && a7w.points === 15 && a13.points === 4 && a16.points === 0, `4.5° ${a45.points}, 7° wet ${a7w.points}, 13° ${a13.points}, 16° ${a16.points}`);
+  check('a crab up to 5° (8° on a wet runway) with the wings level scores full; 13° (a full crab at 33 kt) 4; past the 15° gear threshold, 0', a45.points === 15 && a7w.points === 15 && a13.points === 4 && a16.points === 0, `4.5° ${a45.points}, 7° wet ${a7w.points}, 13° ${a13.points}, 16° ${a16.points}`);
 }
 {
   const r = flyApproach({ scenarioId: 'clear', startId: 'short', apOpts: { targetSpeedOffset: 30, flareHeight: 9 } });

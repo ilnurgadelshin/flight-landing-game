@@ -405,7 +405,12 @@ landing with the autothrottle engaged, as many 737 crews fly one. `Q`, the
   protection. The speed bug and the MCP window show that speed.
 - **RETARD:** from 27 ft radio altitude with flaps 15 or more, the levers come
   back to idle and reach it about as the wheels touch. You fly the flare with
-  pitch alone.
+  pitch alone. If a balloon takes the aircraft back above 37 ft, it returns to
+  MCP SPD and adds thrust as the speed decays, then RETARD comes again below
+  27 ft. Without this it held idle all the way up and down: in a test balloon
+  to 62 ft the speed fell 21 kts. Real autothrottle software differs on
+  whether RETARD reverts; the game reverts, as the autoland's flare here does.
+  In a big balloon, going around is still the answer.
 - **Disengaging:** it disengages 2 s after touchdown. Moving the thrust levers
   yourself (`W`/`S`, the touch lever, the controller's A/B) disconnects it,
   as the disconnect switch under a pilot's thumb does, and the game shows
@@ -735,18 +740,22 @@ landing, runway excursion, overrun, landed short, missed the runway).
 
 - **Crab at touchdown.** Boeing permits touching down in a crab, and on a dry
   runway recommends de-crabbing: there the aircraft tracks toward the upwind
-  edge as it straightens, the further the larger the crab. With the wings
-  level, a crab up to 5° (8° on a wet runway) scores full marks. Up to 8°
-  scores 10 of 15, with that note. Up to the gear's 15° side-load limit scores
-  4. A full crab at the demonstrated 33 kt crosswind is about 13°. In the
-  simulation a 7–8° crab touchdown in the crosswind moves the aircraft 1.5–3 m
-  upwind in the first two seconds.
+  edge as it straightens, the further the larger the crab. Boeing gives no
+  limits in degrees, so the bands here are the game's own tuning. With the
+  wings level, a crab up to 5° (8° on a wet runway) scores full marks. Up to 8°
+  scores 10 of 15, with that note. Up to 15° scores 4. Past 15° the simulated
+  main gear fails from the side load. That threshold is also tuning, not a
+  structural figure: it sits above the ~13° of a full crab at the demonstrated
+  33 kt crosswind, so a crab touchdown Boeing permits does not break the gear.
+  In the simulation a 7–8° crab touchdown in the crosswind moves the aircraft
+  1.5–3 m upwind in the first two seconds.
 - **Stopping.** Max reverse to 60 kts, then reverse idle, as Boeing has it: at
   low speed max reverse can blow the exhaust back into the engines and throw
-  up debris. On every roll-out the pilot monitoring calls "sixty knots", in
-  the recorded voice and as "60 KNOTS" on screen. Max reverse held below 55 kts costs 2 of the 5
-  stopping points, with a note in the debrief, as does landing without the
-  speedbrakes.
+  up debris. On every roll-out the pilot monitoring calls "sixty knots" once
+  (gusts can take the airspeed through 60 kts more than once), in the recorded
+  voice and as "60 KNOTS" on screen. Max reverse still held 2 s after the call
+  costs 2 of the 5 stopping points, with a note in the debrief, as does landing
+  without the speedbrakes.
 
 ## Scenarios and starting points
 
@@ -909,7 +918,7 @@ queued when a flight starts can hold frames back for up to a second some time la
    runway, no decrab and landing too fast each produce the right outcome. The
    crab touchdown without decrab lands with the gear intact, scoring 10 of 15
    for alignment with the note about the upwind edge. A crab up to 5° (8° on a
-   wet runway) scores full, 13° scores 4, past the gear's 15° scores 0;
+   wet runway) scores full, 13° scores 4, past the 15° gear threshold scores 0;
 9. a go-around climbs away and the reposition works;
 10. leaving the runway at speed collapses the gear;
 11. reverse idle deploys the reversers with the engines at idle N1 and no forward
@@ -946,8 +955,11 @@ controls a player has. It flies as a pilot does:
   the reversers at 30 kts ground speed. It sets its own autobrake with flaps
   30 (on a short final, which starts at the runway's setting, too) and lets it
   brake to 30 kts, then the pedals (which disarm it) bring it to a stop. That
-  is about 1,100 m of roll-out in still air, Boeing's figure for autobrake 3.
-  It used to brake hard by hand from touchdown and stop in about 600 m.
+  is about 1,100 m of roll-out in still air, in line with the about 1,600 m
+  from 50 ft quoted for autobrake 3 on a dry runway (some 500 m of which is in
+  the air: our estimate). It used to brake hard by hand from touchdown and
+  stop in about 600 m. It stays at reverse idle once through 60 kts, even if a
+  gust lifts the airspeed back above it.
 
 Over 80 autolands (the four windy and clear scenarios, both final starts,
 10 turbulence seeds each), every one lands on the runway. The average
@@ -1147,8 +1159,9 @@ a camera placed like the game's:
    configuration action takes over;
 4. a whole landing by the test pilot: touchdown, spoilers, the finish and grade, the GPWS
    callouts through its voice output; the autobrake braking to taxi speed, then the pedals
-   disarming it ("AUTOBRAKE DISARM"), about 1,100–1,250 m of roll-out; "60 KNOTS" (shown and
-   called once, for the voice) on the
+   disarming it ("AUTOBRAKE DISARM"), about 1,100–1,250 m of roll-out; in 12 crosswind and storm
+   landings, "sixty knots" called once each however often gusts cross 60 kts, and no max
+   reverse after it; "60 KNOTS" (shown and called once, for the voice) on the
    roll-out and reverse idle from there,
    with nothing in the debrief, while the same landing with max reverse held below 60 kts
    loses 2 stopping points with a note;
@@ -1211,6 +1224,8 @@ a camera placed like the game's:
      debrief judges the speed against Vref; the log records it;
    - in the storm over six seeds: the average speed at Vref + 5, never below Vref − 12, and the
      landings made;
+   - a balloon in RETARD back above 37 ft returns it to MCP SPD, adding thrust, and RETARD comes
+     again below 27 ft;
    - moving the levers disconnects it, with "A/T DISCONNECT"; selecting reverse disengages it
      without a warning; TO/GA gives GA with the go-around
      thrust; a reposition returns it to MCP SPD; the autoland's own autothrottle replaces it; it
