@@ -117,7 +117,7 @@ export function evaluateLanding(ac, ctx = {}) {
   let alignPts, alignNote;
   if (crab <= crabOk && bank <= 4) {
     alignPts = 15;
-    alignNote = crab <= 3 ? 'Aligned with the runway, wings level.' : `A ${crab.toFixed(0)}° crab, wings level: ${wet ? 'on a wet runway a crab touchdown is acceptable' : 'within what the gear takes routinely'}.`;
+    alignNote = crab <= 3 ? 'Aligned with the runway, wings level.' : `A ${crab.toFixed(0)}° crab, wings level: ${wet ? 'on a wet runway a crab touchdown is less of a problem' : 'a small crab, acceptable'}.`;
   } else if (crab <= 8 && bank <= 6) {
     alignPts = 10;
     alignNote = crab > crabOk ? 'A crab touchdown on a dry runway: permitted, but the aircraft tracks toward the upwind edge as it straightens. De-crab with rudder in the flare.' : 'Some bank at touchdown — side load on the gear.';

@@ -17,6 +17,7 @@ export const AUTOTHROTTLE = {
   deadband: 0.005,      // the servo ignores smaller corrections
   retard: 0.25,         // lever travel per second in RETARD (from 27 ft): idle about 2 s later
   retardFt: 27,         // radio altitude where RETARD begins in the flare
+  retardExitFt: 37,     // the player's: a balloon back above this returns it to MCP SPD
   offAfterLanding: 2,   // s on the ground before it disengages itself
 };
 
@@ -64,7 +65,10 @@ export function retard(inp, dt) { inp.throttle = Math.max(0, inp.throttle - dt *
  *  - MCP SPD: engaged in flight, it holds the MCP speed (commandSpeed), the levers moving by
  *    themselves as the pilot flies the glideslope with pitch.
  *  - RETARD: from 27 ft radio altitude with flaps 15 or more the levers come back to idle,
- *    reaching it about as the wheels touch; 2 s after touchdown it disengages.
+ *    reaching it about as the wheels touch; 2 s after touchdown it disengages. A balloon that
+ *    takes the aircraft back above 37 ft returns it to MCP SPD, so it adds thrust as the speed
+ *    decays instead of holding idle (real autothrottle software differs on this; the autoland's
+ *    flare here does the same), and RETARD comes again below 27 ft.
  *  - GA: TO/GA pressed; it holds the go-around thrust.
  * The pilot taking the thrust levers (moving them, or selecting reverse) disconnects it, as the
  * disconnect switch under their thumb does on the levers. Its mode is the FMA's first column.
@@ -96,6 +100,9 @@ export class Autothrottle {
       if ((this.groundT += dt) >= AUTOTHROTTLE.offAfterLanding) { this.disengage(); return 'landed'; }
     } else this.groundT = 0;
     if (this.mode === 'MCP SPD' && !st.onGround && st.agl < AUTOTHROTTLE.retardFt * FT && inp.flapIndex >= 3) this.mode = 'RETARD';
+    // ballooned back up: the speed mode again, with a fresh speed filter (the old one stopped
+    // reading the speed in RETARD)
+    else if (this.mode === 'RETARD' && !st.onGround && st.agl > AUTOTHROTTLE.retardExitFt * FT) { this.mode = 'MCP SPD'; this.speed = new SpeedMode(st.ias); }
     if (this.mode === 'RETARD' || st.onGround) retard(inp, dt);
     else this.speed.hold(inp, st, commandSpeed(inp, st), dt);
     return null;

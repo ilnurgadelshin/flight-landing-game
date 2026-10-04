@@ -292,7 +292,10 @@ export class Autopilot {
       // back into the inlets and debris from being thrown up
       if (o.useReversers && st.groundSpeed > 30 * KTS) inp.reverse = true; else inp.reverse = false;
       if (st.groundSpeed < 30 * KTS && inp.reverse) inp.reverse = false;
-      inp.reverseLevel = st.ias > AC.engines.reverseIdleKts ? 1 : 0;
+      // (reverse idle from the first time through 60 kts: a gust that lifts the airspeed back above
+      // it does not bring max reverse back)
+      if (st.ias <= AC.engines.reverseIdleKts) this.reverseIdle = true;
+      inp.reverseLevel = this.reverseIdle ? 0 : 1;
       // braking: as a crew does, the autobrake to taxi speed, then the pedals (which disarm it) to
       // the stop; with no autobrake set, the pedals from touchdown
       if (o.noBrakes) inp.brake = 0;

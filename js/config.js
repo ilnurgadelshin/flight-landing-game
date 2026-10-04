@@ -116,10 +116,11 @@ export const AIRCRAFT = {
     grassCollapseKts: 70, // leaving the pavement faster than this digs the gear into soft ground
     hardSink: 3.05,     // ~600 fpm  -> hard landing (structural inspection)
     collapseSink: 4.6,  // ~900 fpm  -> gear collapse
-    // gear side-load limit: past it the main gear fails. Boeing permits a touchdown in a crab, and a
-    // full crab at the demonstrated 33 kt crosswind is about 13° at approach speed
+    // The game's side-load threshold: past it the main gear fails. Simulation tuning, not a Boeing
+    // figure (Boeing gives crosswind techniques, not a crab limit in degrees): it is set above the
+    // ~13° of a full crab at the demonstrated 33 kt crosswind, since Boeing permits crab touchdowns.
     maxCrabDeg: 15,
-    crabTouchdownDeg: 5, // a crab the gear takes routinely; more, on a dry runway, is not recommended
+    crabTouchdownDeg: 5, // the crab the grading still counts as aligned on a dry runway (game tuning)
   },
 
   tyres: {

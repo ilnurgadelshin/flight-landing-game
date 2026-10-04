@@ -259,7 +259,7 @@ export class Game {
 
   reposition() {
     this.sim.reposition();
-    this.ctx.gaMode = false; this.ctx.wasLow = false; this.ctx.gaTimer = 0; this.ctx.touchAndGo = false;
+    this.ctx.gaMode = false; this.ctx.wasLow = false; this.ctx.gaTimer = 0; this.ctx.touchAndGo = false; this.ctx.sixtyCalled = false;
     // the autoland flies the new approach from the start (it keeps count of its go-arounds)
     const ap = this.controls.autopilot;
     if (ap) this.controls.engageAutopilot(Object.assign({}, ap.opts, { goAroundsFlown: ap.goArounds }));
@@ -309,11 +309,15 @@ export class Game {
   track(dt) {
     const ac = this.sim.aircraft, st = ac.state, inp = ac.input, c = this.ctx;
     if (st.reverser > 0.5) c.usedReversers = true;
-    // the pilot monitoring's "sixty knots" on the roll-out: reverse idle from here (max reverse kept
-    // below it is noted in the debrief, with 5 kts for the pilot to react)
+    // the pilot monitoring's "sixty knots" on the roll-out, once per landing (in gusts the airspeed
+    // crosses 60 kts more than once): reverse idle from here. Max reverse still held 2 s after the
+    // call (time to react), below 60 kts, is noted in the debrief.
     const revKts = AC.engines.reverseIdleKts;
-    if (st.onGround && ac.touchdown && c.iasPrev > revKts && st.ias <= revKts) { this.message(`${revKts} KNOTS`, '', 2); this.emit('sixtyKnots'); }
-    if (st.onGround && inp.reverse && inp.reverseLevel > 0.5 && st.ias < revKts - 5 && st.groundSpeed > 5 * KTS) c.maxReverseSlow = true;
+    if (st.onGround && ac.touchdown && !c.sixtyCalled && c.iasPrev > revKts && st.ias <= revKts) {
+      c.sixtyCalled = true; c.sixtyT = c.elapsed;
+      this.message(`${revKts} KNOTS`, '', 2); this.emit('sixtyKnots');
+    }
+    if (c.sixtyCalled && c.elapsed - c.sixtyT > 2 && st.onGround && inp.reverse && inp.reverseLevel > 0.5 && st.ias < revKts && st.groundSpeed > 5 * KTS) c.maxReverseSlow = true;
     c.iasPrev = st.ias;
     if (st.speedbrake > 0.5 && st.onGround) c.usedSpeedbrake = true;
     c.maxBrake = Math.max(c.maxBrake, st.brake);
@@ -335,7 +339,7 @@ export class Game {
       }
       // climbing away after a touch-and-go: that contact is not the landing to grade
       if (!st.onGround && st.agl > 50 * FT && (ac.touchdown || (ac.landingTouches && ac.landingTouches.length))) {
-        ac.forgetTouchdown(); c.touchAndGo = false; c.touchdownSeen = false; c.atTouchdown = undefined;
+        ac.forgetTouchdown(); c.touchAndGo = false; c.touchdownSeen = false; c.atTouchdown = undefined; c.sixtyCalled = false;
       }
       // the go-around ends if the pilot is back on a stabilised approach below 1000 ft
       if (c.gaTimer > 30 && st.agl < 1000 * FT && st.vs < 0 && inp.throttle < 0.8) { c.gaMode = false; this._gaHint = false; this.message(''); this.log('goaround', 'ended, approach resumed'); }
