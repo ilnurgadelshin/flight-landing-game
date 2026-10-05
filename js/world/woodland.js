@@ -3,7 +3,7 @@
 // retain their crown proportions, with understory clustered below the broadleaf canopy.
 import * as THREE from 'three';
 import { makeRng } from '../physics/atmosphere.js';
-import { sceneryGroundHeight } from './scenery-ground.js';
+import { sceneryGroundHeight,protectedScenery } from './scenery-ground.js';
 import { addNearTrees, treeFadeShader } from './near-trees.js';
 
 function groveNoise(x,z) {
@@ -81,8 +81,31 @@ export async function addWoodland(world,photo,approachPhoto) {
   const approachPixels=context.getImageData(0,0,1024,1024).data;
   const rng=makeRng(812),patches=new Map(),forms=Array(atlas.rows).fill(0);
   const limit=low?14000:52000;
+  const corridor=world.approachCorridor,localTrees=[],localRng=makeRng(94051);
+  // In the reviewed corridor, plant continuous canopy from the same land-cover
+  // boundaries used by the ground. Jittered spacing avoids clumps and bare gaps.
+  // Reserve part of the EXISTING instance budget, rather than adding a new layer.
+  if(corridor){
+    const [x0,z0,width,depth]=corridor.manifest.bounds,spacing=low?14:9.5;
+    for(let xx=x0;xx<x0+width;xx+=spacing)for(let zz=z0;zz<z0+depth;zz+=spacing){
+      const x=xx+(localRng()-.5)*spacing*.8,z=zz+(localRng()-.5)*spacing*.8;
+      const cover=corridor.sample(x,z),weight=cover[2];
+      if(weight<.15||cover[0]+cover[1]>.35||localRng()>Math.min(1,weight*1.6))continue;
+      if(protectedScenery(x,z,14)||world.approachBuildingExcludes?.(x,z)||world.approachRoadExcludes?.(x,z))continue;
+      const stand=groveNoise(x/95+4,z/95-7),choice=localRng();
+      const species=localRng();
+      const row=choice<.07?4+Math.floor(localRng()*3):choice<.12?1+Math.floor(localRng()*3):species<.2+stand*.25?7:species<.68+stand*.12?0:8;
+      const edge=.76+.24*weight;
+      const h=(row===0?14+localRng()*7:row===7?16+localRng()*7:row===8?12+localRng()*6:row<4?3+localRng()*3:10+localRng()*5)*edge;
+      const w=Math.min(24,h*atlas.species[row].aspect*(.94+localRng()*.14));
+      localTrees.push({x,z,type:Math.floor(localRng()*4),row,h,w,yaw:localRng()*Math.PI});
+    }
+    // Uniform thinning if future boundary edits exceed this site's allocation.
+    for(let i=localTrees.length-1;i>0;i--){const j=Math.floor(localRng()*(i+1));[localTrees[i],localTrees[j]]=[localTrees[j],localTrees[i]];}
+    localTrees.length=Math.min(localTrees.length,low?2400:5200);
+  }
   let count=0;
-  for(let k=0;k<limit*30&&count<limit;k++){
+  for(let k=0;k<limit*30&&count<limit-localTrees.length;k++){
     // Spend more of the fixed instance budget in the approach corridor. Dense
     // near stands read as woodland; distant photo coverage can carry fewer cards.
     const close=rng()<.65;
@@ -91,6 +114,8 @@ export async function addWoodland(world,photo,approachPhoto) {
     if(Math.abs(z)<180&&x>1500&&x<3400)continue;
     if(world.approachBuildingExcludes?.(x,z))continue;
     if(world.approachRoadExcludes?.(x,z))continue;
+    const cover=corridor?.sample(x,z);
+    if(cover&&cover[0]+cover[1]+cover[2]>.15)continue; // Reviewed fields stay open, woodland is planted below.
     const final=x>3900,pixels=final?approachPixels:airportPixels;
     const px=Math.floor(((x-(final?6000:0))/8000+.5)*1024),py=Math.floor((z/8000+.5)*1024),i=(py*1024+px)*4;
     const r=pixels[i],g=pixels[i+1],b=pixels[i+2];
@@ -110,6 +135,11 @@ export async function addWoodland(world,photo,approachPhoto) {
     if(!patches.has(key))patches.set(key,[]);
     patches.get(key).push({x,z,type,row,h,w,yaw:rng()*Math.PI});forms[row]++;count++;
   }
+  for(const t of localTrees){
+    const key=`${Math.floor(t.x/(low?2000:1000))}:${Math.floor(t.z/(low?2000:1000))}`;
+    if(!patches.has(key))patches.set(key,[]);patches.get(key).push(t);forms[t.row]++;count++;
+  }
+  if(corridor)corridor.trees={count:localTrees.length,total:count,limit,spacing:low?14:9.5};
   const group=new THREE.Group();group.name='Photographed woodland stands';
   const geometry=crownGeometry(),matrix=new THREE.Matrix4(),q=new THREE.Quaternion(),up=new THREE.Vector3(0,1,0);
   const contact=document.createElement('canvas');contact.width=contact.height=64;

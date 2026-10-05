@@ -11,6 +11,7 @@ import os from 'node:os';
 const label=(process.argv[2]||'current').replace(/[^a-z0-9_-]/gi,'-');
 const highPixelRatio=Number(process.env.BENCHMARK_DPR||1.5);
 const disabled=(process.env.BENCHMARK_DISABLE||'').split(',').filter(Boolean);
+const scenes=process.env.BENCHMARK_SCENES?.split(',')||['captain','nearby','storm'];
 const outputRoot=path.resolve(new URL('..',import.meta.url).pathname);
 const root=process.env.BENCHMARK_ROOT||outputRoot;
 const {server,url}=await startServer(root);
@@ -33,7 +34,7 @@ try{
     });
     if(!/Apple|AMD|Intel|NVIDIA/i.test(gpu)||/SwiftShader|llvmpipe|software/i.test(gpu))throw new Error(`Hardware rendering not established: ${gpu}`);
     report.gpu=gpu;
-    for(const scene of ['captain','nearby','storm']){
+    for(const scene of scenes){
       const result=await page.evaluate(async({scene,warmup,seconds,pixelRatio,disabled})=>{
         const T=await import('/vendor/three.module.js'),s=window.__sim,w=s.world;
         w.camera=s.benchmarkCamera;if(w.composer)w.composer.passes[0].camera=w.camera;
@@ -41,9 +42,11 @@ try{
         s.game.sim.aircraft.place({x:3300,y:115,z:0,headingDeg:270,iasKts:147,flapIndex:4,gearDown:true,gammaDeg:-3});
         s.view.setMode('cockpit');for(let i=0;i<40;i++)s.view.update(1/60);
         s.game.state='menu';w.setPixelRatio(pixelRatio);
-        if(scene==='nearby'){
+        if(scene==='nearby'||scene==='corridor'){
           const c=new T.PerspectiveCamera(50,innerWidth/innerHeight,.1,60000);
-          c.position.set(2530,18,352);c.lookAt(2465.9,8,303.6);c.updateMatrixWorld();
+          if(scene==='nearby'){c.position.set(2530,18,352);c.lookAt(2465.9,8,303.6);}
+          else {c.position.set(3900,240,850);c.lookAt(2650,0,400);}
+          c.updateMatrixWorld();
           w.camera=c;if(w.composer)w.composer.passes[0].camera=c;w.drawCockpit=false;
         }
         const eye=w.camera.getWorldPosition(new T.Vector3());
@@ -51,7 +54,7 @@ try{
         if(disabled.includes('cumulus')&&w.cumulus)w.cumulus.group.visible=false;
         if(disabled.includes('bloom')&&w.bloom)w.bloom.enabled=false;
         if(disabled.includes('shadows'))w.renderer.shadowMap.enabled=false;
-        const base=w.camera.position.clone(),state={...s.state(),alt:scene==='nearby'?18:115};
+        const base=w.camera.position.clone(),state={...s.state(),alt:scene==='nearby'?18:scene==='corridor'?240:115};
         const intervals=[],cpu=[],calls=[],triangles=[];let start,last;
         w.renderer.info.autoReset=false;
         await new Promise(resolve=>{

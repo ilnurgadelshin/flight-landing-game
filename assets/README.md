@@ -254,6 +254,25 @@ The preparation downloader uses an identifying User-Agent and verifies the check
 Poly Haven's saved download manifests. It obtains current manifests on the first download;
 it is not a version-pinned mirror. The game never calls the Poly Haven API.
 
+## Interpreted approach land cover — public-domain imagery / original mask
+
+`scenery/approach-corridor.png` and `.json` describe meadow, stubble and woodland along a
+2 km × 850 m rectangle beside final. The 15 polygon boundaries were interpreted from the
+already bundled USDA NAIP / USGS `scenery/detail/2_0.webp` and `3_0.webp`. They are artistic
+land-cover interpretations, not a land-use survey. No additional imagery or licensed model
+is required. The mask/code are original project work under MIT; the source imagery is public
+domain as documented above.
+
+The linear RGB data channels represent meadow/stubble/woodland coverage. A 1000 × 425 mask
+at 2 m/px has feathered margins and excludes the protected airport area, mapped buildings
+and roads. The same mask drives surface reconstruction and tree placement, so photographed
+fields stay open. Runtime surfaces reuse the existing CC0 grass scan and tree models.
+Coverage is approximately 21.12 ha meadow, 6.40 ha stubble and 33.22 ha woodland, within a
+170 ha rectangle; the remaining area keeps its original surface. Tree instances are
+reallocated within the existing 52,000 high / 14,000 low budget. Total PNG/JSON is below 100 KB.
+
+Reproduce with `node tools/bake-corridor.mjs`; validate with `npm run test:corridor`.
+
 ## Complete valley farm — original geometry / CC0 materials
 
 `scenery/valley-farm.glb` and its `-low` variant contain three complete buildings, originally

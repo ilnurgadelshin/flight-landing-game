@@ -495,3 +495,75 @@ low**, within the existing 15/9 MB limits. Complete prepared scenery is **60.65 
 No farm assets are requested before the menu, no requests begin after a prepared Start,
 and hidden/slow-tab automatic quality selection still passes. Report:
 `benchmarks/2026-10-05-farm-delivery.json`.
+
+
+## Continuous approach ground and woodland — 2026-10-05
+
+Baseline: published farm commit `0f08fcf`. This pass adds a shared land-cover mask and
+reallocates the existing tree budget toward interpreted woodland beside final. The mask
+and manifest total **73,056 bytes** and prepare behind the menu. Tree/grass scans and near-tree
+models are reused. There is one additional data texture sampled by the ground shader, with
+surface reconstruction restricted to covered pixels. The 1000 × 425 data texture adds about
+1.7 MB on the GPU without mipmaps; CPU planting retains a similar pixel buffer. No new
+geometry layer is added.
+
+Both builds use private Chromium 141 / ANGLE Metal on the same Apple M2 Pro, 1440×900,
+four seconds warm-up and twelve seconds samples per scene. High is forced 1.5×, low 1×.
+No concurrent graphics test was run during measurement. These are display-capped RAF
+intervals, not uncapped GPU timings. Reports: `benchmarks/2026-10-05-corridor-render-{before,after}.json`.
+The new `BENCHMARK_SCENES=captain,nearby,storm,corridor` option adds a fixed 240 m view over
+the changed parcels; the three default scenes and their positions remain unchanged.
+
+| Fixed scene | Before FPS | After FPS | Draw calls before → after |
+| --- | ---: | ---: | ---: |
+| High captain | 41.61 | 39.81 | 924 → 924 |
+| High nearby | 52.19 | 54.01 | 427 → 424 |
+| High storm | 44.21 | 42.72 | 918 → 918 |
+| High corridor | 55.09 | 53.09 | 630 → 631 |
+| Low captain | 60.00 | 60.00 | 530 → 530 |
+| Low nearby | 60.00 | 60.00 | 285 → 285 |
+| Low storm | 60.00 | 60.00 | 508 → 508 |
+| Low corridor | 60.00 | 60.00 | 410 → 410 |
+
+The denser corridor costs about 3.6% in its fixed high view; high captain/storm are about
+4.3% / 3.4% lower in this pair. The nearby view improves about 3.5% because the new planting
+changes which tree models fall inside the fixed near-detail budget. No repeatability study
+was performed; these small differences include run-to-run variation. High 1.5× remains
+below 60 FPS, so automatic resolution adjustment remains important. Low is display-capped
+at 60 FPS on this Mac; this does not establish phone or ordinary-laptop performance.
+
+The full-flight baseline is the completed farm recording at the same commit, fixed high
+1×, real-time autoland with seed 11 through UI Start and rollout. The after recording uses
+the same script and settings with a cold resource cache. Localhost Start timing includes
+preparation but does not represent an Internet connection. Reports:
+`benchmarks/2026-10-05-corridor-flight-{before,after}.json`.
+
+| Complete flight | Before | After |
+| --- | ---: | ---: |
+| Average FPS | 59.89 | 59.88 |
+| 99th-percentile frame | 16.8 ms | 16.8 ms |
+| Worst interval, at startup | 166.7 ms | 183.3 ms |
+| Worst later interval | 33.4 ms | 33.4 ms |
+| Start wait on localhost | 5.30 s | 5.22 s |
+| Prepared resource bodies | 60.81 MB | 60.89 MB |
+| Requests begun during flight | 0 | 0 |
+
+Both flights land successfully with score 100/A, without JavaScript or asset errors.
+The startup pause remains; its small difference is not attributed to this scenery pass.
+The unchanged 1× pacing does not imply unchanged cost at 1.5×. No new downloads are required
+in flight because the small mask follows the existing menu preparation policy.
+
+The delivery/automatic-quality regression passes: menu-started resource bodies are
+**13.99 MB high / 8.58 MB low**, within the unchanged 15/9 MB limits.
+Fully prepared scenery in that check is 60.73 MB high / 16.77 MB low,
+with no optional land-cover assets before the menu and no requests after a prepared Start.
+Report: `benchmarks/2026-10-05-corridor-delivery.json`.
+
+All 14 Node suites pass, including the new mask registration, airport clearance, coverage
+and transfer checks. Chromium Metal checks pass for the corridor on both tiers, visible
+ground-material changes, zero tree intrusions in mapped fields/buildings/roads, the missing
+mask fallback, existing approach scenery/streaming, vegetation/weather, authored buildings,
+delivery/automatic quality and all 23 graphics checks. Planting results are saved in
+`benchmarks/2026-10-05-corridor-scenery.json`. The full functional browser suite was not rerun
+for this scenery pass. SwiftShader remains unavailable on this machine, so these browser
+results validate the hardware renderer only.

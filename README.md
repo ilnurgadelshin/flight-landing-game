@@ -645,6 +645,13 @@ The visual assets are bundled locally and need no map service, account or API ke
   within 180 m, with fixed instance and triangle budgets. Distant and low-quality trees
   use camera-facing quads blending four azimuths and side/oblique/overhead elevations,
   so crowns retain their area when viewed from above. Settled near trees reuse their buffers.
+  A reviewed 2 km stretch beside final shares interpreted field/woodland boundaries between
+  ground materials and tree placement. Meadow, stubble and woodland-floor surfaces reduce
+  photographic blur and baked shadows; mapped fields remain open and woodland forms a denser
+  canopy. This reallocates the existing tree budget and adds less than 100 KB of land-cover
+  data. Roads, buildings and the protected airport area remain clear. The boundaries are
+  traced from the bundled imagery, not surveyed land-use data; other areas retain the
+  original photographic surfaces and planting.
 - **2,160 individual approach buildings** follow openly licensed Microsoft footprints,
   with pitched/flat roofs, twelve facade layouts, eaves, foundations and night windows.
   Houses have a principal entrance bay; nearby high-quality windows have beveled frames,
@@ -705,6 +712,8 @@ commands are in [`assets/README.md`](assets/README.md). Players can open the cre
 overhead views, unchanged buffers for settled trees and the corrupt-volume fallback. It
 also captures matched vegetation, cumulus and overcast views. Fixed-resolution measurements
 for each improvement stage are recorded in [`test/RENDER-PERFORMANCE.md`](test/RENDER-PERFORMANCE.md).
+`npm run test:corridor` checks land-cover registration, transfer and planting budgets,
+field/building/road clearance, rendered surface changes on both tiers and missing-mask fallback.
 
 **Head-up view** (`js/hud.js`, `js/view.js`): the flight deck hidden and a
 conformal head-up display modelled on the 737's HGS (see *Views* above).

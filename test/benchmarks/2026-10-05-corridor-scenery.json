@@ -1,0 +1,34 @@
+[
+  {
+    "tier": "high",
+    "trees": 52000,
+    "inside": 5500,
+    "intrusions": 0,
+    "fieldTrees": 0,
+    "corridor": {
+      "count": 3842,
+      "total": 52000,
+      "limit": 52000,
+      "spacing": 9.5
+    },
+    "ready": 1,
+    "errors": [],
+    "groundPixelDelta": 14.537914141414142
+  },
+  {
+    "tier": "low",
+    "trees": 14000,
+    "inside": 2209,
+    "intrusions": 0,
+    "fieldTrees": 0,
+    "corridor": {
+      "count": 1783,
+      "total": 14000,
+      "limit": 14000,
+      "spacing": 14
+    },
+    "ready": 1,
+    "errors": [],
+    "groundPixelDelta": 14.450388888888888
+  }
+]

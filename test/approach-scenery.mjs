@@ -172,7 +172,7 @@ try{
   await page.route('**/approach-*.json',r=>r.abort());
   await page.goto(url+'/?quality=low');await page.waitForFunction(()=>window.__sim,null,{timeout:120000});await completeScenery(page);
   const fallback=await page.evaluate(()=>({woodland:!!window.__sim.world.woodland,errors:window.__sim.world.assetErrors.length}));
-  assert.deepEqual(fallback,{woodland:true,errors:3});await page.close();
+  assert.deepEqual(fallback,{woodland:true,errors:4});await page.close(); // footprints, infill, roads and corridor manifest
   const missing=await browser.newPage();await missing.route('**/scenery/detail/*.webp',r=>r.abort());
   await missing.goto(url+'/?quality=low');await missing.waitForFunction(()=>window.__sim,null,{timeout:120000});await completeScenery(missing);
   const groundFallback=await missing.evaluate(async()=>{
