@@ -650,11 +650,16 @@ The visual assets are bundled locally and need no map service, account or API ke
   Houses have a principal entrance bay; nearby high-quality windows have beveled frames,
   smoother panes and matching ledges. Wall roughness and siding relief separate the
   materials. Roof gables remain solid, and projected ground shadows have feathered edges.
-  Selected close-approach buildings (40 high / 16 low) use CC0 Poly Haven wall modules
+  Selected close-approach buildings (37 high / 13 low) use CC0 Poly Haven wall modules
   with authored textures, recessed windows and doors, merged into spatial batches. Roofs
   and unselected buildings retain their procedural forms.
   Five additional farm roofs traced from the public-domain imagery fill prominent gaps
   in the source footprints, with interpreted corrugated roofs and agricultural facades.
+  Three buildings at the valley farm now use complete original models: weathered timber,
+  recessed openings, sliding doors, standing-seam roofs, vents, gutters and foundations.
+  A terrain-following gravel yard and drive replace the blurred photo surface at that site.
+  Timber and gravel use CC0 scans. Existing footprints, heights and tree clearances are
+  preserved; the previous buildings remain as a fallback if the farm assets fail to load.
   Two imagery-checked valley roads use public-domain Census centerlines, terrain-following
   pavement and roadside markers. Woodland crowns leave clearance around buildings and roads.
 - **Scanned grass and asphalt materials** add surface detail around the runway,

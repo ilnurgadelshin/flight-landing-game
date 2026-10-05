@@ -16,19 +16,37 @@ try{
     page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
     await page.goto(`${url}/?quality=${tier}`);await page.waitForFunction(()=>window.__sim,null,{timeout:120000});
     await completeScenery(page);
-    const status=await page.evaluate(()=>{
+    const status=await page.evaluate(async()=>{
       const s=window.__sim;s.setDrawing(false);s.game.state='menu';
-      return {authored:s.world.approachBuildings.authored,forms:s.world.woodlandForms,errors:s.world.assetErrors,
+      const w=s.world,farm=w.approachBuildings.group.getObjectByName('Authored valley farm'),roofHeights=[];
+      if(farm){
+        const T=await import('/vendor/three.module.js'),{sceneryGroundHeight}=await import('/js/world/scenery-ground.js');
+        farm.updateMatrixWorld(true);
+        for(const [x,z,height] of [[2488.2,300.8,7.5],[2490.8,327.8,6.3],[2465.9,303.6,3.6]]){
+          const hit=new T.Raycaster(new T.Vector3(x,100,z),new T.Vector3(0,-1,0)).intersectObject(farm,true)[0];
+          if(!hit||hit.face.normal.y<.5)throw new Error('Farm roof is missing or inverted: '+JSON.stringify({x,z,point:hit?.point,normal:hit?.face.normal,mesh:hit?.object.name}));
+          const delta=hit.point.y-sceneryGroundHeight(x,z,w.groundLowDetail)-height;
+          if(delta<0||delta>1)throw new Error('Farm roof lost its registered elevation');
+          if(!w.approachBuildingExcludes(x,z))throw new Error('Replacement footprint lost its tree exclusion');
+          roofHeights.push(hit.point.y);
+        }
+        const yard=farm.getObjectByName('Valley farm gravel yard'),p=yard.geometry.attributes.position;
+        for(let i=0;i<p.count;i++)if(Math.abs(p.getY(i)-sceneryGroundHeight(p.getX(i),p.getZ(i),w.groundLowDetail)-.022)>.001)throw new Error('Farm yard does not follow rendered terrain');
+      }
+      return {authored:w.approachBuildings.authored,farm:w.approachBuildings.farm,roofHeights,forms:w.woodlandForms,errors:w.assetErrors,
         bytes:performance.getEntriesByType('resource').reduce((sum,r)=>sum+r.encodedBodySize,0)};
     });
-    if(!process.env.REVIEW_ROOT){assert.ok(status.authored.buildings>10);assert.ok(status.authored.triangles<700000);}
+    if(!process.env.REVIEW_ROOT){
+      assert.ok(status.authored.buildings>10);assert.ok(status.authored.triangles<700000);
+      assert.equal(status.farm.buildings,3);assert.equal(status.farm.batches,8);assert.ok(status.farm.triangles<30000);
+    }
     assert.deepEqual(status.errors,[]);reports.push({tier,...status});console.log(tier,status);
-    for(const view of ['farm','house','village','airport','trees','night',...(!process.env.REVIEW_ROOT&&tier==='high'?['tree-7','tree-8']:[])]){
+    for(const view of ['farm','house','village','airport','trees','night','farm-overcast',...(!process.env.REVIEW_ROOT&&tier==='high'?['tree-7','tree-8']:[])]){
       await page.evaluate(async view=>{
         const T=await import('/vendor/three.module.js'),s=window.__sim,w=s.world;
-        s.start({startId:'short',scenarioId:'clear',seed:5,night:view==='night'});s.setTimeScale(0);s.setDrawing(false);s.game.state='menu';
+        s.start({startId:'short',scenarioId:view==='farm-overcast'?'storm':'clear',seed:5,night:view==='night'});s.setTimeScale(0);s.setDrawing(false);s.game.state='menu';
         const camera=new T.PerspectiveCamera(50,1440/900,.1,60000);
-        if(view==='farm'){camera.position.set(2530,18,352);camera.lookAt(2465.9,2.5,303.6);}
+        if(view==='farm'||view==='farm-overcast'){camera.position.set(2530,18,352);camera.lookAt(2465.9,2.5,303.6);}
         if(view==='house'||view==='night'){camera.position.set(2435,8,325);camera.lookAt(2465.9,2,303.6);}
         if(view==='village'){camera.position.set(3150,180,800);camera.lookAt(2450,5,280);}
         if(view==='airport'){camera.position.set(640,110,100);camera.lookAt(0,14,440);}
@@ -63,6 +81,19 @@ try{
     assert.equal(fallback.count,2165);assert.equal(fallback.authored,null);
     assert.ok(fallback.errors.some(e=>e.includes('modular_urban_apartments_facade')));assert.deepEqual(errors,[]);
     await page.close();console.log('Missing authored kit retains complete procedural buildings');
+    for(const unavailable of ['valley-farm.glb','farm-gravel-normal.webp']){
+      const page=await browser.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
+      await page.route('**/'+unavailable,r=>r.fulfill({status:503,body:'Unavailable'}));
+      await page.goto(url+'/?quality=high');await page.waitForFunction(()=>window.__sim,null,{timeout:120000});
+      const fallback=await page.evaluate(async()=>{
+        const s=window.__sim;s.setDrawing(false);await s.world.loadScenery();s.drawNow();
+        const b=s.world.approachBuildings;
+        return {count:b.count,farm:b.farm,authored:b.authored.buildings,errors:s.world.assetErrors,partial:!!b.group.getObjectByName('Authored valley farm')};
+      });
+      assert.equal(fallback.count,2165);assert.equal(fallback.farm,null);assert.equal(fallback.authored,40);assert.equal(fallback.partial,false);
+      assert.equal(fallback.errors.length,1);assert.deepEqual(errors,[]);await page.close();
+      console.log('Missing '+unavailable+' retains all three original farm buildings');
+    }
   }
   await fs.writeFile(`test/output/${label}.json`,JSON.stringify(reports,null,2)+'\n');
 }finally{await browser.close();server.close();}

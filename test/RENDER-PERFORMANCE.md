@@ -432,4 +432,66 @@ Rendered ground views on both tiers are identical to the previous build (largest
 one colour level). With software rendering the GPU-side work is deferred by the
 driver and done when the tile completes, so SwiftShader cannot show the GPU half; measuring
 the flight on the M2 (`VISUAL_GPU=metal node test/streaming-flight.mjs`) is the confirmation
-that remains.
+that was still outstanding then; the complete-flight follow-up below supplies it.
+
+## Complete valley farm and ground-tile flight follow-up — 2026-10-05
+
+The baseline is `f9ba6f8`, including the strip-based ground upload and the latest physics
+fixes. This pass replaces three whole farm buildings and their yard, keeping the footprint
+and woodland exclusion data. The new models have 25,316 triangles in seven material batches;
+the gravel yard adds 2,924 triangles and one batch. The three old facade assemblies and
+procedural roofs are omitted only after the complete replacement loads successfully.
+
+The high asset set is **1,651,830 bytes**, the low set **860,814 bytes**, including the yard's
+colour, normal and roughness maps (plus a small shared source/placement manifest). Preparation
+still happens behind the menu. The rest of the scenery and cockpit are unchanged.
+
+Same Apple M2 Pro, Chromium 141 / ANGLE Metal, 1440×900. Each fixed scene has four seconds
+of warm-up and twelve seconds of samples. High is forced to 1.5×; low is 1×. Samples are
+display-capped RAF pacing, not uncapped GPU throughput. Reports:
+`benchmarks/2026-10-05-farm-render-{before,after}.json`.
+
+| Fixed scene | Before FPS | After FPS | Draw calls before → after |
+| --- | ---: | ---: | ---: |
+| High captain | 39.89 | 39.72 | 917 → 924 |
+| High nearby farm | 51.26 | 50.27 | 420 → 427 |
+| High storm | 43.03 | 42.72 | 911 → 918 |
+| Low captain | 60.00 | 60.00 | 523 → 530 |
+| Low nearby farm | 60.00 | 60.00 | 280 → 285 |
+| Low storm | 60.00 | 60.00 | 501 → 508 |
+
+The near view is about 2% slower in this paired run. This is a bounded cost for one site,
+not evidence that many more sites would be free. High at forced 1.5× still falls short of
+60 FPS in the cockpit; the automatic resolution policy remains important. These measurements
+do not establish performance on ordinary laptops or phones.
+
+
+The full-flight runs use the actual UI Start, fresh browser resource caches, fixed high 1×,
+real-time autoland and the same seed, through rollout. Both land successfully with no
+asset or JavaScript errors. Reports: `benchmarks/2026-10-05-farm-flight-{before,after}.json`.
+
+| Complete flight | Before | After |
+| --- | ---: | ---: |
+| Average FPS | 59.90 | 59.89 |
+| 99th-percentile frame | 16.8 ms | 16.8 ms |
+| Worst interval, at startup | 183.3 ms | 166.7 ms |
+| Worst later interval | 50.0 ms | 33.4 ms |
+| Intervals over 100 ms | 1 | 1 |
+| Start wait on localhost | 5.36 s | 5.30 s |
+| Prepared resource bodies | 59.15 MB | 60.81 MB |
+| Requests begun during flight | 0 | 0 |
+
+This also confirms the strip-upload optimization on hardware: the repeated large
+kilometre-boundary stalls from the older recordings were absent in these two flights.
+The differences between 183/167 ms and 50/33 ms are not attributed to the farm change.
+Startup still has a visible pause; long-distance imagery stays soft; network preparation
+on a real connection will take longer than these localhost results. The unchanged 59.9 FPS
+at 1× does not imply 60 FPS at Retina 1.5×.
+
+
+The delivery check also passes: menu-started resource bodies total **13.98 MB high / 8.58 MB
+low**, within the existing 15/9 MB limits. Complete prepared scenery is **60.65 MB high /
+16.69 MB low** in that check (the full-flight recording includes its additional detail tiles).
+No farm assets are requested before the menu, no requests begin after a prepared Start,
+and hidden/slow-tab automatic quality selection still passes. Report:
+`benchmarks/2026-10-05-farm-delivery.json`.

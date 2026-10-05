@@ -43,4 +43,39 @@ for(const asset of geometry.assets){
     const stats=await image.stats();assert.equal(stats.channels[3].min,0);assert.equal(stats.channels[3].max,255);
   }
 }
-console.log('Authored facade bounds, opening depth, source records and new tree delivery budgets passed');
+const farm=JSON.parse(await fs.readFile('assets/scenery/farm-sources.json'));
+assert.equal(farm.geometryLicense,'MIT');assert.equal(farm.placements.length,3);
+assert.ok(farm.sources.every(s=>s.license==='CC0-1.0'&&Object.keys(s.authors).length));
+for(const [file,bytes] of Object.entries(farm.bytes))assert.equal((await fs.stat('assets/scenery/'+file)).size,bytes);
+for(const low of [false,true]){
+  const suffix=low?'-low':'';
+  const bytes=Object.entries(farm.bytes).filter(([file])=>file.includes('-low')===low).reduce((n,[,b])=>n+b,0);
+  assert.ok(bytes<(low?.9e6:2.4e6),'Whole farm and yard transfer budget');
+  const doc=await io.read(`assets/scenery/valley-farm${suffix}.glb`);
+  const nodes=doc.getRoot().listScenes()[0].listChildren();assert.equal(nodes.length,3);
+  let triangles=0;
+  for(const placement of farm.placements){
+    const node=nodes.find(n=>n.getName()===placement.id);assert.ok(node);
+    const {min,max}=getBounds(node);
+    assert.ok(min.every(Number.isFinite)&&max.every(Number.isFinite));
+    assert.ok(min[1]>=-.2&&max[1]<placement.height+1,'Foundation and roof stay within registered height');
+    assert.ok(max[0]-min[0]<placement.w+2&&max[2]-min[2]<placement.d+2,'Roof footprint remains registered');
+  }
+  for(const mesh of doc.getRoot().listMeshes())for(const primitive of mesh.listPrimitives()){
+    const positions=primitive.getAttribute('POSITION'),uv=primitive.getAttribute('TEXCOORD_0');
+    assert.ok([...positions.getArray(),...(uv?.getArray()||[])].every(Number.isFinite));
+    triangles+=primitive.getIndices().getCount()/3;
+    // Timber UVs must cover both dimensions even on gable ends; collapsed UVs
+    // also make derivative-based normal mapping unsafe on some drivers.
+    if(primitive.getMaterial().getName().startsWith('Weathered timber')){
+      assert.ok(uv);
+      const indices=primitive.getIndices().getArray();
+      for(let i=0;i<indices.length;i+=3){
+        const [a,b,c]=[0,1,2].map(j=>uv.getElement(indices[i+j],[]));
+        assert.ok(Math.abs((b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]))>1e-10,'Nondegenerate timber UV triangle');
+      }
+    }
+  }
+  assert.ok(triangles<30000,'Farm geometry remains bounded');
+}
+console.log('Authored facade, farm and tree bounds, UVs, source records and delivery budgets passed');

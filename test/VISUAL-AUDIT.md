@@ -27,7 +27,7 @@ ignored `test/output/visual-audit-before/` folder; current captures are `test/ou
 | 1 | Distorted cockpit/window proportions and poorly placed camera | Removed the upper-shell stretch; fitted the eye to the original cabin; retained desktop 58° FOV and narrow-screen coverage. Checked PFD and ND visibility. | Some surfaces remain simple, but this comparison does not justify replacing the source geometry. |
 | 2 | Muddy cockpit colours and flattened material separation | Restored source material values in the GLBs. Verified part assignments in Blender, then added distinct, subtle coated-panel, molded-trim, frame, seat-weave and yoke-rubber finishes at runtime. Modeled lettering is retained. | Liner/upholstery now use CC0 scans, with procedural panel/frame/rubber detail. A uniquely authored aircraft wear/texture set remains absent. See the 2026-09-30 followups. |
 | 3 | A completely flat approach corridor | Registered USGS elevation follows the imagery; rendering, collision and navigation share it. The airport is locally graded and a rising terrain cap protects final. | Elevations are locally modified around the fictional airport. Distant mesh resolution and imagery shadows remain limitations. |
-| 4 | Blurry aerial imagery ahead of the airport | Sixteen local 1 km detail tiles along the last 8 km, sampled at 0.5 m/px high and 1 m/px low, feather into the existing imagery; four textures stay resident. Distance-faded scanned colour, normal and roughness detail reconstructs fine surface grain in nearby fields and soil. | Underlying NAIP is generally 0.6 m; exports cannot supply finer survey detail. Coverage is a 2 km wide corridor. Five reviewed farm roofs now fill prominent detection gaps. Other missing buildings and photographic shadows remain visible from very low views. |
+| 4 | Blurry aerial imagery ahead of the airport | Sixteen local 1 km detail tiles along the last 8 km, sampled at 0.5 m/px high and 1 m/px low, feather into the existing imagery; four textures stay resident. Distance-faded scanned colour, normal and roughness detail reconstructs fine surface grain in nearby fields and soil. | Underlying NAIP is generally 0.6 m; exports cannot supply finer survey detail. Coverage is a 2 km wide corridor. Five reviewed farm roofs fill prominent detection gaps. One three-building farm now has a terrain-following scanned gravel yard; blur, missing buildings and photographic shadows remain elsewhere at very low altitude. |
 | 5 | Sparse, three-lobed tree blobs | Nine authored forms from three broadleaf sources plus pine/fir, four azimuths at three elevations each. Leaf masks are preserved in all nearby GLBs. One quad faces the eye in yaw and pitch and blends neighboring views. High retains bounded 3D branches and leaves within 180 m. | Distant/low trees remain impostors; view blending and repeated species are still visible. The wider palette is artistic, not a local botanical survey; crown density and close-up silhouettes still expose the approximations. |
 | 6 | Thin cloud rings and weak volume | Cached 3D density, connected billows, flatter bases, self-shadowing and directional scattering. Overcast has multiscale structure and matching near-eye relief. | Fair-weather volumes remain simplified and soft at close range. Low uses sprites; overcast is a surface plus shared fog, not a fully volumetric weather system. |
 | 7 | Runway lights look like a luminous rectangle by day | Smaller daytime cores, lower daylight intensity, distinct PAPI/beacon sizing and fog attenuation without a minimum visibility floor. Night bloom retained. | Point-based lights approximate optical glare; no lens-scattering simulation. |
@@ -37,12 +37,12 @@ ignored `test/output/visual-audit-before/` folder; current captures are `test/ou
 | 11 | Windshields appear absent | Removed the approximation planes fitted to the incorrectly stretched shell during the source-fidelity correction. | Glazing should follow the actual source panes. Refraction, water droplets and optical distortion remain unimplemented; the separate cockpit pass limits physical transmission. |
 | 12 | Hard black fog horizon, a dark sheet inside the cloud transition, and lights visible through opaque cloud | Fixed shared atmospheric uniforms on foliage/deck shaders; show cloud surfaces only from outside the deck; removed the lights' 3% fog visibility floor. Added rendered regression checks. | The earlier audit incorrectly blamed a CSS rain overlay: it was already disabled. Existing rain uses 3D streaks driven by relative velocity; realistic water on glass remains future work. |
 | 13 | Jagged foliage, grain and inconsistent fine-detail sharpness | Alpha-to-coverage for foliage, anisotropic filtering and mipmapped, metric-scale cockpit finishes. Removed the cockpit shadow normal offset that stippled the double-sided liner; existing 4× world MSAA and cockpit antialiasing remain. | No temporal AA. Thin modeled labels, shadow edges and branches can still shimmer at distance. |
-| 14 | Repeating facade grids and weak building contact | Twelve approach facade bays share an atlas: house fronts with doors/shutters, upper floors, sparse sides, barns and loading bays. Houses have a principal entry bay; nearby bevels, smoother panes, canopies and thresholds add depth. Siding relief and roughness separate materials. Gables stay solid. Terrain-following projected shadows now have feathered edges. | Forty nearby buildings on high / sixteen low now use CC0 authored wall modules with recessed openings and PBR maps. Roofs and most buildings remain interpreted; complete authored house/farm models would improve silhouette and material continuity. |
+| 14 | Repeating facade grids and weak building contact | Twelve approach facade bays share an atlas: house fronts with doors/shutters, upper floors, sparse sides, barns and loading bays. Houses have a principal entry bay; nearby bevels, smoother panes, canopies and thresholds add depth. Siding relief and roughness separate materials. Gables stay solid. Terrain-following projected shadows now have feathered edges. | Thirty-seven nearby buildings on high / thirteen low use CC0 wall modules. Three additional buildings at the valley farm have complete models, matching roofs and a gravel yard. Most architecture remains procedural; more complete sites and missing-footprint coverage remain needed. |
 | 15 | Prototype-like desktop readout bar | Inset, quieter translucent status strip with restrained borders and spacing; controls and readouts retained. | The simulator intentionally retains training/status UI. This matters less than asset quality. |
 
 Further cockpit work should begin with a source-versus-game comparison, not a replacement
 model. The approach now has matching building footprints and two valley roads. The next large
-scenery gaps are complete authored house/farm assets, wider coverage for missing building detections and more convincing crown density;
+scenery gaps are broader coverage of complete buildings with matching ground detail, missing building detections and more convincing crown density;
 weather still needs better overcast and windshield water. An engine migration alone would not
 provide those assets or effects.
 
@@ -522,3 +522,44 @@ tradeoffs and saved reports in [the integration measurements](RENDER-PERFORMANCE
 A complete desktop-auto flight at device pixel ratio 2 also succeeds: 59.37 FPS, high effects
 retained, a single 1.1× probe rejected and the rest at 1×. This smoothness comes with lower
 Retina sharpness than forced 1.5×. It does not establish 60 FPS at full high resolution.
+
+
+## Complete farm buildings and matching ground — 2026-10-05
+
+The valley farm beside final now replaces three whole buildings rather than only their
+wall bays. Original Blender models retain the registered footprints and interpreted heights,
+with weathered timber siding, recessed windows, sliding doors, roof seams and vents, gutters,
+downpipes, fascia and foundations. The yard and access drive follow the rendered terrain,
+using scanned gravel with irregular feathered margins, worn lanes and foundation contact
+shading. Wood and gravel maps are CC0, documented in the asset credits and source manifest.
+The 737 source model and flight physics are unchanged.
+
+This is one completed site, not a general replacement for NAIP imagery or the 2,165-building
+layer. Its architecture is interpreted, not a reconstruction of a surveyed farm. Low uses
+smaller textures on the same bounded geometry. All three original buildings remain if the
+new GLB or a yard texture is unavailable. Tree exclusion, distant footprint shadows and
+night window lighting remain active.
+
+Matched high/low farm, workshop, wider-approach and night views are in
+[the local before/after review](output/valley-farm-review.html); overcast captures verify
+that the added material follows the atmosphere. Thin roof seams still alias at 1×.
+Outside the yard, blurred photographic surfaces and shadows remain visible. The next large
+scenery priorities remain more complete sites with matching ground, denser and better-blended
+vegetation, and improved overcast/windshield weather. The farm pass does not close those items.
+
+The full high 1× flight remains 59.9 FPS on the M2 Pro. The fixed nearby high 1.5× view changes
+from 51.3 to 50.3 FPS; low stays at 60. The site adds 1.65 MB high / 0.86 MB low and eight draw
+batches before accounting for the removed facade geometry. See the saved reports and limits
+in [the performance record](RENDER-PERFORMANCE.md#complete-valley-farm-and-ground-tile-flight-follow-up--2026-10-05).
+
+Validation includes the Node suites and new asset checks for bounded geometry/transfer,
+finite attributes and nondegenerate timber UVs. Browser checks cover roof orientation and
+height, yard-to-terrain alignment, tree exclusion, both quality tiers, night/overcast,
+and complete fallback when the farm model or yard material fails to load. The existing
+approach-scenery integration tests also pass, including ground streaming and missing data.
+
+The graphics group passes **23/23** on ANGLE Metal, covering all day/night weather scenarios,
+lighting, shadows and quality tiers. Download/hidden-tab checks also pass. A SwiftShader run
+failed before simulator initialization; an isolated blank-page probe confirmed that this
+Chromium build cannot create a SwiftShader WebGL2 context. Software-renderer validation of
+this pass remains unverified; the successful results above are hardware-renderer checks.

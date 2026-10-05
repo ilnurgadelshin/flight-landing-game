@@ -6,6 +6,7 @@ import { sceneryGroundHeight } from './scenery-ground.js';
 import { createFacadeAtlas } from './facade-atlas.js';
 import { buildShadowMeshes } from './building-shadows.js';
 import { loadFacadeKit } from './authored-facades.js';
+import { loadValleyFarm } from './valley-farm.js';
 
 function roofMaterial(aniso,metal=false) {
   const c=document.createElement('canvas');c.width=c.height=256;const g=c.getContext('2d'),rng=makeRng(592);
@@ -52,24 +53,33 @@ export async function addApproachBuildings(world) {
   if(!response.ok)throw new Error(`Approach buildings: HTTP ${response.status}`);
   const {buildings}=await response.json(),low=world.lowDetail||world.quality==='low';
   const extra=await infill.catch(()=>({buildings:[]}));buildings.push(...extra.buildings);
-  const authored=await loadFacadeKit(world).catch(error=>{world.assetErrors.push(String(error));return null;});
+  const optional=promise=>promise.catch(error=>{world.assetErrors.push(String(error));return null;});
+  const [authored,valleyFarm]=await Promise.all([optional(loadFacadeKit(world)),optional(loadValleyFarm(world,buildings))]);
   // Concentrate authored geometry on buildings visible from the final corridor.
   // Keep the photographed footprint/roof, and cap added geometry on each tier.
   const candidates=buildings.filter(b=>b.x>2150&&b.x<7500&&Math.abs(b.z)<1000&&b.w<65&&b.d<35&&b.height<12)
     .sort((a,b)=>(a.id?-10000:0)+Math.abs(a.z)*3+a.x-((b.id?-10000:0)+Math.abs(b.z)*3+b.x));
   const authoredBuildings=new Set(authored?candidates.slice(0,low?16:40):[]);
+  for(const b of valleyFarm?.replaces||[])authoredBuildings.delete(b);
   const atlas=createFacadeAtlas(world.maxAniso,low),materials=[atlas.material],roof=roofMaterial(world.maxAniso),metalRoof=roofMaterial(world.maxAniso,true);
   const glass=new THREE.MeshStandardMaterial({map:atlas.material.map,emissiveMap:atlas.material.emissiveMap,
     emissive:0xffd3a0,emissiveIntensity:0,roughness:.24,metalness:.08,envMapIntensity:.7,vertexColors:true});
   materials.push(glass);
   if(authored)materials.push(...authored.materials);
+  if(valleyFarm)materials.push(...valleyFarm.materials);
   const wallFill=new THREE.MeshStandardMaterial({roughness:.93,vertexColors:true});
   const trim=new THREE.MeshStandardMaterial({color:0xaca99e,roughness:.87,vertexColors:true});
   const foundation=new THREE.MeshStandardMaterial({color:0x77766e,roughness:1,vertexColors:true});
   const group=new THREE.Group();group.name='Georegistered approach buildings';
+  if(valleyFarm)group.add(valleyFarm.group);
   const tiles=new Map(),details=new Map(),index=new Map(),profileCounts=Array(12).fill(0),rng=makeRng(9482),white=new THREE.Color(0xffffff);
   const ground=(x,z)=>sceneryGroundHeight(x,z,world.groundLowDetail);
   for(const b of buildings){
+    // Keep every footprint in woodland exclusion, including complete asset replacements.
+    const r=Math.hypot(b.w,b.d)/2+16;
+    for(let x=Math.floor((b.x-r)/100);x<=Math.floor((b.x+r)/100);x++)for(let z=Math.floor((b.z-r)/100);z<=Math.floor((b.z+r)/100);z++){
+      const cell=`${x}:${z}`;if(!index.has(cell))index.set(cell,[]);index.get(cell).push(b);
+    }
     const tile=low?2000:1000,key=`${Math.floor(b.x/tile)}:${Math.floor(b.z/tile)}`;
     if(!tiles.has(key))tiles.set(key,Array.from({length:6},()=>new Batch()));
     if(!low&&!details.has(key))details.set(key,{trim:new Batch(),glass:new Batch()});
@@ -92,6 +102,8 @@ export async function addApproachBuildings(world) {
     const vertex=(u,v,y)=>[b.x+u*cos-v*sin,y,b.z+u*sin+v*cos];
     const roofTint=new THREE.Color().setRGB(...b.roof.map(v=>Math.max(.18,Math.min(.82,v/255*1.15))),THREE.SRGBColorSpace);
     const tint=new THREE.Color().setRGB(.78+rng()*.18,.78+rng()*.16,.74+rng()*.15);
+    // Consume the same seeded style values so surrounding buildings keep their appearance.
+    if(valleyFarm?.replaces.has(b))continue;
     for(let i=0;i<wallPoints.length;i++){
       const a=wallPoints[i],p=wallPoints[(i+1)%wallPoints.length],len=Math.hypot(p[0]-a[0],p[1]-a[1]);
       if(len<.01)continue;
@@ -174,11 +186,6 @@ export async function addApproachBuildings(world) {
       const a=expanded[i],p=expanded[(i+1)%expanded.length];
       edge.quad(vertex(...a,roofY(a[1])-.16),vertex(...a,roofY(a[1])),vertex(...p,roofY(p[1])),vertex(...p,roofY(p[1])-.16),[[0,0],[0,1],[1,1],[1,0]],white);
     }
-    // Spatial exclusion for woodland, including crown width rather than just the trunk.
-    const r=Math.hypot(b.w,b.d)/2+16;
-    for(let x=Math.floor((b.x-r)/100);x<=Math.floor((b.x+r)/100);x++)for(let z=Math.floor((b.z-r)/100);z<=Math.floor((b.z+r)/100);z++){
-      const cell=`${x}:${z}`;if(!index.has(cell))index.set(cell,[]);index.get(cell).push(b);
-    }
   }
   for(const [key,batches] of tiles)for(let i=0;i<batches.length;i++)if(batches[i].p.length){
     const mesh=batches[i].mesh([atlas.material,roof,trim,foundation,wallFill,metalRoof][i]);mesh.name=`Approach ${key} ${i}`;mesh.userData.sceneryPart=i===1||i===5?'roof':'wall';group.add(mesh);
@@ -211,7 +218,7 @@ export async function addApproachBuildings(world) {
     shadows.add(...buildShadowMeshes(buildings,sun,ground,shadowMat));
   };
   world.approachBuildings={group,shadows,count:buildings.length,infillCount:extra.buildings.length,materials,footprints:buildings,profileCounts,updateShadows,
-    authored:authoredStats?{...authoredStats,buildings:authoredBuildings.size}:null};
+    authored:authoredStats?{...authoredStats,buildings:authoredBuildings.size}:null,farm:valleyFarm?.stats||null};
   world.scene.add(group);
   updateShadows();
   for(const m of materials)m.emissiveIntensity=world.night?.55:0;

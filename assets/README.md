@@ -254,6 +254,41 @@ The preparation downloader uses an identifying User-Agent and verifies the check
 Poly Haven's saved download manifests. It obtains current manifests on the first download;
 it is not a version-pinned mirror. The game never calls the Poly Haven API.
 
+## Complete valley farm — original geometry / CC0 materials
+
+`scenery/valley-farm.glb` and its `-low` variant contain three complete buildings, originally
+authored by `tools/prepare-farm.py` in Blender under the project's MIT license. Two barns
+use the existing NAIP-traced infill outlines; the workshop retains its Microsoft footprint.
+Roof outlines, heights and placement stay registered. Architecture, wear, yard boundaries
+and wheel-worn lanes are interpretations, not a surveyed reconstruction of those buildings.
+The original 737 cockpit is unrelated to this asset preparation.
+
+The siding and gravel yard use these **CC0** scans:
+
+- [Weathered Brown Planks](https://polyhaven.com/a/weathered_brown_planks), photography by
+  Dimitrios Savva and processing by Rico Cilliers.
+- [Gravel Floor](https://polyhaven.com/a/gravel_floor), photography by Matterfield and
+  processing by Jenelle van Heerden.
+
+Source URLs, authors, checksums, placements and exact delivered byte counts are retained in
+`scenery/farm-sources.json`. Wood textures use 1024 px high / 512 px low WebP. The gravel
+colour map follows those sizes; gravel normal and roughness maps use 512 px on both tiers.
+Meshes are Meshopt-compressed and merged into seven material batches at runtime. One
+terrain-following yard mesh blends into the surrounding imagery, keeping ground shadows
+and atmosphere. The assets load during scenery preparation behind the menu. A missing
+model or yard texture retains all three original buildings and the underlying imagery.
+
+Reproduce (download cache and Blender source remain under ignored `test/output/farm-sources/`):
+
+```sh
+python3 tools/fetch-farm-materials.py
+blender --background --python tools/prepare-farm.py
+node tools/prepare-farm.mjs
+```
+
+The downloader verifies each map against Poly Haven's manifest. The game makes no requests
+to Poly Haven and does not distribute the intermediate Blender file or original JPGs.
+
 ## Woodland — CC0
 
 `scenery/tree-variety.webp`, its smaller `-low` variant and `tree-variety.json` are baked
