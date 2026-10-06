@@ -6,7 +6,7 @@ import {protectedScenery} from '../js/world/scenery-ground.js';
 const root='assets/scenery/approach-corridor',manifest=JSON.parse(await fs.readFile(root+'.json'));
 const {data,info}=await sharp(root+'.png').removeAlpha().raw().toBuffer({resolveWithObject:true});
 assert.deepEqual([info.width,info.height,info.channels],[manifest.width,manifest.height,3]);
-assert.ok((await fs.stat(root+'.png')).size+(await fs.stat(root+'.json')).size<100000,'Shared land cover stays below 100 KB');
+assert.ok((await fs.stat(root+'.png')).size+(await fs.stat(root+'.json')).size<125000,'Expanded land cover stays below 125 KB');
 assert.ok(manifest.licence.includes('Not a land-use survey'));
 const [x0,z0,width,depth]=manifest.bounds,totals=[0,0,0];
 for(let j=0;j<info.height;j++)for(let i=0;i<info.width;i++){
@@ -22,4 +22,6 @@ const sample=(x,z)=>{
   return [0,1,2].map(c=>data[(j*info.width+i)*3+c]/255);
 };
 assert.ok(sample(2350,330)[0]>.8,'Close review lies in the reconstructed meadow');
+assert.ok(sample(4500,700)[2]>.8&&sample(5500,550)[2]>.8,'Extended woodland is covered by the shared map');
+assert.ok(manifest.bounds[2]>=4000&&manifest.width*manifest.height<=1024*1024,'Four-kilometre coverage retains bounded data texture');
 console.log('Corridor coverage, airport clearance, registration and transfer budget passed');

@@ -567,3 +567,86 @@ delivery/automatic quality and all 23 graphics checks. Planting results are save
 `benchmarks/2026-10-05-corridor-scenery.json`. The full functional browser suite was not rerun
 for this scenery pass. SwiftShader remains unavailable on this machine, so these browser
 results validate the hardware renderer only.
+
+
+## Tree transitions and extended woodland — 2026-10-06
+
+Baseline: published `e26bc15`. Eight-direction images baked from the delivered geometry,
+selection hysteresis and one retirement fade step per frame improve vegetation transitions.
+The shared mask extends to four kilometres. Total tree instances and near-geometry budgets
+are unchanged. New atlas bodies are 1,845,660 bytes high / 543,018 low; land cover is 111,199
+bytes. Compared with the baseline, these assets add approximately **1.17 MB high / 85 KB low**.
+They remain part of menu preparation, not initial menu display. Near-tree GLBs are unchanged.
+
+The 192/96 px frames limit atlas texel growth to 12.5%: approximately 42.5 MB high / 10.6 MB
+low for RGBA8 including the mip chain, versus 37.7 / 9.4 MB before. The data mask's GPU
+allocation grows from about 1.7 to 3.4 MB without mipmaps, plus a similar CPU pixel buffer.
+World quads still cost two triangles and four texture samples each.
+
+Fresh paired runs on Apple M2 Pro, Chromium 141 / ANGLE Metal, 1440×900, four-second warm-up
+and twelve-second samples, high forced 1.5× / low 1×. No other GPU work ran during timing.
+These are display-capped RAF intervals; small differences include run-to-run variation.
+The extension view is at (5950,240,950), looking at (4250,40,300). Reports:
+`benchmarks/2026-10-06-vegetation-render-{before,after}.json`.
+
+| Fixed scene | Before FPS | After FPS | Draw calls before → after |
+| --- | ---: | ---: | ---: |
+| High captain | 39.56 | 40.28 | 924 → 924 |
+| High nearby | 52.60 | 54.43 | 424 → 421 |
+| High storm | 42.05 | 42.30 | 918 → 918 |
+| High corridor | 51.93 | 52.94 | 631 → 630 |
+| High extension | 51.01 | 50.43 | 763 → 762 |
+| Low captain | 60.00 | 60.00 | 530 → 530 |
+| Low nearby | 60.00 | 60.00 | 285 → 285 |
+| Low storm | 60.00 | 60.00 | 508 → 508 |
+| Low corridor | 60.00 | 60.00 | 410 → 410 |
+| Low extension | 60.00 | 60.00 | 460 → 458 |
+
+There is no material measured frame-rate regression in this pair. The extension is about
+1.1% slower at high 1.5×; the other high views are slightly faster. These measurements do
+not establish performance on other laptops or phones, and high 1.5× still cannot hold
+60 FPS in the cockpit.
+
+`test/tree-transitions.mjs` compares isolated image/geometry silhouettes on a four-sample
+render target and renders a fixed 360-step, 420 m path. It records a WebM and three matched
+frames, counts detail-selection entries/exits and verifies per-frame fade bounds. Across
+the sixteen sampled orientations, average silhouette IoU changes from 0.269 to 0.397.
+The route records 277 → 216 entries/exits and the retirement fade's maximum decrement
+changes from 0.0952 to 0.0476 per update. This is diagnostic coverage of four forms at four
+rotations, not a comprehensive silhouette/lighting or perceptual-quality score. Reports:
+`benchmarks/2026-10-06-tree-transitions-{before,after}.json`.
+
+
+The complete landing uses the same fixed high 1× settings, seed 11 and actual UI Start
+preparation policy as the prior corridor recording. The baseline is the completed recording
+at `e26bc15`, saved in `benchmarks/2026-10-05-corridor-flight-after.json`; the new cold-cache
+recording is `benchmarks/2026-10-06-vegetation-flight.json`. These localhost timings do not
+represent Internet download speeds.
+
+| Complete flight | Published corridor | Updated vegetation |
+| --- | ---: | ---: |
+| Average FPS | 59.88 | 59.88 |
+| 99th-percentile frame | 16.8 ms | 16.8 ms |
+| Worst interval, at startup | 183.3 ms | 166.6 ms |
+| Worst later interval | 33.4 ms | 49.9 ms |
+| Start wait on localhost | 5.22 s | 5.38 s |
+| Prepared resource bodies | 60.89 MB | 62.06 MB |
+| Requests begun during flight | 0 | 0 |
+
+Both runs finish with a 100/A landing and no JavaScript or asset errors. Two later intervals
+reach 49.9 ms in the updated run; average/p99 pacing is unchanged. Startup still has a long
+interval, and neither this pair nor the fixed views establish worst-case hardware behavior.
+
+The delivery regression passes with unchanged menu-started bodies of **13.99 MB high /
+8.58 MB low**, below the existing 15/9 MB budgets. Fully prepared scenery in that test is
+61.89 MB high / 16.86 MB low. The extra atlas and mask remain deferred until preparation;
+no optional scenery is requested before the menu and no assets are requested after a
+prepared Start. Hidden-tab and automatic-quality checks pass. Report:
+`benchmarks/2026-10-06-vegetation-delivery.json`.
+
+All 14 Node suites pass. Chromium Metal checks pass for both corridor tiers, field/building/
+road clearance, visible ground changes, missing-mask fallback, moving trees, existing
+approach streaming/model fallbacks, vegetation/weather, authored scenery, delivery and all
+23 graphics checks. Extended planting counts are in `benchmarks/2026-10-06-extended-corridor.json`.
+The full functional browser suite was not rerun. SwiftShader cannot initialize WebGL2 on
+this machine; software-renderer and other-device performance remain unverified.

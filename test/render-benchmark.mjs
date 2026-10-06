@@ -42,10 +42,11 @@ try{
         s.game.sim.aircraft.place({x:3300,y:115,z:0,headingDeg:270,iasKts:147,flapIndex:4,gearDown:true,gammaDeg:-3});
         s.view.setMode('cockpit');for(let i=0;i<40;i++)s.view.update(1/60);
         s.game.state='menu';w.setPixelRatio(pixelRatio);
-        if(scene==='nearby'||scene==='corridor'){
+        if(scene==='nearby'||scene==='corridor'||scene==='extension'){
           const c=new T.PerspectiveCamera(50,innerWidth/innerHeight,.1,60000);
           if(scene==='nearby'){c.position.set(2530,18,352);c.lookAt(2465.9,8,303.6);}
-          else {c.position.set(3900,240,850);c.lookAt(2650,0,400);}
+          else if(scene==='corridor'){c.position.set(3900,240,850);c.lookAt(2650,0,400);}
+          else {c.position.set(5950,240,950);c.lookAt(4250,40,300);}
           c.updateMatrixWorld();
           w.camera=c;if(w.composer)w.composer.passes[0].camera=c;w.drawCockpit=false;
         }
@@ -54,7 +55,7 @@ try{
         if(disabled.includes('cumulus')&&w.cumulus)w.cumulus.group.visible=false;
         if(disabled.includes('bloom')&&w.bloom)w.bloom.enabled=false;
         if(disabled.includes('shadows'))w.renderer.shadowMap.enabled=false;
-        const base=w.camera.position.clone(),state={...s.state(),alt:scene==='nearby'?18:scene==='corridor'?240:115};
+        const base=w.camera.position.clone(),state={...s.state(),alt:scene==='nearby'?18:['corridor','extension'].includes(scene)?240:115};
         const intervals=[],cpu=[],calls=[],triangles=[];let start,last;
         w.renderer.info.autoReset=false;
         await new Promise(resolve=>{

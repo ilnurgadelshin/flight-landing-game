@@ -29,6 +29,7 @@ export async function addWoodland(world,photo,approachPhoto) {
   const response=await fetch(new URL('../../assets/scenery/tree-variety.json',import.meta.url));
   if(!response.ok)throw new Error(`Tree atlas: HTTP ${response.status}`);
   const atlas=await response.json();
+  const columns=atlas.columns,azimuthStep=2*Math.PI/columns;
   const texture=await new THREE.TextureLoader().loadAsync(new URL(`../../assets/scenery/tree-variety${low?'-low':''}.webp`,import.meta.url).href);
   texture.colorSpace=THREE.SRGBColorSpace;texture.anisotropy=world.maxAniso;
   const material=new THREE.MeshBasicMaterial({map:texture,alphaTest:.28,alphaToCoverage:true,side:THREE.DoubleSide});
@@ -52,8 +53,8 @@ export async function addWoodland(world,photo,approachPhoto) {
           +treeUp*position.y*mix(treeHeight,treeWidth,pow(sin(treePitch),2.0))*treeFrame.x;
         vec4 mvPosition=viewMatrix*vec4(treeWorld,1.0);
         gl_Position=projectionMatrix*mvPosition;
-        float treeView=mod((treeYaw-atan(treeFacing.x,treeFacing.y))/1.57079632679+treeUvOffset.x+8.0,4.0);
-        vTreeViews=vec2(floor(treeView),mod(floor(treeView)+1.0,4.0));vTreeBlend=fract(treeView);
+        float treeView=mod((treeYaw-atan(treeFacing.x,treeFacing.y))/${azimuthStep}+treeUvOffset.x*${columns/4}.0+${columns*2}.0,${columns}.0);
+        vTreeViews=vec2(floor(treeView),mod(floor(treeView)+1.0,${columns}.0));vTreeBlend=fract(treeView);
         vTreeUV=uv;vTreeRow=treeUvOffset.y;vTreeElevation=treePitch/0.785398163397;
       `);
     shader.fragmentShader=shader.fragmentShader.replace('#include <common>',`#include <common>
@@ -62,7 +63,7 @@ export async function addWoodland(world,photo,approachPhoto) {
       .replace('#include <map_pars_fragment>',`#include <map_pars_fragment>
       vec4 treeTexel(float view,float elevation){
         vec2 tileUV=mix(vec2(.004),vec2(.996),vTreeUV);
-        return texture2D(map,vec2((view+tileUV.x)*.25,(${atlas.rows*3-1}.0-vTreeRow*3.0-elevation+tileUV.y)/${atlas.rows*3}.0));
+        return texture2D(map,vec2((view+tileUV.x)/${columns}.0,(${atlas.rows*3-1}.0-vTreeRow*3.0-elevation+tileUV.y)/${atlas.rows*3}.0));
       }
       vec4 treePremultiplied(vec4 c){return vec4(c.rgb*c.a,c.a);}`)
       .replace('#include <map_fragment>',`
@@ -86,23 +87,29 @@ export async function addWoodland(world,photo,approachPhoto) {
   // boundaries used by the ground. Jittered spacing avoids clumps and bare gaps.
   // Reserve part of the EXISTING instance budget, rather than adding a new layer.
   if(corridor){
-    const [x0,z0,width,depth]=corridor.manifest.bounds,spacing=low?14:9.5;
-    for(let xx=x0;xx<x0+width;xx+=spacing)for(let zz=z0;zz<z0+depth;zz+=spacing){
-      const x=xx+(localRng()-.5)*spacing*.8,z=zz+(localRng()-.5)*spacing*.8;
-      const cover=corridor.sample(x,z),weight=cover[2];
-      if(weight<.15||cover[0]+cover[1]>.35||localRng()>Math.min(1,weight*1.6))continue;
-      if(protectedScenery(x,z,14)||world.approachBuildingExcludes?.(x,z)||world.approachRoadExcludes?.(x,z))continue;
-      const stand=groveNoise(x/95+4,z/95-7),choice=localRng();
-      const species=localRng();
-      const row=choice<.07?4+Math.floor(localRng()*3):choice<.12?1+Math.floor(localRng()*3):species<.2+stand*.25?7:species<.68+stand*.12?0:8;
-      const edge=.76+.24*weight;
-      const h=(row===0?14+localRng()*7:row===7?16+localRng()*7:row===8?12+localRng()*6:row<4?3+localRng()*3:10+localRng()*5)*edge;
-      const w=Math.min(24,h*atlas.species[row].aspect*(.94+localRng()*.14));
-      localTrees.push({x,z,type:Math.floor(localRng()*4),row,h,w,yaw:localRng()*Math.PI});
+    const [x0,z0,width,depth]=corridor.manifest.bounds;
+    // Keep the existing close canopy density. Higher parts of final can use
+    // wider stand spacing, conserving the same overall tree-instance budget.
+    for(let xx=x0;xx<x0+width;){
+      const spacing=xx<4100?(low?14:9.5):(low?23:16);
+      for(let zz=z0;zz<z0+depth;zz+=spacing){
+        const x=xx+(localRng()-.5)*spacing*.8,z=zz+(localRng()-.5)*spacing*.8;
+        const cover=corridor.sample(x,z),weight=cover[2];
+        if(weight<.15||cover[0]+cover[1]>.35||localRng()>Math.min(1,weight*1.6))continue;
+        if(protectedScenery(x,z,14)||world.approachBuildingExcludes?.(x,z)||world.approachRoadExcludes?.(x,z))continue;
+        const stand=groveNoise(x/95+4,z/95-7),choice=localRng();
+        const species=localRng();
+        const row=choice<.07?4+Math.floor(localRng()*3):choice<.12?1+Math.floor(localRng()*3):species<.2+stand*.25?7:species<.68+stand*.12?0:8;
+        const edge=.76+.24*weight;
+        const h=(row===0?14+localRng()*7:row===7?16+localRng()*7:row===8?12+localRng()*6:row<4?3+localRng()*3:10+localRng()*5)*edge;
+        const w=Math.min(24,h*atlas.species[row].aspect*(.94+localRng()*.14));
+        localTrees.push({x,z,type:Math.floor(localRng()*4),row,h,w,yaw:localRng()*Math.PI});
+      }
+      xx+=spacing;
     }
     // Uniform thinning if future boundary edits exceed this site's allocation.
     for(let i=localTrees.length-1;i>0;i--){const j=Math.floor(localRng()*(i+1));[localTrees[i],localTrees[j]]=[localTrees[j],localTrees[i]];}
-    localTrees.length=Math.min(localTrees.length,low?2400:5200);
+    localTrees.length=Math.min(localTrees.length,low?4800:10000);
   }
   let count=0;
   for(let k=0;k<limit*30&&count<limit-localTrees.length;k++){
@@ -139,7 +146,7 @@ export async function addWoodland(world,photo,approachPhoto) {
     const key=`${Math.floor(t.x/(low?2000:1000))}:${Math.floor(t.z/(low?2000:1000))}`;
     if(!patches.has(key))patches.set(key,[]);patches.get(key).push(t);forms[t.row]++;count++;
   }
-  if(corridor)corridor.trees={count:localTrees.length,total:count,limit,spacing:low?14:9.5};
+  if(corridor)corridor.trees={count:localTrees.length,total:count,limit,spacing:low?[14,23]:[9.5,16]};
   const group=new THREE.Group();group.name='Photographed woodland stands';
   const geometry=crownGeometry(),matrix=new THREE.Matrix4(),q=new THREE.Quaternion(),up=new THREE.Vector3(0,1,0);
   const contact=document.createElement('canvas');contact.width=contact.height=64;

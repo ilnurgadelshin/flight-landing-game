@@ -5,7 +5,7 @@ import {completeScenery} from './scene-ready.mjs';
 import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
 const label=(process.argv[2]||'corridor-current').replace(/[^a-z0-9_-]/gi,'-'),baseline=!!process.env.REVIEW_ROOT;
-const views=process.env.REVIEW_VIEWS?.split(',')||['wide','canopy','field','final','overcast'];
+const views=process.env.REVIEW_VIEWS?.split(',')||['wide','canopy','field','final','overcast','extension'];
 const {server,url}=await startServer(process.env.REVIEW_ROOT||process.cwd());
 const angle=process.env.VISUAL_GPU||'metal';
 const browser=await chromium.launch({headless:true,args:[`--use-angle=${angle}`]});
@@ -18,17 +18,18 @@ try{
   const stats=await page.evaluate(async()=>{
    const T=await import('/vendor/three.module.js'),s=window.__sim,w=s.world;
    s.setDrawing(false);s.game.state='menu';
-   const matrix=new T.Matrix4(),p=new T.Vector3();let trees=0,inside=0,intrusions=0,fieldTrees=0;
+   const matrix=new T.Matrix4(),p=new T.Vector3();let trees=0,inside=0,extended=0,intrusions=0,fieldTrees=0;
    for(const m of w.woodland.children)if(m.material===w.woodlandMaterial)for(let i=0;i<m.count;i++){
     m.getMatrixAt(i,matrix);p.setFromMatrixPosition(matrix);trees++;
     if(p.x>2100&&p.x<4100&&p.z>180&&p.z<1030)inside++;
+    if(p.x>=4100&&p.x<6100&&p.z>180&&p.z<1030)extended++;
     if(w.approachBuildingExcludes(p.x,p.z)||w.approachRoadExcludes(p.x,p.z))intrusions++;
     const cover=w.approachCorridor?.sample(p.x,p.z);if(cover&&cover[0]+cover[1]>.6)fieldTrees++;
    }
-   return {trees,inside,intrusions,fieldTrees,corridor:w.approachCorridor?.trees,ready:w.groundUniforms.uCorridorReady?.value,errors:w.assetErrors};
+   return {trees,inside,extended,intrusions,fieldTrees,corridor:w.approachCorridor?.trees,ready:w.groundUniforms.uCorridorReady?.value,errors:w.assetErrors};
   });
   assert.equal(stats.intrusions,0);assert.deepEqual(stats.errors,[]);
-  if(!baseline){assert.equal(stats.ready,1);assert.equal(stats.fieldTrees,0);assert.ok(stats.corridor.count>(tier==='high'?2200:900));assert.ok(stats.trees<=stats.corridor.limit);}
+  if(!baseline){assert.equal(stats.ready,1);assert.equal(stats.fieldTrees,0);assert.ok(stats.extended>(tier==='high'?4000:1800));assert.ok(stats.corridor.count>(tier==='high'?2200:900));assert.ok(stats.trees<=stats.corridor.limit);}
   const report={tier,...stats};reports.push(report);console.log(report);
   for(const view of views){
    await page.evaluate(async view=>{
@@ -36,6 +37,7 @@ try{
     s.start({startId:'short',scenarioId:view==='overcast'?'storm':'clear',seed:5});s.setTimeScale(0);s.setDrawing(false);s.game.state='menu';
     const c=new T.PerspectiveCamera(50,1440/900,.1,60000);
     if(view==='wide'){c.position.set(3900,240,850);c.lookAt(2650,0,400);}
+    if(view==='extension'){c.position.set(5950,240,950);c.lookAt(4250,40,300);}
     if(view==='canopy'){c.position.set(3190,85,810);c.lookAt(2800,16,675);}
     if(view==='field'){
      const {sceneryGroundHeight}=await import('/js/world/scenery-ground.js');

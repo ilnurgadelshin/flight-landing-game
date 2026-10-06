@@ -1,0 +1,3358 @@
+{
+  "silhouettes": [
+    {
+      "row": 0,
+      "degrees": 0,
+      "iou": 0.5302945038454324,
+      "cardArea": 5074,
+      "nearArea": 3084
+    },
+    {
+      "row": 0,
+      "degrees": 22.5,
+      "iou": 0.31956827780384794,
+      "cardArea": 5327,
+      "nearArea": 3109
+    },
+    {
+      "row": 0,
+      "degrees": 45,
+      "iou": 0.2592870544090056,
+      "cardArea": 6912,
+      "nearArea": 3156
+    },
+    {
+      "row": 0,
+      "degrees": 67.5,
+      "iou": 0.3170731707317073,
+      "cardArea": 6263,
+      "nearArea": 3295
+    },
+    {
+      "row": 4,
+      "degrees": 0,
+      "iou": 0.08752997601918465,
+      "cardArea": 3215,
+      "nearArea": 413
+    },
+    {
+      "row": 4,
+      "degrees": 22.5,
+      "iou": 0.06294706723891273,
+      "cardArea": 3304,
+      "nearArea": 411
+    },
+    {
+      "row": 4,
+      "degrees": 45,
+      "iou": 0.048226588415412094,
+      "cardArea": 3672,
+      "nearArea": 436
+    },
+    {
+      "row": 4,
+      "degrees": 67.5,
+      "iou": 0.06616624965248818,
+      "cardArea": 3394,
+      "nearArea": 441
+    },
+    {
+      "row": 7,
+      "degrees": 0,
+      "iou": 0.4361682753596795,
+      "cardArea": 4611,
+      "nearArea": 3275
+    },
+    {
+      "row": 7,
+      "degrees": 22.5,
+      "iou": 0.23413734828698723,
+      "cardArea": 4677,
+      "nearArea": 3356
+    },
+    {
+      "row": 7,
+      "degrees": 45,
+      "iou": 0.22210728535540122,
+      "cardArea": 5168,
+      "nearArea": 3102
+    },
+    {
+      "row": 7,
+      "degrees": 67.5,
+      "iou": 0.2595766129032258,
+      "cardArea": 4452,
+      "nearArea": 3045
+    },
+    {
+      "row": 8,
+      "degrees": 0,
+      "iou": 0.49123461395001866,
+      "cardArea": 10461,
+      "nearArea": 5531
+    },
+    {
+      "row": 8,
+      "degrees": 22.5,
+      "iou": 0.31031529778123784,
+      "cardArea": 11169,
+      "nearArea": 5662
+    },
+    {
+      "row": 8,
+      "degrees": 45,
+      "iou": 0.30751549766664343,
+      "cardArea": 13032,
+      "nearArea": 5740
+    },
+    {
+      "row": 8,
+      "degrees": 67.5,
+      "iou": 0.35973175794347756,
+      "cardArea": 10963,
+      "nearArea": 6069
+    }
+  ],
+  "moving": [
+    {
+      "frame": 0,
+      "count": 26,
+      "triangles": 1798507,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0,
+      "partial": 0
+    },
+    {
+      "frame": 1,
+      "count": 26,
+      "triangles": 1798507,
+      "added": 26,
+      "removed": 0,
+      "maxFadeDelta": 0.04761904761904762,
+      "partial": 26
+    },
+    {
+      "frame": 2,
+      "count": 26,
+      "triangles": 1798507,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.04761904761904763,
+      "partial": 26
+    },
+    {
+      "frame": 3,
+      "count": 26,
+      "triangles": 1798507,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.047619047619047616,
+      "partial": 26
+    },
+    {
+      "frame": 4,
+      "count": 26,
+      "triangles": 1798507,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.047619047619047616,
+      "partial": 26
+    },
+    {
+      "frame": 5,
+      "count": 26,
+      "triangles": 1798507,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.047619047619047644,
+      "partial": 26
+    },
+    {
+      "frame": 6,
+      "count": 26,
+      "triangles": 1798507,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.047619047619047616,
+      "partial": 26
+    },
+    {
+      "frame": 7,
+      "count": 26,
+      "triangles": 1798507,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.047619047619047616,
+      "partial": 26
+    },
+    {
+      "frame": 8,
+      "count": 26,
+      "triangles": 1798507,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.047619047619047616,
+      "partial": 26
+    },
+    {
+      "frame": 9,
+      "count": 26,
+      "triangles": 1798507,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.047619047619047616,
+      "partial": 26
+    },
+    {
+      "frame": 10,
+      "count": 26,
+      "triangles": 1798507,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.047619047619047616,
+      "partial": 26
+    },
+    {
+      "frame": 11,
+      "count": 30,
+      "triangles": 2195128,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 26
+    },
+    {
+      "frame": 12,
+      "count": 30,
+      "triangles": 2195128,
+      "added": 4,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 30
+    },
+    {
+      "frame": 13,
+      "count": 30,
+      "triangles": 2195128,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 30
+    },
+    {
+      "frame": 14,
+      "count": 30,
+      "triangles": 2195128,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 30
+    },
+    {
+      "frame": 15,
+      "count": 30,
+      "triangles": 2195128,
+      "added": 0,
+      "removed": 4,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 26
+    },
+    {
+      "frame": 16,
+      "count": 26,
+      "triangles": 1798507,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.04761904761904767,
+      "partial": 26
+    },
+    {
+      "frame": 17,
+      "count": 26,
+      "triangles": 1798507,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.04761904761904767,
+      "partial": 26
+    },
+    {
+      "frame": 18,
+      "count": 26,
+      "triangles": 1798507,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.04761904761904767,
+      "partial": 26
+    },
+    {
+      "frame": 19,
+      "count": 26,
+      "triangles": 1798507,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.04761904761904767,
+      "partial": 4
+    },
+    {
+      "frame": 20,
+      "count": 26,
+      "triangles": 1798507,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.047619047619047616,
+      "partial": 4
+    },
+    {
+      "frame": 21,
+      "count": 26,
+      "triangles": 1798507,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.047619047619047616,
+      "partial": 4
+    },
+    {
+      "frame": 22,
+      "count": 29,
+      "triangles": 2144840,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 9
+    },
+    {
+      "frame": 23,
+      "count": 29,
+      "triangles": 2144840,
+      "added": 3,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 12
+    },
+    {
+      "frame": 24,
+      "count": 29,
+      "triangles": 2144840,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 12
+    },
+    {
+      "frame": 25,
+      "count": 29,
+      "triangles": 2144840,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 12
+    },
+    {
+      "frame": 26,
+      "count": 29,
+      "triangles": 2144840,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 12
+    },
+    {
+      "frame": 27,
+      "count": 29,
+      "triangles": 2144840,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 12
+    },
+    {
+      "frame": 28,
+      "count": 29,
+      "triangles": 2144840,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 12
+    },
+    {
+      "frame": 29,
+      "count": 29,
+      "triangles": 2144840,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 12
+    },
+    {
+      "frame": 30,
+      "count": 29,
+      "triangles": 2144840,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 8
+    },
+    {
+      "frame": 31,
+      "count": 29,
+      "triangles": 2144840,
+      "added": 0,
+      "removed": 5,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 3
+    },
+    {
+      "frame": 32,
+      "count": 24,
+      "triangles": 1787499,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.047619047619047616,
+      "partial": 3
+    },
+    {
+      "frame": 33,
+      "count": 27,
+      "triangles": 2133832,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 9
+    },
+    {
+      "frame": 34,
+      "count": 27,
+      "triangles": 2133832,
+      "added": 3,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 12
+    },
+    {
+      "frame": 35,
+      "count": 27,
+      "triangles": 2133832,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 12
+    },
+    {
+      "frame": 36,
+      "count": 27,
+      "triangles": 2133832,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 12
+    },
+    {
+      "frame": 37,
+      "count": 27,
+      "triangles": 2133832,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 12
+    },
+    {
+      "frame": 38,
+      "count": 27,
+      "triangles": 2133832,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 12
+    },
+    {
+      "frame": 39,
+      "count": 27,
+      "triangles": 2133832,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 12
+    },
+    {
+      "frame": 40,
+      "count": 27,
+      "triangles": 2133832,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 12
+    },
+    {
+      "frame": 41,
+      "count": 27,
+      "triangles": 2133832,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 9
+    },
+    {
+      "frame": 42,
+      "count": 27,
+      "triangles": 2133832,
+      "added": 0,
+      "removed": 6,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 3
+    },
+    {
+      "frame": 43,
+      "count": 21,
+      "triangles": 1798880,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.047619047619047616,
+      "partial": 3
+    },
+    {
+      "frame": 44,
+      "count": 25,
+      "triangles": 2113743,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 4
+    },
+    {
+      "frame": 45,
+      "count": 25,
+      "triangles": 2113743,
+      "added": 4,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 8
+    },
+    {
+      "frame": 46,
+      "count": 25,
+      "triangles": 2113743,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 8
+    },
+    {
+      "frame": 47,
+      "count": 25,
+      "triangles": 2113743,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 8
+    },
+    {
+      "frame": 48,
+      "count": 25,
+      "triangles": 2113743,
+      "added": 0,
+      "removed": 1,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 7
+    },
+    {
+      "frame": 49,
+      "count": 24,
+      "triangles": 1954512,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 7
+    },
+    {
+      "frame": 50,
+      "count": 24,
+      "triangles": 1954512,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 7
+    },
+    {
+      "frame": 51,
+      "count": 24,
+      "triangles": 1954512,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 7
+    },
+    {
+      "frame": 52,
+      "count": 24,
+      "triangles": 1954512,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 5
+    },
+    {
+      "frame": 53,
+      "count": 24,
+      "triangles": 1954512,
+      "added": 0,
+      "removed": 1,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 4
+    },
+    {
+      "frame": 54,
+      "count": 23,
+      "triangles": 1795281,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.047619047619047616,
+      "partial": 4
+    },
+    {
+      "frame": 55,
+      "count": 31,
+      "triangles": 2243180,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 9
+    },
+    {
+      "frame": 56,
+      "count": 31,
+      "triangles": 2243180,
+      "added": 8,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 17
+    },
+    {
+      "frame": 57,
+      "count": 31,
+      "triangles": 2243180,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 17
+    },
+    {
+      "frame": 58,
+      "count": 31,
+      "triangles": 2243180,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 17
+    },
+    {
+      "frame": 59,
+      "count": 31,
+      "triangles": 2243180,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 17
+    },
+    {
+      "frame": 60,
+      "count": 31,
+      "triangles": 2243180,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 17
+    },
+    {
+      "frame": 61,
+      "count": 31,
+      "triangles": 2243180,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 17
+    },
+    {
+      "frame": 62,
+      "count": 31,
+      "triangles": 2243180,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 17
+    },
+    {
+      "frame": 63,
+      "count": 31,
+      "triangles": 2243180,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 13
+    },
+    {
+      "frame": 64,
+      "count": 31,
+      "triangles": 2243180,
+      "added": 0,
+      "removed": 5,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 8
+    },
+    {
+      "frame": 65,
+      "count": 26,
+      "triangles": 1796271,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.047619047619047616,
+      "partial": 8
+    },
+    {
+      "frame": 66,
+      "count": 30,
+      "triangles": 2295792,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 17
+    },
+    {
+      "frame": 67,
+      "count": 30,
+      "triangles": 2295792,
+      "added": 4,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 21
+    },
+    {
+      "frame": 68,
+      "count": 30,
+      "triangles": 2295792,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 21
+    },
+    {
+      "frame": 69,
+      "count": 30,
+      "triangles": 2295792,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 21
+    },
+    {
+      "frame": 70,
+      "count": 30,
+      "triangles": 2295792,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 21
+    },
+    {
+      "frame": 71,
+      "count": 30,
+      "triangles": 2295792,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 21
+    },
+    {
+      "frame": 72,
+      "count": 30,
+      "triangles": 2295792,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 21
+    },
+    {
+      "frame": 73,
+      "count": 30,
+      "triangles": 2295792,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 21
+    },
+    {
+      "frame": 74,
+      "count": 30,
+      "triangles": 2295792,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 13
+    },
+    {
+      "frame": 75,
+      "count": 30,
+      "triangles": 2295792,
+      "added": 0,
+      "removed": 9,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 4
+    },
+    {
+      "frame": 76,
+      "count": 21,
+      "triangles": 1795718,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.047619047619047616,
+      "partial": 4
+    },
+    {
+      "frame": 77,
+      "count": 24,
+      "triangles": 2273411,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 7
+    },
+    {
+      "frame": 78,
+      "count": 24,
+      "triangles": 2273411,
+      "added": 3,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 10
+    },
+    {
+      "frame": 79,
+      "count": 24,
+      "triangles": 2273411,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 10
+    },
+    {
+      "frame": 80,
+      "count": 24,
+      "triangles": 2273411,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 10
+    },
+    {
+      "frame": 81,
+      "count": 24,
+      "triangles": 2273411,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 10
+    },
+    {
+      "frame": 82,
+      "count": 24,
+      "triangles": 2273411,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 10
+    },
+    {
+      "frame": 83,
+      "count": 24,
+      "triangles": 2273411,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 10
+    },
+    {
+      "frame": 84,
+      "count": 24,
+      "triangles": 2273411,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 10
+    },
+    {
+      "frame": 85,
+      "count": 24,
+      "triangles": 2273411,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 6
+    },
+    {
+      "frame": 86,
+      "count": 24,
+      "triangles": 2273411,
+      "added": 0,
+      "removed": 3,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 3
+    },
+    {
+      "frame": 87,
+      "count": 21,
+      "triangles": 1795718,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.047619047619047616,
+      "partial": 3
+    },
+    {
+      "frame": 88,
+      "count": 22,
+      "triangles": 1954949,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 4
+    },
+    {
+      "frame": 89,
+      "count": 22,
+      "triangles": 1954949,
+      "added": 1,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 5
+    },
+    {
+      "frame": 90,
+      "count": 22,
+      "triangles": 1954949,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 5
+    },
+    {
+      "frame": 91,
+      "count": 22,
+      "triangles": 1954949,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 5
+    },
+    {
+      "frame": 92,
+      "count": 22,
+      "triangles": 1954949,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 5
+    },
+    {
+      "frame": 93,
+      "count": 22,
+      "triangles": 1954949,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 5
+    },
+    {
+      "frame": 94,
+      "count": 22,
+      "triangles": 1954949,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 5
+    },
+    {
+      "frame": 95,
+      "count": 22,
+      "triangles": 1954949,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 5
+    },
+    {
+      "frame": 96,
+      "count": 22,
+      "triangles": 1954949,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 2
+    },
+    {
+      "frame": 97,
+      "count": 22,
+      "triangles": 1954949,
+      "added": 0,
+      "removed": 1,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 1
+    },
+    {
+      "frame": 98,
+      "count": 21,
+      "triangles": 1795718,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.047619047619047616,
+      "partial": 1
+    },
+    {
+      "frame": 99,
+      "count": 22,
+      "triangles": 1846006,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 2
+    },
+    {
+      "frame": 100,
+      "count": 22,
+      "triangles": 1846006,
+      "added": 1,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 3
+    },
+    {
+      "frame": 101,
+      "count": 22,
+      "triangles": 1846006,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 3
+    },
+    {
+      "frame": 102,
+      "count": 22,
+      "triangles": 1846006,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 3
+    },
+    {
+      "frame": 103,
+      "count": 22,
+      "triangles": 1846006,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 3
+    },
+    {
+      "frame": 104,
+      "count": 22,
+      "triangles": 1846006,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 3
+    },
+    {
+      "frame": 105,
+      "count": 22,
+      "triangles": 1846006,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 3
+    },
+    {
+      "frame": 106,
+      "count": 22,
+      "triangles": 1846006,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 3
+    },
+    {
+      "frame": 107,
+      "count": 22,
+      "triangles": 1846006,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 2
+    },
+    {
+      "frame": 108,
+      "count": 22,
+      "triangles": 1846006,
+      "added": 0,
+      "removed": 1,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 1
+    },
+    {
+      "frame": 109,
+      "count": 21,
+      "triangles": 1797052,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.047619047619047616,
+      "partial": 1
+    },
+    {
+      "frame": 110,
+      "count": 23,
+      "triangles": 1896602,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 4
+    },
+    {
+      "frame": 111,
+      "count": 23,
+      "triangles": 1896602,
+      "added": 2,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 6
+    },
+    {
+      "frame": 112,
+      "count": 23,
+      "triangles": 1896602,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 6
+    },
+    {
+      "frame": 113,
+      "count": 23,
+      "triangles": 1896602,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 6
+    },
+    {
+      "frame": 114,
+      "count": 23,
+      "triangles": 1896602,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 6
+    },
+    {
+      "frame": 115,
+      "count": 23,
+      "triangles": 1896602,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 6
+    },
+    {
+      "frame": 116,
+      "count": 23,
+      "triangles": 1896602,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 6
+    },
+    {
+      "frame": 117,
+      "count": 23,
+      "triangles": 1896602,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 6
+    },
+    {
+      "frame": 118,
+      "count": 23,
+      "triangles": 1896602,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 5
+    },
+    {
+      "frame": 119,
+      "count": 23,
+      "triangles": 1896602,
+      "added": 0,
+      "removed": 3,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 2
+    },
+    {
+      "frame": 120,
+      "count": 20,
+      "triangles": 1791598,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.047619047619047616,
+      "partial": 2
+    },
+    {
+      "frame": 121,
+      "count": 23,
+      "triangles": 2051405,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 6
+    },
+    {
+      "frame": 122,
+      "count": 23,
+      "triangles": 2051405,
+      "added": 3,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 9
+    },
+    {
+      "frame": 123,
+      "count": 23,
+      "triangles": 2051405,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 9
+    },
+    {
+      "frame": 124,
+      "count": 23,
+      "triangles": 2051405,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 9
+    },
+    {
+      "frame": 125,
+      "count": 23,
+      "triangles": 2051405,
+      "added": 0,
+      "removed": 1,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 8
+    },
+    {
+      "frame": 126,
+      "count": 22,
+      "triangles": 2001117,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 8
+    },
+    {
+      "frame": 127,
+      "count": 22,
+      "triangles": 2001117,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 8
+    },
+    {
+      "frame": 128,
+      "count": 22,
+      "triangles": 2001117,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 8
+    },
+    {
+      "frame": 129,
+      "count": 22,
+      "triangles": 2001117,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 7
+    },
+    {
+      "frame": 130,
+      "count": 22,
+      "triangles": 2001117,
+      "added": 0,
+      "removed": 4,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 3
+    },
+    {
+      "frame": 131,
+      "count": 18,
+      "triangles": 1793804,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.047619047619047616,
+      "partial": 3
+    },
+    {
+      "frame": 132,
+      "count": 22,
+      "triangles": 1944079,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 4
+    },
+    {
+      "frame": 133,
+      "count": 22,
+      "triangles": 1944079,
+      "added": 4,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 8
+    },
+    {
+      "frame": 134,
+      "count": 22,
+      "triangles": 1944079,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 8
+    },
+    {
+      "frame": 135,
+      "count": 22,
+      "triangles": 1944079,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 8
+    },
+    {
+      "frame": 136,
+      "count": 22,
+      "triangles": 1944079,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 8
+    },
+    {
+      "frame": 137,
+      "count": 22,
+      "triangles": 1944079,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 8
+    },
+    {
+      "frame": 138,
+      "count": 22,
+      "triangles": 1944079,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 8
+    },
+    {
+      "frame": 139,
+      "count": 22,
+      "triangles": 1944079,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 8
+    },
+    {
+      "frame": 140,
+      "count": 22,
+      "triangles": 1944079,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 5
+    },
+    {
+      "frame": 141,
+      "count": 22,
+      "triangles": 1944079,
+      "added": 0,
+      "removed": 1,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 4
+    },
+    {
+      "frame": 142,
+      "count": 21,
+      "triangles": 1784848,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.047619047619047616,
+      "partial": 4
+    },
+    {
+      "frame": 143,
+      "count": 22,
+      "triangles": 1835136,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 4
+    },
+    {
+      "frame": 144,
+      "count": 22,
+      "triangles": 1835136,
+      "added": 1,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 5
+    },
+    {
+      "frame": 145,
+      "count": 22,
+      "triangles": 1835136,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 5
+    },
+    {
+      "frame": 146,
+      "count": 22,
+      "triangles": 1835136,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 5
+    },
+    {
+      "frame": 147,
+      "count": 22,
+      "triangles": 1835136,
+      "added": 0,
+      "removed": 1,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 4
+    },
+    {
+      "frame": 148,
+      "count": 21,
+      "triangles": 1784848,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.04761904761904767,
+      "partial": 4
+    },
+    {
+      "frame": 149,
+      "count": 21,
+      "triangles": 1784848,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.04761904761904767,
+      "partial": 4
+    },
+    {
+      "frame": 150,
+      "count": 21,
+      "triangles": 1784848,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.04761904761904767,
+      "partial": 4
+    },
+    {
+      "frame": 151,
+      "count": 21,
+      "triangles": 1784848,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.04761904761904767,
+      "partial": 1
+    },
+    {
+      "frame": 152,
+      "count": 21,
+      "triangles": 1784848,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.047619047619047616,
+      "partial": 1
+    },
+    {
+      "frame": 153,
+      "count": 21,
+      "triangles": 1784848,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.047619047619047616,
+      "partial": 1
+    },
+    {
+      "frame": 154,
+      "count": 24,
+      "triangles": 2153598,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 5
+    },
+    {
+      "frame": 155,
+      "count": 24,
+      "triangles": 2153598,
+      "added": 3,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 8
+    },
+    {
+      "frame": 156,
+      "count": 24,
+      "triangles": 2153598,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 8
+    },
+    {
+      "frame": 157,
+      "count": 24,
+      "triangles": 2153598,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 8
+    },
+    {
+      "frame": 158,
+      "count": 24,
+      "triangles": 2153598,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 8
+    },
+    {
+      "frame": 159,
+      "count": 24,
+      "triangles": 2153598,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 8
+    },
+    {
+      "frame": 160,
+      "count": 24,
+      "triangles": 2153598,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 8
+    },
+    {
+      "frame": 161,
+      "count": 24,
+      "triangles": 2153598,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 8
+    },
+    {
+      "frame": 162,
+      "count": 24,
+      "triangles": 2153598,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 7
+    },
+    {
+      "frame": 163,
+      "count": 24,
+      "triangles": 2153598,
+      "added": 0,
+      "removed": 4,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 4
+    },
+    {
+      "frame": 164,
+      "count": 20,
+      "triangles": 1794581,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.047619047619047616,
+      "partial": 4
+    },
+    {
+      "frame": 165,
+      "count": 27,
+      "triangles": 2369559,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 9
+    },
+    {
+      "frame": 166,
+      "count": 27,
+      "triangles": 2369559,
+      "added": 7,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 16
+    },
+    {
+      "frame": 167,
+      "count": 27,
+      "triangles": 2369559,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 16
+    },
+    {
+      "frame": 168,
+      "count": 27,
+      "triangles": 2369559,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 16
+    },
+    {
+      "frame": 169,
+      "count": 27,
+      "triangles": 2369559,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 16
+    },
+    {
+      "frame": 170,
+      "count": 27,
+      "triangles": 2369559,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 16
+    },
+    {
+      "frame": 171,
+      "count": 27,
+      "triangles": 2369559,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 16
+    },
+    {
+      "frame": 172,
+      "count": 27,
+      "triangles": 2369559,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 16
+    },
+    {
+      "frame": 173,
+      "count": 27,
+      "triangles": 2369559,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 14
+    },
+    {
+      "frame": 174,
+      "count": 27,
+      "triangles": 2369559,
+      "added": 0,
+      "removed": 5,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 9
+    },
+    {
+      "frame": 175,
+      "count": 22,
+      "triangles": 1792316,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.047619047619047616,
+      "partial": 9
+    },
+    {
+      "frame": 176,
+      "count": 27,
+      "triangles": 2316607,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 14
+    },
+    {
+      "frame": 177,
+      "count": 27,
+      "triangles": 2316607,
+      "added": 5,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 19
+    },
+    {
+      "frame": 178,
+      "count": 27,
+      "triangles": 2316607,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 19
+    },
+    {
+      "frame": 179,
+      "count": 27,
+      "triangles": 2316607,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 19
+    },
+    {
+      "frame": 180,
+      "count": 27,
+      "triangles": 2316607,
+      "added": 0,
+      "removed": 1,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 18
+    },
+    {
+      "frame": 181,
+      "count": 26,
+      "triangles": 2288736,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 18
+    },
+    {
+      "frame": 182,
+      "count": 26,
+      "triangles": 2288736,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 18
+    },
+    {
+      "frame": 183,
+      "count": 26,
+      "triangles": 2288736,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 18
+    },
+    {
+      "frame": 184,
+      "count": 25,
+      "triangles": 2266908,
+      "added": 0,
+      "removed": 1,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 11
+    },
+    {
+      "frame": 185,
+      "count": 24,
+      "triangles": 2217954,
+      "added": 0,
+      "removed": 6,
+      "maxFadeDelta": 0.09523809523809525,
+      "partial": 5
+    },
+    {
+      "frame": 186,
+      "count": 20,
+      "triangles": 1799942,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.047619047619047616,
+      "partial": 5
+    },
+    {
+      "frame": 187,
+      "count": 26,
+      "triangles": 2131276,
+      "added": 1,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 8
+    },
+    {
+      "frame": 188,
+      "count": 26,
+      "triangles": 2131276,
+      "added": 6,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 14
+    },
+    {
+      "frame": 189,
+      "count": 26,
+      "triangles": 2131276,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 14
+    },
+    {
+      "frame": 190,
+      "count": 26,
+      "triangles": 2131276,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 14
+    },
+    {
+      "frame": 191,
+      "count": 26,
+      "triangles": 2131276,
+      "added": 0,
+      "removed": 1,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 13
+    },
+    {
+      "frame": 192,
+      "count": 25,
+      "triangles": 2112549,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 13
+    },
+    {
+      "frame": 193,
+      "count": 25,
+      "triangles": 2112549,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 13
+    },
+    {
+      "frame": 194,
+      "count": 25,
+      "triangles": 2112549,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 13
+    },
+    {
+      "frame": 195,
+      "count": 25,
+      "triangles": 2112549,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 10
+    },
+    {
+      "frame": 196,
+      "count": 25,
+      "triangles": 2112549,
+      "added": 0,
+      "removed": 2,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 9
+    },
+    {
+      "frame": 197,
+      "count": 23,
+      "triangles": 1794087,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.04761904761904767,
+      "partial": 9
+    },
+    {
+      "frame": 198,
+      "count": 26,
+      "triangles": 2131276,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 11
+    },
+    {
+      "frame": 199,
+      "count": 26,
+      "triangles": 2131276,
+      "added": 3,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 14
+    },
+    {
+      "frame": 200,
+      "count": 26,
+      "triangles": 2131276,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 14
+    },
+    {
+      "frame": 201,
+      "count": 26,
+      "triangles": 2131276,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 14
+    },
+    {
+      "frame": 202,
+      "count": 26,
+      "triangles": 2131276,
+      "added": 0,
+      "removed": 1,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 13
+    },
+    {
+      "frame": 203,
+      "count": 25,
+      "triangles": 1972045,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 13
+    },
+    {
+      "frame": 204,
+      "count": 25,
+      "triangles": 1972045,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 13
+    },
+    {
+      "frame": 205,
+      "count": 25,
+      "triangles": 1972045,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 12
+    },
+    {
+      "frame": 206,
+      "count": 25,
+      "triangles": 1972045,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 7
+    },
+    {
+      "frame": 207,
+      "count": 23,
+      "triangles": 1893886,
+      "added": 0,
+      "removed": 4,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 3
+    },
+    {
+      "frame": 208,
+      "count": 21,
+      "triangles": 1793310,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.047619047619047616,
+      "partial": 3
+    },
+    {
+      "frame": 209,
+      "count": 23,
+      "triangles": 2031348,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 6
+    },
+    {
+      "frame": 210,
+      "count": 23,
+      "triangles": 2031348,
+      "added": 2,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 8
+    },
+    {
+      "frame": 211,
+      "count": 23,
+      "triangles": 2031348,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 8
+    },
+    {
+      "frame": 212,
+      "count": 23,
+      "triangles": 2031348,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 8
+    },
+    {
+      "frame": 213,
+      "count": 23,
+      "triangles": 2031348,
+      "added": 0,
+      "removed": 1,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 7
+    },
+    {
+      "frame": 214,
+      "count": 22,
+      "triangles": 2012621,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 7
+    },
+    {
+      "frame": 215,
+      "count": 22,
+      "triangles": 2012621,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 7
+    },
+    {
+      "frame": 216,
+      "count": 22,
+      "triangles": 2012621,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 7
+    },
+    {
+      "frame": 217,
+      "count": 22,
+      "triangles": 2012621,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 5
+    },
+    {
+      "frame": 218,
+      "count": 22,
+      "triangles": 2012621,
+      "added": 0,
+      "removed": 3,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 2
+    },
+    {
+      "frame": 219,
+      "count": 19,
+      "triangles": 1782300,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.047619047619047616,
+      "partial": 2
+    },
+    {
+      "frame": 220,
+      "count": 22,
+      "triangles": 2013647,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 5
+    },
+    {
+      "frame": 221,
+      "count": 22,
+      "triangles": 2013647,
+      "added": 3,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 8
+    },
+    {
+      "frame": 222,
+      "count": 22,
+      "triangles": 2013647,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 8
+    },
+    {
+      "frame": 223,
+      "count": 22,
+      "triangles": 2013647,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 8
+    },
+    {
+      "frame": 224,
+      "count": 22,
+      "triangles": 2013647,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 8
+    },
+    {
+      "frame": 225,
+      "count": 22,
+      "triangles": 2013647,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 8
+    },
+    {
+      "frame": 226,
+      "count": 22,
+      "triangles": 2013647,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 8
+    },
+    {
+      "frame": 227,
+      "count": 22,
+      "triangles": 2013647,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 8
+    },
+    {
+      "frame": 228,
+      "count": 22,
+      "triangles": 2013647,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 6
+    },
+    {
+      "frame": 229,
+      "count": 22,
+      "triangles": 2013647,
+      "added": 0,
+      "removed": 3,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 3
+    },
+    {
+      "frame": 230,
+      "count": 19,
+      "triangles": 1782300,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.047619047619047616,
+      "partial": 3
+    },
+    {
+      "frame": 231,
+      "count": 22,
+      "triangles": 1997273,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 5
+    },
+    {
+      "frame": 232,
+      "count": 22,
+      "triangles": 1997273,
+      "added": 3,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 8
+    },
+    {
+      "frame": 233,
+      "count": 22,
+      "triangles": 1997273,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 8
+    },
+    {
+      "frame": 234,
+      "count": 22,
+      "triangles": 1997273,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 8
+    },
+    {
+      "frame": 235,
+      "count": 22,
+      "triangles": 1997273,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 8
+    },
+    {
+      "frame": 236,
+      "count": 22,
+      "triangles": 1997273,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 8
+    },
+    {
+      "frame": 237,
+      "count": 22,
+      "triangles": 1997273,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 8
+    },
+    {
+      "frame": 238,
+      "count": 22,
+      "triangles": 1997273,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 8
+    },
+    {
+      "frame": 239,
+      "count": 22,
+      "triangles": 1997273,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 5
+    },
+    {
+      "frame": 240,
+      "count": 22,
+      "triangles": 1997273,
+      "added": 0,
+      "removed": 2,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 3
+    },
+    {
+      "frame": 241,
+      "count": 20,
+      "triangles": 1787754,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.047619047619047616,
+      "partial": 3
+    },
+    {
+      "frame": 242,
+      "count": 23,
+      "triangles": 2002727,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 4
+    },
+    {
+      "frame": 243,
+      "count": 23,
+      "triangles": 2002727,
+      "added": 3,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 7
+    },
+    {
+      "frame": 244,
+      "count": 23,
+      "triangles": 2002727,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 7
+    },
+    {
+      "frame": 245,
+      "count": 23,
+      "triangles": 2002727,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 7
+    },
+    {
+      "frame": 246,
+      "count": 23,
+      "triangles": 2002727,
+      "added": 0,
+      "removed": 1,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 6
+    },
+    {
+      "frame": 247,
+      "count": 22,
+      "triangles": 1843496,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 6
+    },
+    {
+      "frame": 248,
+      "count": 22,
+      "triangles": 1843496,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 6
+    },
+    {
+      "frame": 249,
+      "count": 22,
+      "triangles": 1843496,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 6
+    },
+    {
+      "frame": 250,
+      "count": 22,
+      "triangles": 1843496,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 4
+    },
+    {
+      "frame": 251,
+      "count": 22,
+      "triangles": 1843496,
+      "added": 0,
+      "removed": 1,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 3
+    },
+    {
+      "frame": 252,
+      "count": 21,
+      "triangles": 1793208,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.047619047619047616,
+      "partial": 3
+    },
+    {
+      "frame": 253,
+      "count": 25,
+      "triangles": 2109405,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 5
+    },
+    {
+      "frame": 254,
+      "count": 25,
+      "triangles": 2109405,
+      "added": 4,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 9
+    },
+    {
+      "frame": 255,
+      "count": 25,
+      "triangles": 2109405,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 9
+    },
+    {
+      "frame": 256,
+      "count": 25,
+      "triangles": 2109405,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 9
+    },
+    {
+      "frame": 257,
+      "count": 25,
+      "triangles": 2109405,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 9
+    },
+    {
+      "frame": 258,
+      "count": 25,
+      "triangles": 2109405,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 9
+    },
+    {
+      "frame": 259,
+      "count": 25,
+      "triangles": 2109405,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 9
+    },
+    {
+      "frame": 260,
+      "count": 25,
+      "triangles": 2109405,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 9
+    },
+    {
+      "frame": 261,
+      "count": 25,
+      "triangles": 2109405,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 6
+    },
+    {
+      "frame": 262,
+      "count": 25,
+      "triangles": 2109405,
+      "added": 0,
+      "removed": 2,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 4
+    },
+    {
+      "frame": 263,
+      "count": 23,
+      "triangles": 1790943,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.047619047619047616,
+      "partial": 4
+    },
+    {
+      "frame": 264,
+      "count": 26,
+      "triangles": 2005916,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 5
+    },
+    {
+      "frame": 265,
+      "count": 26,
+      "triangles": 2005916,
+      "added": 3,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 8
+    },
+    {
+      "frame": 266,
+      "count": 26,
+      "triangles": 2005916,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 8
+    },
+    {
+      "frame": 267,
+      "count": 26,
+      "triangles": 2005916,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 8
+    },
+    {
+      "frame": 268,
+      "count": 26,
+      "triangles": 2005916,
+      "added": 0,
+      "removed": 1,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 7
+    },
+    {
+      "frame": 269,
+      "count": 25,
+      "triangles": 1955628,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 7
+    },
+    {
+      "frame": 270,
+      "count": 25,
+      "triangles": 1955628,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 7
+    },
+    {
+      "frame": 271,
+      "count": 25,
+      "triangles": 1955628,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 7
+    },
+    {
+      "frame": 272,
+      "count": 25,
+      "triangles": 1955628,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 4
+    },
+    {
+      "frame": 273,
+      "count": 25,
+      "triangles": 1955628,
+      "added": 0,
+      "removed": 1,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 3
+    },
+    {
+      "frame": 274,
+      "count": 24,
+      "triangles": 1796397,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.047619047619047616,
+      "partial": 3
+    },
+    {
+      "frame": 275,
+      "count": 27,
+      "triangles": 2056204,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 6
+    },
+    {
+      "frame": 276,
+      "count": 27,
+      "triangles": 2056204,
+      "added": 3,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 9
+    },
+    {
+      "frame": 277,
+      "count": 27,
+      "triangles": 2056204,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 9
+    },
+    {
+      "frame": 278,
+      "count": 27,
+      "triangles": 2056204,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 9
+    },
+    {
+      "frame": 279,
+      "count": 27,
+      "triangles": 2056204,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 9
+    },
+    {
+      "frame": 280,
+      "count": 27,
+      "triangles": 2056204,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 9
+    },
+    {
+      "frame": 281,
+      "count": 27,
+      "triangles": 2056204,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 9
+    },
+    {
+      "frame": 282,
+      "count": 27,
+      "triangles": 2056204,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 9
+    },
+    {
+      "frame": 283,
+      "count": 27,
+      "triangles": 2056204,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 6
+    },
+    {
+      "frame": 284,
+      "count": 27,
+      "triangles": 2056204,
+      "added": 0,
+      "removed": 3,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 3
+    },
+    {
+      "frame": 285,
+      "count": 24,
+      "triangles": 1790295,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.047619047619047616,
+      "partial": 3
+    },
+    {
+      "frame": 286,
+      "count": 29,
+      "triangles": 2213761,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 8
+    },
+    {
+      "frame": 287,
+      "count": 29,
+      "triangles": 2213761,
+      "added": 5,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 13
+    },
+    {
+      "frame": 288,
+      "count": 29,
+      "triangles": 2213761,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 13
+    },
+    {
+      "frame": 289,
+      "count": 29,
+      "triangles": 2213761,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 13
+    },
+    {
+      "frame": 290,
+      "count": 29,
+      "triangles": 2213761,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 13
+    },
+    {
+      "frame": 291,
+      "count": 29,
+      "triangles": 2213761,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 13
+    },
+    {
+      "frame": 292,
+      "count": 29,
+      "triangles": 2213761,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 13
+    },
+    {
+      "frame": 293,
+      "count": 29,
+      "triangles": 2213761,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 13
+    },
+    {
+      "frame": 294,
+      "count": 29,
+      "triangles": 2213761,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 10
+    },
+    {
+      "frame": 295,
+      "count": 29,
+      "triangles": 2213761,
+      "added": 0,
+      "removed": 5,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 5
+    },
+    {
+      "frame": 296,
+      "count": 24,
+      "triangles": 1795312,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.047619047619047616,
+      "partial": 5
+    },
+    {
+      "frame": 297,
+      "count": 30,
+      "triangles": 2372992,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 12
+    },
+    {
+      "frame": 298,
+      "count": 30,
+      "triangles": 2372992,
+      "added": 6,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 18
+    },
+    {
+      "frame": 299,
+      "count": 30,
+      "triangles": 2372992,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 18
+    },
+    {
+      "frame": 300,
+      "count": 30,
+      "triangles": 2372992,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 18
+    },
+    {
+      "frame": 301,
+      "count": 30,
+      "triangles": 2372992,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 18
+    },
+    {
+      "frame": 302,
+      "count": 30,
+      "triangles": 2372992,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 18
+    },
+    {
+      "frame": 303,
+      "count": 30,
+      "triangles": 2372992,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 18
+    },
+    {
+      "frame": 304,
+      "count": 30,
+      "triangles": 2372992,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 18
+    },
+    {
+      "frame": 305,
+      "count": 30,
+      "triangles": 2372992,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 13
+    },
+    {
+      "frame": 306,
+      "count": 30,
+      "triangles": 2372992,
+      "added": 0,
+      "removed": 7,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 6
+    },
+    {
+      "frame": 307,
+      "count": 23,
+      "triangles": 1796988,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.047619047619047616,
+      "partial": 6
+    },
+    {
+      "frame": 308,
+      "count": 27,
+      "triangles": 2165149,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 10
+    },
+    {
+      "frame": 309,
+      "count": 27,
+      "triangles": 2165149,
+      "added": 4,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 14
+    },
+    {
+      "frame": 310,
+      "count": 27,
+      "triangles": 2165149,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 14
+    },
+    {
+      "frame": 311,
+      "count": 27,
+      "triangles": 2165149,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 14
+    },
+    {
+      "frame": 312,
+      "count": 27,
+      "triangles": 2165149,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 14
+    },
+    {
+      "frame": 313,
+      "count": 27,
+      "triangles": 2165149,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 14
+    },
+    {
+      "frame": 314,
+      "count": 27,
+      "triangles": 2165149,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 14
+    },
+    {
+      "frame": 315,
+      "count": 27,
+      "triangles": 2165149,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 14
+    },
+    {
+      "frame": 316,
+      "count": 27,
+      "triangles": 2165149,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 8
+    },
+    {
+      "frame": 317,
+      "count": 27,
+      "triangles": 2165149,
+      "added": 0,
+      "removed": 4,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 4
+    },
+    {
+      "frame": 318,
+      "count": 23,
+      "triangles": 1796988,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.047619047619047616,
+      "partial": 4
+    },
+    {
+      "frame": 319,
+      "count": 32,
+      "triangles": 2200270,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 8
+    },
+    {
+      "frame": 320,
+      "count": 32,
+      "triangles": 2200270,
+      "added": 9,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 17
+    },
+    {
+      "frame": 321,
+      "count": 32,
+      "triangles": 2200270,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 17
+    },
+    {
+      "frame": 322,
+      "count": 32,
+      "triangles": 2200270,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 17
+    },
+    {
+      "frame": 323,
+      "count": 32,
+      "triangles": 2200270,
+      "added": 0,
+      "removed": 1,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 16
+    },
+    {
+      "frame": 324,
+      "count": 31,
+      "triangles": 2178442,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 16
+    },
+    {
+      "frame": 325,
+      "count": 31,
+      "triangles": 2178442,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 16
+    },
+    {
+      "frame": 326,
+      "count": 31,
+      "triangles": 2178442,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 16
+    },
+    {
+      "frame": 327,
+      "count": 31,
+      "triangles": 2178442,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 13
+    },
+    {
+      "frame": 328,
+      "count": 31,
+      "triangles": 2178442,
+      "added": 0,
+      "removed": 4,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 9
+    },
+    {
+      "frame": 329,
+      "count": 27,
+      "triangles": 1781821,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.047619047619047616,
+      "partial": 9
+    },
+    {
+      "frame": 330,
+      "count": 32,
+      "triangles": 2188701,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 13
+    },
+    {
+      "frame": 331,
+      "count": 32,
+      "triangles": 2188701,
+      "added": 5,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 18
+    },
+    {
+      "frame": 332,
+      "count": 32,
+      "triangles": 2188701,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 18
+    },
+    {
+      "frame": 333,
+      "count": 32,
+      "triangles": 2188701,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 18
+    },
+    {
+      "frame": 334,
+      "count": 32,
+      "triangles": 2188701,
+      "added": 0,
+      "removed": 4,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 14
+    },
+    {
+      "frame": 335,
+      "count": 28,
+      "triangles": 2077217,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 14
+    },
+    {
+      "frame": 336,
+      "count": 28,
+      "triangles": 2077217,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 14
+    },
+    {
+      "frame": 337,
+      "count": 28,
+      "triangles": 2077217,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 14
+    },
+    {
+      "frame": 338,
+      "count": 28,
+      "triangles": 2077217,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 9
+    },
+    {
+      "frame": 339,
+      "count": 28,
+      "triangles": 2077217,
+      "added": 0,
+      "removed": 4,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 5
+    },
+    {
+      "frame": 340,
+      "count": 24,
+      "triangles": 1783437,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.047619047619047616,
+      "partial": 5
+    },
+    {
+      "frame": 341,
+      "count": 32,
+      "triangles": 1980675,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 7
+    },
+    {
+      "frame": 342,
+      "count": 32,
+      "triangles": 1980675,
+      "added": 8,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 15
+    },
+    {
+      "frame": 343,
+      "count": 32,
+      "triangles": 1980675,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 15
+    },
+    {
+      "frame": 344,
+      "count": 32,
+      "triangles": 1980675,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 15
+    },
+    {
+      "frame": 345,
+      "count": 32,
+      "triangles": 1980675,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 15
+    },
+    {
+      "frame": 346,
+      "count": 32,
+      "triangles": 1980675,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 15
+    },
+    {
+      "frame": 347,
+      "count": 32,
+      "triangles": 1980675,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 15
+    },
+    {
+      "frame": 348,
+      "count": 32,
+      "triangles": 1980675,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 15
+    },
+    {
+      "frame": 349,
+      "count": 32,
+      "triangles": 1980675,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 10
+    },
+    {
+      "frame": 350,
+      "count": 32,
+      "triangles": 1980675,
+      "added": 0,
+      "removed": 2,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 8
+    },
+    {
+      "frame": 351,
+      "count": 30,
+      "triangles": 1793573,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.047619047619047616,
+      "partial": 8
+    },
+    {
+      "frame": 352,
+      "count": 35,
+      "triangles": 2106762,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 12
+    },
+    {
+      "frame": 353,
+      "count": 35,
+      "triangles": 2106762,
+      "added": 5,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 17
+    },
+    {
+      "frame": 354,
+      "count": 35,
+      "triangles": 2106762,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 17
+    },
+    {
+      "frame": 355,
+      "count": 35,
+      "triangles": 2106762,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 17
+    },
+    {
+      "frame": 356,
+      "count": 35,
+      "triangles": 2106762,
+      "added": 0,
+      "removed": 2,
+      "maxFadeDelta": 0.09523809523809534,
+      "partial": 15
+    },
+    {
+      "frame": 357,
+      "count": 33,
+      "triangles": 2060164,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 15
+    },
+    {
+      "frame": 358,
+      "count": 33,
+      "triangles": 2060164,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 15
+    },
+    {
+      "frame": 359,
+      "count": 33,
+      "triangles": 2060164,
+      "added": 0,
+      "removed": 0,
+      "maxFadeDelta": 0.09523809523809523,
+      "partial": 15
+    }
+  ]
+}

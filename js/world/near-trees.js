@@ -74,9 +74,11 @@ export async function addNearTrees(world,trees,atlas) {
         for(let z=Math.floor((eye.z-OUTER)/200);z<=Math.floor((eye.z+OUTER)/200);z++)
           for(const t of cells.get(`${x}:${z}`)||[]){
             const distance=Math.hypot(t.x-eye.x,t.z-eye.z,t.y+t.h*.55-eye.y);
-            if(distance<OUTER)candidates.push({t,distance});
+            // A small preference for retained trees prevents nearly equidistant
+            // neighbours from repeatedly trading places in the fixed detail pool.
+            if(distance<OUTER)candidates.push({t,distance,priority:distance*(targets.has(t.id)?.86:1)});
           }
-      candidates.sort((a,b)=>a.distance-b.distance);
+      candidates.sort((a,b)=>a.priority-b.priority);
       targets=new Map();let triangles=0;
       for(const {t} of candidates){
         const cost=pools[t.row].triangles;
@@ -92,7 +94,8 @@ export async function addNearTrees(world,trees,atlas) {
     // Retiring trees keep their pool space until the complementary cards return.
     for(const [id,state] of active){
       if(targets.has(id))continue;
-      state.fade=Math.max(0,state.fade-step);setFade(state.t.fade,state.t.index,state.fade);
+      // Fade is advanced once below for both entering and retiring trees.
+      // Advancing here as well made retiring crowns dissolve twice as fast.
       if(!state.fade)active.delete(id);
     }
     let reserved=[...active.values()].reduce((sum,s)=>sum+pools[s.t.row].triangles,0);

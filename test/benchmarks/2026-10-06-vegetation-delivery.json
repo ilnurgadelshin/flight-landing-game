@@ -1,0 +1,12 @@
+[
+  {
+    "tier": "high",
+    "startupBytes": 13990287,
+    "preparedBytes": 61893408
+  },
+  {
+    "tier": "low",
+    "startupBytes": 8583891,
+    "preparedBytes": 16856008
+  }
+]

@@ -639,16 +639,18 @@ The visual assets are bundled locally and need no map service, account or API ke
   rather than reproducing a real airport. Sixteen local detail tiles sharpen the last
   8 km of the approach, sampled at 0.5 m/px on high and 1 m/px on low, with four loaded
   at a time. The underlying NAIP survey is generally 0.6 m. Close woodland uses nine
-  authored forms from three broadleaf sources plus pine and fir, baked into 108 canopy views
+  authored forms from three broadleaf sources plus pine and fir, baked into 216 canopy views
   from CC0 models. Spatial grouping varies the mature crown silhouettes.
   On high quality, nearby crowns transition to the same models' 3D branches and leaves
   within 180 m, with fixed instance and triangle budgets. Distant and low-quality trees
-  use camera-facing quads blending four azimuths and side/oblique/overhead elevations,
+  use camera-facing quads blending eight azimuths and side/oblique/overhead elevations,
   so crowns retain their area when viewed from above. Settled near trees reuse their buffers.
-  A reviewed 2 km stretch beside final shares interpreted field/woodland boundaries between
+  The distant views are baked from the delivered geometry, and selection hysteresis plus a
+  common fade rate reduce visible detail changes.
+  A reviewed 4 km stretch beside final shares interpreted field/woodland boundaries between
   ground materials and tree placement. Meadow, stubble and woodland-floor surfaces reduce
   photographic blur and baked shadows; mapped fields remain open and woodland forms a denser
-  canopy. This reallocates the existing tree budget and adds less than 100 KB of land-cover
+  canopy. This reallocates the existing tree budget and adds less than 125 KB of land-cover
   data. Roads, buildings and the protected airport area remain clear. The boundaries are
   traced from the bundled imagery, not surveyed land-use data; other areas retain the
   original photographic surfaces and planting.
@@ -712,6 +714,8 @@ commands are in [`assets/README.md`](assets/README.md). Players can open the cre
 overhead views, unchanged buffers for settled trees and the corrupt-volume fallback. It
 also captures matched vegetation, cumulus and overcast views. Fixed-resolution measurements
 for each improvement stage are recorded in [`test/RENDER-PERFORMANCE.md`](test/RENDER-PERFORMANCE.md).
+`node test/tree-transitions.mjs` compares image/geometry silhouettes and records a moving
+woodland pass while checking instance, triangle and fade-speed limits.
 `npm run test:corridor` checks land-cover registration, transfer and planting budgets,
 field/building/road clearance, rendered surface changes on both tiers and missing-mask fallback.
 

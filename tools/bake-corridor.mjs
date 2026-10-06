@@ -20,9 +20,19 @@ const traces=[
  ['3_0','woodland',[[0,0],[568,0],[553,90],[615,186],[591,298],[529,445],[450,482],[407,633],[319,783],[352,849],[259,1024],[157,945],[221,827],[231,647],[136,556],[206,333],[134,233],[0,271]]],
  ['3_0','woodland',[[1250,0],[1600,0],[1600,402],[1477,395],[1443,508],[1317,570],[1271,692],[1110,824],[1034,757],[1036,676],[1100,551],[1162,449],[1147,314]]],
  ['3_0','woodland',[[505,1053],[774,1020],[892,985],[963,913],[1055,834],[1221,798],[1213,858],[1056,931],[955,1027],[863,1112],[632,1230],[448,1270],[428,1171]]],
+ // Extend the interpreted cover up final through the two existing forest tiles.
+ // Preserve the photographed residential yards, diagonal road and southern fields.
+ ['4_0','woodland',[[0,0],[537,0],[530,109],[593,116],[568,213],[446,211],[371,217],[292,249],[275,327],[315,365],[406,365],[443,397],[384,446],[313,520],[246,573],[164,647],[0,719]]],
+ ['4_0','woodland',[[0,747],[170,678],[267,614],[345,535],[404,457],[484,415],[592,368],[666,352],[706,404],[750,387],[784,425],[854,462],[1001,449],[1079,432],[1117,434],[1147,475],[1243,485],[1270,435],[1281,327],[1301,260],[1318,177],[1370,0],[1600,0],[1600,1600],[0,1600]]],
+ ['4_0','meadow',[[868,339],[951,307],[1029,272],[1054,284],[1064,331],[1060,427],[984,444],[869,430],[851,384]]],
+ ['5_0','woodland',[[0,0],[1600,0],[1600,1056],[1530,1072],[1429,1120],[1369,1162],[1326,1203],[1325,1300],[1108,1290],[1097,1335],[822,1354],[726,1334],[640,1280],[594,1272],[571,1220],[568,1160],[588,1110],[570,1048],[550,1090],[548,1200],[532,1276],[416,1289],[376,1333],[355,1438],[340,1496],[244,1499],[202,1457],[0,1419]]],
+ ['5_0','meadow',[[390,1355],[430,1320],[530,1322],[565,1362],[570,1446],[510,1483],[372,1485]]],
+ ['5_0','meadow',[[685,1370],[727,1373],[761,1418],[790,1427],[820,1387],[858,1388],[887,1450],[828,1479],[772,1487],[736,1512],[693,1495],[661,1452]]],
+ ['5_0','stubble',[[1363,1231],[1394,1171],[1438,1137],[1462,1119],[1470,1190],[1492,1240],[1495,1283],[1402,1299],[1318,1294],[1341,1273],[1380,1263]]],
+
 ];
-const bounds=[2100,180,2000,850],width=1000,height=425;
-const areas=traces.map(([tile,type,points])=>({tile,type,points:points.map(([x,z])=>[Number((Number(tile[0])*1000-16+x*1032/1600).toFixed(2)),Number((-16+z*1032/1600).toFixed(2))])}));
+const bounds=[2100,180,4000,850],width=2000,height=425;
+const areas=traces.map(([tile,type,points])=>({tile,type,points:points.map(([x,z])=>[Number((Number(tile.split('_')[0])*1000-16+x*1032/1600).toFixed(2)),Number((-16+z*1032/1600).toFixed(2))])}));
 function signedDistance(x,z,points){
  let inside=false,distance=Infinity;
  for(let i=0,j=points.length-1;i<points.length;j=i++){
@@ -31,7 +41,7 @@ function signedDistance(x,z,points){
   if((a[1]>z)!==(b[1]>z)&&x<(b[0]-a[0])*(z-a[1])/(b[1]-a[1])+a[0])inside=!inside;
  }return distance*(inside?1:-1);
 }
-const buildings=[...JSON.parse(await fs.readFile('assets/scenery/approach-buildings.json')).buildings,...JSON.parse(await fs.readFile('assets/scenery/approach-infill.json')).buildings].filter(b=>b.x>2000&&b.x<4200&&b.z>100&&b.z<1100);
+const buildings=[...JSON.parse(await fs.readFile('assets/scenery/approach-buildings.json')).buildings,...JSON.parse(await fs.readFile('assets/scenery/approach-infill.json')).buildings].filter(b=>b.x>bounds[0]-100&&b.x<bounds[0]+bounds[2]+100&&b.z>100&&b.z<1100);
 const roads=JSON.parse(await fs.readFile('assets/scenery/approach-roads.json')).roads;
 function roadDistance(x,z){let d=Infinity;for(const r of roads)for(let i=1;i<r.points.length;i++){
  const a=r.points[i-1],b=r.points[i],dx=b[0]-a[0],dz=b[1]-a[1],t=Math.max(0,Math.min(1,((x-a[0])*dx+(z-a[1])*dz)/(dx*dx+dz*dz)));
@@ -56,5 +66,5 @@ for(let j=0;j<height;j++)for(let i=0;i<width;i++){
  for(let c=0;c<3;c++){pixels[(j*width+i)*3+c]=Math.round(weights[c]*clearance*boundary*255);counts[c]+=pixels[(j*width+i)*3+c]/255;}
 }
 await sharp(pixels,{raw:{width,height,channels:3}}).png().toFile('assets/scenery/approach-corridor.png');
-await fs.writeFile('assets/scenery/approach-corridor.json',JSON.stringify({bounds,width,height,licence:'Interpreted boundaries derived from public-domain USDA NAIP / USGS imagery already bundled in detail/2_0.webp and detail/3_0.webp. Not a land-use survey.',areas,hectares:counts.map(c=>Number((c*bounds[2]/width*bounds[3]/height/10000).toFixed(2)))},null,2)+'\n');
+await fs.writeFile('assets/scenery/approach-corridor.json',JSON.stringify({bounds,width,height,licence:'Interpreted boundaries derived from public-domain USDA NAIP / USGS imagery already bundled in detail/2_0.webp through detail/5_0.webp. Not a land-use survey.',areas,hectares:counts.map(c=>Number((c*bounds[2]/width*bounds[3]/height/10000).toFixed(2)))},null,2)+'\n');
 console.log('Corridor meadow/stubble/woodland hectares',counts.map(c=>c*4/10000),'mask bytes',(await fs.stat('assets/scenery/approach-corridor.png')).size);

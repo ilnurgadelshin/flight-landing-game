@@ -257,19 +257,21 @@ it is not a version-pinned mirror. The game never calls the Poly Haven API.
 ## Interpreted approach land cover — public-domain imagery / original mask
 
 `scenery/approach-corridor.png` and `.json` describe meadow, stubble and woodland along a
-2 km × 850 m rectangle beside final. The 15 polygon boundaries were interpreted from the
-already bundled USDA NAIP / USGS `scenery/detail/2_0.webp` and `3_0.webp`. They are artistic
+4 km × 850 m rectangle beside final. The 22 polygon boundaries were interpreted from the
+already bundled USDA NAIP / USGS `scenery/detail/2_0.webp` through `5_0.webp`. They are artistic
 land-cover interpretations, not a land-use survey. No additional imagery or licensed model
 is required. The mask/code are original project work under MIT; the source imagery is public
 domain as documented above.
 
-The linear RGB data channels represent meadow/stubble/woodland coverage. A 1000 × 425 mask
+The linear RGB data channels represent meadow/stubble/woodland coverage. A 2000 × 425 mask
 at 2 m/px has feathered margins and excludes the protected airport area, mapped buildings
 and roads. The same mask drives surface reconstruction and tree placement, so photographed
 fields stay open. Runtime surfaces reuse the existing CC0 grass scan and tree models.
-Coverage is approximately 21.12 ha meadow, 6.40 ha stubble and 33.22 ha woodland, within a
-170 ha rectangle; the remaining area keeps its original surface. Tree instances are
-reallocated within the existing 52,000 high / 14,000 low budget. Total PNG/JSON is below 100 KB.
+Coverage is approximately 23.66 ha meadow, 6.97 ha stubble and 173.14 ha woodland, within a
+340 ha rectangle; the remaining area keeps its original surface. Tree instances are
+reallocated within the existing 52,000 high / 14,000 low budget. The 111,199-byte PNG/JSON
+pair stays below 125 KB. Close planting uses 9.5 m high / 14 m low spacing; the extension uses 16 m / 23 m. These interpreted stands reallocate
+9,994 high / 4,727 low trees within the overall budget.
 
 Reproduce with `node tools/bake-corridor.mjs`; validate with `npm run test:corridor`.
 
@@ -319,24 +321,24 @@ from these **CC0** Poly Haven assets (https://polyhaven.com/license):
 - **Jacaranda Tree**, Rico Cilliers, guidance by Rob Tuytel: https://polyhaven.com/a/jacaranda_tree
 - **Island Tree 02**, scanning/processing by Rob Tuytel, cleanup/processing by Rico Cilliers: https://polyhaven.com/a/island_tree_02
 
-Nine authored forms have four azimuths at three elevations (0°, 45°, 90°), 108 views in total. The simulator retains crown
+Nine authored forms have eight azimuths at three elevations (0°, 45°, 90°), 216 views in total. The simulator retains crown
 proportions, varies orientation/scale/tint, and groups smaller conifers beneath broadleaf
 woodland. Each distant tree uses one quad facing the eye in yaw and pitch, blending adjacent
 azimuth and elevation views with premultiplied alpha. Source framing is recorded per form;
 the quad still costs two triangles. These remain impostors: azimuth transitions, repeated
 species and extreme close-up silhouettes are less convincing than full 3D branches.
-The atlases are 1024×6912 (high, 717,724 bytes) and 512×3456 (low, 496,386 bytes). Smaller
-individual frames are sufficient for distant crowns and offset the added elevation views.
+The atlases are 1536×5184 (high, 1,845,660 bytes) and 768×2592 (low, 543,018 bytes).
+High frames are 192 px and low frames 96 px. Eight directions reduce silhouette doubling
+between adjacent views; using the delivered geometry also avoids the fuller source model
+changing into a different simplified crown at close range. Texel count rises 12.5% over
+the previous four-direction layout. WebP alpha quality is 90.
 The three broadleaf sources are spatially grouped to break up repeated mature crowns.
 They are an artistic palette for fictional Westhaven, not an ecological reconstruction of Pennsylvania.
 The full models stay in ignored `test/output/tree-source`, `tree-variety-source` and
 `authored-sources`; they are not shipped. These atlases replace the older single-species `tree-canopies.png`.
-To reproduce the atlas (curl, Python 3, Node and Playwright Chromium required):
+To reproduce the atlas from the bundled GLBs (Node and Playwright Chromium required):
 
 ```sh
-python3 tools/fetch-woodland.py
-python3 tools/fetch-tree-variety.py
-python3 tools/fetch-authored-scenery.py
 node tools/bake-woodland.mjs
 ```
 
@@ -349,14 +351,17 @@ Files total **14,398,432 bytes** (14.40 MB decimal), including 2,729,492 bytes f
 counts and source URLs are in `tree-geometry.json`.
 
 At runtime, nearby trees transition between geometry and cards over 90–180 m using
-complementary dithering. Selection targets at most 32 trees / 1.8 million triangles;
+complementary dithering. A 14% selection preference retains existing trees when distances
+are similar; entering and retiring fades both advance at most once per frame over 0.35 s.
+Selection targets at most 32 trees / 1.8 million triangles;
 retiring instances share a hard 48-tree / 2.4-million-triangle budget. Distant trees and
 the low tier retain the cheaper atlas. Low quality never requests the GLBs. If they fail
 to load, all foliage cards remain visible. Normal menu preparation now loads the high-tier
 models before flight; a flight begun directly by an automation hook can still request them
 when a tree crown is within 450 m of the camera. These assets add no collision bodies.
 
-Regenerate the initial model reductions after the source downloads above (Node dependencies include Sharp):
+Regenerate model reductions after fetching the originals with `fetch-woodland.py`,
+`fetch-tree-variety.py` and `fetch-authored-scenery.py` (Node dependencies include Sharp):
 
 ```sh
 node tools/prepare-trees.mjs
