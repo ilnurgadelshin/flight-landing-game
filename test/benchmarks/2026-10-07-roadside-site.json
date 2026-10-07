@@ -1,0 +1,36 @@
+[
+  {
+    "tier": "high",
+    "farm": {
+      "buildings": 9,
+      "triangles": 47473,
+      "yardTriangles": 2924,
+      "batches": 14,
+      "siteTriangles": 39844,
+      "low": false
+    },
+    "groundError": 1.8477439855946187e-9,
+    "roofCount": 9,
+    "unplannedTrees": 0,
+    "plantedTrees": 14,
+    "errors": [],
+    "surfacePixelDelta": 21.978356997971602
+  },
+  {
+    "tier": "low",
+    "farm": {
+      "buildings": 9,
+      "triangles": 47473,
+      "yardTriangles": 2924,
+      "batches": 14,
+      "siteTriangles": 39844,
+      "low": true
+    },
+    "groundError": 1.8477439855946187e-9,
+    "roofCount": 9,
+    "unplannedTrees": 0,
+    "plantedTrees": 14,
+    "errors": [],
+    "surfacePixelDelta": 21.218492224475998
+  }
+]

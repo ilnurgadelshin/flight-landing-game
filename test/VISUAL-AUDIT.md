@@ -27,7 +27,7 @@ ignored `test/output/visual-audit-before/` folder; current captures are `test/ou
 | 1 | Distorted cockpit/window proportions and poorly placed camera | Removed the upper-shell stretch; fitted the eye to the original cabin; retained desktop 58° FOV and narrow-screen coverage. Checked PFD and ND visibility. | Some surfaces remain simple, but this comparison does not justify replacing the source geometry. |
 | 2 | Muddy cockpit colours and flattened material separation | Restored source material values in the GLBs. Verified part assignments in Blender, then added distinct, subtle coated-panel, molded-trim, frame, seat-weave and yoke-rubber finishes at runtime. Modeled lettering is retained. | Liner/upholstery now use CC0 scans, with procedural panel/frame/rubber detail. A uniquely authored aircraft wear/texture set remains absent. See the 2026-09-30 followups. |
 | 3 | A completely flat approach corridor | Registered USGS elevation follows the imagery; rendering, collision and navigation share it. The airport is locally graded and a rising terrain cap protects final. | Elevations are locally modified around the fictional airport. Distant mesh resolution and imagery shadows remain limitations. |
-| 4 | Blurry aerial imagery ahead of the airport | Sixteen local 1 km detail tiles along the last 8 km, sampled at 0.5 m/px high and 1 m/px low, feather into the existing imagery; four textures stay resident. Distance-faded scanned colour, normal and roughness detail reconstructs fine surface grain in nearby fields and soil. | Underlying NAIP is generally 0.6 m; exports cannot supply finer survey detail. Coverage is a 2 km wide corridor. Five reviewed farm roofs fill prominent detection gaps. One three-building farm has a terrain-following scanned gravel yard. A 4 km interpreted land-cover stretch now replaces nearby field/woodland-floor colours and guides denser planting. Blur, missing buildings and photographic shadows remain beyond these mapped areas and at very low altitude. |
+| 4 | Blurry aerial imagery ahead of the airport | Sixteen local 1 km detail tiles along the last 8 km, sampled at 0.5 m/px high and 1 m/px low, feather into the existing imagery; four textures stay resident. Distance-faded scanned colour, normal and roughness detail reconstructs fine surface grain in nearby fields and soil. | Underlying NAIP is generally 0.6 m; exports cannot supply finer survey detail. Coverage is a 2 km wide corridor. Five reviewed farm roofs fill prominent detection gaps. A nine-building farm/roadside cluster has matching lawns, gravel yards, drives and a lane. A 4 km interpreted land-cover stretch now replaces nearby field/woodland-floor colours and guides denser planting. Blur, missing buildings and photographic shadows remain beyond these mapped areas and at very low altitude. |
 | 5 | Sparse, three-lobed tree blobs | Nine authored forms from three broadleaf sources plus pine/fir, eight azimuths at three elevations each, baked from the delivered geometry. Leaf masks are preserved in all nearby GLBs. One quad faces the eye in yaw and pitch and blends neighboring views. High retains bounded 3D branches and leaves within 180 m. | Distant/low trees remain impostors; view blending and repeated species are still visible. The wider palette is artistic, not a local botanical survey. Shared land-cover boundaries improve density and keep fields open in one 4 km stretch; density elsewhere and close-up silhouettes still expose the approximations. |
 | 6 | Thin cloud rings and weak volume | Cached 3D density, connected billows, flatter bases, self-shadowing and directional scattering. Overcast has multiscale structure and matching near-eye relief. | Fair-weather volumes remain simplified and soft at close range. Low uses sprites; overcast is a surface plus shared fog, not a fully volumetric weather system. |
 | 7 | Runway lights look like a luminous rectangle by day | Smaller daytime cores, lower daylight intensity, distinct PAPI/beacon sizing and fog attenuation without a minimum visibility floor. Night bloom retained. | Point-based lights approximate optical glare; no lens-scattering simulation. |
@@ -37,7 +37,7 @@ ignored `test/output/visual-audit-before/` folder; current captures are `test/ou
 | 11 | Windshields appear absent | Removed the approximation planes fitted to the incorrectly stretched shell during the source-fidelity correction. | Glazing should follow the actual source panes. Refraction, water droplets and optical distortion remain unimplemented; the separate cockpit pass limits physical transmission. |
 | 12 | Hard black fog horizon, a dark sheet inside the cloud transition, and lights visible through opaque cloud | Fixed shared atmospheric uniforms on foliage/deck shaders; show cloud surfaces only from outside the deck; removed the lights' 3% fog visibility floor. Added rendered regression checks. | The earlier audit incorrectly blamed a CSS rain overlay: it was already disabled. Existing rain uses 3D streaks driven by relative velocity; realistic water on glass remains future work. |
 | 13 | Jagged foliage, grain and inconsistent fine-detail sharpness | Alpha-to-coverage for foliage, anisotropic filtering and mipmapped, metric-scale cockpit finishes. Removed the cockpit shadow normal offset that stippled the double-sided liner; existing 4× world MSAA and cockpit antialiasing remain. | No temporal AA. Thin modeled labels, shadow edges and branches can still shimmer at distance. |
-| 14 | Repeating facade grids and weak building contact | Twelve approach facade bays share an atlas: house fronts with doors/shutters, upper floors, sparse sides, barns and loading bays. Houses have a principal entry bay; nearby bevels, smoother panes, canopies and thresholds add depth. Siding relief and roughness separate materials. Gables stay solid. Terrain-following projected shadows now have feathered edges. | Thirty-seven nearby buildings on high / thirteen low use CC0 wall modules. Three additional buildings at the valley farm have complete models, matching roofs and a gravel yard. Most architecture remains procedural; more complete sites and missing-footprint coverage remain needed. |
+| 14 | Repeating facade grids and weak building contact | Twelve approach facade bays share an atlas: house fronts with doors/shutters, upper floors, sparse sides, barns and loading bays. Houses have a principal entry bay; nearby bevels, smoother panes, canopies and thresholds add depth. Siding relief and roughness separate materials. Gables stay solid. Terrain-following projected shadows now have feathered edges. | Thirty-one nearby buildings on high / twelve low use CC0 wall modules. Nine buildings at the valley farm/roadside cluster have complete models, matching grounds, access and placed vegetation. Most architecture remains procedural; more complete sites and missing-footprint coverage remain needed. |
 | 15 | Prototype-like desktop readout bar | Inset, quieter translucent status strip with restrained borders and spacing; controls and readouts retained. | The simulator intentionally retains training/status UI. This matters less than asset quality. |
 
 Further cockpit work should begin with a source-versus-game comparison, not a replacement
@@ -639,3 +639,49 @@ versus 51.01 before; all five low views remain at 60 FPS on the M2 Pro. The comp
 landing averages 59.88 FPS, p99 16.8 ms, with zero in-flight requests. The assets add about
 1.17 MB high / 85 KB low after menu display. Other devices, SwiftShader and the full
 functional browser suite were not validated for this pass.
+
+
+## Connected roadside buildings and grounds — 2026-10-07
+
+Baseline: published `0597454`. Six neighboring buildings extend the existing three-building
+farm into a coherent roadside cluster. All nine now have complete models; the additions
+include two clapboard homes, a red-roofed garage and three timber working buildings. Roof
+edges/ridge caps, recessed openings, trim, gutters, foundations and chimneys retain real
+geometry. Small clapboard laps and roof seams use mipmapped normal maps: thin raised strips
+produced bright, broken lines in the close rendered review and were removed. Adjacent wall
+cells now share an outer skin instead of exposing lit internal box edges.
+
+Three lawn areas, four additional gravel aprons, five connections to a reconstructed lane,
+an internal path and timber fences replace the photo surface around the buildings. Ground
+meshes follow the rendered terrain, with feathered edges and existing CC0 grass/gravel/asphalt
+materials. Fourteen individually placed garden/boundary trees replace random planting inside
+the site, within the unchanged 52,000 / 14,000 tree budgets. The lane is interpreted from
+bundled NAIP imagery; it is separate from the two existing Census roads. Protected approach
+areas remain clear. Footprints are retained; architecture, grounds and some source-estimated
+building heights are interpretations, not a surveyed reconstruction. The source and interpreted
+heights are both recorded in the manifest.
+
+Matched high/low wider, roadside, farmhouse, overcast and night views, plus three normal
+captain-eye positions and an eight-second simulated descent, are in
+[the local before/after review](output/roadside-site-review.html). The gain is strongest in
+close roadside views; from the ordinary forward cockpit view it is a subtler change through
+the left windshield. This remains one small cluster, not complete coverage of the approach.
+Untreated ground still has photographic blur/shadows; most architecture remains procedural,
+and distant/low trees and clouds retain their existing approximations. Ground-level vegetation,
+more complete sites, overcast and windshield weather remain unfinished.
+
+Both tiers pass nine roof-height/upward-normal checks, terrain contact within 0.001 m,
+upward-facing road connections, no unplanned trees in the grounds and 14 eligible placed trees.
+Toggling the grounds changes the sampled close-view pixels by 21.98/255 high and 21.22 low;
+this demonstrates their visible contribution, not a perceptual-quality score. The underlying
+terrain-grain and streamed-imagery tests temporarily hide the authored grounds to isolate
+those layers, while the new site check tests their replacement in the normal visible scene.
+Missing model, yard texture or site data retains all original buildings and photo ground.
+
+All 14 Node suites pass, including delivery bounds and nondegenerate UVs on normal-mapped
+surfaces. Chromium Metal passes authored-scenery and fallback checks, approach streaming,
+corridor planting, delivery/quality checks and all 23 graphics checks. Exact site, asset,
+delivery and timing results are retained in `test/benchmarks/2026-10-07-roadside-*.json`.
+The full functional browser suite was not rerun; SwiftShader remains unavailable on this
+machine. See the corresponding roadside section of [the performance record](RENDER-PERFORMANCE.md)
+for measured cost and hardware limitations.

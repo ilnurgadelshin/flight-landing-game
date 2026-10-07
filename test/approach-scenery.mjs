@@ -133,10 +133,14 @@ try{
         const surfacePixels=await page.evaluate(()=>{
           const w=window.__sim.world,c=document.createElement('canvas');c.width=640;c.height=400;
           const ctx=c.getContext('2d',{willReadFrequently:true});
+          // Isolate the underlying terrain shader: authored lawns/yard now cover this camera.
+          // Their visible contribution and registration have separate site checks.
+          const site=w.approachBuildings.group.getObjectByName('Valley roadside grounds'),visible=site?.visible;
+          if(site)site.visible=false;
           const grab=()=>{w.render();ctx.drawImage(w.renderer.domElement,0,0,640,400);return ctx.getImageData(0,0,640,400).data;};
           const detailed=grab();w.groundUniforms.uSurfaceDetail.value=0;const plain=grab();let delta=0,n=0;
           for(let y=230;y<390;y++)for(let x=80;x<560;x++)for(let k=0;k<3;k++){const i=(y*640+x)*4+k;delta+=Math.abs(detailed[i]-plain[i]);n++;}
-          w.groundUniforms.uSurfaceDetail.value=1;w.render();return delta/n;
+          w.groundUniforms.uSurfaceDetail.value=1;if(site)site.visible=visible;w.render();return delta/n;
         });
         assert.ok(surfacePixels>.5,`${tier}: reconstructed surface must visibly reach the ground (${surfacePixels})`);
         console.log(tier,'close surface pixel delta',surfacePixels.toFixed(2));
@@ -148,6 +152,10 @@ try{
         const detailPixels=await page.evaluate(()=>{
           const w=window.__sim.world,c=document.createElement('canvas');c.width=640;c.height=400;
           const ctx=c.getContext('2d',{willReadFrequently:true});
+          // Isolate the underlying terrain shader: authored lawns/yard now cover this camera.
+          // Their visible contribution and registration have separate site checks.
+          const site=w.approachBuildings.group.getObjectByName('Valley roadside grounds'),visible=site?.visible;
+          if(site)site.visible=false;
           const grab=()=>{w.render();ctx.drawImage(w.renderer.domElement,0,0,640,400);return ctx.getImageData(0,0,640,400).data;};
           const before=grab(),weights=[0,1,2,3].map(i=>w.groundUniforms[`uDetailRect${i}`].value.w);
           for(let i=0;i<4;i++)w.groundUniforms[`uDetailRect${i}`].value.w=0;
@@ -155,7 +163,7 @@ try{
           for(let y=250;y<390;y++)for(let x=230;x<620;x++){
             const i=(y*640+x)*4;for(let k=0;k<3;k++){change+=Math.abs(before[i+k]-fallback[i+k]);n++;}
           }
-          for(let i=0;i<4;i++)w.groundUniforms[`uDetailRect${i}`].value.w=weights[i];w.render();
+          for(let i=0;i<4;i++)w.groundUniforms[`uDetailRect${i}`].value.w=weights[i];if(site)site.visible=visible;w.render();
           return change/n;
         });
         assert.ok(detailPixels>2,`${tier}: loaded detail imagery must visibly change near-ground pixels (delta ${detailPixels})`);

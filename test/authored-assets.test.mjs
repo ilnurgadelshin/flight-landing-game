@@ -44,15 +44,15 @@ for(const asset of geometry.assets){
   }
 }
 const farm=JSON.parse(await fs.readFile('assets/scenery/farm-sources.json'));
-assert.equal(farm.geometryLicense,'MIT');assert.equal(farm.placements.length,3);
+assert.equal(farm.geometryLicense,'MIT');assert.equal(farm.placements.length,9);
 assert.ok(farm.sources.every(s=>s.license==='CC0-1.0'&&Object.keys(s.authors).length));
 for(const [file,bytes] of Object.entries(farm.bytes))assert.equal((await fs.stat('assets/scenery/'+file)).size,bytes);
 for(const low of [false,true]){
   const suffix=low?'-low':'';
-  const bytes=Object.entries(farm.bytes).filter(([file])=>file.includes('-low')===low).reduce((n,[,b])=>n+b,0);
-  assert.ok(bytes<(low?.9e6:2.4e6),'Whole farm and yard transfer budget');
+  const bytes=Object.entries(farm.bytes).filter(([file])=>file==='valley-site.json'||file.includes('-low')===low).reduce((n,[,b])=>n+b,0);
+  assert.ok(bytes<(low?1.5e6:2.4e6),'Whole farm and yard transfer budget');
   const doc=await io.read(`assets/scenery/valley-farm${suffix}.glb`);
-  const nodes=doc.getRoot().listScenes()[0].listChildren();assert.equal(nodes.length,3);
+  const nodes=doc.getRoot().listScenes()[0].listChildren();assert.equal(nodes.length,9);
   let triangles=0;
   for(const placement of farm.placements){
     const node=nodes.find(n=>n.getName()===placement.id);assert.ok(node);
@@ -65,17 +65,28 @@ for(const low of [false,true]){
     const positions=primitive.getAttribute('POSITION'),uv=primitive.getAttribute('TEXCOORD_0');
     assert.ok([...positions.getArray(),...(uv?.getArray()||[])].every(Number.isFinite));
     triangles+=primitive.getIndices().getCount()/3;
-    // Timber UVs must cover both dimensions even on gable ends; collapsed UVs
+    // Relief UVs must cover both dimensions even on gable ends; collapsed UVs
     // also make derivative-based normal mapping unsafe on some drivers.
-    if(primitive.getMaterial().getName().startsWith('Weathered timber')){
+    if(primitive.getMaterial().getNormalTexture()){
       assert.ok(uv);
       const indices=primitive.getIndices().getArray();
       for(let i=0;i<indices.length;i+=3){
         const [a,b,c]=[0,1,2].map(j=>uv.getElement(indices[i+j],[]));
-        assert.ok(Math.abs((b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]))>1e-10,'Nondegenerate timber UV triangle');
+        assert.ok(Math.abs((b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]))>1e-10,'Nondegenerate surface relief UV triangle');
       }
     }
   }
-  assert.ok(triangles<30000,'Farm geometry remains bounded');
+  assert.ok(triangles<75000,'Farm geometry remains bounded');
 }
+const site=JSON.parse(await fs.readFile('assets/scenery/valley-site.json'));
+const {siteCoverage}=await import('../js/world/valley-site.js');
+const {protectedScenery}=await import('../js/world/scenery-ground.js');
+for(const points of [...site.lawns,...site.gravel,...site.fences,...site.streets.map(r=>r.points),...site.paths.map(r=>r.points)]){
+ assert.ok(points.every(p=>p.length===2&&p.every(Number.isFinite)));
+ assert.ok(points.every(([x,z])=>!protectedScenery(x,z,16)),'Site keeps clear of the protected airport');
+}
+for(const path of site.paths.filter(p=>p.connectsRoad)){
+ const [x,z]=path.points.at(-1);assert.ok(siteCoverage(site,x,z,'roads')>2,'Access paths reach the reconstructed lane');
+}
+assert.ok((await fs.stat('assets/scenery/valley-site.json')).size<15000,'Small interpreted site data');
 console.log('Authored facade, farm and tree bounds, UVs, source records and delivery budgets passed');

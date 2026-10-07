@@ -1,6 +1,6 @@
 """Original valley farm models, authored in metres in Blender; no source-model edits.
 Run Blender --background --python tools/prepare-farm.py, then prepare-farm.mjs.
-Retains the three registered roof footprints. Architecture is an interpretation.
+Retains the registered farm and neighboring roadside footprints. Architecture is an interpretation.
 """
 import bpy, json, math
 from pathlib import Path
@@ -28,10 +28,35 @@ M={
  'roof':material('Galvanized standing seam',(.22,.25,.25),.78,.18),
  'dark':material('Recess and door ironwork',(.025,.029,.028),.84),
  'glass':material('Window glazing',(.10,.16,.19),.22,.35),
+ 'paint':material('Weathered cream clapboard',(.49,.47,.40),.86),
+ 'redroof':material('Oxide red standing seam',(.24,.085,.065),.85,.12),
  'door':material('Faded barn door',(.26,.085,.055),.9),
 }
+# Small surface relief belongs in a filtered normal map. Centimetre-wide raised
+# strips become bright, broken lines at flight distances when built as geometry.
+def relief(mat,name,axis,period,count,strength):
+ size=512;image=bpy.data.images.new(name,width=size,height=size,alpha=False)
+ pixels=[]
+ for y in range(size):
+  for x in range(size):
+   phase=(((x if axis==0 else y)+.5)/size*count+.5)%1-.5
+   slope=phase/.045*math.exp(-.5*(phase/.045)**2)*strength
+   n=Vector((-slope if axis==0 else 0,-slope if axis==1 else 0,1)).normalized()
+   pixels.extend((n.x*.5+.5,n.y*.5+.5,n.z*.5+.5,1))
+ image.colorspace_settings.name='Non-Color';image.pixels.foreach_set(pixels)
+ image.filepath_raw=str(OUT/(name+'.png'));image.file_format='PNG';image.save()
+ nodes=mat.node_tree.nodes;t=nodes.new('ShaderNodeTexImage');t.image=image
+ n=nodes.new('ShaderNodeNormalMap');mat.node_tree.links.new(t.outputs['Color'],n.inputs['Color'])
+ mat.node_tree.links.new(n.outputs['Normal'],nodes.get('Principled BSDF').inputs['Normal'])
+ return period*count
+paint_uv=relief(M['paint'],'clapboard-relief',1,.19,8,.40)
+roof_uv=relief(M['roof'],'seam-relief',0,.72,2,.60)
+# Reuse the same seam texture for the red-painted garage roof.
+t=M['redroof'].node_tree.nodes.new('ShaderNodeTexImage');t.image=bpy.data.images['seam-relief']
+n=M['redroof'].node_tree.nodes.new('ShaderNodeNormalMap');M['redroof'].node_tree.links.new(t.outputs['Color'],n.inputs['Color']);M['redroof'].node_tree.links.new(n.outputs['Normal'],M['redroof'].node_tree.nodes.get('Principled BSDF').inputs['Normal'])
 class Builder:
- def __init__(self,name):self.name=name;self.data={k:[[],[],[]] for k in M}
+ def __init__(self,name,style='barn'):
+  self.name=name;self.style=style;self.data={k:[[],[],[]] for k in M}
  def face(self,pts,mat,uv=None,up=False,outward=None):
   # Metric UVs on every orientation; reject coincident gable corners before export.
   pts=[Vector(v) for v in pts]
@@ -40,12 +65,15 @@ class Builder:
   normal=(pts[1]-pts[0]).cross(pts[2]-pts[0])
   if normal.length<1e-8:return
   if (up and normal.y<0) or (outward is not None and normal.dot(Vector(outward))<0):pts.reverse()
+  if mat=='siding' and self.style=='house':mat='paint'
+  if mat=='roof' and self.style=='garage':mat='redroof'
   p,f,t=self.data[mat];i=len(p);p.extend((x,-z,y) for x,y,z in pts);f.append(tuple(range(i,i+len(pts))))
   if uv is None:
-   if abs(normal.y)>max(abs(normal.x),abs(normal.z)):uv=[(v.x/1.8,v.z/1.8) for v in pts]
+   if abs(normal.y)>max(abs(normal.x),abs(normal.z)):
+    scale=roof_uv if mat in ['roof','redroof'] else 1.8;uv=[(v.x/scale,v.z/scale) for v in pts]
    else:
     horizontal=Vector((normal.z,0,-normal.x)).normalized()
-    uv=[(v.dot(horizontal)/1.8,v.y/1.8) for v in pts]
+    scale=paint_uv if mat=='paint' else 1.8;uv=[(v.dot(horizontal)/scale,v.y/scale) for v in pts]
   t.append(uv)
  def box(self,c,size,mat='trim',basis=None):
   x,y,z=c;a,b,d=[s/2 for s in size]
@@ -86,9 +114,18 @@ def clip(points,sign):
 bs=json.loads((ROOT/'assets/scenery/approach-infill.json').read_text())['buildings'][:2]
 workshop=next(b for b in json.loads((ROOT/'assets/scenery/approach-buildings.json').read_text())['buildings'] if b['x']==2465.9 and b['z']==303.6)
 bs.append(dict(workshop,id='valley-workshop'))
+# Six neighboring buildings selected against the bundled 2_0 aerial tile.
+# Retain footprints and interpreted source heights, with individual uses/materials.
+registered=json.loads((ROOT/'assets/scenery/approach-buildings.json').read_text())['buildings']
+for x,z,name,style in [(2490.9,241.6,'roadside-farmhouse','house'),(2567.0,425.5,'roadside-shed','barn'),(2601.1,425.8,'roadside-cottage','house'),(2606.2,442.6,'roadside-garage','garage'),(2624.0,466.4,'roadside-workbarn','barn'),(2660.7,359.2,'roadside-store','barn')]:
+ b=next(b for b in registered if b['x']==x and b['z']==z)
+ height={'roadside-farmhouse':6.1,'roadside-cottage':4.5,'roadside-garage':4.2,'roadside-workbarn':5.6,'roadside-store':5.0}.get(name,b['height'])
+ bs.append(dict(b,id=name,style=style,height=height,sourceHeight=b['height']))
 manifest=[]
 for b in bs:
- B=Builder(b['id']);w,d=b['w'],b['d'];rise=min(d*.27,b['height']*.38,4);eave=b['height']-rise
+ style=b.get('style','barn');B=Builder(b['id'],style);w,d=b['w'],b['d'];rise=min(d*.27,b['height']*.38,4)
+ if 'style' in b:rise=min(rise,max(.35,b['height']-2.65))
+ eave=b['height']-rise
  c,s=math.cos(b['angle']),math.sin(b['angle']);points=[(x*c+z*s,-x*s+z*c) for x,z in b['outline']]
  roofY=lambda v:eave+rise*max(0,1-abs(v)/(d/2))
  for i,a in enumerate(points):
@@ -101,7 +138,7 @@ for b in bs:
   front=length>w*.65 and (a[1]+p[1])/2<0
   openings=[]
   if front:
-   doorW=3.8 if w>15 else 1.25;doorH=min(3.5,eave-.3)
+   doorW=1.15 if style=='house' else 3.8 if w>15 else 1.25;doorH=min(2.2 if style=='house' else 3.5,eave-.3)
    openings.append((length*.47-doorW/2,length*.47+doorW/2,.35,doorH,'door'))
   if length>7:
    for along in [2.2,length-2.2]:
@@ -112,12 +149,16 @@ for b in bs:
   for x0,x1 in zip(xs,xs[1:]):
    for y0,y1 in zip(ys,ys[1:]):
     if any(lo<(x0+x1)/2<hi and bottom<(y0+y1)/2<top for lo,hi,bottom,top,_ in openings):continue
-    box((x0+x1)/2,(y0+y1)/2,-.10,x1-x0,y1-y0,.20,'siding')
-  # Weathered board battens, broken at windows/doors rather than pasted over them.
-  for n in range(1,int(length/.42)):
-   x=n*.42
-   for bottom,top in zip(ys,ys[1:]):
-    if not any(lo<x<hi and low<(bottom+top)/2<high for lo,hi,low,high,_ in openings):box(x,(bottom+top)/2,.016,.038,top-bottom,.032,'siding')
+    # Adjacent box cells expose bright internal edges at subpixel scale. The
+    # continuous outer skin is split only for actual door/window openings;
+    # their recessed panels and thick frames supply the visible reveal depth.
+    B.face([at(x0,y0),at(x1,y0),at(x1,y1),at(x0,y1)],'siding',outward=(nx,0,nz))
+  # Timber battens remain geometric; house clapboard uses filtered relief.
+  if style!='house':
+   for n in range(1,int(length/.42)):
+    x=n*.42
+    for bottom,top in zip(ys,ys[1:]):
+     if not any(lo<x<hi and low<(bottom+top)/2<high for lo,hi,low,high,_ in openings):box(x,(bottom+top)/2,.016,.038,top-bottom,.032,'siding')
   for lo,hi,bottom,top,kind in openings:
    mid=(lo+hi)/2;h=top-bottom
    box(mid,(top+bottom)/2,-.19,hi-lo+.08,h+.08,.12,'dark')
@@ -129,7 +170,10 @@ for b in bs:
    else:
     box(mid,top+.17,.10,hi-lo+.65,.085,.12,'dark');box(mid,bottom-.10,.3,hi-lo+.5,.16,.85,'stone')
     for x in [lo+.25,mid,hi-.25]:box(x,(top+bottom)/2,-.04,.04,h-.13,.07,'dark')
-    B.beam(at(lo+.18,bottom+.2,-.015),at(hi-.18,top-.2,-.015),.045,'trim',4)
+    if style!='house':B.beam(at(lo+.18,bottom+.2,-.015),at(hi-.18,top-.2,-.015),.045,'trim',4)
+    else:
+     box(mid,top+.22,.35,hi-lo+.7,.12,.95,'roof')
+     box(mid,.10,.57,hi-lo+.75,.20,1.3,'stone')
     box(mid+.16,bottom+h*.52,.02,.045,.28,.10,'dark')
   # Solid gable above the eave and substantial corner/fascia boards.
   breaks=[0,length]
@@ -151,23 +195,16 @@ for b in bs:
   for triangle in tessellate_polygon([vectors]):B.face([vectors[v] if isinstance(v,int) else v for v in triangle],'roof',up=True)
  for i,a in enumerate(expanded):
   p=expanded[(i+1)%len(expanded)];B.face([(a[0],roofY(a[1]),a[1]),(p[0],roofY(p[1]),p[1]),(p[0],roofY(p[1])+.12,p[1]),(a[0],roofY(a[1])+.12,a[1])],'roof',outward=(a[0]+p[0],0,a[1]+p[1]))
- # Standing seams clipped against the actual concave footprint.
+ # Filtered standing-seam relief above; keep the substantial folded ridge cap.
  umin,umax=min(p[0] for p in expanded),max(p[0] for p in expanded)
- for k in range(int((umax-umin)/.72)+1):
-  u=umin+k*.72;hits=[]
-  for i,a in enumerate(expanded):
-   p=expanded[(i+1)%len(expanded)]
-   if min(a[0],p[0])<=u<max(a[0],p[0]):hits.append(a[1]+(u-a[0])/(p[0]-a[0])*(p[1]-a[1]))
-  hits.sort()
-  for v0,v1 in zip(hits[::2],hits[1::2]):
-   parts=[v0]+([0] if v0<0<v1 else [])+[v1]
-   for a,p in zip(parts,parts[1:]):B.beam((u,roofY(a)+.13,a),(u,roofY(p)+.13,p),.025,'roof',4)
  for sign in [-1,1]:B.face([(umin,eave+rise+.20,0),(umax,eave+rise+.20,0),(umax,roofY(.24)+.14,sign*.24),(umin,roofY(.24)+.14,sign*.24)],'roof',up=True)
- if w>15:
+ if style=='house':
+  B.box((w*.27,eave+rise+.28,0),(.6,.56,.65),'stone');B.box((w*.27,eave+rise+.60,0),(.74,.08,.79),'dark')
+ if w>15 and style!='house':
   for u in [-w*.23,w*.23]:
    y=eave+rise;B.box((u,y+.27,0),(.9,.48,.7),'dark');B.box((u,y+.57,0),(1.16,.14,.92),'roof')
    for h in [.12,.24,.36]:B.box((u,y+h,.37),(.92,.028,.1),'roof');B.box((u,y+h,-.37),(.92,.028,.1),'roof')
- B.finish();manifest.append({k:b[k] for k in ['id','x','z','angle','w','d','height']})
+ B.finish();manifest.append({**{k:b[k] for k in ['id','x','z','angle','w','d','height']},'style':style,'sourceHeight':b.get('sourceHeight',b['height'])})
 bpy.ops.export_scene.gltf(filepath=str(OUT/'farm-source.glb'),export_format='GLB',export_yup=True,export_texcoords=True,export_normals=True,export_materials='EXPORT')
 (OUT/'placement.json').write_text(json.dumps(manifest,indent=2)+'\n')
 bpy.ops.wm.save_as_mainfile(filepath=str(OUT/'valley-farm.blend'))

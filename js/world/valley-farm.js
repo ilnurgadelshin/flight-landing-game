@@ -1,10 +1,11 @@
-// One complete, originally authored farm on the registered final-approach footprints.
+// A complete, originally authored farm and roadside cluster on registered footprints.
 // The delivered GLBs replace whole buildings; the optional site has a procedural fallback.
 import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {MeshoptDecoder} from 'three/addons/libs/meshopt_decoder.module.js';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {sceneryGroundHeight} from './scenery-ground.js';
+import {buildValleySite} from './valley-site.js';
 
 const YARD=[[2474,283],[2498,278],[2507,284],[2513,302],[2508,320],[2500,345],[2480,348],[2472,330],[2458,318],[2457,300],[2468,291]];
 const DRIVE=[[2492,288],[2497,273],[2495,266],[2489,260],[2495,256],[2503,269],[2505,283],[2503,291]];
@@ -53,6 +54,9 @@ export async function loadValleyFarm(world,buildings){
  const response=await fetch(url('farm-sources.json'));
  if(!response.ok)throw new Error(`Valley farm manifest: HTTP ${response.status}`);
  const manifest=await response.json();
+ const siteResponse=await fetch(url('valley-site.json'));
+ if(!siteResponse.ok)throw new Error(`Valley site: HTTP ${siteResponse.status}`);
+ const siteData=await siteResponse.json();
  const model=(await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(url(`valley-farm${suffix}.glb`))).scene;
  const textures=[];
  try{
@@ -104,8 +108,13 @@ export async function loadValleyFarm(world,buildings){
   };
   yardMaterial.customProgramCacheKey=()=> 'valley-yard-v1';
   const yard=new THREE.Mesh(yardGeometry(ground,replaces),yardMaterial);yard.name='Valley farm gravel yard';yard.receiveShadow=true;yard.renderOrder=-1;yard.userData.sceneryPart='farm-yard';group.add(yard);
+  const wood=[...batches.keys()].find(m=>m.name.startsWith('Weathered timber'));
+  const site=buildValleySite(world,siteData,yardMaterial,wood);group.add(site.group);
   const sourceGeometry=new Set();model.traverse(o=>{if(o.isMesh)sourceGeometry.add(o.geometry);});sourceGeometry.forEach(g=>g.dispose());
-  return {group,replaces,materials:glass,stats:{buildings:replaces.size,triangles,yardTriangles:yard.geometry.index.count/3,batches:batches.size+1,low}};
+  // Update projected shadows only after the whole replacement has succeeded.
+  // Failed optional assets must leave the procedural buildings unchanged.
+  for(const b of replaces)b.height=manifest.placements.find(p=>Math.abs(b.x-p.x)<.1&&Math.abs(b.z-p.z)<.1).height;
+  return {group,replaces,site,materials:glass,stats:{buildings:replaces.size,triangles,yardTriangles:yard.geometry.index.count/3,batches:batches.size+5,siteTriangles:site.triangles,low}};
  }catch(error){
   const geometries=new Set(),materials=new Set();model.traverse(o=>{if(o.isMesh){geometries.add(o.geometry);materials.add(o.material);}});
   for(const g of geometries)g.dispose();for(const m of materials){for(const v of Object.values(m))if(v?.isTexture)textures.push(v);m.dispose();}

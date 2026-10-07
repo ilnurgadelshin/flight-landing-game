@@ -38,7 +38,7 @@ try{
     });
     if(!process.env.REVIEW_ROOT){
       assert.ok(status.authored.buildings>10);assert.ok(status.authored.triangles<700000);
-      assert.equal(status.farm.buildings,3);assert.equal(status.farm.batches,8);assert.ok(status.farm.triangles<30000);
+      assert.equal(status.farm.buildings,9);assert.equal(status.farm.batches,14);assert.ok(status.farm.triangles<75000);
     }
     assert.deepEqual(status.errors,[]);reports.push({tier,...status});console.log(tier,status);
     for(const view of ['farm','house','village','airport','trees','night','farm-overcast',...(!process.env.REVIEW_ROOT&&tier==='high'?['tree-7','tree-8']:[])]){
@@ -81,7 +81,7 @@ try{
     assert.equal(fallback.count,2165);assert.equal(fallback.authored,null);
     assert.ok(fallback.errors.some(e=>e.includes('modular_urban_apartments_facade')));assert.deepEqual(errors,[]);
     await page.close();console.log('Missing authored kit retains complete procedural buildings');
-    for(const unavailable of ['valley-farm.glb','farm-gravel-normal.webp']){
+    for(const unavailable of ['valley-farm.glb','farm-gravel-normal.webp','valley-site.json']){
       const page=await browser.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
       await page.route('**/'+unavailable,r=>r.fulfill({status:503,body:'Unavailable'}));
       await page.goto(url+'/?quality=high');await page.waitForFunction(()=>window.__sim,null,{timeout:120000});
@@ -92,7 +92,7 @@ try{
       });
       assert.equal(fallback.count,2165);assert.equal(fallback.farm,null);assert.equal(fallback.authored,40);assert.equal(fallback.partial,false);
       assert.equal(fallback.errors.length,1);assert.deepEqual(errors,[]);await page.close();
-      console.log('Missing '+unavailable+' retains all three original farm buildings');
+      console.log('Missing '+unavailable+' retains all original farm and roadside buildings');
     }
   }
   await fs.writeFile(`test/output/${label}.json`,JSON.stringify(reports,null,2)+'\n');

@@ -71,7 +71,7 @@ export async function addApproachBuildings(world) {
   const trim=new THREE.MeshStandardMaterial({color:0xaca99e,roughness:.87,vertexColors:true});
   const foundation=new THREE.MeshStandardMaterial({color:0x77766e,roughness:1,vertexColors:true});
   const group=new THREE.Group();group.name='Georegistered approach buildings';
-  if(valleyFarm)group.add(valleyFarm.group);
+  if(valleyFarm){group.add(valleyFarm.group);world.approachSiteExcludes=valleyFarm.site.excludes;world.approachSiteTrees=valleyFarm.site.trees;world.approachSiteRoadExcludes=valleyFarm.site.roadExcludes;world.valleyRoadMaterial=valleyFarm.site.roadMaterial;}
   const tiles=new Map(),details=new Map(),index=new Map(),profileCounts=Array(12).fill(0),rng=makeRng(9482),white=new THREE.Color(0xffffff);
   const ground=(x,z)=>sceneryGroundHeight(x,z,world.groundLowDetail);
   for(const b of buildings){

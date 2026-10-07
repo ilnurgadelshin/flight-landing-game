@@ -1,0 +1,42 @@
+[
+  {
+    "tier": "high",
+    "trees": 52000,
+    "inside": 6026,
+    "extended": 5403,
+    "intrusions": 0,
+    "fieldTrees": 0,
+    "corridor": {
+      "count": 9891,
+      "total": 52000,
+      "limit": 52000,
+      "spacing": [
+        9.5,
+        16
+      ]
+    },
+    "ready": 1,
+    "errors": [],
+    "groundPixelDelta": 14.537636363636363
+  },
+  {
+    "tier": "low",
+    "trees": 14000,
+    "inside": 2480,
+    "extended": 2565,
+    "intrusions": 0,
+    "fieldTrees": 0,
+    "corridor": {
+      "count": 4695,
+      "total": 14000,
+      "limit": 14000,
+      "spacing": [
+        14,
+        23
+      ]
+    },
+    "ready": 1,
+    "errors": [],
+    "groundPixelDelta": 14.449904040404041
+  }
+]

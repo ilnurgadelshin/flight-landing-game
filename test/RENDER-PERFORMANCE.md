@@ -650,3 +650,80 @@ approach streaming/model fallbacks, vegetation/weather, authored scenery, delive
 23 graphics checks. Extended planting counts are in `benchmarks/2026-10-06-extended-corridor.json`.
 The full functional browser suite was not rerun. SwiftShader cannot initialize WebGL2 on
 this machine; software-renderer and other-device performance remain unverified.
+
+
+## Connected roadside buildings and grounds — 2026-10-07
+
+Baseline: published `0597454`. The original farm expands from three to nine complete buildings,
+with matching lawns, yards, drives, a local lane, fences and 14 placed trees. Existing source
+footprints remain; architecture and some estimated heights are interpreted. Normal-mapped
+clapboard/roof relief replaces thin raised strips after visual inspection exposed bright
+subpixel lines. Buildings contain 47,473 triangles, new grounds/fences 39,844 and the original
+yard 2,924. Nine building-material batches plus five ground/fence batches give 14 before
+subtracting the replaced facade geometry. The narrow lane uses a terrain-following ribbon;
+unused parcel-grid vertices are discarded before upload. Overall tree budgets are unchanged.
+
+Delivered farm GLBs are 1,406,404 bytes high / 961,224 low, an increase of 426,460 / 426,128
+bytes; new site data adds 6,501 bytes. Existing gravel, grass and asphalt maps are reused.
+Including runtime code/data changes, fully prepared resource bodies increase by approximately
+**0.446 MB on either tier**. No new third-party download or license is introduced. New relief
+maps are embedded in the GLBs; assets load during menu preparation.
+
+Fresh paired fixed-view runs on Apple M2 Pro, Chromium 141 / ANGLE Metal, 1440×900, high
+forced 1.5× / low 1×, four-second warm-up and twelve-second samples. The updated run was
+followed by the full flight and a refreshed published baseline; no other GPU tests ran
+concurrently. These are display-capped RAF intervals, not uncapped GPU throughput, and small
+differences include normal run variation. The site camera is at (2670,24,500), looking at
+(2600,3,433). Reports: `benchmarks/2026-10-07-roadside-render-{before,after}.json`.
+
+| Fixed scene | Before FPS | After FPS | Draw calls before → after |
+| --- | ---: | ---: | ---: |
+| High captain | 39.64 | 39.64 | 924 → 930 |
+| High nearby | 54.43 | 51.61 | 421 → 431 |
+| High storm | 42.69 | 42.44 | 918 → 924 |
+| High site | 44.77 | 50.52 | 395 → 396 |
+| Low captain | 60.00 | 60.00 | 530 → 533 |
+| Low nearby | 60.00 | 60.00 | 285 → 289 |
+| Low storm | 60.00 | 60.00 | 508 → 511 |
+| Low site | 60.00 | 60.00 | 257 → 260 |
+
+Captain pacing is effectively unchanged and the storm view changes by less than 1%. The
+nearby farm view is **5.2% slower** at high 1.5× (54.43 → 51.61 FPS). Its rendered triangles
+increase from 1.14 to 2.28 million: revised tree positions change which nearby models enter
+the existing bounded 3D selection, in addition to the site geometry. The new site view is
+faster (44.77 → 50.52 FPS), where lawn/yard clearance removes formerly misplaced trees.
+This is a local tradeoff, not a general renderer speedup. All four low views remain at the
+60 FPS display cap. High 1.5× still does not sustain 60 FPS in the cockpit.
+
+A cold-cache full landing through the actual UI Start uses high at fixed 1×, seed 11 and
+real-time physics. The published vegetation flight is the prior baseline, not a newly timed
+flight. Both complete with 100/A and no asset or JavaScript errors. Localhost preparation
+timing is not an Internet download measurement. Reports:
+`benchmarks/2026-10-06-vegetation-flight.json` and `benchmarks/2026-10-07-roadside-flight.json`.
+
+| Complete flight | Published vegetation | Updated roadside site |
+| --- | ---: | ---: |
+| Average FPS | 59.88 | 59.88 |
+| 99th-percentile frame | 16.8 ms | 16.8 ms |
+| Worst interval, at startup | 166.6 ms | 183.4 ms |
+| Worst later interval | 49.9 ms | 49.9 ms |
+| Start wait on localhost | 5.38 s | 5.25 s |
+| Prepared resource bodies | 62.06 MB | 62.50 MB |
+| Requests begun during flight | 0 | 0 |
+
+The startup hitch is not eliminated. The earlier dense-grid site draft took 7.22 seconds
+at Start in its local trial; after the road ribbon and geometry cleanup, the final trial
+is 5.25 seconds. This is a diagnostic observation, not an isolated causal benchmark.
+
+Delivery checks pass: menu bodies **14.00 MB high / 8.60 MB low** remain below 15/9 MB;
+fully prepared scenery is 62.34 MB high / 17.30 MB low. Site assets remain deferred until
+preparation and no assets are requested after prepared Start. Automatic quality and hidden-tab
+checks pass. Report: `benchmarks/2026-10-07-roadside-delivery.json`.
+
+All 14 Node suites and the stronger normal-map UV checks pass. Hardware browser checks pass
+for all nine roofs, terrain contact, road connections, garden planting/clearance, visible ground
+replacement, missing site/model/texture fallbacks, existing approach streaming, corridor,
+delivery and all 23 graphics checks. Reports: `benchmarks/2026-10-07-roadside-{site,assets,planting}.json`.
+The full functional browser suite was not rerun. Other computers/phones are not benchmarked,
+and SwiftShader cannot initialize WebGL2 here. Matched stills and captain-eye recordings are
+available in the local `output/roadside-site-review.html`.

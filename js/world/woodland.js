@@ -96,7 +96,7 @@ export async function addWoodland(world,photo,approachPhoto) {
         const x=xx+(localRng()-.5)*spacing*.8,z=zz+(localRng()-.5)*spacing*.8;
         const cover=corridor.sample(x,z),weight=cover[2];
         if(weight<.15||cover[0]+cover[1]>.35||localRng()>Math.min(1,weight*1.6))continue;
-        if(protectedScenery(x,z,14)||world.approachBuildingExcludes?.(x,z)||world.approachRoadExcludes?.(x,z))continue;
+        if(world.approachSiteExcludes?.(x,z)||protectedScenery(x,z,14)||world.approachBuildingExcludes?.(x,z)||world.approachRoadExcludes?.(x,z))continue;
         const stand=groveNoise(x/95+4,z/95-7),choice=localRng();
         const species=localRng();
         const row=choice<.07?4+Math.floor(localRng()*3):choice<.12?1+Math.floor(localRng()*3):species<.2+stand*.25?7:species<.68+stand*.12?0:8;
@@ -111,6 +111,11 @@ export async function addWoodland(world,photo,approachPhoto) {
     for(let i=localTrees.length-1;i>0;i--){const j=Math.floor(localRng()*(i+1));[localTrees[i],localTrees[j]]=[localTrees[j],localTrees[i]];}
     localTrees.length=Math.min(localTrees.length,low?4800:10000);
   }
+  // Individually placed garden/edge trees share the same geometry/instance budget.
+  for(const [i,t] of (world.approachSiteTrees||[]).entries()){
+    if(world.approachSiteRoadExcludes?.(t.x,t.z)||world.approachBuildingExcludes?.(t.x,t.z)||world.approachRoadExcludes?.(t.x,t.z)||protectedScenery(t.x,t.z,14))continue;
+    localTrees.push({...t,type:i%4,w:t.h*atlas.species[t.row].aspect,yaw:i*2.399});
+  }
   let count=0;
   for(let k=0;k<limit*30&&count<limit-localTrees.length;k++){
     // Spend more of the fixed instance budget in the approach corridor. Dense
@@ -119,7 +124,7 @@ export async function addWoodland(world,photo,approachPhoto) {
     const x=close?2000+rng()*8000:-3900+rng()*13800,z=(rng()-.5)*(close?4000:7800);
     if(Math.abs(x)<2100&&Math.abs(z-120)<700)continue;
     if(Math.abs(z)<180&&x>1500&&x<3400)continue;
-    if(world.approachBuildingExcludes?.(x,z))continue;
+    if(world.approachSiteExcludes?.(x,z)||world.approachBuildingExcludes?.(x,z))continue;
     if(world.approachRoadExcludes?.(x,z))continue;
     const cover=corridor?.sample(x,z);
     if(cover&&cover[0]+cover[1]+cover[2]>.15)continue; // Reviewed fields stay open, woodland is planted below.

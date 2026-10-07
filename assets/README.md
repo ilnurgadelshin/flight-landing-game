@@ -271,18 +271,31 @@ Coverage is approximately 23.66 ha meadow, 6.97 ha stubble and 173.14 ha woodlan
 340 ha rectangle; the remaining area keeps its original surface. Tree instances are
 reallocated within the existing 52,000 high / 14,000 low budget. The 111,199-byte PNG/JSON
 pair stays below 125 KB. Close planting uses 9.5 m high / 14 m low spacing; the extension uses 16 m / 23 m. These interpreted stands reallocate
-9,994 high / 4,727 low trees within the overall budget.
+up to 10,000 high / 4,800 low woodland trees within the overall budget. Complete sites may
+exclude some of these positions and add individually placed garden trees instead.
 
 Reproduce with `node tools/bake-corridor.mjs`; validate with `npm run test:corridor`.
 
-## Complete valley farm — original geometry / CC0 materials
+## Complete valley farm and roadside cluster — original geometry / CC0 materials
 
-`scenery/valley-farm.glb` and its `-low` variant contain three complete buildings, originally
-authored by `tools/prepare-farm.py` in Blender under the project's MIT license. Two barns
-use the existing NAIP-traced infill outlines; the workshop retains its Microsoft footprint.
-Roof outlines, heights and placement stay registered. Architecture, wear, yard boundaries
-and wheel-worn lanes are interpretations, not a surveyed reconstruction of those buildings.
-The original 737 cockpit is unrelated to this asset preparation.
+`scenery/valley-farm.glb` and its `-low` variant contain nine complete buildings, originally
+authored by `tools/prepare-farm.py` in Blender under the project's MIT license. The original
+two barns use the NAIP-traced infill outlines; the workshop and six neighboring buildings
+retain their Microsoft footprints. The additions include two clapboard homes, a red-roofed
+garage and three timber working buildings. Recessed openings, thick roof edges/ridge caps, gutters, door
+canopies, foundations and home chimneys are geometry. Fine clapboard laps and standing seams
+use original 512 px repeating normal maps, filtered through mipmaps instead of thin raised
+strips that produced bright broken lines at flight distances. Source heights are estimates; the
+new buildings use interpreted roof heights recorded alongside `sourceHeight` in the manifest.
+Architecture, wear and grounds are interpretations, not a surveyed reconstruction.
+
+`scenery/valley-site.json` traces lawns, gravel yards, five road connections, an internal
+access path, an unmarked local lane and timber boundaries from bundled public-domain NAIP
+`detail/2_0.webp`. The original farm yard remains. Surface meshes follow the rendered terrain
+on each tier; alpha edges blend into the original ground. Lawn grain and asphalt reuse the
+existing CC0 ground materials. Photographed structures and shadows beneath these surfaces
+are covered. Fourteen eligible boundary/garden trees replace random planting inside the site,
+within the unchanged overall tree budget; roads, yards and buildings remain clear.
 
 The siding and gravel yard use these **CC0** scans:
 
@@ -294,10 +307,12 @@ The siding and gravel yard use these **CC0** scans:
 Source URLs, authors, checksums, placements and exact delivered byte counts are retained in
 `scenery/farm-sources.json`. Wood textures use 1024 px high / 512 px low WebP. The gravel
 colour map follows those sizes; gravel normal and roughness maps use 512 px on both tiers.
-Meshes are Meshopt-compressed and merged into seven material batches at runtime. One
-terrain-following yard mesh blends into the surrounding imagery, keeping ground shadows
-and atmosphere. The assets load during scenery preparation behind the menu. A missing
-model or yard texture retains all three original buildings and the underlying imagery.
+Meshes are Meshopt-compressed. Nine building material batches, the original yard, three
+new ground surfaces and one timber-boundary batch total 14 draw batches before subtracting
+replaced facade geometry. Buildings use 47,473 triangles; grounds/fences use 39,844
+plus the original 2,924-triangle yard. Only referenced parcel-grid vertices are uploaded; the narrow lane uses a feathered ribbon. The assets
+load during scenery preparation behind the menu. A missing model, site data or yard texture
+retains all nine original procedural buildings and the underlying imagery.
 
 Reproduce (download cache and Blender source remain under ignored `test/output/farm-sources/`):
 

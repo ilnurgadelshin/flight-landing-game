@@ -184,6 +184,7 @@ export function buildLandscape(world) {
       }));
     const progress=world.sceneryProgress;progress.total+=jobs.length;   // the loading screen's finer steps
     const results=await Promise.allSettled(jobs.map(job=>job.finally(()=>progress.done++)));
+    if(world.valleyRoadMaterial&&world.pavementTextures)detailPavement(world.valleyRoadMaterial,world.pavementTextures);
     world.assetErrors.push(...results.filter(r=>r.status==='rejected').map(r=>String(r.reason)));
   });
 }

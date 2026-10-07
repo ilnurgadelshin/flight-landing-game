@@ -659,16 +659,19 @@ The visual assets are bundled locally and need no map service, account or API ke
   Houses have a principal entrance bay; nearby high-quality windows have beveled frames,
   smoother panes and matching ledges. Wall roughness and siding relief separate the
   materials. Roof gables remain solid, and projected ground shadows have feathered edges.
-  Selected close-approach buildings (37 high / 13 low) use CC0 Poly Haven wall modules
+  Selected close-approach buildings (31 high / 12 low) use CC0 Poly Haven wall modules
   with authored textures, recessed windows and doors, merged into spatial batches. Roofs
   and unselected buildings retain their procedural forms.
   Five additional farm roofs traced from the public-domain imagery fill prominent gaps
   in the source footprints, with interpreted corrugated roofs and agricultural facades.
-  Three buildings at the valley farm now use complete original models: weathered timber,
-  recessed openings, sliding doors, standing-seam roofs, vents, gutters and foundations.
-  A terrain-following gravel yard and drive replace the blurred photo surface at that site.
-  Timber and gravel use CC0 scans. Existing footprints, heights and tree clearances are
-  preserved; the previous buildings remain as a fallback if the farm assets fail to load.
+  Nine buildings at the valley farm and neighboring roadside cluster use complete original
+  models: timber barns, clapboard homes and a red-roofed garage with recessed openings,
+  roof details, gutters and foundations. Matching lawns, gravel yards, connected drives,
+  a local lane, fences and 14 placed trees replace the photographic ground at these sites.
+  Fine clapboard and roof seams use filtered normal maps to avoid bright subpixel strips.
+  Timber and gravel use CC0 scans. Footprints are retained; architecture, grounds and some
+  estimated heights are interpreted. The previous buildings remain as a fallback if the
+  site assets fail to load.
   Two imagery-checked valley roads use public-domain Census centerlines, terrain-following
   pavement and roadside markers. Woodland crowns leave clearance around buildings and roads.
 - **Scanned grass and asphalt materials** add surface detail around the runway,
@@ -714,6 +717,8 @@ commands are in [`assets/README.md`](assets/README.md). Players can open the cre
 overhead views, unchanged buffers for settled trees and the corrupt-volume fallback. It
 also captures matched vegetation, cumulus and overcast views. Fixed-resolution measurements
 for each improvement stage are recorded in [`test/RENDER-PERFORMANCE.md`](test/RENDER-PERFORMANCE.md).
+`node test/valley-site.mjs` checks complete roadside buildings, terrain contact, tree clearance
+and visible site surfaces, with matched cockpit descent recordings and high/low screenshots.
 `node test/tree-transitions.mjs` compares image/geometry silhouettes and records a moving
 woodland pass while checking instance, triangle and fade-speed limits.
 `npm run test:corridor` checks land-cover registration, transfer and planting budgets,
