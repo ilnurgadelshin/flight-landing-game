@@ -1,0 +1,181 @@
+{
+  "startWaitSeconds": 5.624,
+  "seconds": 137.63180000019074,
+  "frames": 8252,
+  "fps": 59.87181105698712,
+  "p50Ms": 16.69999999999709,
+  "p95Ms": 16.70000000001164,
+  "p99Ms": 16.80000000000291,
+  "worstMs": 200,
+  "over50Ms": 1,
+  "over100Ms": 1,
+  "worstFrames": [
+    {
+      "seconds": -0.005899999809264955,
+      "ms": 200,
+      "x": 8892.207255520654
+    },
+    {
+      "seconds": 44.62560000019074,
+      "ms": 49.900000000001455,
+      "x": 5586.573158775054
+    },
+    {
+      "seconds": 48.89220000019073,
+      "ms": 33.400000000001455,
+      "x": 5274.355128945345
+    },
+    {
+      "seconds": 80.82420000019073,
+      "ms": 33.39999999999418,
+      "x": 2923.745939998977
+    },
+    {
+      "seconds": 0.027400000190735227,
+      "ms": 33.30000000000018,
+      "x": 8889.777578257239
+    },
+    {
+      "seconds": 49.07540000019073,
+      "ms": 33.299999999995634,
+      "x": 5260.9350355378865
+    },
+    {
+      "seconds": 137.60520000019073,
+      "ms": 33.29999999998836,
+      "x": -80.96493592373722
+    },
+    {
+      "seconds": 124.52250000019075,
+      "ms": 16.800000000017462,
+      "x": 119.29124980681814
+    },
+    {
+      "seconds": 124.72250000019075,
+      "ms": 16.800000000017462,
+      "x": 113.16867350542265
+    },
+    {
+      "seconds": 124.77250000019075,
+      "ms": 16.800000000017462,
+      "x": 111.65224199080791
+    },
+    {
+      "seconds": 125.02250000019075,
+      "ms": 16.800000000017462,
+      "x": 104.15537284367542
+    },
+    {
+      "seconds": 125.47250000019075,
+      "ms": 16.800000000017462,
+      "x": 91.01894692885509
+    }
+  ],
+  "streamed": [],
+  "preparedBytes": 62624380,
+  "qualityHistory": [
+    {
+      "seconds": 0.00009999990463256836,
+      "tier": "high",
+      "ratio": 1
+    }
+  ],
+  "quality": "high",
+  "result": {
+    "outcome": "success",
+    "headline": "Excellent landing, Captain",
+    "score": 100,
+    "grade": "A",
+    "items": [
+      {
+        "label": "Vertical speed at touchdown",
+        "value": "110 fpm",
+        "points": 25,
+        "max": 25,
+        "note": "Greaser! Textbook touchdown.",
+        "ok": true
+      },
+      {
+        "label": "Touchdown point",
+        "value": "478 m past the threshold",
+        "points": 20,
+        "max": 20,
+        "note": "In the aiming zone.",
+        "ok": true
+      },
+      {
+        "label": "Centreline",
+        "value": "0.0 m left",
+        "points": 15,
+        "max": 15,
+        "note": "On the centreline.",
+        "ok": true
+      },
+      {
+        "label": "Airspeed at touchdown",
+        "value": "140 kts (Vref 142)",
+        "points": 15,
+        "max": 15,
+        "note": "Speed on target.",
+        "ok": true
+      },
+      {
+        "label": "Alignment",
+        "value": "0.1° crab, 0.1° bank",
+        "points": 15,
+        "max": 15,
+        "note": "Aligned with the runway, wings level.",
+        "ok": true
+      },
+      {
+        "label": "Configuration",
+        "value": "Flaps 30, gear down",
+        "points": 5,
+        "max": 5,
+        "note": "Landing flaps set.",
+        "ok": true
+      },
+      {
+        "label": "Stopping",
+        "value": "1095 m roll-out",
+        "points": 5,
+        "max": 5,
+        "note": "Stopped after a 1095 m roll-out using reversers, speedbrakes, brakes.",
+        "ok": true
+      }
+    ],
+    "failures": [],
+    "notes": [],
+    "touchdown": {
+      "t": 107.17500000003136,
+      "sink": 0.5607786451847456,
+      "ias": 139.8484917775204,
+      "groundSpeed": 70.31244591626972,
+      "alongRunway": 478.1354533351764,
+      "distFromThreshold": 478.1354533351764,
+      "lateralOffset": -0.03620477554729782,
+      "bank": -0.0009585004014810342,
+      "pitch": 0.0664552858931339,
+      "crabDeg": -0.0780791027935499,
+      "gearDown": true,
+      "flapIndex": 4,
+      "flapDeg": 30,
+      "surface": "runway",
+      "onRunway": true,
+      "direction": "27",
+      "x": 1013.083507057826,
+      "z": 0.03382086310227375,
+      "gLoad": 1.185684101597774,
+      "speedbrakeArmed": true,
+      "hull": false
+    },
+    "rollDistance": 1094.6714665126688,
+    "success": true
+  },
+  "errors": [],
+  "pixelRatio": 1,
+  "nearTrees": 0,
+  "browser": "141.0.7390.37",
+  "autoQuality": false,
+  "method": "1440x900, forced high at fixed 1x, real-time physics/autoland through UI Start, cold browser resource cache, actual menu preparation/streaming policy, local HTTP server, ANGLE Metal. Start wait is measured to the first in-flight RAF; frame intervals begin after it."
+}

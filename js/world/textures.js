@@ -45,21 +45,17 @@ export function makeRunwayTexture(anisotropy, maxSize = 8192) {
     img.data[i] += n; img.data[i + 1] += n; img.data[i + 2] += n;
   }
   g.putImageData(img, 0, 0);
-  // concrete slab joints (transverse lines every 7.5 m)
-  g.strokeStyle = 'rgba(0,0,0,0.25)';
-  g.lineWidth = 1;
-  for (let m = 0; m < L; m += 7.5) { g.beginPath(); g.moveTo(m * sx, 0); g.lineTo(m * sx, H); g.stroke(); }
-  // rubber deposits: dark streaks 150..900 m from each threshold, centre 12 m wide-ish
-  for (const dir of [1, -1]) {
-    for (let i = 0; i < 260; i++) {
-      const d = 120 + rng() * 800;
-      const m = dir === 1 ? L - d : d;
-      const zc = (rng() - 0.5) * 12 + (rng() < 0.5 ? -2.9 : 2.9);
-      const len = 8 + rng() * 40;
-      g.strokeStyle = `rgba(10,10,12,${0.12 + rng() * 0.25})`;
-      g.lineWidth = (0.5 + rng() * 0.7) * sy;
-      g.beginPath(); g.moveTo(m * sx, (RW / 2 + zc) * sy); g.lineTo((m - dir * len) * sx, (RW / 2 + zc + (rng() - 0.5) * 0.6) * sy); g.stroke();
-    }
+  // Asphalt has resurfaced lanes and occasional repairs, not a concrete joint
+  // every 7.5 m. Broad low-contrast variation survives the approach distance.
+  for(let strip=0;strip<6;strip++){
+    const gradient=g.createLinearGradient(0,strip*H/6,0,(strip+1)*H/6);
+    gradient.addColorStop(0,'rgba(10,12,14,.035)');gradient.addColorStop(.12,'rgba(10,12,14,.008)');
+    gradient.addColorStop(.88,'rgba(10,12,14,.008)');gradient.addColorStop(1,'rgba(10,12,14,.035)');
+    g.fillStyle=gradient;g.fillRect(0,strip*H/6,W,H/6);
+  }
+  for(let i=0;i<38;i++){
+    const x=rng()*W,y=rng()*H,w=(4+rng()*16)*sx,h=(1+rng()*3)*sy;
+    g.fillStyle=`rgba(18,20,22,${.025+rng()*.065})`;g.fillRect(x,y,w,h);
   }
 
   const white = '#e9e9e2';
@@ -112,6 +108,18 @@ export function makeRunwayTexture(anisotropy, maxSize = 8192) {
   };
   endMarkings(1, RUNWAY.ident);
   endMarkings(-1, RUNWAY.reciprocal);
+  // Rubber sits ON the paint as well as the asphalt. Narrow overlapping tyre
+  // paths build up gradually near touchdown, with feathered ends and a worn edge.
+  for(const dir of [1,-1])for(let i=0;i<460;i++){
+    const d=160+rng()*850,m=dir===1?L-d:d;
+    const lane=rng()<.18?(rng()-.5)*.6:(rng()<.5?-1:1)*(2.7+(rng()-.5)*2.1)+(rng()-.5)*1.0;
+    const len=12+rng()*85,thickness=(.12+rng()*.35)*sy;
+    const x=m*sx,end=(m-dir*len)*sx,y=(RW/2+lane)*sy;
+    const deposit=g.createLinearGradient(x,y,end,y),strength=(.035+rng()*.11)*Math.max(.15,1-Math.abs(d-390)/650);
+    deposit.addColorStop(0,'rgba(13,14,15,0)');deposit.addColorStop(.12,`rgba(13,14,15,${strength})`);
+    deposit.addColorStop(.7,`rgba(13,14,15,${strength*.7})`);deposit.addColorStop(1,'rgba(13,14,15,0)');
+    g.strokeStyle=deposit;g.lineWidth=thickness;g.beginPath();g.moveTo(x,y);g.lineTo(end,y+(rng()-.5)*.15*sy);g.stroke();
+  }
   return makeTexture(c, { anisotropy });
 }
 

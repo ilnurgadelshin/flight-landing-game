@@ -33,7 +33,7 @@ ignored `test/output/visual-audit-before/` folder; current captures are `test/ou
 | 7 | Runway lights look like a luminous rectangle by day | Smaller daytime cores, lower daylight intensity, distinct PAPI/beacon sizing and fog attenuation without a minimum visibility floor. Night bloom retained. | Point-based lights approximate optical glare; no lens-scattering simulation. |
 | 8 | Flat, muddy illumination and weak foreground depth | Reduced warm daytime lamps in favour of neutral sky light. Sun shadows plus a rebake of close contact and cabin sky access, including the fitted roof. Baked occlusion now affects indirect light rather than darkening the paint and direct sunlight. | No real-time global illumination. The bake approximates sky access and bounced light; it cannot replace fully authored materials. |
 | 9 | Box-like airport and disconnected jet bridges | Five glazed gate halls with curved metal roofs and recessed piers connect through a lower concourse. Existing jet bridges reach their aircraft; roof seams, plant, hangar ribs and bases remain. | Buildings are still procedural architecture. A detailed terminal asset would offer a larger further improvement. |
-| 10 | Clean rectangular pavement pasted onto the terrain | Irregular runway shoulders, softer grass margins, subtle mowing, asphalt variation, apron slabs and expansion joints. | Ground-level wear, drainage and small debris remain sparse. |
+| 10 | Clean rectangular pavement pasted onto the terrain | Textured aggregate shoulders with feathered soil margins, subtle mowing, asphalt resurfacing/repairs and tyre deposits, apron slabs and expansion joints. | Ground-level wear, drainage and small debris remain sparse. |
 | 11 | Windshields appear absent | Removed the approximation planes fitted to the incorrectly stretched shell during the source-fidelity correction. | Glazing should follow the actual source panes. Refraction, water droplets and optical distortion remain unimplemented; the separate cockpit pass limits physical transmission. |
 | 12 | Hard black fog horizon, a dark sheet inside the cloud transition, and lights visible through opaque cloud | Fixed shared atmospheric uniforms on foliage/deck shaders; show cloud surfaces only from outside the deck; removed the lights' 3% fog visibility floor. Added rendered regression checks. | The earlier audit incorrectly blamed a CSS rain overlay: it was already disabled. Existing rain uses 3D streaks driven by relative velocity; realistic water on glass remains future work. |
 | 13 | Jagged foliage, grain and inconsistent fine-detail sharpness | Alpha-to-coverage for foliage, anisotropic filtering and mipmapped, metric-scale cockpit finishes. Removed the cockpit shadow normal offset that stippled the double-sided liner; existing 4× world MSAA and cockpit antialiasing remain. | No temporal AA. Thin modeled labels, shadow edges and branches can still shimmer at distance. |
@@ -728,3 +728,41 @@ geometry, the original source imagery is limited in resolution, distant/low tree
 image-based, and most buildings remain procedural. This pass does not improve clouds,
 windshield water or cockpit material detail. More complete scenery and near-ground vegetation
 remain the largest ground-related gaps; overcast and windshield weather remain separate work.
+
+
+## Runway shoulders and pavement — 2026-10-08
+
+Baseline: published `c9b53bd`. The broad, untextured grey shoulder strips are replaced by
+a single strip mesh using the already delivered asphalt colour, normal and roughness scans.
+A muted soil-coloured outer margin feathers into the grass. Irregularities are sampled every
+3 m rather than the previous 25 m sawtooth outline. Both sides have upward-facing triangles;
+the old geometry used the same winding on both sides and relied on a double-sided material.
+Weather darkens the aggregate and the shared atmospheric shading remains active. Missing
+surface scans retain a plain, feathered edge without preventing flight preparation.
+
+The runway's repeating transverse concrete-joint grid is removed from its asphalt surface.
+Subtle resurfacing lanes and occasional repair patches replace it. Narrow, overlapping rubber
+deposits have feathered ends and include the centre nose-wheel track; they are drawn after
+the paint. Runway dimensions and the layout of its numbers, threshold/TDZ/aiming/centre/edge
+markings are unchanged. This is an artistic pavement treatment, not a surveyed airport asset.
+
+Matched high/low shoulder, touchdown-area, ordinary captain-eye short-final/flare/rollout,
+night and storm captures are in [the local comparison](output/runway-surface-review.html).
+The improvement is strongest in exterior views beside the runway. Its contribution from
+the cockpit is smaller, especially in the flare; this is not a large scenery replacement.
+
+A local curved-blade grass prototype was also reviewed and rejected. Its sparse tufts did
+not convincingly fill the foreground despite up to 559,872 high / 115,248 low triangles.
+Initial prototype cockpit captures used flight trim for the rollout pose, so they are not
+reliable evidence of its cockpit contribution. The final runway review corrects this to an
+on-ground attitude for rollout and approach/flare attitudes in flight. The prototype is not integrated or
+delivered. Ground-level grass/crops remain unfinished; more blades alone are not an adequate
+solution. Broader complete scenery, distant/low tree approximations, overcast, windshield
+water and unique cockpit wear textures remain separate priorities.
+
+All 14 Node suites, all 23 graphics checks and the seven-view high/low surface browser checks pass, including
+upward-facing geometry and the missing scan fallback. The full high 1× landing completes
+100/A at 59.87 FPS with no in-flight resource requests. Paired 1.5× timings show small
+changes (approximately +2.5% to -1.8%) rather than a material frame-rate gain. Startup
+still has a 200 ms hitch. See the runway section of [the performance record](RENDER-PERFORMANCE.md)
+for exact costs, recorded reports and device/test limitations.

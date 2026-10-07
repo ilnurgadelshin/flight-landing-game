@@ -181,6 +181,7 @@ export function buildLandscape(world) {
     jobs.push(Promise.all([load('asphalt-color',true,true),load('asphalt-normal',false,true),load('asphalt-rough',false,true)])
       .then(async([color,normal,rough])=>{
         world.pavementTextures={color,normal,rough};
+        world.runwayShoulders.setTextures(world.pavementTextures);
         await roads.catch(()=>{});
         for(const mat of [world.runwayMat,...world.pavementMats,world.approachRoadMaterial].filter(Boolean)) detailPavement(mat,{color,normal,rough});
       }));

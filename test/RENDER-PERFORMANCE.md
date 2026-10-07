@@ -807,3 +807,58 @@ roofs and 14 garden trees, vegetation/weather including corrupt density fallback
 unavailable here. Matched stills, normal cockpit views and costs are in the local
 `output/opposite-approach-review.html`. Very low ground still lacks grass/crop geometry, and
 photographic blur/shadows remain outside the interpreted parcels.
+
+
+## Runway shoulder and pavement finish — 2026-10-08
+
+Baseline: published `c9b53bd`, archived into a temporary directory. Both builds were measured
+sequentially on Apple M2 Pro / Chromium 141 / ANGLE Metal, 1440×900, high fixed 1.5× and low
+fixed 1×, four-second warm-up and twelve-second samples. The added `shoulder` scene uses
+(1250,3.7,-29) looking at (1120,1,-41). `rollout` uses the ordinary captain camera with an
+on-ground aircraft at x=1000. Existing captain and storm views remain unchanged.
+Reports: `benchmarks/2026-10-08-runway-render-{before,after}.json`.
+
+| Fixed scene | Before FPS | After FPS | Draw calls before → after |
+| --- | ---: | ---: | ---: |
+| High captain | 38.48 | 39.42 | 932 → 931 |
+| High rollout | 41.83 | 41.55 | 703 → 702 |
+| High shoulder | 59.09 | 58.01 | 407 → 406 |
+| High storm | 42.05 | 41.94 | 926 → 925 |
+| Low captain | 60.00 | 60.00 | 533 → 532 |
+| Low rollout | 60.00 | 60.00 | 401 → 400 |
+| Low shoulder | 60.00 | 60.00 | 286 → 285 |
+| Low storm | 59.92 | 59.50 | 511 → 510 |
+
+High results range from approximately 2.5% faster to 1.8% slower; the largest observed cost
+is the close shoulder view (59.09 → 58.01 FPS). Low views remain approximately 60 FPS. These
+small changes include run-to-run variation. This is not evidence of a general performance
+improvement, nor a benchmark of phones or other GPUs. These are display-capped RAF timings.
+
+The new shoulder geometry contains 12,000 triangles in one mesh instead of 480 triangles in
+two meshes: +11,520 triangles, -1 draw per rendered view. Its position/normal/UV/index arrays
+occupy 328,256 bytes instead of approximately 14,496 bytes (+313,760 bytes, both CPU and GPU
+geometry buffers before driver overhead). No new texture or model is delivered; the already
+loaded asphalt scans are shared. The runway canvas remains 8192×512 where the device allows
+it. Additional cost is shader sampling, shoulder blending and the small runtime module.
+
+A rejected grass prototype would have submitted up to 559,872 high / 115,248 low triangles
+with roughly 1.49 / 0.31 MB of instance attributes. Rendered exterior review found sparse tufts; the initial
+prototype cockpit poses were not adequate for judging its landing-view contribution. It was removed, so none of those costs is in this
+benchmark or in the delivered game. No hardware FPS claim is made for that prototype.
+
+The actual UI Start / complete autoland run (high fixed 1×, seed 11, cold browser cache)
+finished at 100/A with no JavaScript or asset errors. It averaged **59.87 FPS**, with a
+**16.8 ms** p99 frame interval. The worst interval remains **200 ms** at startup; the
+worst later interval was **49.9 ms**. Start preparation took **5.62 s** on localhost.
+There were **0 requests begun during flight**. Prepared resource bodies were
+**62,624,380 bytes**, **3,880 bytes** more than the previous opposite-approach run.
+This increase is runtime code, not new imagery or models. The previous recorded flight
+was 59.91 FPS / 16.8 ms p99; it was not freshly retimed for this pass. Startup hitching
+and Internet/mobile-network behavior are not solved by this surface change.
+Report: `benchmarks/2026-10-08-runway-flight.json`.
+
+All 14 Node suites and all 23 graphics browser checks pass. The targeted surface check covers seven matched views
+on each tier, upward-facing shoulder triangles, successful use of the shared scans and a
+missing-normal-map fallback. Report: `benchmarks/2026-10-08-runway-surfaces.json`.
+The full functional browser suite and other GPUs/phones were not tested; SwiftShader
+remains unavailable on this machine. Local review: `output/runway-surface-review.html`.

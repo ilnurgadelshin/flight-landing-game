@@ -676,7 +676,9 @@ The visual assets are bundled locally and need no map service, account or API ke
   Two imagery-checked valley roads use public-domain Census centerlines, terrain-following
   pavement and roadside markers. Woodland crowns leave clearance around buildings and roads.
 - **Scanned grass and asphalt materials** add surface detail around the runway,
-  taxiways and apron. Nearby fields and soil gain finer scanned colour, normal and roughness
+  taxiways and apron. Runway shoulders share the asphalt scans and feather through a soil
+  margin into the turf; subtle resurfacing, repairs and tyre deposits replace the repeating
+  pavement grid. Nearby fields and soil gain finer scanned colour, normal and roughness
   detail while retaining the aerial imagery's boundaries. Five glazed gate halls with curved
   metal roofs and recessed structural bays replace the long terminal slab, joined by a low
   concourse. Jet bridges and vehicles remain, with authored **B737 and A320** models on the stands.

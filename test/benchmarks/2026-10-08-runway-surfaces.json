@@ -1,0 +1,189 @@
+[
+  {
+    "tier": "high",
+    "views": [
+      {
+        "view": "shoulder",
+        "ready": 1,
+        "triangles": 12000,
+        "down": 0,
+        "eye": [
+          1250,
+          3.7,
+          -29
+        ],
+        "errors": []
+      },
+      {
+        "view": "touchdown",
+        "ready": 1,
+        "triangles": 12000,
+        "down": 0,
+        "eye": [
+          1350,
+          14,
+          -45
+        ],
+        "errors": []
+      },
+      {
+        "view": "rollout",
+        "ready": 1,
+        "triangles": 12000,
+        "down": 0,
+        "eye": [
+          987.615,
+          2.9394999999999993,
+          0.4080000000000027
+        ],
+        "errors": []
+      },
+      {
+        "view": "flare",
+        "ready": 1,
+        "triangles": 12000,
+        "down": 0,
+        "eye": [
+          1587.6624983069123,
+          12.169374714562954,
+          0.4080000000000028
+        ],
+        "errors": []
+      },
+      {
+        "view": "final",
+        "ready": 1,
+        "triangles": 12000,
+        "down": 0,
+        "eye": [
+          2087.6358828416564,
+          45.84261031607413,
+          0.4080000000000027
+        ],
+        "errors": []
+      },
+      {
+        "view": "storm",
+        "ready": 1,
+        "triangles": 12000,
+        "down": 0,
+        "eye": [
+          1250,
+          3.7,
+          -29
+        ],
+        "errors": []
+      },
+      {
+        "view": "night",
+        "ready": 1,
+        "triangles": 12000,
+        "down": 0,
+        "eye": [
+          1250,
+          3.7,
+          -29
+        ],
+        "errors": []
+      }
+    ]
+  },
+  {
+    "tier": "low",
+    "views": [
+      {
+        "view": "shoulder",
+        "ready": 1,
+        "triangles": 12000,
+        "down": 0,
+        "eye": [
+          1250,
+          3.7,
+          -29
+        ],
+        "errors": []
+      },
+      {
+        "view": "touchdown",
+        "ready": 1,
+        "triangles": 12000,
+        "down": 0,
+        "eye": [
+          1350,
+          14,
+          -45
+        ],
+        "errors": []
+      },
+      {
+        "view": "rollout",
+        "ready": 1,
+        "triangles": 12000,
+        "down": 0,
+        "eye": [
+          987.615,
+          2.9394999999999993,
+          0.4080000000000027
+        ],
+        "errors": []
+      },
+      {
+        "view": "flare",
+        "ready": 1,
+        "triangles": 12000,
+        "down": 0,
+        "eye": [
+          1587.6624983069123,
+          12.169374714562954,
+          0.4080000000000028
+        ],
+        "errors": []
+      },
+      {
+        "view": "final",
+        "ready": 1,
+        "triangles": 12000,
+        "down": 0,
+        "eye": [
+          2087.6358828416564,
+          45.84261031607413,
+          0.4080000000000027
+        ],
+        "errors": []
+      },
+      {
+        "view": "storm",
+        "ready": 1,
+        "triangles": 12000,
+        "down": 0,
+        "eye": [
+          1250,
+          3.7,
+          -29
+        ],
+        "errors": []
+      },
+      {
+        "view": "night",
+        "ready": 1,
+        "triangles": 12000,
+        "down": 0,
+        "eye": [
+          1250,
+          3.7,
+          -29
+        ],
+        "errors": []
+      }
+    ]
+  },
+  {
+    "fallback": {
+      "ready": 0,
+      "visible": true,
+      "errors": [
+        "[object Event]"
+      ]
+    }
+  }
+]

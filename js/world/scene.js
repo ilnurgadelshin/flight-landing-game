@@ -21,6 +21,7 @@ import { Atmosphere, SKY_GLSL, installHaze, sceneColor } from './sky.js';
 import { Cumulus } from './clouds.js';
 import { addAirportDetail } from './airport-detail.js';
 import { buildLandscape } from './landscape.js';
+import { addRunwayShoulders } from './runway-surfaces.js';
 import { loadParkedAircraft } from './scenery-models.js';
 import { CabinEnvironment } from '../cockpit/lighting.js';
 
@@ -388,19 +389,7 @@ export class World {
     rw.position.y = 0.02;
     add(rw, false);
     this.runwayMat = rwMat;
-    // Narrow, irregular aggregate shoulders soften the razor-straight pavement
-    // against the turf without changing the operational runway dimensions.
-    const shoulderMat=std({color:0x656659,roughness:1});
-    for(const side of [-1,1]){
-      const positions=[],indices=[];
-      for(let i=0;i<=120;i++){
-        const x=-halfL+i*L/120,outer=W/2+5.5+Math.sin(i*2.31)*.65;
-        positions.push(x,.005,side*(W/2-.2),x,.005,side*outer);
-        if(i<120){const a=i*2;indices.push(a,a+1,a+2,a+1,a+3,a+2);}
-      }
-      const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geo.setIndex(indices);geo.computeVertexNormals();
-      const shoulder=new THREE.Mesh(geo,shoulderMat);shoulder.material.side=THREE.DoubleSide;add(shoulder,false);
-    }
+    addRunwayShoulders(this);
     // blast pads / stopways at each end (60 m, chevrons omitted)
     const padMat = std({ color: 0x4a4a4c, roughness: 1 });
     for (const sx of [-1, 1]) { const p = new THREE.Mesh(new THREE.PlaneGeometry(60, W), padMat); p.rotation.x = -Math.PI / 2; p.position.set(sx * (halfL + 30), 0.01, 0); add(p, false); }

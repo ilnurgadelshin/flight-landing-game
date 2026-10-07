@@ -39,12 +39,13 @@ try{
         const T=await import('/vendor/three.module.js'),s=window.__sim,w=s.world;
         w.camera=s.benchmarkCamera;if(w.composer)w.composer.passes[0].camera=w.camera;
         s.start({startId:'short',scenarioId:scene==='storm'?'storm':'clear',seed:5});s.setTimeScale(0);
-        s.game.sim.aircraft.place({x:3300,y:115,z:0,headingDeg:270,iasKts:147,flapIndex:4,gearDown:true,gammaDeg:-3});
+        s.game.sim.aircraft.place({x:scene==='rollout'?1000:3300,y:scene==='rollout'?2.5:115,z:0,headingDeg:270,iasKts:scene==='rollout'?85:147,flapIndex:4,gearDown:true,gammaDeg:-3,onGround:scene==='rollout'});
         s.view.setMode('cockpit');for(let i=0;i<40;i++)s.view.update(1/60);
         s.game.state='menu';w.setPixelRatio(pixelRatio);
-        if(scene==='nearby'||scene==='site'||scene==='corridor'||scene==='extension'||scene==='opposite'){
+        if(scene==='nearby'||scene==='site'||scene==='corridor'||scene==='extension'||scene==='opposite'||scene==='shoulder'){
           const c=new T.PerspectiveCamera(50,innerWidth/innerHeight,.1,60000);
-          if(scene==='nearby'){c.position.set(2530,18,352);c.lookAt(2465.9,8,303.6);}
+          if(scene==='shoulder'){c.position.set(1250,3.7,-29);c.lookAt(1120,1,-41);}
+          else if(scene==='nearby'){c.position.set(2530,18,352);c.lookAt(2465.9,8,303.6);}
           else if(scene==='site'){c.position.set(2670,24,500);c.lookAt(2600,3,433);}
           else if(scene==='opposite'){c.position.set(4040,250,-910);c.lookAt(2810,35,-475);}
           else if(scene==='corridor'){c.position.set(3900,240,850);c.lookAt(2650,0,400);}
@@ -57,7 +58,7 @@ try{
         if(disabled.includes('cumulus')&&w.cumulus)w.cumulus.group.visible=false;
         if(disabled.includes('bloom')&&w.bloom)w.bloom.enabled=false;
         if(disabled.includes('shadows'))w.renderer.shadowMap.enabled=false;
-        const base=w.camera.position.clone(),state={...s.state(),alt:scene==='site'?24:scene==='nearby'?18:scene==='opposite'?250:['corridor','extension'].includes(scene)?240:115};
+        const base=w.camera.position.clone(),state={...s.state(),alt:scene==='shoulder'?3.7:scene==='rollout'?5:scene==='site'?24:scene==='nearby'?18:scene==='opposite'?250:['corridor','extension'].includes(scene)?240:115};
         const intervals=[],cpu=[],calls=[],triangles=[];let start,last;
         w.renderer.info.autoReset=false;
         await new Promise(resolve=>{
