@@ -1,0 +1,58 @@
+[
+  {
+    "tier": "high",
+    "trees": 52000,
+    "inside": 5884,
+    "extended": 5371,
+    "opposite": 5981,
+    "intrusions": 0,
+    "fieldTrees": 0,
+    "corridor": {
+      "count": 15391,
+      "total": 52000,
+      "limit": 52000,
+      "spacing": [
+        9.5,
+        16
+      ],
+      "zones": [
+        9877,
+        5500
+      ]
+    },
+    "ready": 1,
+    "errors": [],
+    "groundPixelDelta": {
+      "opposite-field": 7.790666666666667,
+      "field": 15.03500505050505
+    }
+  },
+  {
+    "tier": "low",
+    "trees": 14000,
+    "inside": 2404,
+    "extended": 2551,
+    "opposite": 2663,
+    "intrusions": 0,
+    "fieldTrees": 0,
+    "corridor": {
+      "count": 7295,
+      "total": 14000,
+      "limit": 14000,
+      "spacing": [
+        14,
+        23
+      ],
+      "zones": [
+        4681,
+        2600
+      ]
+    },
+    "ready": 1,
+    "errors": [],
+    "groundPixelDelta": {
+      "opposite-field": 8.111520202020202,
+      "field": 14.889439393939394
+    }
+  }
+]

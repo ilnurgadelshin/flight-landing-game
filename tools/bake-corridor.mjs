@@ -30,9 +30,42 @@ const traces=[
  ['5_0','meadow',[[685,1370],[727,1373],[761,1418],[790,1427],[820,1387],[858,1388],[887,1450],[828,1479],[772,1487],[736,1512],[693,1495],[661,1452]]],
  ['5_0','stubble',[[1363,1231],[1394,1171],[1438,1137],[1462,1119],[1470,1190],[1492,1240],[1495,1283],[1402,1299],[1318,1294],[1341,1273],[1380,1263]]],
 
+ // Opposite side of final: retain the diagonal residential lane and its yards.
+ ['2_-1','woodland',[[0,0],[1180,0],[1157,80],[1050,116],[960,168],[929,230],[875,216],[815,255],[816,305],[729,356],[703,409],[642,421],[617,477],[550,512],[545,564],[479,602],[432,666],[361,709],[356,748],[284,786],[242,850],[161,898],[108,918],[69,967],[0,994]]],
+ ['2_-1','woodland',[[0,1020],[93,970],[117,949],[192,933],[243,874],[312,808],[331,845],[330,909],[292,997],[350,1025],[319,1090],[244,1133],[229,1185],[188,1239],[141,1229],[108,1290],[91,1225],[12,1270],[0,1240]]],
+ ['2_-1','woodland',[[391,740],[506,666],[580,697],[669,693],[708,746],[756,756],[747,865],[759,951],[792,1012],[803,1061],[748,1080],[680,1021],[642,948],[627,879],[598,816],[542,731],[505,749],[449,844],[425,925],[395,958],[363,1004],[324,980],[345,900],[344,839]]],
+ ['2_-1','woodland',[[783,399],[990,278],[1018,321],[1043,356],[1086,402],[1102,458],[1071,499],[1036,483],[1014,438],[927,465],[932,504],[881,502],[863,463],[815,475]]],
+ ['2_-1','woodland',[[1075,285],[1263,178],[1366,116],[1499,67],[1569,93],[1600,159],[1600,240],[1491,282],[1480,351],[1449,364],[1409,317],[1400,262],[1317,285],[1216,343],[1150,356],[1109,340]]],
+ ['2_-1','woodland',[[1119,392],[1244,329],[1381,291],[1384,367],[1419,458],[1433,570],[1468,716],[1386,760],[1307,782],[1219,759],[1157,766],[1115,721],[1075,681],[1078,616],[1100,557],[1134,479]]],
+ ['2_-1','woodland',[[1229,853],[1308,813],[1437,748],[1524,682],[1543,763],[1571,832],[1600,846],[1600,1250],[1538,1230],[1480,1122],[1414,1045],[1375,1034],[1334,1049],[1291,1109],[1288,1196],[1262,1249],[1201,1241],[1173,1136],[1129,1059],[1186,958]]],
+ ['2_-1','stubble',[[706,603],[784,572],[823,604],[861,587],[894,651],[860,677],[809,689],[768,731],[723,710],[694,675]]],
+ ['2_-1','stubble',[[535,729],[557,763],[591,820],[620,887],[584,952],[540,984],[521,940],[497,853],[495,790]]],
+ ['2_-1','meadow',[[1420,352],[1518,295],[1600,273],[1600,568],[1549,607],[1530,667],[1474,713],[1442,558],[1430,472]]],
+ ['2_-1','meadow',[[1078,794],[1142,774],[1179,799],[1227,771],[1250,815],[1189,883],[1100,956],[1053,1000],[1046,947],[1010,920]]],
+ // Larger pasture and hay parcels farther up final, with wooded margins intact.
+ ['3_-1','meadow',[[0,319],[125,267],[187,240],[272,230],[292,298],[303,399],[258,457],[246,500],[272,529],[238,605],[145,679],[48,696],[0,749]]],
+ ['3_-1','meadow',[[335,241],[465,178],[516,213],[598,197],[654,128],[689,182],[730,166],[731,202],[776,257],[816,242],[843,282],[860,372],[871,492],[850,526],[893,570],[883,689],[950,783],[891,821],[890,864],[804,917],[783,884],[719,914],[673,901],[659,860],[804,788],[792,745],[682,779],[657,733],[715,678],[693,652],[646,655],[575,619],[517,638],[486,612],[462,496],[421,484],[388,393]]],
+ ['3_-1','meadow',[[320,465],[342,509],[351,589],[386,654],[404,764],[458,832],[445,890],[431,972],[460,1005],[432,1028],[361,987],[373,909],[347,832],[330,740],[308,701],[321,640],[285,610],[297,538]]],
+ ['3_-1','stubble',[[1286,484],[1416,359],[1440,411],[1474,521],[1515,619],[1547,753],[1593,849],[1600,948],[1503,986],[1446,971],[1420,893],[1390,832],[1358,719],[1328,682],[1301,571]]],
+ ['3_-1','stubble',[[1397,35],[1432,24],[1496,96],[1512,140],[1476,174],[1414,235],[1365,266],[1320,167],[1328,105]]],
+ ['3_-1','meadow',[[449,1219],[523,1229],[585,1244],[618,1311],[683,1322],[743,1404],[789,1488],[822,1600],[543,1600],[517,1480],[480,1368]]],
+ ['3_-1','woodland',[[0,0],[555,0],[523,94],[465,160],[422,173],[356,212],[289,198],[271,223],[192,222],[134,248],[0,303]]],
+ ['3_-1','woodland',[[0,775],[81,733],[131,711],[181,662],[214,632],[267,652],[298,735],[304,799],[283,860],[291,934],[265,994],[231,1057],[156,1042],[155,994],[112,997],[115,1068],[92,1104],[97,1132],[84,1168],[112,1206],[89,1285],[32,1271],[0,1192]]],
+ ['3_-1','woodland',[[663,0],[989,0],[1035,68],[1014,115],[1054,159],[1064,216],[1165,271],[1122,358],[1218,429],[1267,509],[1301,631],[1368,768],[1406,916],[1505,1036],[1600,1040],[1600,1516],[1523,1550],[1458,1504],[1428,1404],[1319,1335],[1261,1386],[1210,1491],[1166,1558],[1068,1536],[1069,1444],[994,1327],[886,1265],[830,1194],[738,1145],[620,1182],[578,1175],[479,1187],[438,1170],[398,1211],[373,1226],[317,1218],[299,1191],[322,1147],[293,1084],[349,1047],[380,1031],[411,1064],[490,999],[614,1005],[707,966],[809,943],[843,915],[920,892],[920,851],[978,801],[1002,754],[946,727],[915,699],[920,632],[911,594],[886,537],[896,498],[882,390],[867,279],[834,230],[805,237],[760,186],[730,136],[710,146],[673,109],[623,105]]],
+ ['3_-1','woodland',[[1147,0],[1257,0],[1248,54],[1197,64],[1160,108],[1151,169],[1102,132],[1080,103],[1113,64]]],
+
+ ['3_-1','woodland',[[398,463],[447,492],[465,590],[502,625],[555,603],[605,635],[654,639],[682,627],[706,652],[697,684],[661,729],[680,757],[648,778],[584,767],[557,822],[490,850],[456,814],[433,750],[402,685],[375,629],[364,554]]],
+ ['3_-1','woodland',[[438,830],[497,851],[540,882],[518,924],[582,921],[604,951],[550,979],[474,991],[437,1024],[452,951]]],
+
 ];
-const bounds=[2100,180,4000,850],width=2000,height=425;
-const areas=traces.map(([tile,type,points])=>({tile,type,points:points.map(([x,z])=>[Number((Number(tile.split('_')[0])*1000-16+x*1032/1600).toFixed(2)),Number((-16+z*1032/1600).toFixed(2))])}));
+const bounds=[2100,-1000,4000,2030],width=2000,height=1015;
+// Preserve the original region's grid, feather and planting seed while adding the
+// opposite side. Separate planting allocations avoid thinning the reviewed stands.
+const plantingZones=[{bounds:[2100,180,4000,850],seed:94051,highLimit:10000,lowLimit:4800},
+ {bounds:[2100,-1000,2000,820],seed:77021,highLimit:5500,lowLimit:2600}];
+const areas=traces.map(([tile,type,points])=>({tile,type,points:points.map(([x,z])=>[Number((Number(tile.split('_')[0])*1000-16+x*1032/1600).toFixed(2)),Number((Number(tile.split('_')[1])*1000-16+z*1032/1600).toFixed(2))])}));
+// Polygon bounds reject distant pixels before the more expensive edge distances.
+const boundedAreas=areas.map(a=>({...a,rect:[Math.min(...a.points.map(p=>p[0])),Math.min(...a.points.map(p=>p[1])),Math.max(...a.points.map(p=>p[0])),Math.max(...a.points.map(p=>p[1]))]}));
 function signedDistance(x,z,points){
  let inside=false,distance=Infinity;
  for(let i=0,j=points.length-1;i<points.length;j=i++){
@@ -41,7 +74,7 @@ function signedDistance(x,z,points){
   if((a[1]>z)!==(b[1]>z)&&x<(b[0]-a[0])*(z-a[1])/(b[1]-a[1])+a[0])inside=!inside;
  }return distance*(inside?1:-1);
 }
-const buildings=[...JSON.parse(await fs.readFile('assets/scenery/approach-buildings.json')).buildings,...JSON.parse(await fs.readFile('assets/scenery/approach-infill.json')).buildings].filter(b=>b.x>bounds[0]-100&&b.x<bounds[0]+bounds[2]+100&&b.z>100&&b.z<1100);
+const buildings=[...JSON.parse(await fs.readFile('assets/scenery/approach-buildings.json')).buildings,...JSON.parse(await fs.readFile('assets/scenery/approach-infill.json')).buildings].filter(b=>b.x>bounds[0]-100&&b.x<bounds[0]+bounds[2]+100&&b.z>bounds[1]-100&&b.z<bounds[1]+bounds[3]+100);
 const roads=JSON.parse(await fs.readFile('assets/scenery/approach-roads.json')).roads;
 function roadDistance(x,z){let d=Infinity;for(const r of roads)for(let i=1;i<r.points.length;i++){
  const a=r.points[i-1],b=r.points[i],dx=b[0]-a[0],dz=b[1]-a[1],t=Math.max(0,Math.min(1,((x-a[0])*dx+(z-a[1])*dz)/(dx*dx+dz*dz)));
@@ -56,9 +89,12 @@ for(let j=0;j<height;j++)for(let i=0;i<width;i++){
   const d=Math.hypot(Math.max(0,Math.abs(dx*c+dz*s)-b.w/2),Math.max(0,Math.abs(-dx*s+dz*c)-b.d/2));
   clearance=Math.min(clearance,Math.max(0,Math.min(1,(d-12)/12)));
  }
- const boundary=Math.min(1,(x-bounds[0])/35,(bounds[0]+bounds[2]-x)/35,(z-bounds[1])/25,(bounds[1]+bounds[3]-z)/25);
+ const region=plantingZones.find(r=>x>=r.bounds[0]&&x<r.bounds[0]+r.bounds[2]&&z>=r.bounds[1]&&z<r.bounds[1]+r.bounds[3]);
+ if(!region)continue;
+ const [rx,rz,rw,rd]=region.bounds;
+ const boundary=Math.min(1,(x-rx)/35,(rx+rw-x)/35,(z-rz)/25,(rz+rd-z)/25);
  const weights=[0,0,0];
- for(const a of areas){const d=signedDistance(x,z,a.points),channel=['meadow','stubble','woodland'].indexOf(a.type);
+ for(const a of boundedAreas){if(x<a.rect[0]||z<a.rect[1]||x>a.rect[2]||z>a.rect[3])continue;const d=signedDistance(x,z,a.points),channel=['meadow','stubble','woodland'].indexOf(a.type);
   weights[channel]=Math.max(weights[channel],Math.max(0,Math.min(1,d/(channel===2?12:6))));
  }
  // Woods take precedence at shared field margins; keep total coverage <= 1.
@@ -66,5 +102,5 @@ for(let j=0;j<height;j++)for(let i=0;i<width;i++){
  for(let c=0;c<3;c++){pixels[(j*width+i)*3+c]=Math.round(weights[c]*clearance*boundary*255);counts[c]+=pixels[(j*width+i)*3+c]/255;}
 }
 await sharp(pixels,{raw:{width,height,channels:3}}).png().toFile('assets/scenery/approach-corridor.png');
-await fs.writeFile('assets/scenery/approach-corridor.json',JSON.stringify({bounds,width,height,licence:'Interpreted boundaries derived from public-domain USDA NAIP / USGS imagery already bundled in detail/2_0.webp through detail/5_0.webp. Not a land-use survey.',areas,hectares:counts.map(c=>Number((c*bounds[2]/width*bounds[3]/height/10000).toFixed(2)))},null,2)+'\n');
+await fs.writeFile('assets/scenery/approach-corridor.json',JSON.stringify({bounds,width,height,plantingZones,licence:'Interpreted boundaries derived from public-domain USDA NAIP / USGS imagery already bundled in detail/2_0.webp through detail/5_0.webp and detail/2_-1.webp, detail/3_-1.webp. Not a land-use survey.',areas,hectares:counts.map(c=>Number((c*bounds[2]/width*bounds[3]/height/10000).toFixed(2)))},null,2)+'\n');
 console.log('Corridor meadow/stubble/woodland hectares',counts.map(c=>c*4/10000),'mask bytes',(await fs.stat('assets/scenery/approach-corridor.png')).size);

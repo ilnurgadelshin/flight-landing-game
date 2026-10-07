@@ -77,7 +77,9 @@ export function buildLandscape(world) {
       if(coverTotal>.001){
         float coverReach=1.0-smoothstep(1300.0,3200.0,length(vViewPosition));
         float fieldVariation=.96+.06*sin(vGroundXZ.x*.031+sin(vGroundXZ.y*.013))*.5+.04*cos(vGroundXZ.y*.047);
-        float fieldGrain=mix(1.0,clamp(grain,.65,1.35),.65*(1.0-smoothstep(180.0,1200.0,length(vViewPosition))));
+        // Strong, distant scan grain reads as tiled checks across open fields.
+        // Retain the scanned relief near the eye, fading before its repetition resolves.
+        float fieldGrain=mix(1.0,clamp(grain,.65,1.35),.35*(1.0-smoothstep(100.0,650.0,length(vViewPosition))));
         vec3 meadow=vec3(.105,.145,.056)*fieldVariation*fieldGrain;
         vec3 stubble=vec3(.195,.153,.084)*fieldVariation*fieldGrain;
         // Subtle cultivation bands follow the long axis of the photographed fields.

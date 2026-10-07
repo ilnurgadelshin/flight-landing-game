@@ -82,34 +82,40 @@ export async function addWoodland(world,photo,approachPhoto) {
   const approachPixels=context.getImageData(0,0,1024,1024).data;
   const rng=makeRng(812),patches=new Map(),forms=Array(atlas.rows).fill(0);
   const limit=low?14000:52000;
-  const corridor=world.approachCorridor,localTrees=[],localRng=makeRng(94051);
+  const corridor=world.approachCorridor,localTrees=[];
   // In the reviewed corridor, plant continuous canopy from the same land-cover
   // boundaries used by the ground. Jittered spacing avoids clumps and bare gaps.
   // Reserve part of the EXISTING instance budget, rather than adding a new layer.
   if(corridor){
-    const [x0,z0,width,depth]=corridor.manifest.bounds;
-    // Keep the existing close canopy density. Higher parts of final can use
-    // wider stand spacing, conserving the same overall tree-instance budget.
-    for(let xx=x0;xx<x0+width;){
-      const spacing=xx<4100?(low?14:9.5):(low?23:16);
-      for(let zz=z0;zz<z0+depth;zz+=spacing){
-        const x=xx+(localRng()-.5)*spacing*.8,z=zz+(localRng()-.5)*spacing*.8;
-        const cover=corridor.sample(x,z),weight=cover[2];
-        if(weight<.15||cover[0]+cover[1]>.35||localRng()>Math.min(1,weight*1.6))continue;
-        if(world.approachSiteExcludes?.(x,z)||protectedScenery(x,z,14)||world.approachBuildingExcludes?.(x,z)||world.approachRoadExcludes?.(x,z))continue;
-        const stand=groveNoise(x/95+4,z/95-7),choice=localRng();
-        const species=localRng();
-        const row=choice<.07?4+Math.floor(localRng()*3):choice<.12?1+Math.floor(localRng()*3):species<.2+stand*.25?7:species<.68+stand*.12?0:8;
-        const edge=.76+.24*weight;
-        const h=(row===0?14+localRng()*7:row===7?16+localRng()*7:row===8?12+localRng()*6:row<4?3+localRng()*3:10+localRng()*5)*edge;
-        const w=Math.min(24,h*atlas.species[row].aspect*(.94+localRng()*.14));
-        localTrees.push({x,z,type:Math.floor(localRng()*4),row,h,w,yaw:localRng()*Math.PI});
+    const zones=corridor.manifest.plantingZones||[{bounds:corridor.manifest.bounds,seed:94051,highLimit:10000,lowLimit:4800}];
+    const zoneCounts=[];
+    for(const zone of zones){
+      const [x0,z0,width,depth]=zone.bounds,localRng=makeRng(zone.seed),zoneTrees=[];
+      // Keep the existing close canopy density. Higher parts of final can use
+      // wider stand spacing, conserving the same overall tree-instance budget.
+      for(let xx=x0;xx<x0+width;){
+        const spacing=xx<4100?(low?14:9.5):(low?23:16);
+        for(let zz=z0;zz<z0+depth;zz+=spacing){
+          const x=xx+(localRng()-.5)*spacing*.8,z=zz+(localRng()-.5)*spacing*.8;
+          const cover=corridor.sample(x,z),weight=cover[2];
+          if(weight<.15||cover[0]+cover[1]>.35||localRng()>Math.min(1,weight*1.6))continue;
+          if(world.approachSiteExcludes?.(x,z)||protectedScenery(x,z,14)||world.approachBuildingExcludes?.(x,z)||world.approachRoadExcludes?.(x,z))continue;
+          const stand=groveNoise(x/95+4,z/95-7),choice=localRng();
+          const species=localRng();
+          const row=choice<.07?4+Math.floor(localRng()*3):choice<.12?1+Math.floor(localRng()*3):species<.2+stand*.25?7:species<.68+stand*.12?0:8;
+          const edge=.76+.24*weight;
+          const h=(row===0?14+localRng()*7:row===7?16+localRng()*7:row===8?12+localRng()*6:row<4?3+localRng()*3:10+localRng()*5)*edge;
+          const w=Math.min(24,h*atlas.species[row].aspect*(.94+localRng()*.14));
+          zoneTrees.push({x,z,type:Math.floor(localRng()*4),row,h,w,yaw:localRng()*Math.PI});
+        }
+        xx+=spacing;
       }
-      xx+=spacing;
+      // Uniform thinning if future boundary edits exceed this site's allocation.
+      for(let i=zoneTrees.length-1;i>0;i--){const j=Math.floor(localRng()*(i+1));[zoneTrees[i],zoneTrees[j]]=[zoneTrees[j],zoneTrees[i]];}
+      zoneTrees.length=Math.min(zoneTrees.length,low?zone.lowLimit:zone.highLimit);
+      localTrees.push(...zoneTrees);zoneCounts.push(zoneTrees.length);
     }
-    // Uniform thinning if future boundary edits exceed this site's allocation.
-    for(let i=localTrees.length-1;i>0;i--){const j=Math.floor(localRng()*(i+1));[localTrees[i],localTrees[j]]=[localTrees[j],localTrees[i]];}
-    localTrees.length=Math.min(localTrees.length,low?4800:10000);
+    corridor.zoneCounts=zoneCounts;
   }
   // Individually placed garden/edge trees share the same geometry/instance budget.
   for(const [i,t] of (world.approachSiteTrees||[]).entries()){
@@ -151,7 +157,7 @@ export async function addWoodland(world,photo,approachPhoto) {
     const key=`${Math.floor(t.x/(low?2000:1000))}:${Math.floor(t.z/(low?2000:1000))}`;
     if(!patches.has(key))patches.set(key,[]);patches.get(key).push(t);forms[t.row]++;count++;
   }
-  if(corridor)corridor.trees={count:localTrees.length,total:count,limit,spacing:low?[14,23]:[9.5,16]};
+  if(corridor)corridor.trees={count:localTrees.length,total:count,limit,spacing:low?[14,23]:[9.5,16],zones:corridor.zoneCounts};
   const group=new THREE.Group();group.name='Photographed woodland stands';
   const geometry=crownGeometry(),matrix=new THREE.Matrix4(),q=new THREE.Quaternion(),up=new THREE.Vector3(0,1,0);
   const contact=document.createElement('canvas');contact.width=contact.height=64;

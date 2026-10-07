@@ -647,13 +647,14 @@ The visual assets are bundled locally and need no map service, account or API ke
   so crowns retain their area when viewed from above. Settled near trees reuse their buffers.
   The distant views are baked from the delivered geometry, and selection hysteresis plus a
   common fade rate reduce visible detail changes.
-  A reviewed 4 km stretch beside final shares interpreted field/woodland boundaries between
-  ground materials and tree placement. Meadow, stubble and woodland-floor surfaces reduce
-  photographic blur and baked shadows; mapped fields remain open and woodland forms a denser
-  canopy. This reallocates the existing tree budget and adds less than 125 KB of land-cover
-  data. Roads, buildings and the protected airport area remain clear. The boundaries are
-  traced from the bundled imagery, not surveyed land-use data; other areas retain the
-  original photographic surfaces and planting.
+  Reviewed ground extends along 4 km on one side of final and 2 km on the opposite side.
+  Forty-five interpreted field/woodland boundaries guide both ground materials and tree
+  placement. Meadow, stubble and woodland-floor surfaces reduce photographic blur and baked
+  shadows across about 296 hectares; mapped fields remain open and woodland gains a denser
+  canopy. The original mapped stands retain their planting allocation while the new area
+  draws from the existing 52,000 / 14,000 tree budget. Land-cover data totals 229 KB; roads,
+  buildings and the protected airport area remain clear. These are interpretations of bundled
+  imagery, not surveyed land-use data. Unmapped areas retain photographic surfaces and planting.
 - **2,160 individual approach buildings** follow openly licensed Microsoft footprints,
   with pitched/flat roofs, twelve facade layouts, eaves, foundations and night windows.
   Houses have a principal entrance bay; nearby high-quality windows have beveled frames,
@@ -722,7 +723,8 @@ and visible site surfaces, with matched cockpit descent recordings and high/low 
 `node test/tree-transitions.mjs` compares image/geometry silhouettes and records a moving
 woodland pass while checking instance, triangle and fade-speed limits.
 `npm run test:corridor` checks land-cover registration, transfer and planting budgets,
-field/building/road clearance, rendered surface changes on both tiers and missing-mask fallback.
+field/building/road clearance, rendered surface changes on both sides and quality tiers,
+normal cockpit views and missing-mask fallback.
 
 **Head-up view** (`js/hud.js`, `js/view.js`): the flight deck hidden and a
 conformal head-up display modelled on the 737's HGS (see *Views* above).

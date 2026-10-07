@@ -1,0 +1,18 @@
+{
+  "baseline": "fec4cb3",
+  "originalMaskChangedChannels": 0,
+  "originalMaskChannels": 2550000,
+  "parcels": 45,
+  "hectaresBefore": [
+    23.66,
+    6.97,
+    173.14
+  ],
+  "hectaresAfter": [
+    41.92,
+    13.28,
+    240.8
+  ],
+  "bytesBefore": 111199,
+  "bytesAfter": 228509
+}

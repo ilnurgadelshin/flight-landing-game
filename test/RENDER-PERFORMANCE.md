@@ -727,3 +727,83 @@ delivery and all 23 graphics checks. Reports: `benchmarks/2026-10-07-roadside-{s
 The full functional browser suite was not rerun. Other computers/phones are not benchmarked,
 and SwiftShader cannot initialize WebGL2 here. Matched stills and captain-eye recordings are
 available in the local `output/roadside-site-review.html`.
+
+
+## Opposite-side approach ground and woodland — 2026-10-07
+
+Baseline: published `fec4cb3`. Twenty-three additional interpreted parcels extend reconstructed
+fields and woodland along 2 km opposite the existing 4 km region. Total weighted surface
+coverage rises from about 203.77 to 296.00 hectares. The original mask region's 2,550,000
+channel values are unchanged. Independent planting seeds/allocations retain its mapped canopy;
+5,500 high / 2,600 low trees are assigned to the new region from the wider photographic
+planting. Overall budgets remain 52,000 / 14,000. Current mapped stands use 15,377 / 7,281
+instances, plus the existing 14 site trees. Wider background placement and tints can change.
+
+The PNG/JSON pair grows from 111,199 to **228,509 bytes** (+117,310), below its new 250 KB
+budget. Including runtime code, prepared resource bodies increase **118,655 bytes** per tier.
+All imagery/materials/tree models are reused. The mask remains 2 m/px, at 2000×1015 over
+4 km×2.03 km combined bounds, including unmapped gaps. Its unmipmapped RGBA8 GPU allocation
+and retained CPU sampling buffer each grow from 3.40 to 8.12 MB (+4.72 MB each). There is
+still one shader mask lookup and no extra ground draw call, but more visible pixels/trees
+now receive the treatment. The new region must not be interpreted as free rendering work.
+
+Fresh paired runs on Apple M2 Pro, Chromium 141 / ANGLE Metal, 1440×900, fixed high 1.5× /
+low 1×, four-second warm-up and twelve-second samples. Published and updated builds ran
+sequentially with no concurrent GPU tests. These are display-capped RAF intervals, not
+uncapped GPU throughput. The opposite camera is (4040,250,-910), looking at (2810,35,-475).
+Reports: `benchmarks/2026-10-07-opposite-render-{before,after}.json`.
+
+| Fixed scene | Before FPS | After FPS | Draw calls before → after |
+| --- | ---: | ---: | ---: |
+| High captain | 38.84 | 38.20 | 930 → 932 |
+| High nearby | 50.76 | 49.77 | 431 → 428 |
+| High storm | 41.19 | 40.69 | 924 → 926 |
+| High corridor | 51.18 | 50.60 | 636 → 637 |
+| High opposite | 55.84 | 51.10 | 648 → 647 |
+| Low captain | 60.00 | 60.00 | 533 → 533 |
+| Low nearby | 60.00 | 60.00 | 289 → 289 |
+| Low storm | 56.92 | 57.67 | 511 → 511 |
+| Low corridor | 60.00 | 60.00 | 413 → 413 |
+| Low opposite | 60.00 | 60.00 | 414 → 414 |
+
+High cockpit pacing decreases about 1.7%; the other pre-existing high views decrease about
+1–2%. Such small differences include run-to-run variation. The expanded opposite view costs
+**8.5%** at high 1.5× (55.84 → 51.10 FPS), the clearest measured tradeoff for substantially
+more canopy. All clear-weather low scenes stay at the 60 FPS cap. Low storm runs around
+57 FPS on both builds in this pair, rather than the 60 FPS reached in earlier measurements;
+this pass does not establish a storm regression. Other computers and phones are unbenchmarked.
+
+The final cold-cache full landing uses high fixed 1×, seed 11 and actual UI Start preparation.
+The earlier published roadside landing is the comparison, not a newly timed baseline flight.
+Both finish with 100/A and no JavaScript or asset errors. Reports:
+`benchmarks/2026-10-07-roadside-flight.json` and `benchmarks/2026-10-07-opposite-flight.json`.
+
+| Complete flight | Published roadside site | Expanded approach |
+| --- | ---: | ---: |
+| Average FPS | 59.88 | 59.91 |
+| 99th-percentile frame | 16.8 ms | 16.8 ms |
+| Worst interval, at startup | 183.4 ms | 200.0 ms |
+| Worst later interval | 49.9 ms | 33.4 ms |
+| Start wait on localhost | 5.25 s | 5.79 s |
+| Prepared resource bodies | 62.50 MB | 62.62 MB |
+| Requests begun during flight | 0 | 0 |
+
+The larger mask and planting add preparation work. Startup remains visibly stalled in this
+measurement, and localhost timing does not predict Internet download speeds. Mean/p99 flight
+pacing remains near the display cap; neither this run nor the fixed views establish worst-case
+performance across devices or weather scenarios.
+
+Delivery checks pass: menu bodies **14.00 MB high / 8.60 MB low** remain under the 15/9 MB
+budgets; fully prepared scenery is 62.46 MB high / 17.42 MB low in the delivery test. Expanded
+cover stays deferred until preparation, and no assets are requested after prepared Start.
+Automatic-quality and hidden-tab checks pass. The known mask boundary is compared byte-for-byte
+in `benchmarks/2026-10-07-opposite-mask.json`; planting, clearances and ground pixels are in
+`benchmarks/2026-10-07-opposite-scenery.json`. Site and delivery reports use the same prefix.
+
+All 14 Node suites pass. Chromium Metal passes both corridor tiers, mapped field/building/road
+clearance, ground visibility, missing-mask fallback, existing approach streaming, all nine site
+roofs and 14 garden trees, vegetation/weather including corrupt density fallback, delivery and
+23 graphics checks. The full functional browser suite was not rerun; SwiftShader remains
+unavailable here. Matched stills, normal cockpit views and costs are in the local
+`output/opposite-approach-review.html`. Very low ground still lacks grass/crop geometry, and
+photographic blur/shadows remain outside the interpreted parcels.
