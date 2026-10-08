@@ -766,3 +766,53 @@ upward-facing geometry and the missing scan fallback. The full high 1× landing 
 changes (approximately +2.5% to -1.8%) rather than a material frame-rate gain. Startup
 still has a 200 ms hitch. See the runway section of [the performance record](RENDER-PERFORMANCE.md)
 for exact costs, recorded reports and device/test limitations.
+
+
+## Two complete sites on the opposite approach — 2026-10-08
+
+Baseline: published `89f9691`. Seven more registered buildings become complete models: a
+three-building farm and a four-building wooded hamlet. This brings the total to sixteen
+across three sites. Timber/painted walls, recessed doors and windows, roof edges/seams,
+gutters and foundations replace the earlier simple walls and roofs. The small new buildings
+omit geometric timber battens, retaining scanned surface relief instead. Existing registered
+footprints are preserved; architecture and some estimated heights are interpreted. All materials
+are existing CC0 scans and all new geometry is original project work.
+
+Matching lawns, five gravel aprons, two private access lanes, three connections and timber
+boundaries replace the photographic surface beneath these buildings. Ground meshes follow the
+rendered terrain on both quality tiers. Gravel includes paired wheel wear and broad variation;
+soft, irregular edges blend the grounds into their surroundings. Twenty-seven eligible placed
+trees now serve all three sites, replacing random trees inside the grounds within the unchanged
+52,000 / 14,000 total budget. Original pixel outlines are retained with the converted geometry
+in `approach-sites.json`; these are interpretations of bundled imagery, not a survey.
+
+Matched close/wide, overcast/night and three ordinary forward captain views are in
+[the local review](output/complete-approach-sites-review.html). The gain is strongest at the
+sites: coherent buildings and connected yards replace blurry roof/shadow photographs. The
+ordinary forward cockpit improvement is smaller and appears through the right windshield.
+Ground still looks flat at very low altitude, the lawns remain simple and the new buildings
+reuse a limited material set. This is two additional small sites, not comprehensive scenery.
+
+Buildings merge by material within each site so their culling bounds stay local. The GLBs
+add 205,148 bytes high / 205,096 low; site data adds 16,200 bytes shared by both tiers. No new
+photography or material map is downloaded. Missing or invalid extension data retains the
+original nine complete valley buildings while the seven new placements retain their procedural
+fallback. Missing common model or yard assets still retains all original procedural buildings.
+
+Remaining priorities: broader coherent ground/scenery coverage, convincing low-altitude
+vegetation, distant/low tree appearance, overcast and windshield weather, unique cockpit wear
+and phone framing. The new sites do not solve those separate limitations. Fixed-resolution
+cost and full-flight validation are recorded in the matching section of
+[the performance record](RENDER-PERFORMANCE.md).
+
+Validation: all 14 Node suites, 23 graphics checks, both-tier site/roof/ground/planting checks,
+existing valley and approach-streaming checks, asset-failure fallbacks and delivery/quality
+selection checks pass on Chromium Metal. Two defects found during review were corrected:
+a fence crossing a lane now leaves an entrance, and a garden tree inside a mapped field
+was moved to the boundary. Both clearances have regression checks. The full functional
+browser suite and other GPUs/phones were not tested; SwiftShader remains unavailable here.
+
+The full high 1× landing finishes 100/A at 59.90 FPS, p99 16.8 ms, with no requests begun
+during flight. Startup still stalls for 166.7 ms in this sample. The high 1.5× close-farm
+view costs 4.4%; low storm timing varies between runs and is reported separately rather
+than claiming a universal 60 FPS result.

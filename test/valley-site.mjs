@@ -48,7 +48,7 @@ try{
    }
    return {farm:w.approachBuildings.farm,groundError,roofCount,unplannedTrees,plantedTrees,errors:w.assetErrors};
   },baseline);
-  assert.deepEqual(stats.errors,[]);if(!baseline){assert.equal(stats.farm.buildings,9);assert.equal(stats.roofCount,9);assert.ok(stats.groundError<.001);assert.equal(stats.unplannedTrees,0);assert.ok(stats.plantedTrees>=5);}
+  assert.deepEqual(stats.errors,[]);if(!baseline){assert.equal(stats.farm.buildings,16);assert.equal(stats.roofCount,16);assert.ok(stats.groundError<.001);assert.equal(stats.unplannedTrees,0);assert.ok(stats.plantedTrees>=5);}
   for(const view of ['wide','north','south','overcast','night','captain-4000','captain-3400','captain-2800']){
    await page.evaluate(async view=>{
     const s=window.__sim,w=s.world,T=await import('/vendor/three.module.js');

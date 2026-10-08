@@ -26,6 +26,9 @@ assert.ok(sample(4500,700)[2]>.8&&sample(5500,550)[2]>.8,'Extended woodland is c
 assert.ok(manifest.bounds[2]>=4000&&manifest.width*manifest.height<=2048*1024,'Two-sided coverage retains bounded data texture');
 assert.ok(sample(3370,-650)[0]>.8,'Opposite pasture is reconstructed');
 assert.ok(sample(3650,-560)[2]>.8,'Opposite wooded margin is reconstructed');
+for(const site of JSON.parse(await fs.readFile('assets/scenery/approach-sites.json')).sites)for(const tree of site.trees){
+ const cover=sample(tree.x,tree.z);assert.ok(cover[0]+cover[1]<=.6,'Placed garden trees keep mapped fields open');
+}
 assert.equal(manifest.plantingZones.length,2);
 assert.deepEqual(manifest.plantingZones[0],{bounds:[2100,180,4000,850],seed:94051,highLimit:10000,lowLimit:4800},'Original canopy retains its planting allocation');
 assert.ok(manifest.plantingZones.reduce((sum,z)=>sum+z.highLimit,0)<=20000&&manifest.plantingZones.reduce((sum,z)=>sum+z.lowLimit,0)<=8000);

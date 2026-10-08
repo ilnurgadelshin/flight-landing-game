@@ -285,13 +285,13 @@ sample is introduced. Site surfaces and their existing tree exclusions retain pr
 
 Reproduce with `node tools/bake-corridor.mjs`; validate with `npm run test:corridor`.
 
-## Complete valley farm and roadside cluster — original geometry / CC0 materials
+## Complete approach sites — original geometry / CC0 materials
 
-`scenery/valley-farm.glb` and its `-low` variant contain nine complete buildings, originally
+`scenery/valley-farm.glb` and its `-low` variant contain sixteen complete buildings, originally
 authored by `tools/prepare-farm.py` in Blender under the project's MIT license. The original
-two barns use the NAIP-traced infill outlines; the workshop and six neighboring buildings
-retain their Microsoft footprints. The additions include two clapboard homes, a red-roofed
-garage and three timber working buildings. Recessed openings, thick roof edges/ridge caps, gutters, door
+two valley barns and two opposite-side barns use the NAIP-traced infill outlines; the other
+twelve buildings retain their Microsoft footprints. The models include three clapboard homes,
+red-roofed working buildings, workshops and timber barns. Recessed openings, thick roof edges/ridge caps, gutters, door
 canopies, foundations and home chimneys are geometry. Fine clapboard laps and standing seams
 use original 512 px repeating normal maps, filtered through mipmaps instead of thin raised
 strips that produced bright broken lines at flight distances. Source heights are estimates; the
@@ -306,6 +306,16 @@ existing CC0 ground materials. Photographed structures and shadows beneath these
 are covered. Fourteen eligible boundary/garden trees replace random planting inside the site,
 within the unchanged overall tree budget; roads, yards and buildings remain clear.
 
+`scenery/approach-sites.json` adds a three-building farm and a four-building wooded hamlet
+on the opposite side of final. It retains the source pixel outlines from the bundled
+`detail/2_-1-low.webp` and `detail/3_-1-low.webp` images (1032 px, one metre per pixel including
+the 16 m gutter). `tools/prepare-approach-sites.mjs` converts these to world coordinates.
+Two terrain-following gravel lanes, three access connections, five aprons, lawns and timber
+boundaries form the grounds. Existing gravel scans provide fine texture; vertex colours
+add broad variation and paired wheel wear. Seven new buildings add 11,382 triangles.
+Twenty-seven eligible garden/boundary trees now serve all three sites, within the same total
+planting budget. Heights, lane widths, planting and architecture are artistic interpretations.
+
 The siding and gravel yard use these **CC0** scans:
 
 - [Weathered Brown Planks](https://polyhaven.com/a/weathered_brown_planks), photography by
@@ -316,18 +326,23 @@ The siding and gravel yard use these **CC0** scans:
 Source URLs, authors, checksums, placements and exact delivered byte counts are retained in
 `scenery/farm-sources.json`. Wood textures use 1024 px high / 512 px low WebP. The gravel
 colour map follows those sizes; gravel normal and roughness maps use 512 px on both tiers.
-Meshes are Meshopt-compressed. Nine building material batches, the original yard, three
-new ground surfaces and one timber-boundary batch total 14 draw batches before subtracting
-replaced facade geometry. Buildings use 47,473 triangles; grounds/fences use 39,844
-plus the original 2,924-triangle yard. Only referenced parcel-grid vertices are uploaded; the narrow lane uses a feathered ribbon. The assets
+Meshes are Meshopt-compressed. Building meshes merge by material within each site, retaining
+local culling bounds rather than one large bound spanning the approach. Twenty-five building
+material batches, the original yard, nine ground surfaces and three timber-boundary batches
+total 38 draw batches before subtracting replaced facade geometry. Buildings use 58,855 triangles;
+grounds/fences use 81,218 triangles plus the original 2,924-triangle yard. Only referenced parcel-grid vertices are uploaded; the narrow lane uses a feathered ribbon. The assets
 load during scenery preparation behind the menu. A missing model, site data or yard texture
-retains all nine original procedural buildings and the underlying imagery.
+retains the original procedural buildings and the underlying imagery. Missing or invalid
+extension data keeps the original nine complete valley buildings and falls back only for the
+seven additional buildings. Both tiers add about 221 KB of model/site data; no new source
+material or imagery is introduced.
 
 Reproduce (download cache and Blender source remain under ignored `test/output/farm-sources/`):
 
 ```sh
 python3 tools/fetch-farm-materials.py
 blender --background --python tools/prepare-farm.py
+node tools/prepare-approach-sites.mjs
 node tools/prepare-farm.mjs
 ```
 

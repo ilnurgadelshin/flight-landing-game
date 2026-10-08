@@ -862,3 +862,81 @@ on each tier, upward-facing shoulder triangles, successful use of the shared sca
 missing-normal-map fallback. Report: `benchmarks/2026-10-08-runway-surfaces.json`.
 The full functional browser suite and other GPUs/phones were not tested; SwiftShader
 remains unavailable on this machine. Local review: `output/runway-surface-review.html`.
+
+
+## Two complete opposite-approach sites — 2026-10-08
+
+Baseline: published `89f9691`, archived into a temporary directory. Measurements run
+sequentially on Apple M2 Pro / Chromium 141 / ANGLE Metal at 1440×900, high fixed 1.5×
+and low fixed 1×, four-second warm-up and twelve-second samples. The new `north-farm`
+scene uses (2390,15,-320) looking at (2387,3,-385); `hamlet` uses (3150,14,-310) looking
+at (3195,2,-277). Existing captain, opposite and storm scenes are unchanged.
+Reports: `benchmarks/2026-10-08-complete-sites-render-{before,after}.json`.
+
+| Fixed scene | Before FPS | After FPS | Draw calls before → after |
+| --- | ---: | ---: | ---: |
+| high captain | 39.11 | 39.45 | 931 → 931 |
+| high north-farm | 54.43 | 52.01 | 200 → 213 |
+| high hamlet | 46.81 | 48.68 | 292 → 298 |
+| high opposite | 54.51 | 55.26 | 648 → 659 |
+| high storm | 42.19 | 42.11 | 925 → 925 |
+| low captain | 60.00 | 60.00 | 532 → 542 |
+| low north-farm | 60.00 | 60.00 | 117 → 127 |
+| low hamlet | 60.00 | 60.00 | 155 → 168 |
+| low opposite | 60.00 | 60.00 | 413 → 436 |
+| low storm | 60.00 | 52.18 | 510 → 520 |
+
+The close farm view costs **4.4%** at high 1.5× (54.43 → 52.01 FPS). Other high scenes
+range from 0.2% slower to 4.0% faster; small differences include run-to-run variation. Clear
+low scenes stay at the 60 FPS cap, but low storm falls to **52.18 FPS** in the final series
+versus 60 FPS in the earlier after-series. Both reports are retained (the earlier series is
+`render-initial.json`); its only subsequent scenery change moves one boundary tree.
+These are display-capped RAF measurements, not GPU throughput or evidence of equivalent
+performance on phones or other laptops. High cockpit still runs around 39 FPS at forced
+1.5×; automatic resolution selection is unchanged.
+
+A focused storm repeat on both builds gives **42.11 → 42.38 FPS high** and
+**60.00 → 60.00 FPS low**. Reports: `complete-sites-storm-{before,after}.json` with the
+same date prefix. The 52.18 FPS low result was not reproduced, but is retained rather than
+discarded. These samples do not establish a persistent storm regression or guarantee 60 FPS.
+
+Seven additional complete models add 11,382 triangles (58,855 total). Grounds/fences increase
+from 39,844 to 81,218 triangles; the original 2,924-triangle yard is unchanged. Building
+batches stay local to each of the three sites, increasing the complete-sites group from
+14 to 38 batches, while replacing more facade-kit/procedural geometry. Actual visible draw
+changes are shown above. High/low facade-kit counts decrease from 31/12 to 25/9 because the
+new complete models replace those candidates. No building footprint is removed.
+
+High/low GLBs grow by 205,148 / 205,096 bytes, and the shared new site JSON is 16,200 bytes.
+That is **221,348 / 221,296 bytes** of additional model/site data, excluding the small
+manifest and runtime-code changes. No new source image, texture map or paid asset is added.
+The low model/yard/site asset budget increases from 1.5 to 1.6 MB (actual 1,514,739 bytes);
+the high 2.4 MB budget is unchanged (actual 2,306,139 bytes). Scenery remains prepared behind
+the menu. A failed extension-data download preserves the original complete valley site and
+falls back to procedural geometry for the seven new placements.
+
+Delivery checks pass: menu resource bodies are **14.01 MB high / 8.60 MB low** and fully
+prepared resources **62.69 MB / 17.65 MB** in the delivery test. Preparation still completes
+behind the menu, and its tested flight makes no additional requests. Hidden-tab calibration
+and slow-renderer quality selection pass. Localhost timing does not predict Internet downloads.
+
+All 14 Node suites pass. Chromium Metal passes all sixteen roofs, terrain contact within
+0.001 m, three new road connections, 27 placed trees and no unplanned trees in the grounds.
+Boundary fences leave the new lanes clear. Corridor tests report no trees in mapped fields,
+buildings or roads. Missing/invalid extension data retains the original nine-building site;
+missing common model, site or yard assets retain procedural geometry. Existing approach
+streaming, low/high original-valley views and all 23 graphics checks pass. Reports are saved
+with the `2026-10-08-complete-sites-` prefix. The full functional browser suite and other
+GPUs/phones were not tested; SwiftShader remains unavailable on this machine.
+
+The final real-time autoland uses the actual UI Start preparation, a cold browser cache,
+seed 11 and high fixed 1×. It finishes **100/A at 59.90 FPS**, p99 **16.8 ms**, with no
+JavaScript/asset errors and **zero requests begun during flight**. The worst interval is
+**166.7 ms at startup**; the worst later interval is **33.4 ms**. Preparation takes **5.67 s**
+on localhost. Prepared resource bodies are **62,849,908 bytes**, 225,528 more than the
+earlier published runway-flight report (62,624,380). That earlier flight averaged 59.87 FPS,
+p99 16.8 ms; it was not freshly retimed for this pass. Startup still hitches, and neither
+this clear-weather flight nor the fixed scenes establishes performance on other devices
+or all weather scenarios. Report: `benchmarks/2026-10-08-complete-sites-flight.json`.
+
+Local before/after review: `output/complete-approach-sites-review.html`.

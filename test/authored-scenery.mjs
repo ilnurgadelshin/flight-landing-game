@@ -37,8 +37,9 @@ try{
         bytes:performance.getEntriesByType('resource').reduce((sum,r)=>sum+r.encodedBodySize,0)};
     });
     if(!process.env.REVIEW_ROOT){
-      assert.ok(status.authored.buildings>10);assert.ok(status.authored.triangles<700000);
-      assert.equal(status.farm.buildings,9);assert.equal(status.farm.batches,14);assert.ok(status.farm.triangles<75000);
+      // Complete models replace some of the limited facade-kit candidates.
+      assert.equal(status.authored.buildings,tier==='high'?25:9);assert.ok(status.authored.triangles<700000);
+      assert.equal(status.farm.buildings,16);assert.equal(status.farm.sites,3);assert.ok(status.farm.batches<=38);assert.ok(status.farm.triangles<75000);
     }
     assert.deepEqual(status.errors,[]);reports.push({tier,...status});console.log(tier,status);
     for(const view of ['farm','house','village','airport','trees','night','farm-overcast',...(!process.env.REVIEW_ROOT&&tier==='high'?['tree-7','tree-8']:[])]){

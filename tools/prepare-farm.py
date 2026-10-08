@@ -121,6 +121,20 @@ for x,z,name,style in [(2490.9,241.6,'roadside-farmhouse','house'),(2567.0,425.5
  b=next(b for b in registered if b['x']==x and b['z']==z)
  height={'roadside-farmhouse':6.1,'roadside-cottage':4.5,'roadside-garage':4.2,'roadside-workbarn':5.6,'roadside-store':5.0}.get(name,b['height'])
  bs.append(dict(b,id=name,style=style,height=height,sourceHeight=b['height']))
+# Two further sites, checked against the existing 2_-1 and 3_-1 imagery.
+# Preserve source footprints; architecture and complete-building heights are interpreted.
+extras=json.loads((ROOT/'assets/scenery/approach-infill.json').read_text())['buildings']
+for name in ['north-farm-barn','north-farm-annex']:
+ b=next(b for b in extras if b['id']==name);bs.append(dict(b,cluster='north-farm',sparseBattens=True))
+for x,z,name,style,height,cluster in [
+ (2339.7,-329.7,'north-farm-workshop','barn',4.6,'north-farm'),
+ (3168.2,-292.7,'ridge-garage','garage',3.4,'ridge-hamlet'),
+ (3178.0,-263.8,'ridge-barn','garage',5.8,'ridge-hamlet'),
+ (3186.0,-289.8,'ridge-store','garage',3.1,'ridge-hamlet'),
+ (3225.5,-284.2,'ridge-house','house',5.7,'ridge-hamlet'),
+]:
+ b=next(b for b in registered if b['x']==x and b['z']==z)
+ bs.append(dict(b,id=name,style=style,height=height,sourceHeight=b['height'],cluster=cluster,sparseBattens=True))
 manifest=[]
 for b in bs:
  style=b.get('style','barn');B=Builder(b['id'],style);w,d=b['w'],b['d'];rise=min(d*.27,b['height']*.38,4)
@@ -154,7 +168,7 @@ for b in bs:
     # their recessed panels and thick frames supply the visible reveal depth.
     B.face([at(x0,y0),at(x1,y0),at(x1,y1),at(x0,y1)],'siding',outward=(nx,0,nz))
   # Timber battens remain geometric; house clapboard uses filtered relief.
-  if style!='house':
+  if style!='house' and not b.get('sparseBattens'):
    for n in range(1,int(length/.42)):
     x=n*.42
     for bottom,top in zip(ys,ys[1:]):
@@ -204,7 +218,7 @@ for b in bs:
   for u in [-w*.23,w*.23]:
    y=eave+rise;B.box((u,y+.27,0),(.9,.48,.7),'dark');B.box((u,y+.57,0),(1.16,.14,.92),'roof')
    for h in [.12,.24,.36]:B.box((u,y+h,.37),(.92,.028,.1),'roof');B.box((u,y+h,-.37),(.92,.028,.1),'roof')
- B.finish();manifest.append({**{k:b[k] for k in ['id','x','z','angle','w','d','height']},'style':style,'sourceHeight':b.get('sourceHeight',b['height'])})
+ B.finish();manifest.append({**{k:b[k] for k in ['id','x','z','angle','w','d','height']},'style':style,'sourceHeight':b.get('sourceHeight',b['height']),'cluster':b.get('cluster','valley')})
 bpy.ops.export_scene.gltf(filepath=str(OUT/'farm-source.glb'),export_format='GLB',export_yup=True,export_texcoords=True,export_normals=True,export_materials='EXPORT')
 (OUT/'placement.json').write_text(json.dumps(manifest,indent=2)+'\n')
 bpy.ops.wm.save_as_mainfile(filepath=str(OUT/'valley-farm.blend'))

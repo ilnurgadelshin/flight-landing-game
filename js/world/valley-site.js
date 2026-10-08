@@ -24,7 +24,7 @@ export function siteCoverage(data,x,z,kind){
 // A narrow road needs only a terrain-following ribbon, not a parcel-sized grid.
 // Shared cross-sections keep bends joined; the outer strips feather into imagery.
 function roadGeometry(data,ground){
- const positions=[],uv=[],colors=[],alphas=[],indices=[];
+ const positions=[],uv=[],colors=[],alphas=[],indices=[],gravel=data.roadSurface==='gravel';
  for(const path of data.streets){
   const points=path.points,segments=points.slice(1).map((b,i)=>{
    const a=points[i],length=Math.hypot(b[0]-a[0],b[1]-a[1]);return {length,dx:(b[0]-a[0])/length,dz:(b[1]-a[1])/length};
@@ -40,12 +40,16 @@ function roadGeometry(data,ground){
     const t=k/count,cx=a[0]+segment.dx*segment.length*t,cz=a[1]+segment.dz*segment.length*t;
     const nx=THREE.MathUtils.lerp(n0[0],n1[0],t),nz=THREE.MathUtils.lerp(n0[1],n1[1],t),base=alphas.length;
     const fade=THREE.MathUtils.smoothstep(Math.min(distance+t*segment.length,total-distance-t*segment.length),0,5);
-    for(const [offset,alpha] of [[-path.width/2-.85,0],[-path.width/2+.35,1],[path.width/2-.35,1],[path.width/2+.85,0]]){
+    const sections=gravel?[[-path.width/2-.85,0],[-path.width/2+.35,1],[-.8,1],[0,1],[.8,1],[path.width/2-.35,1],[path.width/2+.85,0]]:
+     [[-path.width/2-.85,0],[-path.width/2+.35,1],[path.width/2-.35,1],[path.width/2+.85,0]];
+    for(const [offset,alpha] of sections){
      const x=cx+nx*offset,z=cz+nz*offset,variation=1+.065*Math.sin(x*.17+Math.sin(z*.23))+.035*Math.cos(z*.45+x*.12);
-     positions.push(x,ground(x,z)+.10,z);uv.push(x/2.3,z/2.3);colors.push(.105*variation,.11*variation,.108*variation);
+     positions.push(x,ground(x,z)+.10,z);uv.push(x/2.3,z/2.3);
+     const wear=gravel?1-.18*Math.exp(-Math.pow((Math.abs(offset)-.8)/.35,2)):1;
+     const tone=gravel?[.34,.35,.35]:[.105,.11,.108];colors.push(...tone.map(v=>v*variation*wear));
      alphas.push(protectedScenery(x,z,16)?0:alpha*fade);
     }
-    if(previous!==undefined)for(let j=0;j<3;j++)indices.push(previous+j,previous+j+1,base+j,previous+j+1,base+j+1,base+j);
+    if(previous!==undefined)for(let j=0;j<sections.length-1;j++)indices.push(previous+j,previous+j+1,base+j,previous+j+1,base+j+1,base+j);
     previous=base;
    }
    distance+=segment.length;
@@ -60,10 +64,11 @@ function surfaceGeometry(data,kind,ground){
  const polygons=data[kind],paths=kind==='gravel'?data.paths:kind==='roads'?data.streets:[],all=polygons.flat().concat(paths.flatMap(p=>p.points));
  const minX=Math.min(...all.map(p=>p[0]))-5,minZ=Math.min(...all.map(p=>p[1]))-5;
  const step=kind==='roads'?.65:kind==='gravel'?1:1.5,nx=Math.ceil((Math.max(...all.map(p=>p[0]))+5-minX)/step),nz=Math.ceil((Math.max(...all.map(p=>p[1]))+5-minZ)/step);
- const positions=[],uv=[],colors=[],alphas=[],indices=[],lawn=kind==='lawns';
+ const positions=[],uv=[],colors=[],alphas=[],indices=[],lawn=kind==='lawns',rural=data.roadSurface==='gravel';
  for(let j=0;j<=nz;j++)for(let i=0;i<=nx;i++){
   const x=minX+i*step,z=minZ+j*step,d=siteCoverage(data,x,z,kind);
-  const alpha=protectedScenery(x,z,16)?0:THREE.MathUtils.smoothstep(d+(lawn?0:.3),lawn?-1.8:-.55,lawn?3.5:.65);
+  const edge=rural?(Math.sin(x*1.3+Math.cos(z*.8))*Math.cos(z*1.7)*.24):0;
+  const alpha=protectedScenery(x,z,16)?0:THREE.MathUtils.smoothstep(d+edge+(lawn?0:.3),lawn?-1.8:-.55,lawn?(rural?6:3.5):.65);
   positions.push(x,ground(x,z)+(lawn?.016:kind==='roads'?.10:.026),z);uv.push(x/(lawn?5:2.3),z/(lawn?5:2.3));alphas.push(alpha);
   const variation=1+.065*Math.sin(x*.17+Math.sin(z*.23))+.035*Math.cos(z*.45+x*.12);
   if(lawn){const mowing=1+.025*Math.sin((x*.85+z*.52)*Math.PI/3.5);colors.push(.115*variation*mowing,.145*variation*mowing,.060*variation*mowing);}
@@ -71,7 +76,9 @@ function surfaceGeometry(data,kind,ground){
   else {
    // Wheel-worn access, darker foundation margins and broad mottling break up yards.
    let track=0;for(const path of data.paths)for(let k=1;k<path.points.length;k++){const d=segmentDistance(x,z,path.points[k-1],path.points[k]);track=Math.max(track,Math.exp(-Math.pow((d-.9)/.4,2)));}
-   const tone=(.34+.025*Math.sin(x*.38+Math.sin(z*.19))-.035*track)*variation;colors.push(tone,tone*.97,tone*.91);
+   const patches=rural?.045*Math.sin(x*.24+Math.sin(z*.31))*Math.cos(z*.18)+.025*Math.sin(x*.83+z*.61):0;
+   const tone=(.34+patches+.025*Math.sin(x*.38+Math.sin(z*.19))-.035*track)*variation;
+   colors.push(tone,tone*(rural?1.03:.97),tone*(rural?1.03:.91));
   }
  }
  for(let j=0;j<nz;j++)for(let i=0;i<nx;i++){
@@ -88,7 +95,7 @@ function surfaceGeometry(data,kind,ground){
  geometry.computeVertexNormals();geometry.computeBoundingSphere();return geometry;
 }
 export function buildValleySite(world,data,gravelMaterial,woodMaterial){
- const ground=(x,z)=>sceneryGroundHeight(x,z,world.groundLowDetail),group=new THREE.Group();group.name='Valley roadside grounds';let triangles=0;
+ const ground=(x,z)=>sceneryGroundHeight(x,z,world.groundLowDetail),group=new THREE.Group();group.name=data.name||'Valley roadside grounds';let triangles=0;
  const lawn=new THREE.MeshStandardMaterial({roughness:1,vertexColors:true,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1});
  lawn.onBeforeCompile=shader=>{
   shader.uniforms.uSiteGrass=world.groundUniforms.uGrass;
@@ -101,8 +108,8 @@ export function buildValleySite(world,data,gravelMaterial,woodMaterial){
    .replace('#include <alphamap_fragment>','diffuseColor.a*=vSiteAlpha;if(diffuseColor.a<.005)discard;');
  };
  lawn.customProgramCacheKey=()=> 'valley-lawn-v1';
- const roadMaterial=new THREE.MeshStandardMaterial({roughness:.97,vertexColors:true,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1});
- roadMaterial.onBeforeCompile=gravelMaterial.onBeforeCompile;roadMaterial.customProgramCacheKey=()=> 'valley-road-v1';
+ const roadMaterial=data.roadSurface==='gravel'?gravelMaterial:new THREE.MeshStandardMaterial({roughness:.97,vertexColors:true,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1});
+ if(roadMaterial!==gravelMaterial){roadMaterial.onBeforeCompile=gravelMaterial.onBeforeCompile;roadMaterial.customProgramCacheKey=()=> 'valley-road-v1';}
  for(const kind of ['lawns','gravel','roads']){
   const geometry=surfaceGeometry(data,kind,ground),mesh=new THREE.Mesh(geometry,kind==='lawns'?lawn:kind==='roads'?roadMaterial:gravelMaterial);
   mesh.name='Roadside '+kind;mesh.receiveShadow=true;mesh.renderOrder=kind==='lawns'?-2:kind==='roads'?0:-1;mesh.userData.sceneryPart='site-ground';group.add(mesh);triangles+=geometry.index.count/3;
@@ -124,6 +131,6 @@ export function buildValleySite(world,data,gravelMaterial,woodMaterial){
  const points=[...data.lawns.flat(),...data.gravel.flat(),...data.streets.flatMap(p=>p.points)],xs=points.map(p=>p[0]),zs=points.map(p=>p[1]);
  const bounds=[Math.min(...xs)-8,Math.max(...xs)+8,Math.min(...zs)-8,Math.max(...zs)+8];
  const within=(x,z)=>x>bounds[0]&&x<bounds[1]&&z>bounds[2]&&z<bounds[3];
- return {group,triangles,roadMaterial,trees:data.trees,roadExcludes:(x,z)=>within(x,z)&&siteCoverage(data,x,z,'roads')>-6,
+ return {group,triangles,roadMaterial:roadMaterial===gravelMaterial?null:roadMaterial,trees:data.trees,roadExcludes:(x,z)=>within(x,z)&&siteCoverage(data,x,z,'roads')>-6,
   excludes:(x,z)=>within(x,z)&&(siteCoverage(data,x,z,'lawns')>-3||siteCoverage(data,x,z,'gravel')>-4||siteCoverage(data,x,z,'roads')>-7)};
 }

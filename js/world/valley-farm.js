@@ -1,4 +1,4 @@
-// A complete, originally authored farm and roadside cluster on registered footprints.
+// Complete, originally authored approach sites on registered building footprints.
 // The delivered GLBs replace whole buildings; the optional site has a procedural fallback.
 import * as THREE from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
@@ -57,6 +57,16 @@ export async function loadValleyFarm(world,buildings){
  const siteResponse=await fetch(url('valley-site.json'));
  if(!siteResponse.ok)throw new Error(`Valley site: HTTP ${siteResponse.status}`);
  const siteData=await siteResponse.json();
+ // A missing extension retains the original complete valley site; only the new
+ // sites fall back to their registered procedural buildings and photographic ground.
+ const extension=await fetch(url('approach-sites.json')).then(async r=>{
+  if(!r.ok)throw new Error(`Approach sites: HTTP ${r.status}`);
+  const data=await r.json();
+  if(!Array.isArray(data.sites)||data.sites.some(site=>!site.id||
+   !['lawns','gravel','roads','streets','paths','fences','trees'].every(key=>Array.isArray(site[key]))))
+   throw new Error('Approach sites: invalid site data');
+  return data;
+ }).catch(error=>{world.assetErrors.push(String(error));return {sites:[]};});
  const model=(await new GLTFLoader().setMeshoptDecoder(MeshoptDecoder).loadAsync(url(`valley-farm${suffix}.glb`))).scene;
  const textures=[];
  try{
@@ -70,6 +80,10 @@ export async function loadValleyFarm(world,buildings){
   const ground=(x,z)=>sceneryGroundHeight(x,z,world.groundLowDetail),replaces=new Set(),batches=new Map(),glass=[];
   model.updateMatrixWorld(true);
   for(const placement of manifest.placements){
+   const cluster=placement.cluster||'valley';
+   if(cluster!=='valley'&&!extension.sites.some(site=>site.id===cluster))continue;
+   if(!batches.has(cluster))batches.set(cluster,new Map());
+   const clusterBatches=batches.get(cluster);
    const b=buildings.find(b=>Math.abs(b.x-placement.x)<.1&&Math.abs(b.z-placement.z)<.1);
    const source=model.getObjectByName(placement.id);
    if(!b||!source)throw new Error(`Valley farm placement missing: ${placement.id}`);
@@ -90,14 +104,17 @@ export async function loadValleyFarm(world,buildings){
     const mat=o.material;
     for(const value of Object.values(mat))if(value?.isTexture)value.anisotropy=world.maxAniso;
     if(/glazing/.test(mat.name)){mat.emissive.set(0xffcf86);mat.emissiveIntensity=0;if(!glass.includes(mat))glass.push(mat);}
-    if(!batches.has(mat))batches.set(mat,[]);batches.get(mat).push(g);
+    if(!clusterBatches.has(mat))clusterBatches.set(mat,[]);clusterBatches.get(mat).push(g);
    });
   }
-  const group=new THREE.Group();group.name='Authored valley farm';let triangles=0;
-  for(const [material,parts] of batches){
-   const geometry=mergeGeometries(parts);parts.forEach(g=>g.dispose());geometry.computeBoundingSphere();
-   const mesh=new THREE.Mesh(geometry,material);mesh.castShadow=mesh.receiveShadow=true;mesh.userData.sceneryPart='authored-farm';
-   mesh.name='Valley farm '+material.name;triangles+=geometry.index.count/3;group.add(mesh);
+  const group=new THREE.Group();group.name='Authored valley farm';let triangles=0,batchCount=0;
+  for(const [cluster,clusterBatches] of batches){
+   const buildingsGroup=new THREE.Group();buildingsGroup.name='Complete buildings '+cluster;group.add(buildingsGroup);
+   for(const [material,parts] of clusterBatches){
+    const geometry=mergeGeometries(parts);parts.forEach(g=>g.dispose());geometry.computeBoundingSphere();
+    const mesh=new THREE.Mesh(geometry,material);mesh.castShadow=mesh.receiveShadow=true;mesh.userData.sceneryPart='authored-farm';
+    mesh.name=cluster+' '+material.name;triangles+=geometry.index.count/3;buildingsGroup.add(mesh);batchCount++;
+   }
   }
   const yardMaterial=new THREE.MeshStandardMaterial({map:maps[0].value,normalMap:maps[1].value,roughnessMap:maps[2].value,
    normalScale:new THREE.Vector2(.55,.55),roughness:1,vertexColors:true,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1});
@@ -108,13 +125,16 @@ export async function loadValleyFarm(world,buildings){
   };
   yardMaterial.customProgramCacheKey=()=> 'valley-yard-v1';
   const yard=new THREE.Mesh(yardGeometry(ground,replaces),yardMaterial);yard.name='Valley farm gravel yard';yard.receiveShadow=true;yard.renderOrder=-1;yard.userData.sceneryPart='farm-yard';group.add(yard);
-  const wood=[...batches.keys()].find(m=>m.name.startsWith('Weathered timber'));
-  const site=buildValleySite(world,siteData,yardMaterial,wood);group.add(site.group);
+  const wood=[...batches.values()].flatMap(batch=>[...batch.keys()]).find(m=>m.name.startsWith('Weathered timber'));
+  const sites=[siteData,...extension.sites].map(data=>buildValleySite(world,data,yardMaterial,wood));
+  for(const site of sites)group.add(site.group);
+  const site={roadMaterial:sites[0].roadMaterial,trees:sites.flatMap(s=>s.trees),
+   excludes:(x,z)=>sites.some(s=>s.excludes(x,z)),roadExcludes:(x,z)=>sites.some(s=>s.roadExcludes(x,z))};
   const sourceGeometry=new Set();model.traverse(o=>{if(o.isMesh)sourceGeometry.add(o.geometry);});sourceGeometry.forEach(g=>g.dispose());
   // Update projected shadows only after the whole replacement has succeeded.
   // Failed optional assets must leave the procedural buildings unchanged.
   for(const b of replaces)b.height=manifest.placements.find(p=>Math.abs(b.x-p.x)<.1&&Math.abs(b.z-p.z)<.1).height;
-  return {group,replaces,site,materials:glass,stats:{buildings:replaces.size,triangles,yardTriangles:yard.geometry.index.count/3,batches:batches.size+5,siteTriangles:site.triangles,low}};
+  return {group,replaces,site,materials:glass,stats:{buildings:replaces.size,triangles,yardTriangles:yard.geometry.index.count/3,batches:batchCount+1+sites.length*4,sites:sites.length,siteTriangles:sites.reduce((n,s)=>n+s.triangles,0),low}};
  }catch(error){
   const geometries=new Set(),materials=new Set();model.traverse(o=>{if(o.isMesh){geometries.add(o.geometry);materials.add(o.material);}});
   for(const g of geometries)g.dispose();for(const m of materials){for(const v of Object.values(m))if(v?.isTexture)textures.push(v);m.dispose();}
