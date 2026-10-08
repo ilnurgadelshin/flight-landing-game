@@ -710,11 +710,20 @@ panel is dimmer than by day and the displays stand out. The high tier also draws
 cumulus as ray-marched 3D density volumes with self-shadowing. Four original density fields
 are baked into a 1 MiB volume (about 79 KB compressed), replacing repeated per-pixel noise calculations. The clouds
 have varied connected billows, flatter bases and directional scattering; a failed density
-download retains the analytic shader. Both tiers use multiscale overcast detail, with closer
-mesh spacing around the eye and colour following the underside's relief. The low tier uses the
-lighter sprite clouds. Cloud-deck visibility and storm physics are shared. All imported assets
+download retains the analytic shader. Both tiers render overcast boundaries with a bounded,
+reduced-resolution density pass: soft billows above, shaded pockets below and a shared fog
+interior. A generated 256² field adds no texture download. High uses at most 560,000 pixels
+and 28 steps; low uses 160,000 pixels and 14 steps. Clear weather and cloud interiors skip
+the pass. Fog density blends across each boundary so entering a high-visibility scenario's
+cloud no longer reveals the ground through a clear gap. This remains a simplified continuous
+deck, not a fully volumetric weather system. The low tier uses lighter sprites for fair-weather
+cumulus. Cloud-deck visibility and storm physics are shared. All imported assets
 are public domain, CC0, CC BY 4.0 or CDLA Permissive 2.0; licenses, attribution and reproducible asset preparation
 commands are in [`assets/README.md`](assets/README.md). Players can open the credits from the menu.
+
+`node test/overcast-review.mjs` captures both cloud boundaries, normal cockpit views, night
+and storm on both tiers. It checks rendered cloud opacity, obscured runway lights, resource
+reuse across resizing, quality reduction and renderer-state restoration.
 
 `node test/vegetation-weather.mjs` checks rendered canopy coverage from side, oblique and
 overhead views, unchanged buffers for settled trees and the corrupt-volume fallback. It

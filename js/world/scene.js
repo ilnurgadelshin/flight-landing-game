@@ -15,10 +15,11 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RUNWAY, DEG } from '../config.js';
 import { makeRng } from '../physics/atmosphere.js';
-import { makeRunwayTexture, makeTaxiwayTexture, makeDetailTexture, makeCloudTexture, makeOvercastTexture, makeBuildingTexture } from './textures.js';
+import { makeRunwayTexture, makeTaxiwayTexture, makeDetailTexture, makeCloudTexture, makeBuildingTexture } from './textures.js';
 import { AirfieldLights } from './lights.js';
 import { Atmosphere, SKY_GLSL, installHaze, sceneColor } from './sky.js';
 import { Cumulus } from './clouds.js';
+import { buildOvercast } from './overcast.js';
 import { addAirportDetail } from './airport-detail.js';
 import { buildLandscape } from './landscape.js';
 import { addRunwayShoulders } from './runway-surfaces.js';
@@ -214,7 +215,7 @@ export class World {
       return keepGoing();
     };
     try{
-      for(const scene of [this.scene,this.cockpitScene]){
+      for(const scene of [this.scene,this.cockpitScene,this.deckSurfaces.scene]){
         const byMaterial=new Map();
         scene.traverse(o=>{
           if(!(o.isMesh||o.isPoints||o.isLine||o.isSprite)||!o.material)return;
@@ -469,46 +470,7 @@ export class World {
     if (this.quality === 'high') {
       this.cumulus = new Cumulus(this.scene, this.atmo);this.assetJobs.push(this.cumulus.ready);
     }
-    // overcast deck
-    const ovTex = makeOvercastTexture();
-    ovTex.repeat.set(30, 30);
-    const deckGeometry=new THREE.PlaneGeometry(80000,80000,96,96),deckPositions=deckGeometry.attributes.position;
-    // Concentrate the existing vertices around the eye, retaining the distant
-    // horizon. Nearby relief no longer depends on 833 m-wide triangles.
-    for(let i=0;i<deckPositions.count;i++)for(let axis=0;axis<2;axis++){
-      const value=deckPositions.array[i*3+axis];
-      deckPositions.array[i*3+axis]=Math.sign(value)*Math.pow(Math.abs(value)/40000,1.8)*40000;
-    }
-    this.deckDrift={value:new THREE.Vector2()};
-    this.overcast = new THREE.Mesh(deckGeometry, new THREE.MeshBasicMaterial({ map: ovTex, side: THREE.DoubleSide, transparent: true, opacity: 0.97, fog: true, depthWrite: false }));
-    this.overcast.material.onBeforeCompile=shader=>{
-      THREE.Material.prototype.onBeforeCompile.call(this.overcast.material,shader);
-      shader.uniforms.deckNoise={value:ovTex};shader.uniforms.deckDrift=this.deckDrift;
-      shader.vertexShader=shader.vertexShader.replace('#include <common>',`#include <common>
-        uniform sampler2D deckNoise; uniform vec2 deckDrift; varying vec2 vDeckWeatherUv;`)
-        .replace('#include <begin_vertex>',`#include <begin_vertex>
-        vec3 deckWorld=(modelMatrix*vec4(position,1.0)).xyz;
-        vDeckWeatherUv=deckWorld.xz/3500.0+deckDrift;
-        float billow=texture2D(deckNoise,vDeckWeatherUv).r*.65+texture2D(deckNoise,vDeckWeatherUv*.271+vec2(.27,.61)).r*.35;
-        // Displace upwards only, preserving the charted ceiling and fog transition.
-        transformed.z-=25.0+billow*180.0;`);
-      shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nvarying vec2 vDeckWeatherUv;')
-        .replace('#include <map_fragment>',`
-        vec3 fine=texture2D(map,vDeckWeatherUv).rgb;
-        vec3 broad=texture2D(map,vDeckWeatherUv*.271+vec2(.27,.61)).rgb;
-        diffuseColor.rgb*=mix(fine,broad,.35)*1.2;`);
-    };
-    this.overcast.rotation.x = Math.PI / 2;
-    this.overcast.visible = false;
-    this.overcast.renderOrder = 2;
-    this.scene.add(this.overcast);
-    // the top of the deck, seen when flying above it: sunlit, bright
-    const ovTopTex = makeOvercastTexture(true); ovTopTex.repeat.set(30, 30);
-    this.overcastTop = new THREE.Mesh(new THREE.PlaneGeometry(80000, 80000), new THREE.MeshBasicMaterial({ map: ovTopTex, side: THREE.DoubleSide, fog: true }));
-    this.overcastTop.rotation.x = Math.PI / 2;
-    this.overcastTop.visible = false;
-    this.overcastTop.renderOrder = 2;
-    this.scene.add(this.overcastTop);
+    this.deckSurfaces=buildOvercast(this);
     // rain: line segments in camera space
     const n = this.lowDetail ? 900 : 2600;
     const pos = new Float32Array(n * 2 * 3), anchor = new Float32Array(n * 2 * 3), seed = new Float32Array(n * 2);
@@ -529,6 +491,7 @@ export class World {
       uniforms: { uTime: { value: 0 }, uBox: { value: box }, uVel: { value: new THREE.Vector3(0, -9, 3) }, uIntensity: { value: 0 }, uColor: { value: new THREE.Color(0.72, 0.78, 0.88) } },
     });
     this.rain = new THREE.LineSegments(geo, this.rainMat);
+    this.rain.renderOrder=3; // Foreground rain follows the opaque cloud boundary.
     this.rain.frustumCulled = false;
     this.rain.visible = false;
     this.rain.position.set(0, 0, -27);     // the whole box sits well outside the windshield (7..47 m)
@@ -631,9 +594,10 @@ export class World {
     this.lights.material.uniforms.uIntensity.value = P.lights;
     this.daylight = (tod === 'day' ? 1 : tod === 'dusk' ? 0.35 : 0) * (storm ? 0.5 : 1);
     // clouds
+    this.deckSurfaces.configure(this.cloudTop-this.cloudBase,lightDir);
     this.overcast.visible = this.hasDeck;
     this.overcast.position.y = this.cloudBase;
-    this.overcast.material.opacity = storm ? 0.98 : 0.9;
+    this.overcast.material.opacity = 1;
     this.overcast.material.color.set(storm ? (tod === 'night' ? 0x101216 : 0x55595f) : (tod === 'night' ? 0x1a1e26 : 0x9aa0a8));
     this.overcastTop.visible = this.hasDeck && this.cloudTop < 6000;
     this.overcastTop.position.y = this.cloudTop;
@@ -708,12 +672,14 @@ export class World {
     // fog density: in cloud above the base, thick; below: visibility
     const alt = state.alt;
     let vis = this.visibility;
-    // inside the deck (between its base and its top, with a 60 m transition at each edge) the
-    // visibility collapses; above the top it is clear again with the deck seen from above
+    // Extinction grows across a 60 m fringe centered on each charted boundary.
+    // Mixing visibility distances leaves a 20 km scenario almost clear well inside
+    // its cloud. Mix inverse visibility instead, obscuring the ground before the
+    // boundary proxy disappears and avoiding a sudden clear hole on entry.
     let inCloudF = 0, under = this.baseOvercast;
     if (this.hasDeck) {
-      inCloudF = Math.max(0, Math.min(1, (alt - this.cloudBase) / 60, (this.cloudTop - alt) / 60));
-      vis = vis * (1 - inCloudF) + 120 * inCloudF;
+      inCloudF = Math.max(0, Math.min(1, (alt - this.cloudBase + 30) / 60, (this.cloudTop - alt + 30) / 60));
+      vis = 1 / ((1 - inCloudF) / vis + inCloudF / 120);
       // A sheet represents an OUTSIDE surface. Even the transition band inside
       // the cloud must not see an opaque floor/ceiling cutting across the fog.
       this.overcast.visible = alt < this.cloudBase + 3;
@@ -765,11 +731,10 @@ export class World {
       this.cloudGroup.children.forEach((sp, i) => { sp.position.x = sp.userData.baseX + drift * (0.7 + (i % 5) * 0.1); });
     }
     // overcast layer follows the camera horizontally so it never ends
-    if (this.overcast.visible) { this.overcast.position.x = eye.x; this.overcast.position.z = eye.z; this.overcast.material.map.offset.set(eye.x / 80000 * 30 + this.time * 0.002, -eye.z / 80000 * 30); }
+    if (this.overcast.visible) { this.overcast.position.x = eye.x; this.overcast.position.z = eye.z; }
     this.deckDrift.value.set(this.time*.0006,0);
     if (this.overcastTop.visible) {
       this.overcastTop.position.x = eye.x; this.overcastTop.position.z = eye.z;
-      this.overcastTop.material.map.offset.set(eye.x/80000*30+this.time*.0007875,-eye.z/80000*30);
     }
     // rain in camera space: relative velocity = fall + aircraft speed (approx along the view axis)
     this.camera.getWorldQuaternion(this.rainRig.quaternion);
@@ -792,6 +757,7 @@ export class World {
     this.cockpitScene.updateMatrixWorld(true);   // the camera hangs in here: keep both passes in sync
     const r = this.renderer;
     r.autoClear = true;
+    this.deckSurfaces.render(this.camera);
     if (this.composer) this.composer.render();
     else r.render(this.scene, this.camera);
     // the flight deck on top, straight to the screen (its displays keep their exact colours);

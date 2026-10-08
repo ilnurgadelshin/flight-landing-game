@@ -236,29 +236,6 @@ export function makeCloudTexture() {
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.needsUpdate = true; return t;
 }
 
-/** Seamless, warped multiscale cloud structure, shared by the deck's colour and relief. */
-export function makeOvercastTexture(top = false) {
-  const S=512,c=canvas(S,S),g=c.getContext('2d'),pixels=g.createImageData(S,S),rng=makeRng(8);
-  const fields=[4,8,16,32,64].map(size=>({size,data:Float32Array.from({length:size*size},()=>rng())}));
-  const sample=(field,u,v)=>{
-    const {size,data}=field,x=u*size,y=v*size,ix=Math.floor(x),iy=Math.floor(y);
-    let fx=x-ix,fy=y-iy;fx=fx*fx*(3-2*fx);fy=fy*fy*(3-2*fy);
-    const at=(a,b)=>data[((b%size+size)%size)*size+(a%size+size)%size];
-    return THREE.MathUtils.lerp(THREE.MathUtils.lerp(at(ix,iy),at(ix+1,iy),fx),
-      THREE.MathUtils.lerp(at(ix,iy+1),at(ix+1,iy+1),fx),fy);
-  };
-  const weights=[.44,.28,.16,.08,.04];
-  for(let y=0;y<S;y++)for(let x=0;x<S;x++){
-    const u=x/S,v=y/S,warpU=u+(sample(fields[0],u,v)-.5)*.24,warpV=v+(sample(fields[0],u+.37,v+.61)-.5)*.24;
-    let n=0;for(let j=0;j<fields.length;j++)n+=sample(fields[j],warpU,warpV)*weights[j];
-    const tone=top?184+n*64:65+n*135,i=(y*S+x)*4;
-    pixels.data.set([tone,tone+3,tone+7,255],i);
-  }
-  g.putImageData(pixels,0,0);
-  const texture=new THREE.CanvasTexture(c);texture.colorSpace=THREE.SRGBColorSpace;
-  texture.wrapS=texture.wrapT=THREE.RepeatWrapping;return texture;
-}
-
 /** Simple building facade with lit windows. */
 export function makeBuildingTexture(night) {
   const c = canvas(512, 256); const g = c.getContext('2d');

@@ -6,6 +6,7 @@ import {startServer} from './server.mjs';
 import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
 const label=(process.argv[2]||'current').replace(/[^a-z0-9_-]/gi,'-');
+const scenario=process.env.BENCHMARK_SCENARIO||'clear';
 const auto=process.env.BENCHMARK_AUTO==='1';
 const {server,url}=await startServer(process.env.BENCHMARK_ROOT||process.cwd());
 const angle=process.env.VISUAL_GPU||'swiftshader';   // VISUAL_GPU=metal on macOS hardware
@@ -16,7 +17,7 @@ try{
   page.on('pageerror',e=>errors.push(e.message));
   await page.addInitScript(()=>performance.setResourceTimingBufferSize(1000));
   await page.goto(url+(auto?'/?drs=1':'/?quality=high&drs=0'));await page.waitForFunction(()=>window.__sim,null,{timeout:120000});
-  await page.evaluate(auto=>{
+  await page.evaluate(({auto,scenario})=>{
     const s=window.__sim;if(!auto)s.world.setPixelRatio(1);s.setDrawing(true);s.setTimeScale(1);
     window.__flightFrames=[];window.__qualityHistory=[];let previous,lastQuality;
     window.__flightDone=false;window.__flightStart=null;window.__startPressed=performance.now();
@@ -33,8 +34,8 @@ try{
       if(!window.__flightDone)requestAnimationFrame(frame);
     };
     requestAnimationFrame(frame);
-    s.ui.onStart({startId:'short',scenarioId:'clear',seed:11,mode:'game',sound:false,skipSchool:true});
-  },auto);
+    s.ui.onStart({startId:'short',scenarioId:scenario,seed:11,mode:'game',sound:false,skipSchool:true});
+  },{auto,scenario});
   await page.waitForFunction(()=>window.__sim.game.state==='finished',null,{timeout:300000});
   const report=await page.evaluate(()=>{
     window.__flightDone=true;const s=window.__sim,frames=window.__flightFrames,sorted=frames.map(f=>f[1]).sort((a,b)=>a-b);
@@ -48,7 +49,7 @@ try{
       result:s.result(),errors:s.world.assetErrors,pixelRatio:s.world.renderer.getPixelRatio(),nearTrees:s.world.nearWoodland?.count||0};
   });
   assert.deepEqual(errors,[]);assert.deepEqual(report.errors,[]);assert.equal(report.result?.success,true,'Complete the actual landing successfully');
-  report.browser=browser.version();report.autoQuality=auto;report.method=`1440x900, ${auto?'desktop auto, 2x device pixel ratio':'forced high at fixed 1x'}, real-time physics/autoland through UI Start, cold browser resource cache, actual menu preparation/streaming policy, local HTTP server, ANGLE Metal. Start wait is measured to the first in-flight RAF; frame intervals begin after it.`;
+  report.scenario=scenario;report.browser=browser.version();report.autoQuality=auto;report.method=`1440x900, ${auto?'desktop auto, 2x device pixel ratio':'forced high at fixed 1x'}, real-time physics/autoland through UI Start, cold browser resource cache, actual menu preparation/streaming policy, local HTTP server, ANGLE Metal. Start wait is measured to the first in-flight RAF; frame intervals begin after it.`;
   await fs.writeFile(`test/output/streaming-flight-${label}.json`,JSON.stringify(report,null,2)+'\n');
   console.log(JSON.stringify({...report,streamed:report.streamed.length},null,2));
 }finally{await browser.close();server.close();}

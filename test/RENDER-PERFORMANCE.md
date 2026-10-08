@@ -940,3 +940,79 @@ this clear-weather flight nor the fixed scenes establishes performance on other 
 or all weather scenarios. Report: `benchmarks/2026-10-08-complete-sites-flight.json`.
 
 Local before/after review: `output/complete-approach-sites-review.html`.
+
+
+## Soft overcast boundaries — 2026-10-08
+
+Baseline: published `ab6eb2b`. The overcast top used a flat textured plane and the underside
+used a displaced grid. Both now integrate density around a generated periodic height field,
+rendered to a bounded, reduced-resolution target, then composite at the cloud boundary.
+The interior retains shared atmospheric fog. This is a boundary-volume approximation, not
+full volumetric weather. Ordinary captain, exterior, near-boundary, night and storm captures
+are available in [the local comparison](output/overcast-review.html).
+
+A generated 256² RGBA field occupies 262,144 bytes before mipmaps (about 341 KiB with them).
+It replaces two generated 512² overcast textures. No image/model download is added. High
+uses at most 560,000 RGBA8 pixels and 28 density steps; low uses 160,000 pixels and 14 steps.
+The target uses no depth attachment or floating-point colour extension. Reversible colour
+compression retains highlights before the final display conversion. The density pass is
+skipped in clear weather and inside the deck. The texture/target objects are reused during
+resizing; reducing quality lowers the target cap and step count without restarting flight.
+
+Cloud entry also exposed an existing fog issue: mixing visibility distances left a 20 km
+scenario almost clear just inside cloud (12,048 m visibility at 24 m inside). Blending inverse
+visibility fixes that. The 60 m fringe is now centered on each charted boundary, so fog hides
+the ground before the surface proxy disappears; visibility at 24 m inside is about 133 m.
+Cloud base/top configuration, flight physics, lighting above/below the layer and storm rain
+remain in place. Rain draws after the boundary, and the proxy writes depth to prevent runway
+lights showing through opaque cloud from above.
+
+Matched hardware run: Chromium 141, ANGLE Metal, Apple M2 Pro, 1440×900; high fixed 1.5×,
+low fixed 1×, four seconds warm-up plus twelve seconds of display-paced RAF sampling per
+scene. Physics is paused; scenery/weather updates continue. Before/after reports are
+`benchmarks/2026-10-08-overcast-render-{before,after}.json`.
+
+| View | Before FPS | After FPS | Before → after draw calls |
+| --- | ---: | ---: | ---: |
+| High clear captain (control) | 39.78 | 39.56 | 931 → 931 |
+| High above deck | 60.00 | 60.00 | 527 → 529 |
+| High below deck | 60.00 | 60.00 | 608 → 609 |
+| High captain above deck | 45.46 | 46.79 | 924 → 926 |
+| High storm interior | 42.13 | 42.05 | 925 → 925 |
+| Low clear captain (control) | 60.00 | 60.00 | 542 → 542 |
+| Low above deck | 60.00 | 60.00 | 338 → 340 |
+| Low below deck | 60.00 | 60.00 | 406 → 407 |
+| Low captain above deck | 54.93 | 60.00 | 511 → 513 |
+| Low storm interior | 54.18 | 56.34 | 520 → 520 |
+
+These samples show no clear regression, but the 60 FPS cap conceals GPU headroom and the
+small increases are not evidence of a speed-up. Low-tier timing varies between runs, as in
+the preceding scenery pass. High forced 1.5× remains below 60 FPS in the cockpit. Replacing
+the old two-sided underside grid removes about 36,858 submitted triangles in its exterior
+view; the new cost is a density pass plus screen texture sampling. The storm interior skips
+this pass; the exterior storm screenshot separately exercises its underside and rain order.
+
+The real-time crosswind short approach through the actual UI Start completes successfully
+at **84/B, 59.89 FPS**, p99 **16.8 ms**, high fixed 1×. It makes **zero requests during flight**
+and reports no JavaScript or asset errors. Localhost preparation takes **5.21 s**; resource
+bodies total **62,854,276 bytes**, 4,368 more than the prior complete-sites clear-flight report.
+The worst interval is **199.9 ms at startup**; later intervals peak at **33.4 ms**. Startup
+still hitches. This flight begins below the cloud base; separate rendered checks cover entry
+at both boundaries. It is not a matched comparison with the previous clear-weather autoland.
+Report: `benchmarks/2026-10-08-overcast-flight.json`.
+
+Validation: all 14 Node suites, all 23 browser graphics checks, normal display visibility and
+missing-cockpit fallback, both-tier rendered cloud-transition checks, and warm-up cancellation /
+Start-timeout integration checks pass. New cloud checks cover opaque-cloud light occlusion,
+nonblack day surfaces, no false floor/ceiling inside, skipped clear/interior passes, resize
+resource reuse, quality reduction and offscreen renderer-state restoration. Their report is
+`benchmarks/2026-10-08-overcast-rendered-checks.json`.
+
+Delivery/automatic-quality checks also pass: menu resource bodies are **14.01 MB high / 8.61 MB low**, fully prepared resources **62.69 MB / 17.65 MB**. Hidden-tab calibration waits for foreground, a simulated slow renderer selects low, and prepared scenery makes no new flight requests. Report: `benchmarks/2026-10-08-overcast-delivery.json`.
+
+Remaining limits: repeated cloud cells, grain near very close/grazing boundaries, simple
+interior fog, and a flat depth boundary rather than terrain/cloud-volume intersections.
+The storm view still contains small dark ground patches also present in the baseline. No
+windshield water, better ground vegetation or wider authored scenery is part of this pass.
+Only this Mac's Metal renderer was measured; the complete functional browser suite, physical
+phones and other GPUs were not tested. SwiftShader cannot initialize WebGL2 here.
