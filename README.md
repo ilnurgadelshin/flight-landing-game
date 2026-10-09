@@ -683,12 +683,13 @@ The visual assets are bundled locally and need no map service, account or API ke
   metal roofs and recessed structural bays replace the long terminal slab, joined by a low
   concourse. Jet bridges and vehicles remain, with authored **B737 and A320** models on the stands.
 - **Near-ground grass** adds photographed blades to runway margins and mapped pasture on
-  both tiers. Short turf and taller field patches blend into the ground within 40 m high /
-  36 m low, leaving pavement, roads, buildings and complete-site grounds clear. The CC0
-  grass atlases add 154 KB high / 51 KB low and prepare behind the menu. A fixed instance
-  pool limits memory and updates; missing imagery retains the existing ground. The effect
-  is strongest near the surface; sampled straight-ahead cockpit views show no visible change.
-  Crossed patch planes and simple distant fields remain visible at some angles.
+  the high tier. Short turf and taller field patches blend into the ground within 40 m,
+  leaving pavement, roads, buildings and complete-site grounds clear. The CC0 grass atlas
+  adds 154 KB and prepares behind the menu. A fixed instance pool limits memory and updates;
+  missing imagery retains the existing ground. The effect is strongest near the surface;
+  sampled straight-ahead cockpit views show no visible change, so the low tier (phones) goes
+  without it, and automatic quality reduction releases it. Crossed patch planes and simple
+  distant fields remain visible at some angles.
 
 The desktop cockpit has about 1.02 million triangles and an 8.2 MB download. The lighter
 phone model has about 420,000 triangles and a 3.6 MB download, omits tiny molded labels,
@@ -732,10 +733,15 @@ commands are in [`assets/README.md`](assets/README.md). Players can open the cre
 and storm on both tiers. It checks rendered cloud opacity, obscured runway lights, resource
 reuse across resizing, quality reduction and renderer-state restoration.
 
-`node test/ground-cover.mjs` checks both-tier grass visibility, terrain contact, bounded
-updates, stable buffers, quality reduction and missing-atlas fallback. It captures close
-views and ordinary landing attitudes. `node test/ground-cover-motion.mjs` records slow
-pasture movement and runway-side motion at 55 m/s using the normal tile update budget.
+`node test/ground-cover.mjs` checks high-tier grass visibility, terrain contact, bounded
+updates, stable buffers, its release on quality reduction, no grass or atlas on the low
+tier and missing-atlas fallback. It captures close views and ordinary landing attitudes.
+`node test/ground-cover-motion.mjs` records slow pasture movement and runway-side motion
+at 55 m/s using the normal tile update budget.
+
+The grass-motion, valley-site and tree-transition videos are recorded only on a GPU
+(`RECORD_VIDEO=1` or `0` overrides): software rendering draws a frame every several seconds.
+Without one, every check still runs; the grass and tree paths are stepped at fixed updates.
 
 `node test/vegetation-weather.mjs` checks rendered canopy coverage from side, oblique and
 overhead views, unchanged buffers for settled trees and the corrupt-volume fallback. It

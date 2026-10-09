@@ -8,13 +8,16 @@ const label=(process.argv[2]||'trees-current').replace(/[^a-z0-9_-]/gi,'-');
 await fs.mkdir('test/output',{recursive:true});
 const {server,url}=await startServer(process.env.REVIEW_ROOT||process.cwd());
 const angle=process.env.VISUAL_GPU||'swiftshader';
+// The videos are for review: software rendering cannot draw them in reasonable time, so they
+// are recorded on a GPU only (RECORD_VIDEO=1 or 0 overrides). Every check runs either way.
+const record=process.env.RECORD_VIDEO?process.env.RECORD_VIDEO==='1':angle!=='swiftshader';
 const browser=await chromium.launch({headless:true,args:[`--use-angle=${angle}`,
  ...(angle==='swiftshader'?['--enable-unsafe-swiftshader','--ignore-gpu-blocklist']:[])]});
 try{
  const page=await browser.newPage({viewport:{width:1440,height:900}}),errors=[];
  page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
  await page.goto(url+'/?quality=high');await page.waitForFunction(()=>window.__sim,null,{timeout:120000});await completeScenery(page);
- const report=await page.evaluate(async()=>{
+ const report=await page.evaluate(async record=>{
   const T=await import('/vendor/three.module.js'),s=window.__sim,w=s.world;
   s.start({startId:'short',scenarioId:'clear',seed:5});s.setTimeScale(0);s.setDrawing(false);s.game.state='menu';
   w.update(0,{...s.state(),alt:10},new T.Vector3(0,10,100));
@@ -48,13 +51,14 @@ try{
   const near=w.nearWoodland,frames=[],snapshots=[];let previousIds=new Set(),previousFades=new Map();
   const c=new T.PerspectiveCamera(50,1440/900,.1,60000);w.camera=c;if(w.composer)w.composer.passes[0].camera=c;w.drawCockpit=false;
   document.getElementById('hud').style.visibility='hidden';
-  const stream=renderer.domElement.captureStream(30),chunks=[],recorder=new MediaRecorder(stream,{mimeType:'video/webm;codecs=vp9',videoBitsPerSecond:6000000});
-  const done=new Promise(resolve=>recorder.onstop=resolve);recorder.ondataavailable=e=>chunks.push(e.data);recorder.start();
-  // A repeatable 420 m pass at 70 m/s, rendering every step to inspect real transitions.
+  const stream=record&&renderer.domElement.captureStream(30),chunks=[],recorder=record&&new MediaRecorder(stream,{mimeType:'video/webm;codecs=vp9',videoBitsPerSecond:6000000});
+  const done=record&&new Promise(resolve=>recorder.onstop=resolve);if(record){recorder.ondataavailable=e=>chunks.push(e.data);recorder.start();}
+  // A repeatable 420 m pass at 70 m/s; on a GPU every step is drawn to inspect real transitions.
   for(let frame=0;frame<360;frame++){
    await new Promise(requestAnimationFrame);
    c.position.set(3300-frame*70/60,38,700);c.lookAt(c.position.x-120,12,650);c.updateMatrixWorld();
-   w.update(1/60,{...s.state(),alt:38},c.position);w.render();
+   // the selection and fades are updated every step; drawing is needed only for the video and snapshots
+   w.update(1/60,{...s.state(),alt:38},c.position);if(record||[30,180,350].includes(frame))w.render();
    if([30,180,350].includes(frame))snapshots.push({frame,png:renderer.domElement.toDataURL().split(',')[1]});
    const ids=new Set([...near.active.values()].filter(t=>t.fade>.05).map(t=>t.t.id));
    const added=[...ids].filter(id=>!previousIds.has(id)).length,removed=[...previousIds].filter(id=>!ids.has(id)).length;
@@ -62,13 +66,16 @@ try{
    for(const [id,value] of previousFades)maxFadeDelta=Math.max(maxFadeDelta,Math.abs(value-(fades.get(id)||0)));
    frames.push({frame,count:near.count,triangles:near.triangles,added,removed,maxFadeDelta,partial:[...near.active.values()].filter(t=>t.fade>.05&&t.fade<.95).length});previousIds=ids;previousFades=fades;
   }
-  recorder.stop();await done;stream.getTracks().forEach(t=>t.stop());
-  const video=await new Promise(resolve=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result.split(',')[1]);reader.readAsDataURL(new Blob(chunks,{type:'video/webm'}));});
+  let video=null;
+  if(record){
+   recorder.stop();await done;stream.getTracks().forEach(t=>t.stop());
+   video=await new Promise(resolve=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result.split(',')[1]);reader.readAsDataURL(new Blob(chunks,{type:'video/webm'}));});
+  }
   return {silhouettes:results,moving:frames,video,snapshots};
- });
+ },record);
  for(const shot of report.snapshots)await fs.writeFile(`test/output/${label}-moving-${shot.frame}.png`,Buffer.from(shot.png,'base64'));delete report.snapshots;
  for(const r of report.silhouettes){for(const mode of ['card','near']){await fs.writeFile(`test/output/${label}-${r.row}-${r.degrees}-${mode}.png`,Buffer.from(r[mode],'base64'));delete r[mode];}}
- await fs.writeFile(`test/output/${label}-moving.webm`,Buffer.from(report.video,'base64'));delete report.video;
+ if(report.video)await fs.writeFile(`test/output/${label}-moving.webm`,Buffer.from(report.video,'base64'));delete report.video;
  await fs.writeFile(`test/output/${label}.json`,JSON.stringify(report,null,2)+'\n');
  if(!process.env.REVIEW_ROOT)assert.ok(report.moving.every(r=>r.maxFadeDelta<=1/60/.35+.00001),'Entering and retiring trees share the same bounded fade speed');
  if(!process.env.REVIEW_ROOT)assert.ok(report.silhouettes.reduce((n,r)=>n+r.iou,0)/report.silhouettes.length>.35,'Delivered geometry and canopy views retain matching silhouettes');

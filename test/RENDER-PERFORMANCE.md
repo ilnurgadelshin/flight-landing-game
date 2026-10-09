@@ -1103,3 +1103,33 @@ interval is **50 ms**. This is not a claim that the startup hitch is fixed. Repo
 Only this Mac's Metal renderer was measured. The complete functional browser suite, physical
 phones and other GPUs were not tested; SwiftShader cannot initialize WebGL2 here. Wider
 coherent ground/scenery coverage remains the larger opportunity for ordinary landing views.
+
+
+## Review fixes: lawns in fog, low-tier grass and gravel — 2026-10-09
+
+Baseline: `5b85f57`. Three follow-ups from reviewing the scenery passes above.
+
+**Valley-site lawns in fog.** The roadside lawns' own shader hook replaced the shared one that
+binds the atmosphere's uniforms, so their haze read zero sky terms and the lawns turned
+black in fog. In the storm view they averaged 60 against 94 for the surrounding ground; with
+the shared hook called first they match at 94. `test/authored-scenery.mjs` now checks every
+compiled fogged material on both tiers for those uniforms (192 high, 174 low; none missing).
+
+**Near-ground grass is high-tier only.** It changes no pixels in the sampled straight-ahead
+rollout, flare, final and HUD views, and 1,984 (0.15%) looking through a side window, so the
+low tier (phones) no longer builds its 15,876 instances or downloads its atlas; the 50,808-byte
+low atlas is removed. Automatic quality reduction now releases the grass (mesh, instance
+buffers and atlas) instead of shrinking the pool; a reduction while the atlas is still
+arriving builds nothing.
+
+**Low gravel maps.** The gravel normal and roughness maps were the same 512 px on both tiers;
+low now uses 256 px (149,506 → 29,936 and 50,226 → 9,618 bytes). Prepared low-tier bodies fall
+from **17.71 MB to 17.50 MB** (210,986 bytes: atlas plus gravel); high is unchanged
+(62,855,186 bytes), and menu bodies stay 14.02 MB / 8.62 MB.
+
+The browser suites added with these passes now default to SwiftShader like the others
+(`VISUAL_GPU=metal` on macOS hardware). The grass-motion, tree-transition and valley-site
+videos are recorded only on a GPU (`RECORD_VIDEO=1` or `0` overrides): SwiftShader draws a
+frame every 9–20 s, so its 8 s "motion" was a single frame. Every check runs either way, the
+grass and tree paths stepped at fixed updates, and all three suites complete in software
+rendering. All checks named here ran in SwiftShader; no frame rates were measured.

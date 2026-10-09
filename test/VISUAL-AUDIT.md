@@ -892,3 +892,14 @@ checks pass. The full high 1× landing finishes 100/A at 59.92 FPS, p99 16.8 ms,
 in-flight downloads. A 166.7 ms startup hitch remains. The close high 1.5× pasture view costs
 7.8%; low rollout measures 58.75 rather than 60 FPS, while the other low samples remain
 display-capped. Physical phones, other GPUs and the full functional suite were not tested.
+
+
+## Review fixes: lawns in fog, grass on high only — 2026-10-09
+
+Baseline: `5b85f57`. The roadside lawns of the valley sites went black in fog: their shader
+hook skipped the shared one that binds the atmosphere, so their haze had no sky colour. In
+the storm they averaged 60 against 94 for the ground around them; they now match at 94, and
+a rendered check covers every fogged material on both tiers. The near-ground grass, which
+the forward cockpit views do not show, is now drawn on the high tier only; phones keep the
+existing ground and its scanned detail. Details are in
+[the performance record](RENDER-PERFORMANCE.md).

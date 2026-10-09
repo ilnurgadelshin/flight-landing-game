@@ -47,7 +47,8 @@ try{
    for(let c=0;c<3;c++)pixels[i*4+c]=Math.round(neighbors.reduce((n,j)=>n+copy[j*4+c],0)/neighbors.length);next[i]=1;
   }occupied=next;
  }
- for(const [suffix,width] of [['',1024],['-low',512]])await sharp(pixels,{raw:info}).resize(width).webp({quality:92,alphaQuality:95}).toFile(`assets/scenery/grass-patches${suffix}.webp`);
- await fs.writeFile('assets/scenery/grass-patches.json',JSON.stringify({source:'https://polyhaven.com/a/grass_bermuda_01',author:'Rico Cilliers / Poly Haven',license:'CC0-1.0',columns:4,rows:2,width:1024,height:256,lowWidth:512,lowHeight:128,patchWidth:.8,patchHeight:.4,description:'Eight unlit views of original arrangements of the source grass clumps; alpha repaired from the separate source mask.'},null,2)+'\n');
+ // High tier only; the low tier has no near-ground grass.
+ await sharp(pixels,{raw:info}).resize(1024).webp({quality:92,alphaQuality:95}).toFile('assets/scenery/grass-patches.webp');
+ await fs.writeFile('assets/scenery/grass-patches.json',JSON.stringify({source:'https://polyhaven.com/a/grass_bermuda_01',author:'Rico Cilliers / Poly Haven',license:'CC0-1.0',columns:4,rows:2,width:1024,height:256,patchWidth:.8,patchHeight:.4,description:'Eight unlit views of original arrangements of the source grass clumps; alpha repaired from the separate source mask.'},null,2)+'\n');
  console.log('Baked eight CC0 grass patch views.');
 }finally{await browser.close();server.close();}

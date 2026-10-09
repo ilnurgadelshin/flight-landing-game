@@ -25,8 +25,7 @@ try{
     await page.evaluate(async()=>{await window.__sim.world.sceneryPrepared;});
     const prepared=await resources(),progress=await page.evaluate(()=>window.__sim.world.sceneryProgress);
     const grass=prepared.filter(r=>/\/grass-patches.*\.webp$/.test(r.name));
-    assert.equal(grass.length,1,'Exactly one selected grass atlas is prepared');
-    assert.ok(grass[0].name.endsWith(tier==='high'?'/grass-patches.webp':'/grass-patches-low.webp'));
+    assert.deepEqual(grass.map(r=>r.name.replace(url,'')),tier==='high'?['/assets/scenery/grass-patches.webp']:[],'The grass atlas is prepared on high only');
     assert.ok(progress.total>4&&progress.done===progress.total,`Scenery progress completes: ${JSON.stringify(progress)}`);
     // a flight then requests nothing more
     await page.evaluate(()=>{window.__sim.start({startId:'short',seed:5});});

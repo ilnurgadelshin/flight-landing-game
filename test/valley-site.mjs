@@ -8,6 +8,9 @@ const label=process.argv[2]||'site-current',baseline=!!process.env.REVIEW_ROOT;
 await fs.mkdir('test/output',{recursive:true});
 const {server,url}=await startServer(process.env.REVIEW_ROOT||process.cwd());
 const angle=process.env.VISUAL_GPU||'swiftshader';
+// The videos are for review: software rendering cannot draw them in reasonable time, so they
+// are recorded on a GPU only (RECORD_VIDEO=1 or 0 overrides). Every check runs either way.
+const record=process.env.RECORD_VIDEO?process.env.RECORD_VIDEO==='1':angle!=='swiftshader';
 const browser=await chromium.launch({headless:true,args:[`--use-angle=${angle}`,...(angle==='swiftshader'?['--enable-unsafe-swiftshader','--ignore-gpu-blocklist']:[])]});
 const reports=[];
 try{
@@ -78,7 +81,7 @@ try{
     });assert.ok(delta>3,'Site surfaces visibly replace photographic ground');stats.surfacePixelDelta=delta;
    }
   }
-  if(tier==='high'){
+  if(tier==='high'&&record){
    const video=await page.evaluate(async()=>{
     const s=window.__sim,w=s.world,T=await import('/vendor/three.module.js');
     w.camera=s.view.cockpit.camera;if(w.composer)w.composer.passes[0].camera=w.camera;

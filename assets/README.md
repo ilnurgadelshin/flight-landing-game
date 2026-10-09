@@ -325,7 +325,7 @@ The siding and gravel yard use these **CC0** scans:
 
 Source URLs, authors, checksums, placements and exact delivered byte counts are retained in
 `scenery/farm-sources.json`. Wood textures use 1024 px high / 512 px low WebP. The gravel
-colour map follows those sizes; gravel normal and roughness maps use 512 px on both tiers.
+colour map follows those sizes; gravel normal and roughness maps use 512 px high / 256 px low.
 Meshes are Meshopt-compressed. Building meshes merge by material within each site, retaining
 local culling bounds rather than one large bound spanning the approach. Twenty-five building
 material batches, the original yard, nine ground surfaces and three timber-boundary batches
@@ -483,12 +483,12 @@ analytic cloud shader, and automatic quality reduction disposes the volume textu
 
 ## Near-ground grass — CC0
 
-`scenery/grass-patches.webp` and `grass-patches-low.webp` are eight unlit views of two
-arrangements of [Grass Bermuda 01](https://polyhaven.com/a/grass_bermuda_01), by Rico Cilliers /
-Poly Haven, under [CC0](https://polyhaven.com/license). Source alpha is restored from the
-separate mask; photographed blade colours are retained, then adapted to the ground at runtime.
-The high 1024×256 atlas is 154,114 bytes, low 512×128 is 50,808 bytes. The original model and
-its source textures are offline inputs only; neither is delivered to players. The atlas is
+`scenery/grass-patches.webp` is eight unlit views of two arrangements of [Grass Bermuda
+01](https://polyhaven.com/a/grass_bermuda_01), by Rico Cilliers / Poly Haven, under
+[CC0](https://polyhaven.com/license). Source alpha is restored from the separate mask;
+photographed blade colours are retained, then adapted to the ground at runtime. The 1024×256
+atlas is 154,114 bytes; the low tier has no near-ground grass and no atlas. The original model
+and its source textures are offline inputs only; neither is delivered to players. The atlas is
 prepared behind the menu and the underlying terrain remains if it fails to load.
 
 Reproduce with Python 3, curl, Node dependencies and Playwright Chromium:

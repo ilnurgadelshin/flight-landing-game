@@ -23,10 +23,15 @@ export function groundCoverKind(world,x,z){
 }
 
 export async function addGroundCover(world){
- const low=world.lowDetail||world.quality==='low',grid=9;let cells=low?14:20,perTile=cells*cells;const maxInstances=grid*grid*perTile;
- const texture=await new THREE.TextureLoader().loadAsync(new URL(`../../assets/scenery/grass-patches${low?'-low':''}.webp`,import.meta.url).href);
+ // High tier only: the grass shows beside the runway but not in the cockpit's normal views, so
+ // the low tier (phones) does not pay for its instances or atlas.
+ const low=()=>world.lowDetail||world.quality==='low';if(low())return null;
+ const grid=9,cells=20,perTile=cells*cells,maxInstances=grid*grid*perTile;
+ const texture=await new THREE.TextureLoader().loadAsync(new URL('../../assets/scenery/grass-patches.webp',import.meta.url).href);
+ // A timed-out Start can reduce quality while the optional atlas is still arriving.
+ if(low()){texture.dispose();return null;}
  texture.colorSpace=THREE.SRGBColorSpace;texture.anisotropy=Math.min(world.maxAniso,4);
- const uniforms={uGrassTufts:{value:texture},uGroundGrass:world.groundUniforms.uGrass,uGrassTime:{value:0},uGrassRadius:{value:low?36:40},uGrassWet:world.groundUniforms.uWet};
+ const uniforms={uGrassTufts:{value:texture},uGroundGrass:world.groundUniforms.uGrass,uGrassTime:{value:0},uGrassRadius:{value:40},uGrassWet:world.groundUniforms.uWet};
  const geometry=new THREE.InstancedBufferGeometry();
  const positions=[],uvs=[],indices=[];
  for(let card=0;card<2;card++){
@@ -74,7 +79,7 @@ export async function addGroundCover(world){
  };
  material.customProgramCacheKey=()=> 'near-ground-photographed-grass-v1';
  const mesh=new THREE.Mesh(geometry,material);mesh.name='Dense near-ground grass';mesh.frustumCulled=false;mesh.visible=false;world.scene.add(mesh);
- let slots=Array.from({length:grid*grid},()=>({key:'',count:0}));let queue=[],key='',activeCount=0;
+ const slots=Array.from({length:grid*grid},()=>({key:'',count:0}));let queue=[],key='',activeCount=0;
  const fill=(tile,settled)=>{
   const {ix,iz,slot}=tile,offset=slot*perTile;let count=0;
   for(let j=0;j<cells;j++)for(let i=0;i<cells;i++){
@@ -106,11 +111,10 @@ export async function addGroundCover(world){
  };
  const cover=world.groundCover={mesh,uniforms,roots,patches,births,update,settle:eye=>update(eye,true),maxInstances,
   get activeCount(){return activeCount;},get queued(){return queue.length;},get grid(){return grid;},
+  // Quality only drops at runtime, so the reduced tier releases the grass entirely.
   reduceQuality(){
-   if(cells===14)return;cells=14;perTile=cells*cells;uniforms.uGrassRadius.value=36;geometry.instanceCount=grid*grid*perTile;
-   patches.array.fill(0);patches.clearUpdateRanges();patches.addUpdateRange(0,patches.array.length);patches.needsUpdate=true;slots=Array.from({length:grid*grid},()=>({key:'',count:0}));activeCount=0;key='';queue=[];mesh.visible=false;
+   world.scene.remove(mesh);geometry.dispose();material.dispose();texture.dispose();
+   if(world.groundCover===cover)world.groundCover=null;
   },texture};
- // A timed-out Start can reduce quality while the optional atlas is still arriving.
- if(world.lowDetail||world.quality==='low')cover.reduceQuality();
  return cover;
 }

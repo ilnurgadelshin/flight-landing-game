@@ -14,8 +14,9 @@ await doc.transform(meshopt({encoder:MeshoptEncoder,level:'high',quantizePositio
 await io.write('assets/scenery/valley-farm.glb',doc);
 await doc.transform(textureCompress({encoder:sharp,targetFormat:'webp',quality:82,resize:[512,512]}));
 await io.write('assets/scenery/valley-farm-low.glb',doc);
+// gravel colour 1024 px high / 512 low; normal and roughness 512 high / 256 low
 for(const channel of ['color','normal','rough'])for(const low of [false,true])
- await sharp(`${source}/gravel_floor/${channel}.jpg`).resize(low||channel!=='color'?512:1024).webp({quality:channel==='normal'?90:85}).toFile(`assets/scenery/farm-gravel-${channel}${low?'-low':''}.webp`);
+ await sharp(`${source}/gravel_floor/${channel}.jpg`).resize((channel==='color'?1024:512)/(low?2:1)).webp({quality:channel==='normal'?90:85}).toFile(`assets/scenery/farm-gravel-${channel}${low?'-low':''}.webp`);
 const sources=[];
 for(const name of ['weathered_brown_planks','gravel_floor']){
  const info=JSON.parse(await fs.readFile(`${source}/${name}/info.json`));

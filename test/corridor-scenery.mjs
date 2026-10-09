@@ -7,8 +7,8 @@ import assert from 'node:assert/strict';
 const label=(process.argv[2]||'corridor-current').replace(/[^a-z0-9_-]/gi,'-'),baseline=!!process.env.REVIEW_ROOT;
 const views=process.env.REVIEW_VIEWS?.split(',')||['wide','canopy','field','final','overcast','extension','opposite','opposite-field','captain-3400'];
 const {server,url}=await startServer(process.env.REVIEW_ROOT||process.cwd());
-const angle=process.env.VISUAL_GPU||'metal';
-const browser=await chromium.launch({headless:true,args:[`--use-angle=${angle}`]});
+const angle=process.env.VISUAL_GPU||'swiftshader';   // VISUAL_GPU=metal on macOS hardware
+const browser=await chromium.launch({headless:true,args:[`--use-angle=${angle}`,...(angle==='swiftshader'?['--enable-unsafe-swiftshader','--ignore-gpu-blocklist']:[])]});
 const reports=[];
 try{
  for(const tier of ['high','low']){

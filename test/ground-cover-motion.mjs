@@ -6,11 +6,15 @@ import {completeScenery} from './scene-ready.mjs';
 import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
 const {server,url}=await startServer(process.cwd());
-const browser=await chromium.launch({headless:true,args:[`--use-angle=${process.env.VISUAL_GPU||'metal'}`]});
+const angle=process.env.VISUAL_GPU||'swiftshader';   // VISUAL_GPU=metal on macOS hardware
+const browser=await chromium.launch({headless:true,args:[`--use-angle=${angle}`,...(angle==='swiftshader'?['--enable-unsafe-swiftshader','--ignore-gpu-blocklist']:[])]});
+// Software rendering draws a frame every 9-20 s, so it cannot record motion: without a GPU the
+// same 8 s path is stepped at 30 updates per second and rendered once (RECORD_VIDEO=1 or 0 overrides).
+const record=process.env.RECORD_VIDEO?process.env.RECORD_VIDEO==='1':angle!=='swiftshader';
 const report=[];
 try{
- for(const tier of ['high','low']){
-  const context=await browser.newContext({viewport:{width:1280,height:800},recordVideo:{dir:'test/output',size:{width:1280,height:800}}});
+ for(const tier of ['high']){   // the low tier has no near-ground grass
+  const context=await browser.newContext({viewport:{width:1280,height:800},...(record?{recordVideo:{dir:'test/output',size:{width:1280,height:800}}}:{})});
   const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto(url+'/?quality='+tier);await page.waitForFunction(()=>window.__sim,null,{timeout:120000});await completeScenery(page);
   for(const pose of ['pasture','shoulder']){
@@ -22,15 +26,20 @@ try{
     place(0);await w.groundDetail.settle(c.position);w.nearWoodland?.settle(c.position);w.groundCover.settle(c.position);
     window.__grassMotion={w,c,place,last:null,frames:[],start:null,done:false};w.render();
    },pose);
-   await page.evaluate(()=>new Promise(resolve=>{
+   if(record)await page.evaluate(()=>new Promise(resolve=>{
     const m=window.__grassMotion;
     function frame(now){m.start??=now;const t=(now-m.start)/1000,dt=m.last===null?0:(now-m.last)/1000;m.last=now;m.place(t);m.w.update(Math.min(.1,dt),{...window.__sim.state(),alt:m.c.position.y},m.c.position);m.w.render();if(dt)m.frames.push(dt*1000);if(t<8)requestAnimationFrame(frame);else{m.done=true;resolve();}}requestAnimationFrame(frame);
    }));
+   else await page.evaluate(()=>{
+    const m=window.__grassMotion;
+    for(let i=1;i<=240;i++){m.place(i/30);m.w.update(1/30,{...window.__sim.state(),alt:m.c.position.y},m.c.position);}
+    m.w.render();m.done=true;
+   });
    await page.screenshot({path:`test/output/ground-cover-motion-${tier}-${pose}.png`});
-   const stats=await page.evaluate(()=>{const m=window.__grassMotion,sorted=m.frames.slice().sort((a,b)=>a-b);return {fps:1000*m.frames.length/m.frames.reduce((a,b)=>a+b,0),p99Ms:sorted[Math.floor(sorted.length*.99)],worstMs:sorted.at(-1),queued:m.w.groundCover.queued,active:m.w.groundCover.activeCount,errors:m.w.assetErrors};});
+   const stats=await page.evaluate(()=>{const m=window.__grassMotion,sorted=m.frames.slice().sort((a,b)=>a-b);return {fps:m.frames.length?1000*m.frames.length/m.frames.reduce((a,b)=>a+b,0):null,p99Ms:sorted[Math.floor(sorted.length*.99)]??null,worstMs:sorted.at(-1)??null,queued:m.w.groundCover.queued,active:m.w.groundCover.activeCount,errors:m.w.assetErrors};});
    assert.deepEqual(stats.errors,[]);assert.ok(stats.active>0);report.push({tier,pose,...stats});console.log(tier,pose,stats);
   }
-  const video=page.video();await context.close();await video.saveAs(`test/output/ground-cover-motion-${tier}.webm`);await video.delete();assert.deepEqual(errors,[]);
+  const video=page.video();await context.close();if(video){await video.saveAs(`test/output/ground-cover-motion-${tier}.webm`);await video.delete();}assert.deepEqual(errors,[]);
  }
  await fs.writeFile('test/output/ground-cover-motion.json',JSON.stringify(report,null,2)+'\n');
 }finally{await browser.close();server.close();}

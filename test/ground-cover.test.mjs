@@ -5,7 +5,9 @@ import {groundCoverKind} from '../js/world/ground-cover.js';
 import {TERRAIN} from '../js/physics/terrain.js';
 const manifest=JSON.parse(await fs.readFile('assets/scenery/grass-patches.json'));
 assert.equal(manifest.license,'CC0-1.0');assert.equal(manifest.columns*manifest.rows,8);
-for(const [suffix,width,height,budget] of [['',1024,256,180000],['-low',512,128,60000]]){
+// One atlas: the low tier has no near-ground grass.
+await assert.rejects(fs.stat('assets/scenery/grass-patches-low.webp'));
+for(const [suffix,width,height,budget] of [['',1024,256,180000]]){
  const file=`assets/scenery/grass-patches${suffix}.webp`,{data,info}=await sharp(file).ensureAlpha().raw().toBuffer({resolveWithObject:true});
  assert.deepEqual([info.width,info.height],[width,height]);assert.ok((await fs.stat(file)).size<budget);
  const tw=width/4,th=height/2;

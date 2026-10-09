@@ -98,6 +98,9 @@ export function buildValleySite(world,data,gravelMaterial,woodMaterial){
  const ground=(x,z)=>sceneryGroundHeight(x,z,world.groundLowDetail),group=new THREE.Group();group.name=data.name||'Valley roadside grounds';let triangles=0;
  const lawn=new THREE.MeshStandardMaterial({roughness:1,vertexColors:true,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1});
  lawn.onBeforeCompile=shader=>{
+  // The shared hook binds the atmosphere's uniforms, which every fogged material's haze reads;
+  // without it the lawns went black in fog (the haze's sky terms were all zero).
+  THREE.Material.prototype.onBeforeCompile.call(lawn,shader);
   shader.uniforms.uSiteGrass=world.groundUniforms.uGrass;
   shader.vertexShader=shader.vertexShader.replace('#include <common>','#include <common>\nattribute float siteAlpha;varying float vSiteAlpha;varying vec2 vSiteUV;').replace('#include <begin_vertex>','#include <begin_vertex>\nvSiteAlpha=siteAlpha;vSiteUV=uv;');
   shader.fragmentShader=shader.fragmentShader.replace('#include <common>','#include <common>\nvarying float vSiteAlpha;varying vec2 vSiteUV;uniform sampler2D uSiteGrass;')
@@ -107,7 +110,7 @@ export function buildValleySite(world,data,gravelMaterial,woodMaterial){
     diffuseColor.rgb*=mix(1.0,grain,.23);`)
    .replace('#include <alphamap_fragment>','diffuseColor.a*=vSiteAlpha;if(diffuseColor.a<.005)discard;');
  };
- lawn.customProgramCacheKey=()=> 'valley-lawn-v1';
+ lawn.customProgramCacheKey=()=> 'valley-lawn-v2';
  const roadMaterial=data.roadSurface==='gravel'?gravelMaterial:new THREE.MeshStandardMaterial({roughness:.97,vertexColors:true,transparent:true,depthWrite:false,polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1});
  if(roadMaterial!==gravelMaterial){roadMaterial.onBeforeCompile=gravelMaterial.onBeforeCompile;roadMaterial.customProgramCacheKey=()=> 'valley-road-v1';}
  for(const kind of ['lawns','gravel','roads']){

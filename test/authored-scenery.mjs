@@ -42,6 +42,19 @@ try{
       assert.equal(status.farm.buildings,16);assert.equal(status.farm.sites,3);assert.ok(status.farm.batches<=38);assert.ok(status.farm.triangles<75000);
     }
     assert.deepEqual(status.errors,[]);reports.push({tier,...status});console.log(tier,status);
+    // Every fogged material compiled behind the menu must bind the atmosphere's uniforms (the
+    // shared Material.onBeforeCompile hook): without them its haze reads zeros and the surface
+    // turns black in fog. The roadside lawns did, in the storm.
+    const unhazed=await page.evaluate(()=>{
+      const w=window.__sim.world,R=w.renderer,seen=new Set(),missing=[];let compiled=0;
+      w.scene.traverse(o=>{for(const m of [].concat(o.material||[])){
+        if(seen.has(m))continue;seen.add(m);const p=R.properties.get(m);
+        if(!p.uniforms||!m.fog||m.isShaderMaterial)continue;compiled++;
+        if(!('skySunDir' in p.uniforms))missing.push(o.name||m.name||m.type);
+      }});
+      return {compiled,missing};
+    });
+    assert.ok(unhazed.compiled>100&&!unhazed.missing.length,`${tier}: fogged materials without the atmosphere's uniforms: ${unhazed.missing.join(', ')} (of ${unhazed.compiled})`);
     for(const view of ['farm','house','village','airport','trees','night','farm-overcast',...(!process.env.REVIEW_ROOT&&tier==='high'?['tree-7','tree-8']:[])]){
       await page.evaluate(async view=>{
         const T=await import('/vendor/three.module.js'),s=window.__sim,w=s.world;
