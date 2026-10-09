@@ -254,6 +254,101 @@ The preparation downloader uses an identifying User-Agent and verifies the check
 Poly Haven's saved download manifests. It obtains current manifests on the first download;
 it is not a version-pinned mirror. The game never calls the Poly Haven API.
 
+## Interpreted approach land cover — public-domain imagery / original mask
+
+`scenery/approach-corridor.png` and `.json` describe meadow, stubble and woodland on both
+sides of final: a 4 km × 850 m region and a 2 km × 820 m region opposite it. Forty-five
+polygon boundaries were interpreted from bundled USDA NAIP / USGS `scenery/detail/2_0.webp`
+through `5_0.webp`, plus `2_-1.webp` and `3_-1.webp`. They are artistic land-cover
+interpretations, not a land-use survey. No additional imagery or licensed models are required.
+The mask and code are original MIT project work; the source imagery is public domain.
+
+Linear RGB channels store meadow/stubble/woodland coverage. The 2000 × 1015 mask retains
+2 m/px over combined bounds of 4 km × 2.03 km, including unmapped gaps. Region edges feather
+independently, and the protected airport, mapped buildings and roads remain clear. The
+same data guides reconstructed surfaces and tree placement. Existing CC0 grass scans and
+tree models are reused. Fine scan grain now fades earlier across fields to reduce visible
+repetition at approach height; near-eye surface relief remains.
+
+Coverage is approximately 41.92 ha meadow, 13.28 ha stubble and 240.80 ha woodland, about
+296 ha total. The previous region's mask pixels are unchanged. Its seed and 10,000 high /
+4,800 low planting allocation remain independent of the new 5,500 / 2,600 allocation. This
+reallocates trees from the wider photographic planting, retaining the overall 52,000 high /
+14,000 low budgets. Close spacing is 9.5 m high / 14 m low, and the farther original stretch
+uses 16 m / 23 m. Current mapped stands contain 15,377 high / 7,281 low trees, plus 14 placed
+site trees. Background positions and tints can change when that budget is reallocated.
+
+The PNG/JSON pair is 228,509 bytes, below its 250 KB budget, versus 111,199 previously. The
+unmipmapped RGBA8 data texture grows from approximately 3.40 to 8.12 MB; the retained CPU
+sample buffer grows by the same amount. No additional ground draw call or shader texture
+sample is introduced. Site surfaces and their existing tree exclusions retain priority.
+
+Reproduce with `node tools/bake-corridor.mjs`; validate with `npm run test:corridor`.
+
+## Complete approach sites — original geometry / CC0 materials
+
+`scenery/valley-farm.glb` and its `-low` variant contain sixteen complete buildings, originally
+authored by `tools/prepare-farm.py` in Blender under the project's MIT license. The original
+two valley barns and two opposite-side barns use the NAIP-traced infill outlines; the other
+twelve buildings retain their Microsoft footprints. The models include three clapboard homes,
+red-roofed working buildings, workshops and timber barns. Recessed openings, thick roof edges/ridge caps, gutters, door
+canopies, foundations and home chimneys are geometry. Fine clapboard laps and standing seams
+use original 512 px repeating normal maps, filtered through mipmaps instead of thin raised
+strips that produced bright broken lines at flight distances. Source heights are estimates; the
+new buildings use interpreted roof heights recorded alongside `sourceHeight` in the manifest.
+Architecture, wear and grounds are interpretations, not a surveyed reconstruction.
+
+`scenery/valley-site.json` traces lawns, gravel yards, five road connections, an internal
+access path, an unmarked local lane and timber boundaries from bundled public-domain NAIP
+`detail/2_0.webp`. The original farm yard remains. Surface meshes follow the rendered terrain
+on each tier; alpha edges blend into the original ground. Lawn grain and asphalt reuse the
+existing CC0 ground materials. Photographed structures and shadows beneath these surfaces
+are covered. Fourteen eligible boundary/garden trees replace random planting inside the site,
+within the unchanged overall tree budget; roads, yards and buildings remain clear.
+
+`scenery/approach-sites.json` adds a three-building farm and a four-building wooded hamlet
+on the opposite side of final. It retains the source pixel outlines from the bundled
+`detail/2_-1-low.webp` and `detail/3_-1-low.webp` images (1032 px, one metre per pixel including
+the 16 m gutter). `tools/prepare-approach-sites.mjs` converts these to world coordinates.
+Two terrain-following gravel lanes, three access connections, five aprons, lawns and timber
+boundaries form the grounds. Existing gravel scans provide fine texture; vertex colours
+add broad variation and paired wheel wear. Seven new buildings add 11,382 triangles.
+Twenty-seven eligible garden/boundary trees now serve all three sites, within the same total
+planting budget. Heights, lane widths, planting and architecture are artistic interpretations.
+
+The siding and gravel yard use these **CC0** scans:
+
+- [Weathered Brown Planks](https://polyhaven.com/a/weathered_brown_planks), photography by
+  Dimitrios Savva and processing by Rico Cilliers.
+- [Gravel Floor](https://polyhaven.com/a/gravel_floor), photography by Matterfield and
+  processing by Jenelle van Heerden.
+
+Source URLs, authors, checksums, placements and exact delivered byte counts are retained in
+`scenery/farm-sources.json`. Wood textures use 1024 px high / 512 px low WebP. The gravel
+colour map follows those sizes; gravel normal and roughness maps use 512 px high / 256 px low.
+Meshes are Meshopt-compressed. Building meshes merge by material within each site, retaining
+local culling bounds rather than one large bound spanning the approach. Twenty-five building
+material batches, the original yard, nine ground surfaces and three timber-boundary batches
+total 38 draw batches before subtracting replaced facade geometry. Buildings use 58,855 triangles;
+grounds/fences use 81,218 triangles plus the original 2,924-triangle yard. Only referenced parcel-grid vertices are uploaded; the narrow lane uses a feathered ribbon. The assets
+load during scenery preparation behind the menu. A missing model, site data or yard texture
+retains the original procedural buildings and the underlying imagery. Missing or invalid
+extension data keeps the original nine complete valley buildings and falls back only for the
+seven additional buildings. Both tiers add about 221 KB of model/site data; no new source
+material or imagery is introduced.
+
+Reproduce (download cache and Blender source remain under ignored `test/output/farm-sources/`):
+
+```sh
+python3 tools/fetch-farm-materials.py
+blender --background --python tools/prepare-farm.py
+node tools/prepare-approach-sites.mjs
+node tools/prepare-farm.mjs
+```
+
+The downloader verifies each map against Poly Haven's manifest. The game makes no requests
+to Poly Haven and does not distribute the intermediate Blender file or original JPGs.
+
 ## Woodland — CC0
 
 `scenery/tree-variety.webp`, its smaller `-low` variant and `tree-variety.json` are baked
@@ -265,24 +360,24 @@ from these **CC0** Poly Haven assets (https://polyhaven.com/license):
 - **Jacaranda Tree**, Rico Cilliers, guidance by Rob Tuytel: https://polyhaven.com/a/jacaranda_tree
 - **Island Tree 02**, scanning/processing by Rob Tuytel, cleanup/processing by Rico Cilliers: https://polyhaven.com/a/island_tree_02
 
-Nine authored forms have four azimuths at three elevations (0°, 45°, 90°), 108 views in total. The simulator retains crown
+Nine authored forms have eight azimuths at three elevations (0°, 45°, 90°), 216 views in total. The simulator retains crown
 proportions, varies orientation/scale/tint, and groups smaller conifers beneath broadleaf
 woodland. Each distant tree uses one quad facing the eye in yaw and pitch, blending adjacent
 azimuth and elevation views with premultiplied alpha. Source framing is recorded per form;
 the quad still costs two triangles. These remain impostors: azimuth transitions, repeated
 species and extreme close-up silhouettes are less convincing than full 3D branches.
-The atlases are 1024×6912 (high, 717,724 bytes) and 512×3456 (low, 496,386 bytes). Smaller
-individual frames are sufficient for distant crowns and offset the added elevation views.
+The atlases are 1536×5184 (high, 1,845,660 bytes) and 768×2592 (low, 543,018 bytes).
+High frames are 192 px and low frames 96 px. Eight directions reduce silhouette doubling
+between adjacent views; using the delivered geometry also avoids the fuller source model
+changing into a different simplified crown at close range. Texel count rises 12.5% over
+the previous four-direction layout. WebP alpha quality is 90.
 The three broadleaf sources are spatially grouped to break up repeated mature crowns.
 They are an artistic palette for fictional Westhaven, not an ecological reconstruction of Pennsylvania.
 The full models stay in ignored `test/output/tree-source`, `tree-variety-source` and
 `authored-sources`; they are not shipped. These atlases replace the older single-species `tree-canopies.png`.
-To reproduce the atlas (curl, Python 3, Node and Playwright Chromium required):
+To reproduce the atlas from the bundled GLBs (Node and Playwright Chromium required):
 
 ```sh
-python3 tools/fetch-woodland.py
-python3 tools/fetch-tree-variety.py
-python3 tools/fetch-authored-scenery.py
 node tools/bake-woodland.mjs
 ```
 
@@ -295,14 +390,17 @@ Files total **14,398,432 bytes** (14.40 MB decimal), including 2,729,492 bytes f
 counts and source URLs are in `tree-geometry.json`.
 
 At runtime, nearby trees transition between geometry and cards over 90–180 m using
-complementary dithering. Selection targets at most 32 trees / 1.8 million triangles;
+complementary dithering. A 14% selection preference retains existing trees when distances
+are similar; entering and retiring fades both advance at most once per frame over 0.35 s.
+Selection targets at most 32 trees / 1.8 million triangles;
 retiring instances share a hard 48-tree / 2.4-million-triangle budget. Distant trees and
 the low tier retain the cheaper atlas. Low quality never requests the GLBs. If they fail
 to load, all foliage cards remain visible. Normal menu preparation now loads the high-tier
 models before flight; a flight begun directly by an automation hook can still request them
 when a tree crown is within 450 m of the camera. These assets add no collision bodies.
 
-Regenerate the initial model reductions after the source downloads above (Node dependencies include Sharp):
+Regenerate model reductions after fetching the originals with `fetch-woodland.py`,
+`fetch-tree-variety.py` and `fetch-authored-scenery.py` (Node dependencies include Sharp):
 
 ```sh
 node tools/prepare-trees.mjs
@@ -381,3 +479,26 @@ linear interpolation cannot leak between variants. It is 79,064 bytes compressed
 under the project's MIT license. No external asset or service is used. The high tier loads
 it at startup; the low tier does not request it. Missing or malformed data uses the previous
 analytic cloud shader, and automatic quality reduction disposes the volume texture.
+
+
+## Near-ground grass — CC0
+
+`scenery/grass-patches.webp` is eight unlit views of two arrangements of [Grass Bermuda
+01](https://polyhaven.com/a/grass_bermuda_01), by Rico Cilliers / Poly Haven, under
+[CC0](https://polyhaven.com/license). Source alpha is restored from the separate mask;
+photographed blade colours are retained, then adapted to the ground at runtime. The 1024×256
+atlas is 154,114 bytes; the low tier has no near-ground grass and no atlas. The original model
+and its source textures are offline inputs only; neither is delivered to players. The atlas is
+prepared behind the menu and the underlying terrain remains if it fails to load.
+
+Reproduce with Python 3, curl, Node dependencies and Playwright Chromium:
+
+```sh
+python3 tools/fetch-ground-cover.py
+VISUAL_GPU=metal node tools/bake-ground-cover.mjs
+```
+
+Source files remain in ignored `test/output/grass-source/`. The manifest records the source,
+license and atlas layout. Runtime crossed patches are original geometry, planted in a fixed
+near-camera pool on airport turf and strongly mapped meadow, with pavement, roads, buildings
+and complete-site grounds excluded. They are interpreted scenery, not a local vegetation survey.

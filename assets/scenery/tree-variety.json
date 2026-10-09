@@ -1,84 +1,86 @@
 {
   "license": "CC0-1.0",
-  "columns": 4,
+  "columns": 8,
   "rows": 9,
   "elevations": [
     0,
     45,
     90
   ],
-  "tileSize": 256,
+  "tileSize": 192,
+  "lowTileSize": 96,
+  "geometrySource": "bundled near-tree GLBs",
   "species": [
     {
       "name": "tree_small_02",
       "variant": null,
       "row": 0,
-      "aspect": 1.0173664327778702,
-      "frameScale": 1.5406700465851708,
+      "aspect": 1.0052878233948184,
+      "frameScale": 1.5313941518155199,
       "source": "https://polyhaven.com/a/tree_small_02"
     },
     {
       "name": "pine_sapling_small",
       "variant": "a",
       "row": 1,
-      "aspect": 0.6549002351072951,
-      "frameScale": 1.2909927700995867,
+      "aspect": 0.6549150059511094,
+      "frameScale": 1.2910015100220682,
       "source": "https://polyhaven.com/a/pine_sapling_small"
     },
     {
       "name": "pine_sapling_small",
       "variant": "b",
       "row": 2,
-      "aspect": 0.7543687680838722,
-      "frameScale": 1.3528362275999657,
+      "aspect": 0.7543223364970856,
+      "frameScale": 1.3528060287090447,
       "source": "https://polyhaven.com/a/pine_sapling_small"
     },
     {
       "name": "pine_sapling_small",
       "variant": "c",
       "row": 3,
-      "aspect": 0.6515615397218192,
-      "frameScale": 1.2890208059097032,
+      "aspect": 0.6515875325127415,
+      "frameScale": 1.2890361309638982,
       "source": "https://polyhaven.com/a/pine_sapling_small"
     },
     {
       "name": "fir_sapling_medium",
       "variant": "a",
       "row": 4,
-      "aspect": 0.6455621799882668,
-      "frameScale": 1.2854951637905434,
+      "aspect": 0.6435567888601409,
+      "frameScale": 1.2843217872266963,
       "source": "https://polyhaven.com/a/fir_sapling_medium"
     },
     {
       "name": "fir_sapling_medium",
       "variant": "b",
       "row": 5,
-      "aspect": 0.5913989044274724,
-      "frameScale": 1.254731647593982,
+      "aspect": 0.5776157841285736,
+      "frameScale": 1.2472199842403338,
       "source": "https://polyhaven.com/a/fir_sapling_medium"
     },
     {
       "name": "fir_sapling_medium",
       "variant": "c",
       "row": 6,
-      "aspect": 0.7874122361620115,
-      "frameScale": 1.3746232319412814,
+      "aspect": 0.7781611462861795,
+      "frameScale": 1.368464743882392,
       "source": "https://polyhaven.com/a/fir_sapling_medium"
     },
     {
       "name": "jacaranda_tree",
       "variant": null,
       "row": 7,
-      "aspect": 1.3544908636126538,
-      "frameScale": 1.8183317933604095,
+      "aspect": 1.329952440261841,
+      "frameScale": 1.7970802437991655,
       "source": "https://polyhaven.com/a/jacaranda_tree"
     },
     {
       "name": "island_tree_02",
       "variant": null,
       "row": 8,
-      "aspect": 1.3339861462358513,
-      "frameScale": 1.8005640800400529,
+      "aspect": 1.2903054857254028,
+      "frameScale": 1.763044426754333,
       "source": "https://polyhaven.com/a/island_tree_02"
     }
   ]

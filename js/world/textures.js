@@ -45,21 +45,17 @@ export function makeRunwayTexture(anisotropy, maxSize = 8192) {
     img.data[i] += n; img.data[i + 1] += n; img.data[i + 2] += n;
   }
   g.putImageData(img, 0, 0);
-  // concrete slab joints (transverse lines every 7.5 m)
-  g.strokeStyle = 'rgba(0,0,0,0.25)';
-  g.lineWidth = 1;
-  for (let m = 0; m < L; m += 7.5) { g.beginPath(); g.moveTo(m * sx, 0); g.lineTo(m * sx, H); g.stroke(); }
-  // rubber deposits: dark streaks 150..900 m from each threshold, centre 12 m wide-ish
-  for (const dir of [1, -1]) {
-    for (let i = 0; i < 260; i++) {
-      const d = 120 + rng() * 800;
-      const m = dir === 1 ? L - d : d;
-      const zc = (rng() - 0.5) * 12 + (rng() < 0.5 ? -2.9 : 2.9);
-      const len = 8 + rng() * 40;
-      g.strokeStyle = `rgba(10,10,12,${0.12 + rng() * 0.25})`;
-      g.lineWidth = (0.5 + rng() * 0.7) * sy;
-      g.beginPath(); g.moveTo(m * sx, (RW / 2 + zc) * sy); g.lineTo((m - dir * len) * sx, (RW / 2 + zc + (rng() - 0.5) * 0.6) * sy); g.stroke();
-    }
+  // Asphalt has resurfaced lanes and occasional repairs, not a concrete joint
+  // every 7.5 m. Broad low-contrast variation survives the approach distance.
+  for(let strip=0;strip<6;strip++){
+    const gradient=g.createLinearGradient(0,strip*H/6,0,(strip+1)*H/6);
+    gradient.addColorStop(0,'rgba(10,12,14,.035)');gradient.addColorStop(.12,'rgba(10,12,14,.008)');
+    gradient.addColorStop(.88,'rgba(10,12,14,.008)');gradient.addColorStop(1,'rgba(10,12,14,.035)');
+    g.fillStyle=gradient;g.fillRect(0,strip*H/6,W,H/6);
+  }
+  for(let i=0;i<38;i++){
+    const x=rng()*W,y=rng()*H,w=(4+rng()*16)*sx,h=(1+rng()*3)*sy;
+    g.fillStyle=`rgba(18,20,22,${.025+rng()*.065})`;g.fillRect(x,y,w,h);
   }
 
   const white = '#e9e9e2';
@@ -112,6 +108,18 @@ export function makeRunwayTexture(anisotropy, maxSize = 8192) {
   };
   endMarkings(1, RUNWAY.ident);
   endMarkings(-1, RUNWAY.reciprocal);
+  // Rubber sits ON the paint as well as the asphalt. Narrow overlapping tyre
+  // paths build up gradually near touchdown, with feathered ends and a worn edge.
+  for(const dir of [1,-1])for(let i=0;i<460;i++){
+    const d=160+rng()*850,m=dir===1?L-d:d;
+    const lane=rng()<.18?(rng()-.5)*.6:(rng()<.5?-1:1)*(2.7+(rng()-.5)*2.1)+(rng()-.5)*1.0;
+    const len=12+rng()*85,thickness=(.12+rng()*.35)*sy;
+    const x=m*sx,end=(m-dir*len)*sx,y=(RW/2+lane)*sy;
+    const deposit=g.createLinearGradient(x,y,end,y),strength=(.035+rng()*.11)*Math.max(.15,1-Math.abs(d-390)/650);
+    deposit.addColorStop(0,'rgba(13,14,15,0)');deposit.addColorStop(.12,`rgba(13,14,15,${strength})`);
+    deposit.addColorStop(.7,`rgba(13,14,15,${strength*.7})`);deposit.addColorStop(1,'rgba(13,14,15,0)');
+    g.strokeStyle=deposit;g.lineWidth=thickness;g.beginPath();g.moveTo(x,y);g.lineTo(end,y+(rng()-.5)*.15*sy);g.stroke();
+  }
   return makeTexture(c, { anisotropy });
 }
 
@@ -226,29 +234,6 @@ export function makeCloudTexture() {
     g.fillStyle = gg; g.fillRect(x - r, y - r, r * 2, r * 2);
   }
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.needsUpdate = true; return t;
-}
-
-/** Seamless, warped multiscale cloud structure, shared by the deck's colour and relief. */
-export function makeOvercastTexture(top = false) {
-  const S=512,c=canvas(S,S),g=c.getContext('2d'),pixels=g.createImageData(S,S),rng=makeRng(8);
-  const fields=[4,8,16,32,64].map(size=>({size,data:Float32Array.from({length:size*size},()=>rng())}));
-  const sample=(field,u,v)=>{
-    const {size,data}=field,x=u*size,y=v*size,ix=Math.floor(x),iy=Math.floor(y);
-    let fx=x-ix,fy=y-iy;fx=fx*fx*(3-2*fx);fy=fy*fy*(3-2*fy);
-    const at=(a,b)=>data[((b%size+size)%size)*size+(a%size+size)%size];
-    return THREE.MathUtils.lerp(THREE.MathUtils.lerp(at(ix,iy),at(ix+1,iy),fx),
-      THREE.MathUtils.lerp(at(ix,iy+1),at(ix+1,iy+1),fx),fy);
-  };
-  const weights=[.44,.28,.16,.08,.04];
-  for(let y=0;y<S;y++)for(let x=0;x<S;x++){
-    const u=x/S,v=y/S,warpU=u+(sample(fields[0],u,v)-.5)*.24,warpV=v+(sample(fields[0],u+.37,v+.61)-.5)*.24;
-    let n=0;for(let j=0;j<fields.length;j++)n+=sample(fields[j],warpU,warpV)*weights[j];
-    const tone=top?184+n*64:65+n*135,i=(y*S+x)*4;
-    pixels.data.set([tone,tone+3,tone+7,255],i);
-  }
-  g.putImageData(pixels,0,0);
-  const texture=new THREE.CanvasTexture(c);texture.colorSpace=THREE.SRGBColorSpace;
-  texture.wrapS=texture.wrapT=THREE.RepeatWrapping;return texture;
 }
 
 /** Simple building facade with lit windows. */

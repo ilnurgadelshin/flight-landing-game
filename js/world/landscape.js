@@ -8,6 +8,8 @@ import { addWoodland } from './woodland.js';
 import { addApproachBuildings } from './approach-buildings.js';
 import { addApproachRoads } from './approach-roads.js';
 import { GROUND_DETAIL_GLSL, groundDetailUniforms, loadGroundDetail } from './ground-detail.js';
+import {addGroundCover} from './ground-cover.js';
+import {CORRIDOR_GLSL,corridorUniforms,loadApproachCorridor} from './approach-corridor.js';
 
 const source = (name) => new URL(`../../assets/scenery/${name}.${/^(region|approach|airport|final-approach)(-low|-preview)?$/.test(name)?'webp':'jpg'}`, import.meta.url).href;
 
@@ -20,6 +22,7 @@ export function buildLandscape(world) {
     uGrass: { value: fallback }, uGrassRough: {value:fallback}, uSurfaceDetail:{value:1},
     uReady: { value: 0 }, uWet: { value: 0 }, uAlbedo: { value: 0.82 },
     ...groundDetailUniforms(fallback),
+    ...corridorUniforms(fallback),
   };
   world.groundTex = fallback;
   const material = world.groundMat = new THREE.MeshStandardMaterial({ map: fallback, roughness: 1 });
@@ -34,6 +37,7 @@ export function buildLandscape(world) {
       uniform sampler2D uRegion, uApproach, uAirport, uFinal, uGrass, uGrassRough;
       uniform float uReady, uWet, uAlbedo, uSurfaceDetail;
       ${GROUND_DETAIL_GLSL}
+      ${CORRIDOR_GLSL}
       vec2 aerialUV(vec2 center, float span) { return (vGroundXZ-center)*vec2(1.0,-1.0)/span+0.5; }
       float coverage(vec2 uv) { return 1.0-smoothstep(0.43,0.49,max(abs(uv.x-0.5),abs(uv.y-0.5))); }
     `).replace('#include <map_fragment>', `
@@ -67,6 +71,25 @@ export function buildLandscape(world) {
       vec3 rotatedGrass=texture2D(uGrass,mat2(.8,-.6,.6,.8)*vGroundXZ/10.7+vec2(.37,.61)).rgb;
       float grain=clamp(dot(mix(fineGrass,rotatedGrass,.38),vec3(.25,.5,.25))*7.5,.45,1.75);
       land*=mix(1.0,grain,surfaceMask*closeSurface*.82);
+      // Reconstruct continuous field/forest surfaces, not the photographed crowns
+      // and shadows. Keep parcel boundaries, with broad weathering and metre-scale grain.
+      vec3 cover=corridorCover(vGroundXZ);
+      float coverTotal=dot(cover,vec3(1.0));
+      if(coverTotal>.001){
+        float coverReach=1.0-smoothstep(1300.0,3200.0,length(vViewPosition));
+        float fieldVariation=.96+.06*sin(vGroundXZ.x*.031+sin(vGroundXZ.y*.013))*.5+.04*cos(vGroundXZ.y*.047);
+        // Strong, distant scan grain reads as tiled checks across open fields.
+        // Retain the scanned relief near the eye, fading before its repetition resolves.
+        float fieldGrain=mix(1.0,clamp(grain,.65,1.35),.35*(1.0-smoothstep(100.0,650.0,length(vViewPosition))));
+        vec3 meadow=vec3(.105,.145,.056)*fieldVariation*fieldGrain;
+        vec3 stubble=vec3(.195,.153,.084)*fieldVariation*fieldGrain;
+        // Subtle cultivation bands follow the long axis of the photographed fields.
+        stubble*=1.0+.035*sin(dot(vGroundXZ,vec2(.34,-.21)));
+        vec3 floorCover=vec3(.052,.070,.029)*fieldVariation*fieldGrain;
+        vec3 reconstructed=(meadow*cover.r+stubble*cover.g+floorCover*cover.b)/max(.001,coverTotal);
+        land=mix(land,reconstructed,coverTotal*coverReach*.86);
+      }
+      surfaceMask=max(surfaceMask,coverTotal);
       vec3 turf = mix(vec3(0.13,0.155,0.065),grass*vec3(0.75,0.9,0.65),nearGround*0.72);
       turf *= 0.97+0.03*sin(vGroundXZ.y*0.21);
       land = mix(land,turf,airfield*uReady);
@@ -145,12 +168,13 @@ export function buildLandscape(world) {
     const buildings=addApproachBuildings(world);
     const roads=addApproachRoads(world);
     const detail=loadGroundDetail(world,uniforms,fallback);
+    const corridor=loadApproachCorridor(world);
     const ready=photos(low?'-low':'').then(async([region,approach,airport,final])=>{
-      await Promise.allSettled([buildings,roads]); // imagery still works if vector data is missing
+      await Promise.allSettled([buildings,roads,corridor]); // imagery still works if vector data is missing
       await addWoodland(world,airport.image,final.image);
     });
     const grass=load('grass-color',true,true).then(t=>uniforms.uGrass.value=t);
-    const jobs=[buildings,roads,ready,detail,grass,load('grass-rough',false,true).then(tex=>uniforms.uGrassRough.value=tex),load('grass-normal',false,true).then(tex=>{
+    const jobs=[buildings,roads,ready,detail,corridor,grass,load('grass-rough',false,true).then(tex=>uniforms.uGrassRough.value=tex),load('grass-normal',false,true).then(tex=>{
       material.normalMap=tex;material.normalScale.set(.48,.48);material.needsUpdate=true;
     })];
     // One surface set is shared by all pavement. World-space mapping keeps the size of
@@ -158,11 +182,14 @@ export function buildLandscape(world) {
     jobs.push(Promise.all([load('asphalt-color',true,true),load('asphalt-normal',false,true),load('asphalt-rough',false,true)])
       .then(async([color,normal,rough])=>{
         world.pavementTextures={color,normal,rough};
+        world.runwayShoulders.setTextures(world.pavementTextures);
         await roads.catch(()=>{});
         for(const mat of [world.runwayMat,...world.pavementMats,world.approachRoadMaterial].filter(Boolean)) detailPavement(mat,{color,normal,rough});
       }));
+    jobs.push(Promise.allSettled([buildings,roads,corridor,grass]).then(()=>addGroundCover(world)));
     const progress=world.sceneryProgress;progress.total+=jobs.length;   // the loading screen's finer steps
     const results=await Promise.allSettled(jobs.map(job=>job.finally(()=>progress.done++)));
+    if(world.valleyRoadMaterial&&world.pavementTextures)detailPavement(world.valleyRoadMaterial,world.pavementTextures);
     world.assetErrors.push(...results.filter(r=>r.status==='rejected').map(r=>String(r.reason)));
   });
 }

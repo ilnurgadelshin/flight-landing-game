@@ -3,7 +3,7 @@
 // retain their crown proportions, with understory clustered below the broadleaf canopy.
 import * as THREE from 'three';
 import { makeRng } from '../physics/atmosphere.js';
-import { sceneryGroundHeight } from './scenery-ground.js';
+import { sceneryGroundHeight,protectedScenery } from './scenery-ground.js';
 import { addNearTrees, treeFadeShader } from './near-trees.js';
 
 function groveNoise(x,z) {
@@ -29,6 +29,7 @@ export async function addWoodland(world,photo,approachPhoto) {
   const response=await fetch(new URL('../../assets/scenery/tree-variety.json',import.meta.url));
   if(!response.ok)throw new Error(`Tree atlas: HTTP ${response.status}`);
   const atlas=await response.json();
+  const columns=atlas.columns,azimuthStep=2*Math.PI/columns;
   const texture=await new THREE.TextureLoader().loadAsync(new URL(`../../assets/scenery/tree-variety${low?'-low':''}.webp`,import.meta.url).href);
   texture.colorSpace=THREE.SRGBColorSpace;texture.anisotropy=world.maxAniso;
   const material=new THREE.MeshBasicMaterial({map:texture,alphaTest:.28,alphaToCoverage:true,side:THREE.DoubleSide});
@@ -52,8 +53,8 @@ export async function addWoodland(world,photo,approachPhoto) {
           +treeUp*position.y*mix(treeHeight,treeWidth,pow(sin(treePitch),2.0))*treeFrame.x;
         vec4 mvPosition=viewMatrix*vec4(treeWorld,1.0);
         gl_Position=projectionMatrix*mvPosition;
-        float treeView=mod((treeYaw-atan(treeFacing.x,treeFacing.y))/1.57079632679+treeUvOffset.x+8.0,4.0);
-        vTreeViews=vec2(floor(treeView),mod(floor(treeView)+1.0,4.0));vTreeBlend=fract(treeView);
+        float treeView=mod((treeYaw-atan(treeFacing.x,treeFacing.y))/${azimuthStep}+treeUvOffset.x*${columns/4}.0+${columns*2}.0,${columns}.0);
+        vTreeViews=vec2(floor(treeView),mod(floor(treeView)+1.0,${columns}.0));vTreeBlend=fract(treeView);
         vTreeUV=uv;vTreeRow=treeUvOffset.y;vTreeElevation=treePitch/0.785398163397;
       `);
     shader.fragmentShader=shader.fragmentShader.replace('#include <common>',`#include <common>
@@ -62,7 +63,7 @@ export async function addWoodland(world,photo,approachPhoto) {
       .replace('#include <map_pars_fragment>',`#include <map_pars_fragment>
       vec4 treeTexel(float view,float elevation){
         vec2 tileUV=mix(vec2(.004),vec2(.996),vTreeUV);
-        return texture2D(map,vec2((view+tileUV.x)*.25,(${atlas.rows*3-1}.0-vTreeRow*3.0-elevation+tileUV.y)/${atlas.rows*3}.0));
+        return texture2D(map,vec2((view+tileUV.x)/${columns}.0,(${atlas.rows*3-1}.0-vTreeRow*3.0-elevation+tileUV.y)/${atlas.rows*3}.0));
       }
       vec4 treePremultiplied(vec4 c){return vec4(c.rgb*c.a,c.a);}`)
       .replace('#include <map_fragment>',`
@@ -81,16 +82,58 @@ export async function addWoodland(world,photo,approachPhoto) {
   const approachPixels=context.getImageData(0,0,1024,1024).data;
   const rng=makeRng(812),patches=new Map(),forms=Array(atlas.rows).fill(0);
   const limit=low?14000:52000;
+  const corridor=world.approachCorridor,localTrees=[];
+  // In the reviewed corridor, plant continuous canopy from the same land-cover
+  // boundaries used by the ground. Jittered spacing avoids clumps and bare gaps.
+  // Reserve part of the EXISTING instance budget, rather than adding a new layer.
+  if(corridor){
+    const zones=corridor.manifest.plantingZones||[{bounds:corridor.manifest.bounds,seed:94051,highLimit:10000,lowLimit:4800}];
+    const zoneCounts=[];
+    for(const zone of zones){
+      const [x0,z0,width,depth]=zone.bounds,localRng=makeRng(zone.seed),zoneTrees=[];
+      // Keep the existing close canopy density. Higher parts of final can use
+      // wider stand spacing, conserving the same overall tree-instance budget.
+      for(let xx=x0;xx<x0+width;){
+        const spacing=xx<4100?(low?14:9.5):(low?23:16);
+        for(let zz=z0;zz<z0+depth;zz+=spacing){
+          const x=xx+(localRng()-.5)*spacing*.8,z=zz+(localRng()-.5)*spacing*.8;
+          const cover=corridor.sample(x,z),weight=cover[2];
+          if(weight<.15||cover[0]+cover[1]>.35||localRng()>Math.min(1,weight*1.6))continue;
+          if(world.approachSiteExcludes?.(x,z)||protectedScenery(x,z,14)||world.approachBuildingExcludes?.(x,z)||world.approachRoadExcludes?.(x,z))continue;
+          const stand=groveNoise(x/95+4,z/95-7),choice=localRng();
+          const species=localRng();
+          const row=choice<.07?4+Math.floor(localRng()*3):choice<.12?1+Math.floor(localRng()*3):species<.2+stand*.25?7:species<.68+stand*.12?0:8;
+          const edge=.76+.24*weight;
+          const h=(row===0?14+localRng()*7:row===7?16+localRng()*7:row===8?12+localRng()*6:row<4?3+localRng()*3:10+localRng()*5)*edge;
+          const w=Math.min(24,h*atlas.species[row].aspect*(.94+localRng()*.14));
+          zoneTrees.push({x,z,type:Math.floor(localRng()*4),row,h,w,yaw:localRng()*Math.PI});
+        }
+        xx+=spacing;
+      }
+      // Uniform thinning if future boundary edits exceed this site's allocation.
+      for(let i=zoneTrees.length-1;i>0;i--){const j=Math.floor(localRng()*(i+1));[zoneTrees[i],zoneTrees[j]]=[zoneTrees[j],zoneTrees[i]];}
+      zoneTrees.length=Math.min(zoneTrees.length,low?zone.lowLimit:zone.highLimit);
+      localTrees.push(...zoneTrees);zoneCounts.push(zoneTrees.length);
+    }
+    corridor.zoneCounts=zoneCounts;
+  }
+  // Individually placed garden/edge trees share the same geometry/instance budget.
+  for(const [i,t] of (world.approachSiteTrees||[]).entries()){
+    if(world.approachSiteRoadExcludes?.(t.x,t.z)||world.approachBuildingExcludes?.(t.x,t.z)||world.approachRoadExcludes?.(t.x,t.z)||protectedScenery(t.x,t.z,14))continue;
+    localTrees.push({...t,type:i%4,w:t.h*atlas.species[t.row].aspect,yaw:i*2.399});
+  }
   let count=0;
-  for(let k=0;k<limit*30&&count<limit;k++){
+  for(let k=0;k<limit*30&&count<limit-localTrees.length;k++){
     // Spend more of the fixed instance budget in the approach corridor. Dense
     // near stands read as woodland; distant photo coverage can carry fewer cards.
     const close=rng()<.65;
     const x=close?2000+rng()*8000:-3900+rng()*13800,z=(rng()-.5)*(close?4000:7800);
     if(Math.abs(x)<2100&&Math.abs(z-120)<700)continue;
     if(Math.abs(z)<180&&x>1500&&x<3400)continue;
-    if(world.approachBuildingExcludes?.(x,z))continue;
+    if(world.approachSiteExcludes?.(x,z)||world.approachBuildingExcludes?.(x,z))continue;
     if(world.approachRoadExcludes?.(x,z))continue;
+    const cover=corridor?.sample(x,z);
+    if(cover&&cover[0]+cover[1]+cover[2]>.15)continue; // Reviewed fields stay open, woodland is planted below.
     const final=x>3900,pixels=final?approachPixels:airportPixels;
     const px=Math.floor(((x-(final?6000:0))/8000+.5)*1024),py=Math.floor((z/8000+.5)*1024),i=(py*1024+px)*4;
     const r=pixels[i],g=pixels[i+1],b=pixels[i+2];
@@ -110,6 +153,11 @@ export async function addWoodland(world,photo,approachPhoto) {
     if(!patches.has(key))patches.set(key,[]);
     patches.get(key).push({x,z,type,row,h,w,yaw:rng()*Math.PI});forms[row]++;count++;
   }
+  for(const t of localTrees){
+    const key=`${Math.floor(t.x/(low?2000:1000))}:${Math.floor(t.z/(low?2000:1000))}`;
+    if(!patches.has(key))patches.set(key,[]);patches.get(key).push(t);forms[t.row]++;count++;
+  }
+  if(corridor)corridor.trees={count:localTrees.length,total:count,limit,spacing:low?[14,23]:[9.5,16],zones:corridor.zoneCounts};
   const group=new THREE.Group();group.name='Photographed woodland stands';
   const geometry=crownGeometry(),matrix=new THREE.Matrix4(),q=new THREE.Quaternion(),up=new THREE.Vector3(0,1,0);
   const contact=document.createElement('canvas');contact.width=contact.height=64;
