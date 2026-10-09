@@ -682,6 +682,13 @@ The visual assets are bundled locally and need no map service, account or API ke
   detail while retaining the aerial imagery's boundaries. Five glazed gate halls with curved
   metal roofs and recessed structural bays replace the long terminal slab, joined by a low
   concourse. Jet bridges and vehicles remain, with authored **B737 and A320** models on the stands.
+- **Near-ground grass** adds photographed blades to runway margins and mapped pasture on
+  both tiers. Short turf and taller field patches blend into the ground within 40 m high /
+  36 m low, leaving pavement, roads, buildings and complete-site grounds clear. The CC0
+  grass atlases add 154 KB high / 51 KB low and prepare behind the menu. A fixed instance
+  pool limits memory and updates; missing imagery retains the existing ground. The effect
+  is strongest near the surface; sampled straight-ahead cockpit views show no visible change.
+  Crossed patch planes and simple distant fields remain visible at some angles.
 
 The desktop cockpit has about 1.02 million triangles and an 8.2 MB download. The lighter
 phone model has about 420,000 triangles and a 3.6 MB download, omits tiny molded labels,
@@ -724,6 +731,11 @@ commands are in [`assets/README.md`](assets/README.md). Players can open the cre
 `node test/overcast-review.mjs` captures both cloud boundaries, normal cockpit views, night
 and storm on both tiers. It checks rendered cloud opacity, obscured runway lights, resource
 reuse across resizing, quality reduction and renderer-state restoration.
+
+`node test/ground-cover.mjs` checks both-tier grass visibility, terrain contact, bounded
+updates, stable buffers, quality reduction and missing-atlas fallback. It captures close
+views and ordinary landing attitudes. `node test/ground-cover-motion.mjs` records slow
+pasture movement and runway-side motion at 55 m/s using the normal tile update budget.
 
 `node test/vegetation-weather.mjs` checks rendered canopy coverage from side, oblique and
 overhead views, unchanged buffers for settled trees and the corrupt-volume fallback. It

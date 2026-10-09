@@ -479,3 +479,26 @@ linear interpolation cannot leak between variants. It is 79,064 bytes compressed
 under the project's MIT license. No external asset or service is used. The high tier loads
 it at startup; the low tier does not request it. Missing or malformed data uses the previous
 analytic cloud shader, and automatic quality reduction disposes the volume texture.
+
+
+## Near-ground grass — CC0
+
+`scenery/grass-patches.webp` and `grass-patches-low.webp` are eight unlit views of two
+arrangements of [Grass Bermuda 01](https://polyhaven.com/a/grass_bermuda_01), by Rico Cilliers /
+Poly Haven, under [CC0](https://polyhaven.com/license). Source alpha is restored from the
+separate mask; photographed blade colours are retained, then adapted to the ground at runtime.
+The high 1024×256 atlas is 154,114 bytes, low 512×128 is 50,808 bytes. The original model and
+its source textures are offline inputs only; neither is delivered to players. The atlas is
+prepared behind the menu and the underlying terrain remains if it fails to load.
+
+Reproduce with Python 3, curl, Node dependencies and Playwright Chromium:
+
+```sh
+python3 tools/fetch-ground-cover.py
+VISUAL_GPU=metal node tools/bake-ground-cover.mjs
+```
+
+Source files remain in ignored `test/output/grass-source/`. The manifest records the source,
+license and atlas layout. Runtime crossed patches are original geometry, planted in a fixed
+near-camera pool on airport turf and strongly mapped meadow, with pavement, roads, buildings
+and complete-site grounds excluded. They are interpreted scenery, not a local vegetation survey.

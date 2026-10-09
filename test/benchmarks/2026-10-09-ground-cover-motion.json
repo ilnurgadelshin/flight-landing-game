@@ -1,0 +1,42 @@
+[
+  {
+    "tier": "high",
+    "pose": "pasture",
+    "fps": 59.62776308567437,
+    "p99Ms": 16.80000000000109,
+    "worstMs": 66.69999999999982,
+    "queued": 0,
+    "active": 31184,
+    "errors": []
+  },
+  {
+    "tier": "high",
+    "pose": "shoulder",
+    "fps": 59.75325274752691,
+    "p99Ms": 16.80000000000291,
+    "worstMs": 50,
+    "queued": 7,
+    "active": 17820,
+    "errors": []
+  },
+  {
+    "tier": "low",
+    "pose": "pasture",
+    "fps": 60.00274440826816,
+    "p99Ms": 16.800000000000182,
+    "worstMs": 16.80000000000109,
+    "queued": 0,
+    "active": 15276,
+    "errors": []
+  },
+  {
+    "tier": "low",
+    "pose": "shoulder",
+    "fps": 60.001995908387805,
+    "p99Ms": 16.80000000000109,
+    "worstMs": 16.80000000000109,
+    "queued": 7,
+    "active": 8728,
+    "errors": []
+  }
+]

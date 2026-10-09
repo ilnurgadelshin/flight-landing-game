@@ -8,6 +8,7 @@ import { addWoodland } from './woodland.js';
 import { addApproachBuildings } from './approach-buildings.js';
 import { addApproachRoads } from './approach-roads.js';
 import { GROUND_DETAIL_GLSL, groundDetailUniforms, loadGroundDetail } from './ground-detail.js';
+import {addGroundCover} from './ground-cover.js';
 import {CORRIDOR_GLSL,corridorUniforms,loadApproachCorridor} from './approach-corridor.js';
 
 const source = (name) => new URL(`../../assets/scenery/${name}.${/^(region|approach|airport|final-approach)(-low|-preview)?$/.test(name)?'webp':'jpg'}`, import.meta.url).href;
@@ -185,6 +186,7 @@ export function buildLandscape(world) {
         await roads.catch(()=>{});
         for(const mat of [world.runwayMat,...world.pavementMats,world.approachRoadMaterial].filter(Boolean)) detailPavement(mat,{color,normal,rough});
       }));
+    jobs.push(Promise.allSettled([buildings,roads,corridor,grass]).then(()=>addGroundCover(world)));
     const progress=world.sceneryProgress;progress.total+=jobs.length;   // the loading screen's finer steps
     const results=await Promise.allSettled(jobs.map(job=>job.finally(()=>progress.done++)));
     if(world.valleyRoadMaterial&&world.pavementTextures)detailPavement(world.valleyRoadMaterial,world.pavementTextures);

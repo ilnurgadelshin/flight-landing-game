@@ -18,12 +18,15 @@ try{
     const sum=list=>list.reduce((total,r)=>total+r.bytes,0);
     // requests made before the menu appeared
     const menuAt=await page.evaluate(()=>window.__menuAt),startup=(await resources()).filter(r=>r.start<menuAt);
-    assert.ok(!startup.some(r=>/-near\.glb|\/detail\/|\/approach-buildings\.json|\/approach-corridor\.(png|json)/.test(r.name)),'No optional scenery before the menu');
+    assert.ok(!startup.some(r=>/-near\.glb|\/detail\/|\/approach-buildings\.json|\/approach-corridor\.(png|json)|\/grass-patches/.test(r.name)),'No optional scenery before the menu');
     assert.ok(sum(startup)<(tier==='high'?15e6:9e6),`${tier} startup budget: ${sum(startup)}`);
     // behind the menu: the scenery, the near trees on high, and the warm-up
     await page.waitForFunction(()=>window.__sim.world.sceneryPrepared,null,{timeout:30000});
     await page.evaluate(async()=>{await window.__sim.world.sceneryPrepared;});
     const prepared=await resources(),progress=await page.evaluate(()=>window.__sim.world.sceneryProgress);
+    const grass=prepared.filter(r=>/\/grass-patches.*\.webp$/.test(r.name));
+    assert.equal(grass.length,1,'Exactly one selected grass atlas is prepared');
+    assert.ok(grass[0].name.endsWith(tier==='high'?'/grass-patches.webp':'/grass-patches-low.webp'));
     assert.ok(progress.total>4&&progress.done===progress.total,`Scenery progress completes: ${JSON.stringify(progress)}`);
     // a flight then requests nothing more
     await page.evaluate(()=>{window.__sim.start({startId:'short',seed:5});});

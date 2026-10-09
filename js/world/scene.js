@@ -242,8 +242,8 @@ export class World {
         for(const objects of byMaterial.values()){
           const show=new Set(objects),saved=drawables.map(o=>[o,o.visible,o.frustumCulled]);
           for(const o of drawables){
-            // an empty instanced pool (the nearby trees) is hidden; draw it to upload its geometry
-            o.visible=show.has(o)&&(o.visible||(o.isInstancedMesh&&o.count===0));o.frustumCulled=false;
+            // Hidden tree and grass instance pools also need their geometry uploaded behind the menu.
+            o.visible=show.has(o)&&(o.visible||(o.isInstancedMesh&&o.count===0)||o.geometry?.isInstancedBufferGeometry);o.frustumCulled=false;
           }
           const previous=r.getRenderTarget(),shadows=r.shadowMap.autoUpdate;
           r.shadowMap.autoUpdate=false;r.setRenderTarget(target);
@@ -261,7 +261,7 @@ export class World {
   /** Drop expensive effects without restarting a flight or moving its camera. */
   reduceQuality() {
     if(this.quality==='low')return;
-    this.quality='low';this.renderer.shadowMap.enabled=false;
+    this.quality='low';this.renderer.shadowMap.enabled=false;this.groundCover?.reduceQuality();
     for(const light of [this.sun,this.cockpitSun]){
       light.castShadow=false;light.shadow.map?.dispose();light.shadow.map=null;
     }
@@ -667,6 +667,7 @@ export class World {
   update(dt, state, eye) {
     this.time += dt;
     this.groundDetail?.update(eye);
+    this.groundCover?.update(eye);
     if(this.quality==='high')this.requestNearTrees?.(eye);
     this.nearWoodland?.update(dt,eye);
     // fog density: in cloud above the base, thick; below: visibility

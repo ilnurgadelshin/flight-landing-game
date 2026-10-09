@@ -42,9 +42,11 @@ try{
         s.game.sim.aircraft.place({x:scene==='rollout'?1000:3300,y:scene==='rollout'?2.5:scene==='deck-captain'?w.cloudTop+220:115,z:0,headingDeg:270,iasKts:scene==='rollout'?85:147,flapIndex:4,gearDown:true,gammaDeg:-3,onGround:scene==='rollout'});
         s.view.setMode('cockpit');for(let i=0;i<40;i++)s.view.update(1/60);
         s.game.state='menu';w.setPixelRatio(pixelRatio);
-        if(['nearby','site','corridor','extension','opposite','shoulder','north-farm','hamlet','deck-top','deck-base'].includes(scene)){
+        if(['nearby','site','corridor','extension','opposite','shoulder','north-farm','hamlet','deck-top','deck-base','grass-meadow','grass-pasture'].includes(scene)){
           const c=new T.PerspectiveCamera(50,innerWidth/innerHeight,.1,60000);
-          if(scene==='deck-top'){c.position.set(3300,w.cloudTop+320,0);c.lookAt(-5000,w.cloudTop-500,-2000);}
+          if(scene==='grass-meadow'){c.position.set(2350,3.45,330);c.lookAt(2470,3,415);}
+          else if(scene==='grass-pasture'){const {sceneryGroundHeight}=await import('/js/world/scenery-ground.js');c.position.set(3370,sceneryGroundHeight(3370,-650,w.groundLowDetail)+2.5,-650);c.lookAt(3550,4,-740);}
+          else if(scene==='deck-top'){c.position.set(3300,w.cloudTop+320,0);c.lookAt(-5000,w.cloudTop-500,-2000);}
           else if(scene==='deck-base'){c.position.set(3300,w.cloudBase-120,0);c.lookAt(-5000,w.cloudBase+200,-2000);}
           else if(scene==='north-farm'){c.position.set(2390,15,-320);c.lookAt(2387,3,-385);}
           else if(scene==='hamlet'){c.position.set(3150,14,-310);c.lookAt(3195,2,-277);}
@@ -58,11 +60,11 @@ try{
           w.camera=c;if(w.composer)w.composer.passes[0].camera=c;w.drawCockpit=false;
         }
         const eye=w.camera.getWorldPosition(new T.Vector3());
-        await w.groundDetail.settle(eye);w.nearWoodland?.settle(eye);
+        await w.groundDetail.settle(eye);w.nearWoodland?.settle(eye);w.groundCover?.settle(eye);
         if(disabled.includes('cumulus')&&w.cumulus)w.cumulus.group.visible=false;
         if(disabled.includes('bloom')&&w.bloom)w.bloom.enabled=false;
         if(disabled.includes('shadows'))w.renderer.shadowMap.enabled=false;
-        const base=w.camera.position.clone(),state={...s.state(),alt:scene.startsWith('deck-')?eye.y:scene==='north-farm'?15:scene==='hamlet'?14:scene==='shoulder'?3.7:scene==='rollout'?5:scene==='site'?24:scene==='nearby'?18:scene==='opposite'?250:['corridor','extension'].includes(scene)?240:115};
+        const base=w.camera.position.clone(),state={...s.state(),alt:scene.startsWith('deck-')||scene.startsWith('grass-')?eye.y:scene==='north-farm'?15:scene==='hamlet'?14:scene==='shoulder'?3.7:scene==='rollout'?5:scene==='site'?24:scene==='nearby'?18:scene==='opposite'?250:['corridor','extension'].includes(scene)?240:115};
         const intervals=[],cpu=[],calls=[],triangles=[];let start,last;
         w.renderer.info.autoReset=false;
         await new Promise(resolve=>{
@@ -71,7 +73,7 @@ try{
             if(elapsed>warmup&&last!==now)intervals.push(now-last);
             last=now;
             // Move the close camera through 30 m to include tree/ground selection updates.
-            if(scene==='nearby'){w.camera.position.x=base.x-Math.min(30,elapsed*1.875);w.camera.updateMatrixWorld();}
+            if(scene==='nearby'||scene.startsWith('grass-')){w.camera.position.x=base.x-Math.min(30,elapsed*1.875);w.camera.updateMatrixWorld();}
             const t=performance.now();w.update(dt,state,w.camera.getWorldPosition(new T.Vector3()));
             w.renderer.info.reset();w.render();
             if(elapsed>warmup){cpu.push(performance.now()-t);calls.push(w.renderer.info.render.calls);triangles.push(w.renderer.info.render.triangles);}

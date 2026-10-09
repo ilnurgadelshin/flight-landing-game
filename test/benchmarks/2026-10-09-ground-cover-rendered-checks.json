@@ -1,0 +1,387 @@
+[
+  {
+    "tier": "high",
+    "views": [
+      {
+        "view": "shoulder",
+        "visible": true,
+        "active": 14220,
+        "capacity": 32400,
+        "triangles": 129600,
+        "queued": 0,
+        "eye": [
+          1250,
+          3.7,
+          -29
+        ],
+        "errors": [],
+        "changedPixels": 161804
+      },
+      {
+        "view": "meadow",
+        "visible": true,
+        "active": 20176,
+        "capacity": 32400,
+        "triangles": 129600,
+        "queued": 0,
+        "eye": [
+          2350,
+          3.45,
+          330
+        ],
+        "errors": [],
+        "changedPixels": 292783
+      },
+      {
+        "view": "pasture",
+        "visible": true,
+        "active": 28240,
+        "capacity": 32400,
+        "triangles": 129600,
+        "queued": 0,
+        "eye": [
+          3370,
+          8.690102515698051,
+          -650
+        ],
+        "errors": [],
+        "changedPixels": 386120
+      },
+      {
+        "view": "touchdown",
+        "visible": true,
+        "active": 21420,
+        "capacity": 32400,
+        "triangles": 129600,
+        "queued": 0,
+        "eye": [
+          1350,
+          14,
+          -45
+        ],
+        "errors": [],
+        "changedPixels": 5388
+      },
+      {
+        "view": "rollout",
+        "visible": true,
+        "active": 10440,
+        "capacity": 32400,
+        "triangles": 129600,
+        "queued": 0,
+        "eye": [
+          987.615,
+          2.9394999999999993,
+          0.4080000000000027
+        ],
+        "errors": [],
+        "changedPixels": 0
+      },
+      {
+        "view": "side-rollout",
+        "visible": true,
+        "active": 10440,
+        "capacity": 32400,
+        "triangles": 129600,
+        "queued": 0,
+        "eye": [
+          987.615,
+          2.9394999999999993,
+          0.4080000000000027
+        ],
+        "errors": [],
+        "changedPixels": 1899
+      },
+      {
+        "view": "hud-rollout",
+        "visible": true,
+        "active": 10440,
+        "capacity": 32400,
+        "triangles": 129600,
+        "queued": 0,
+        "eye": [
+          987.615,
+          2.9394999999999993,
+          0.4080000000000027
+        ],
+        "errors": [],
+        "changedPixels": 0
+      },
+      {
+        "view": "flare",
+        "visible": true,
+        "active": 27032,
+        "capacity": 32400,
+        "triangles": 129600,
+        "queued": 0,
+        "eye": [
+          1587.6624983069123,
+          12.169374714562954,
+          0.4080000000000028
+        ],
+        "errors": [],
+        "changedPixels": 0
+      },
+      {
+        "view": "final",
+        "visible": false,
+        "active": 27032,
+        "capacity": 32400,
+        "triangles": 129600,
+        "queued": 0,
+        "eye": [
+          2087.6358828416564,
+          45.84261031607413,
+          0.4080000000000027
+        ],
+        "errors": [],
+        "changedPixels": 0
+      },
+      {
+        "view": "storm",
+        "visible": true,
+        "active": 14220,
+        "capacity": 32400,
+        "triangles": 129600,
+        "queued": 0,
+        "eye": [
+          1250,
+          3.7,
+          -29
+        ],
+        "errors": [],
+        "changedPixels": 1028
+      },
+      {
+        "view": "night",
+        "visible": true,
+        "active": 14220,
+        "capacity": 32400,
+        "triangles": 129600,
+        "queued": 0,
+        "eye": [
+          1250,
+          3.7,
+          -29
+        ],
+        "errors": [],
+        "changedPixels": 351
+      }
+    ],
+    "pool": {
+      "maxTileUploads": 2,
+      "grounded": 2912,
+      "maxGroundError": 0.000004546896660855178,
+      "stable": true,
+      "bufferReuse": true,
+      "reduced": {
+        "instances": 15876,
+        "radius": 36,
+        "arraysReused": true,
+        "sameGeometry": true,
+        "sameTexture": true
+      },
+      "lateInstances": 15876,
+      "hiddenRanges": 1,
+      "hiddenAboveRange": true,
+      "bytes": 1036800
+    }
+  },
+  {
+    "tier": "low",
+    "views": [
+      {
+        "view": "shoulder",
+        "visible": true,
+        "active": 6964,
+        "capacity": 15876,
+        "triangles": 63504,
+        "queued": 0,
+        "eye": [
+          1250,
+          3.7,
+          -29
+        ],
+        "errors": [],
+        "changedPixels": 104047
+      },
+      {
+        "view": "meadow",
+        "visible": true,
+        "active": 9892,
+        "capacity": 15876,
+        "triangles": 63504,
+        "queued": 0,
+        "eye": [
+          2350,
+          3.45,
+          330
+        ],
+        "errors": [],
+        "changedPixels": 227352
+      },
+      {
+        "view": "pasture",
+        "visible": true,
+        "active": 13830,
+        "capacity": 15876,
+        "triangles": 63504,
+        "queued": 0,
+        "eye": [
+          3370,
+          8.503522742744188,
+          -650
+        ],
+        "errors": [],
+        "changedPixels": 339307
+      },
+      {
+        "view": "touchdown",
+        "visible": true,
+        "active": 10490,
+        "capacity": 15876,
+        "triangles": 63504,
+        "queued": 0,
+        "eye": [
+          1350,
+          14,
+          -45
+        ],
+        "errors": [],
+        "changedPixels": 331
+      },
+      {
+        "view": "rollout",
+        "visible": true,
+        "active": 5104,
+        "capacity": 15876,
+        "triangles": 63504,
+        "queued": 0,
+        "eye": [
+          987.615,
+          2.9394999999999993,
+          0.4080000000000027
+        ],
+        "errors": [],
+        "changedPixels": 0
+      },
+      {
+        "view": "side-rollout",
+        "visible": true,
+        "active": 5104,
+        "capacity": 15876,
+        "triangles": 63504,
+        "queued": 0,
+        "eye": [
+          987.615,
+          2.9394999999999993,
+          0.4080000000000027
+        ],
+        "errors": [],
+        "changedPixels": 138
+      },
+      {
+        "view": "hud-rollout",
+        "visible": true,
+        "active": 5104,
+        "capacity": 15876,
+        "triangles": 63504,
+        "queued": 0,
+        "eye": [
+          987.615,
+          2.9394999999999993,
+          0.4080000000000027
+        ],
+        "errors": [],
+        "changedPixels": 0
+      },
+      {
+        "view": "flare",
+        "visible": true,
+        "active": 13234,
+        "capacity": 15876,
+        "triangles": 63504,
+        "queued": 0,
+        "eye": [
+          1587.6624983069123,
+          12.169374714562954,
+          0.4080000000000028
+        ],
+        "errors": [],
+        "changedPixels": 0
+      },
+      {
+        "view": "final",
+        "visible": false,
+        "active": 13234,
+        "capacity": 15876,
+        "triangles": 63504,
+        "queued": 0,
+        "eye": [
+          2087.6358828416564,
+          45.84261031607413,
+          0.4080000000000027
+        ],
+        "errors": [],
+        "changedPixels": 0
+      },
+      {
+        "view": "storm",
+        "visible": true,
+        "active": 6964,
+        "capacity": 15876,
+        "triangles": 63504,
+        "queued": 0,
+        "eye": [
+          1250,
+          3.7,
+          -29
+        ],
+        "errors": [],
+        "changedPixels": 691
+      },
+      {
+        "view": "night",
+        "visible": true,
+        "active": 6964,
+        "capacity": 15876,
+        "triangles": 63504,
+        "queued": 0,
+        "eye": [
+          1250,
+          3.7,
+          -29
+        ],
+        "errors": [],
+        "changedPixels": 155
+      }
+    ],
+    "pool": {
+      "maxTileUploads": 2,
+      "grounded": 1426,
+      "maxGroundError": 0.000003915950822381935,
+      "stable": true,
+      "bufferReuse": true,
+      "reduced": {
+        "instances": 15876,
+        "radius": 36,
+        "arraysReused": true,
+        "sameGeometry": true,
+        "sameTexture": true
+      },
+      "lateInstances": 15876,
+      "hiddenRanges": 1,
+      "hiddenAboveRange": true,
+      "bytes": 508032
+    }
+  },
+  {
+    "fallback": {
+      "grass": false,
+      "terrain": true,
+      "errors": [
+        "[object Event]"
+      ]
+    }
+  }
+]

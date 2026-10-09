@@ -27,7 +27,7 @@ ignored `test/output/visual-audit-before/` folder; current captures are `test/ou
 | 1 | Distorted cockpit/window proportions and poorly placed camera | Removed the upper-shell stretch; fitted the eye to the original cabin; retained desktop 58° FOV and narrow-screen coverage. Checked PFD and ND visibility. | Some surfaces remain simple, but this comparison does not justify replacing the source geometry. |
 | 2 | Muddy cockpit colours and flattened material separation | Restored source material values in the GLBs. Verified part assignments in Blender, then added distinct, subtle coated-panel, molded-trim, frame, seat-weave and yoke-rubber finishes at runtime. Modeled lettering is retained. | Liner/upholstery now use CC0 scans, with procedural panel/frame/rubber detail. A uniquely authored aircraft wear/texture set remains absent. See the 2026-09-30 followups. |
 | 3 | A completely flat approach corridor | Registered USGS elevation follows the imagery; rendering, collision and navigation share it. The airport is locally graded and a rising terrain cap protects final. | Elevations are locally modified around the fictional airport. Distant mesh resolution and imagery shadows remain limitations. |
-| 4 | Blurry aerial imagery ahead of the airport | Sixteen local 1 km detail tiles along the last 8 km, sampled at 0.5 m/px high and 1 m/px low, feather into the existing imagery; four textures stay resident. Distance-faded scanned colour, normal and roughness detail reconstructs fine surface grain in nearby fields and soil. | Underlying NAIP is generally 0.6 m; exports cannot supply finer survey detail. Coverage is a 2 km wide corridor. Five reviewed farm roofs fill prominent detection gaps. Sixteen complete buildings across three sites have matching lawns, gravel yards, drives and lanes. Interpreted land cover along 4 km on one side and 2 km opposite now replaces about 296 ha of field/woodland-floor colours and guides denser planting. Blur, missing buildings and photographic shadows remain beyond these mapped areas and at very low altitude. |
+| 4 | Blurry aerial imagery ahead of the airport | Sixteen local 1 km detail tiles along the last 8 km, sampled at 0.5 m/px high and 1 m/px low, feather into the existing imagery; four textures stay resident. Distance-faded scanned colour, normal and roughness detail reconstructs fine surface grain in nearby fields and soil. | Underlying NAIP is generally 0.6 m; exports cannot supply finer survey detail. Coverage is a 2 km wide corridor. Five reviewed farm roofs fill prominent detection gaps. Sixteen complete buildings across three sites have matching lawns, gravel yards, drives and lanes. Interpreted land cover along 4 km on one side and 2 km opposite now replaces about 296 ha of field/woodland-floor colours and guides denser planting. Photographed grass now adds close turf/pasture cover on both tiers, without a visible change in the sampled forward cockpit views. Blur, missing buildings and photographic shadows remain beyond mapped areas; distant fields and site lawns remain simple. |
 | 5 | Sparse, three-lobed tree blobs | Nine authored forms from three broadleaf sources plus pine/fir, eight azimuths at three elevations each, baked from the delivered geometry. Leaf masks are preserved in all nearby GLBs. One quad faces the eye in yaw and pitch and blends neighboring views. High retains bounded 3D branches and leaves within 180 m. | Distant/low trees remain impostors; view blending and repeated species are still visible. The wider palette is artistic, not a local botanical survey. Shared land-cover boundaries improve density and keep fields open along 4 km on one side of final and 2 km opposite; density elsewhere and close-up silhouettes still expose the approximations. |
 | 6 | Thin cloud rings and weak volume | Cached 3D density, connected billows, flatter bases, self-shadowing and directional scattering. Overcast integrates density near both boundaries at reduced resolution, with soft billows, self-shadowing and a fog interior. | Fair-weather volumes remain simplified and soft at close range. Low uses sprites; overcast uses a bounded boundary volume plus shared fog, not a fully volumetric weather system. |
 | 7 | Runway lights look like a luminous rectangle by day | Smaller daytime cores, lower daylight intensity, distinct PAPI/beacon sizing and fog attenuation without a minimum visibility floor. Night bloom retained. | Point-based lights approximate optical glare; no lens-scattering simulation. |
@@ -849,3 +849,46 @@ the 60 FPS display cap. The full high 1× crosswind short landing finishes succe
 Remaining priorities: convincing ground-level vegetation and broader complete scenery,
 distant/low tree appearance, windshield glazing/water, finer cloud structure, unique cockpit
 wear and phone framing. This pass improves overcast without closing the broader weather item.
+
+
+## Near-ground turf and pasture — 2026-10-09
+
+Baseline: published `9f1c625`. Short grass at runway margins and taller grass in strongly
+mapped meadow now use photographed blades baked from Poly Haven's CC0 **Grass Bermuda 01**
+by Rico Cilliers. Eight patch views retain green and dry blades, with colours adapted to
+the existing ground. The atlases add 154,114 bytes high / 50,808 low and prepare behind the
+menu. The source model is an offline input only. Attribution and reproduction commands are
+in [the asset record](../assets/README.md).
+
+The pool follows the eye, within 40 m high / 36 m low. Roots meet each tier's rendered
+terrain triangles. Pavement, road/building clearances and complete-site grounds stay clear;
+stubble, woodland floor and unmapped land are unchanged. Distance reduces both height and
+coverage, new tiles grow over 0.45 seconds, and a small wind bend softens still patches.
+Wetness, scene lighting and haze remain shared. No grass shadow pass is added.
+
+The final patches use two crossed planes. Three planes cost about 18% in the high 1.5×
+close-pasture measurement; two retain useful coverage while reducing that measured cost
+to about 8%. The earlier sparse curved-blade prototype remains rejected. Geometry and
+updates are bounded, including hidden grass on unplanted ground and a quality reduction
+while the optional atlas is arriving. Missing imagery retains the underlying terrain.
+
+The [local before/after review](output/ground-cover-review.html) includes both tiers, normal
+forward landing poses, a side look, HUD view, close ground, wet/night views and movement.
+The result improves close exterior views. **The sampled straight-ahead cockpit rollout,
+flare and final views show no visible contribution from this grass.** A side look has a
+small contribution. These comparisons do not establish a major improvement to the main
+landing view, and this pass does not close the broader ground/scenery item.
+
+Remaining limits: repeated patch forms and crossed image planes close up, simple distant
+fields and site lawns, no crops or grass shadows, and no improvement outside mapped meadow
+and airport turf. Wider complete scenery and more convincing distant/low trees remain
+larger priorities for the forward landing view. Windshield glazing/water, finer cloud
+structure, unique cockpit wear and phone framing also remain. Measurements and validation
+are recorded in [the performance record](RENDER-PERFORMANCE.md).
+
+Validation: all 15 Node suites, 23 graphics checks, both-tier rendered grass checks,
+cockpit/cloud regressions, delivery/quality selection and warm-up/Start-timeout integration
+checks pass. The full high 1× landing finishes 100/A at 59.92 FPS, p99 16.8 ms, with no
+in-flight downloads. A 166.7 ms startup hitch remains. The close high 1.5× pasture view costs
+7.8%; low rollout measures 58.75 rather than 60 FPS, while the other low samples remain
+display-capped. Physical phones, other GPUs and the full functional suite were not tested.

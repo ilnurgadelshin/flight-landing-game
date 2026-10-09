@@ -1016,3 +1016,90 @@ The storm view still contains small dark ground patches also present in the base
 windshield water, better ground vegetation or wider authored scenery is part of this pass.
 Only this Mac's Metal renderer was measured; the complete functional browser suite, physical
 phones and other GPUs were not tested. SwiftShader cannot initialize WebGL2 here.
+
+
+## Photographed near-ground grass — 2026-10-09
+
+Baseline: published `9f1c625`. New short turf at the runway margins and taller mapped-meadow
+grass use two crossed textured planes per patch. Eight photographed CC0 views are baked
+offline; no source GLTF is shipped. High adds **154,114 bytes**, low **50,808 bytes**. Each
+atlas is prepared behind the menu. Missing imagery retains the existing ground.
+
+A fixed 9×9 pool of 10 m tiles contains 32,400 patches high / 15,876 low, updated two tiles
+per frame. It submits one extra draw and at most **129,600 / 63,504 triangles**, including
+collapsed empty slots. Instance arrays occupy **1,036,800 / 508,032 bytes**, plus small shared
+geometry; RGBA atlas storage is about **1.33 MiB / 0.33 MiB with mipmaps**. The range is
+40 m high / 36 m low, with both height and coverage fading by three-dimensional eye distance.
+No grass shadows are rendered. Quality reduction lowers the instance count and range while
+retaining existing arrays and the loaded texture. Hidden empty pools coalesce dirty ranges
+into one full upload, avoiding an ever-growing list while they are not rendered.
+
+Matched hardware sample: Chromium 141, ANGLE Metal, Apple M2 Pro, 1440×900. High is fixed
+1.5×, low fixed 1×; each view uses four seconds warm-up and twelve seconds display-paced
+RAF sampling. Physics is paused; grass, terrain, vegetation and weather continue updating.
+The meadow/pasture cameras move 30 m to exercise tile updates. Raw reports:
+`benchmarks/2026-10-09-ground-cover-render-{before,after}.json`.
+
+| View | Before FPS | After FPS | Draw calls before → after |
+| --- | ---: | ---: | ---: |
+| High captain | 38.39 | 38.31 | 931 → 931 |
+| High rollout | 40.56 | 40.31 | 702 → 703 |
+| High shoulder | 56.42 | 56.09 | 406 → 407 |
+| High grass-meadow | 45.13 | 44.94 | 295 → 296 |
+| High grass-pasture | 51.36 | 47.35 | 301 → 302 |
+| High storm | 40.86 | 42.03 | 926 → 926 |
+| Low captain | 60.00 | 60.00 | 542 → 542 |
+| Low rollout | 60.00 | 58.75 | 400 → 401 |
+| Low shoulder | 60.00 | 60.00 | 285 → 286 |
+| Low grass-meadow | 60.00 | 60.00 | 163 → 164 |
+| Low grass-pasture | 60.00 | 60.00 | 139 → 140 |
+| Low storm | 60.00 | 60.00 | 520 → 520 |
+
+The close high pasture view costs **7.8%** in this run (51.36 → 47.35 FPS); its CPU p95
+increases from 3.2 to 6.1 ms, including selection/upload work. The other high views change
+by less than 3%. High p95/p99 frame intervals remain about 33.4 ms. Low rollout measures
+58.75 instead of 60 FPS, with p99 33.4 ms; the other low views stay at the 60 FPS cap.
+The cap conceals GPU headroom and these small timing differences are not evidence of a
+speed-up. Forced high 1.5× still falls well below 60 FPS in the cockpit. A three-plane
+prototype cost about 18% in the same close pasture; the final two-plane form cuts its
+triangle budget by a third without losing the close foreground coverage.
+
+The pixel checks show a strong contribution in close exterior grass views and a small one
+when looking through a side window. **The sampled straight-ahead rollout, flare, final and
+HUD views show zero changed pixels above an 8-level RGB threshold when grass is toggled.**
+This pass improves close terrain detail; it does not improve those ordinary forward landing
+views. Repeated patch forms, crossed planes, limited range, flat distant fields and simple
+site lawns remain. The before/after captures and separate movement recordings are in
+[the local review](output/ground-cover-review.html).
+
+Both-tier rendered checks pass: visible close-ground contribution, terrain contact, a maximum
+of two tile uploads per update, unchanged settled buffers, high-to-low reduction, reduction
+during an atlas request, bounded dirty ranges while hidden, and missing-atlas fallback.
+Report: `benchmarks/2026-10-09-ground-cover-rendered-checks.json`. All 15 Node suites, all
+23 graphics checks, cockpit PFD/ND visibility and missing-model fallback, cloud-transition
+pixels, tree-shadow refresh and warm-up/Start-timeout integration checks pass on Metal.
+
+Delivery/automatic-quality checks pass: menu bodies **14.02 MB high / 8.62 MB low**, prepared
+bodies **62.85 MB / 17.71 MB**. Exactly the selected atlas loads after the menu; the prepared
+flight makes no new requests. Hidden-tab calibration waits, and slow foreground cadence
+selects low. Report: `benchmarks/2026-10-09-ground-cover-delivery.json`.
+
+Separate 1280×800, fixed 1× recordings exercise eight seconds of pasture motion at 6 m/s
+and runway-side motion at 55 m/s. They retain ground coverage with the normal two-tile budget;
+the forward queue has seven pending tiles at the end of the fast traverse. High measures
+59.63 / 59.75 FPS, p99 16.8 ms, with isolated 66.7 / 50 ms worst frames. Low stays at the
+60 FPS cap. Video recording overhead is included, so these are motion checks rather than
+matched performance comparisons. Contact sheets show continuous foreground cover, while
+repeated patch shapes and the limited range remain apparent. Report:
+`benchmarks/2026-10-09-ground-cover-motion.json`.
+
+The real-time clear short landing through UI Start completes at **100/A and 59.92 FPS**,
+high fixed 1× at 1440×900. Frame p99 is **16.8 ms**, preparation on localhost takes
+**5.59 s**, and the flight starts **zero resource requests**. Prepared bodies total
+**63,017,572 bytes**. The startup interval still peaks at **166.7 ms**; the largest later
+interval is **50 ms**. This is not a claim that the startup hitch is fixed. Report:
+`benchmarks/2026-10-09-ground-cover-flight.json`.
+
+Only this Mac's Metal renderer was measured. The complete functional browser suite, physical
+phones and other GPUs were not tested; SwiftShader cannot initialize WebGL2 here. Wider
+coherent ground/scenery coverage remains the larger opportunity for ordinary landing views.

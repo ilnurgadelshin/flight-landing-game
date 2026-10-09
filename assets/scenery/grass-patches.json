@@ -1,0 +1,14 @@
+{
+  "source": "https://polyhaven.com/a/grass_bermuda_01",
+  "author": "Rico Cilliers / Poly Haven",
+  "license": "CC0-1.0",
+  "columns": 4,
+  "rows": 2,
+  "width": 1024,
+  "height": 256,
+  "lowWidth": 512,
+  "lowHeight": 128,
+  "patchWidth": 0.8,
+  "patchHeight": 0.4,
+  "description": "Eight unlit views of original arrangements of the source grass clumps; alpha repaired from the separate source mask."
+}
