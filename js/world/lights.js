@@ -5,6 +5,7 @@
 // the flashing elements and the PAPI (computed from the pilot's eye position).
 import * as THREE from 'three';
 import { RUNWAY, DEG } from '../config.js';
+import {CLOUD_LAYER_GLSL} from './cloud-layer.js';
 
 const VERT = /* glsl */`
   attribute vec3 color;
@@ -13,6 +14,7 @@ const VERT = /* glsl */`
   varying vec3 vColor;
   varying float vBright;
   varying float vDepth;
+  varying vec3 vCloudDir;
   uniform float uPixelRatio;
   uniform float uDaylight;
   #include <common>
@@ -21,6 +23,7 @@ const VERT = /* glsl */`
     vColor = color;
     vBright = bright;
     vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+    vCloudDir=(modelMatrix*vec4(position,1.)).xyz-cameraPosition;
     float dist = length(mvPosition.xyz);
     vDepth = dist;
     // apparent size: lights stay visible at range (like real airfield lights)
@@ -36,9 +39,11 @@ const VERT = /* glsl */`
   }
 `;
 const FRAG = /* glsl */`
+  ${CLOUD_LAYER_GLSL}
   varying vec3 vColor;
   varying float vBright;
   varying float vDepth;
+  varying vec3 vCloudDir;
   uniform float uFogDensity;
   uniform vec3 uFogColor;
   uniform float uDaylight;
@@ -55,7 +60,7 @@ const FRAG = /* glsl */`
     // lights punch through fog better than terrain (Koschmieder-ish) but still fade
     float fog = exp(-uFogDensity * uFogDensity * vDepth * vDepth * 0.55);
     // No visibility floor: it made the whole runway glow through opaque cloud.
-    a *= fog;
+    a *= fog*(1.-cloudOpacity(normalize(vCloudDir),vDepth));
     // by day the lights are dimmer relative to the scene
     a *= mix(1.0, 0.48, uDaylight);
     gl_FragColor = vec4(vColor * (1.0 + 0.6 * core) * mix(1.0, uIntensity, core), a);
@@ -74,12 +79,13 @@ const COL = {
 };
 
 export class AirfieldLights {
-  constructor(scene, extraEntries = []) {
+  constructor(scene, extraEntries = [], atmosphere) {
     this.scene = scene;
     this.entries = [];   // { x, y, z, color, size, group, index }
     this.groups = {};    // name -> [indices]
     this.time = 0;
     this.extraEntries = extraEntries;
+    this.atmosphere = atmosphere;
     this.build();
   }
 
@@ -166,7 +172,7 @@ export class AirfieldLights {
     this.brightAttr = geo.getAttribute('bright');
     this.material = new THREE.ShaderMaterial({
       vertexShader: VERT, fragmentShader: FRAG,
-      uniforms: { uPixelRatio: { value: 1 }, uFogDensity: { value: 0 }, uFogColor: { value: new THREE.Color(0x000000) }, uDaylight: { value: 1 }, uIntensity: { value: 1.5 } },
+      uniforms: { ...this.atmosphere?.uniforms,uPixelRatio: { value: 1 }, uFogDensity: { value: 0 }, uFogColor: { value: new THREE.Color(0x000000) }, uDaylight: { value: 1 }, uIntensity: { value: 1.5 } },
       transparent: true, depthWrite: false, blending: THREE.NormalBlending,
     });
     this.points = new THREE.Points(geo, this.material);

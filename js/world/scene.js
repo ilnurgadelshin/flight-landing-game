@@ -25,6 +25,7 @@ import { buildLandscape } from './landscape.js';
 import { addRunwayShoulders } from './runway-surfaces.js';
 import { loadParkedAircraft } from './scenery-models.js';
 import { CabinEnvironment } from '../cockpit/lighting.js';
+import {cloudDensityAt,CLOUD_FRINGE,CLOUD_EXTINCTION} from './cloud-layer.js';
 
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 
@@ -67,6 +68,8 @@ const SKY_FRAG = /* glsl */`
     vec3 haze = hazeColor(dir);
     col = mix(col, haze, exp(-max(h, 0.0) * uHorizonFog));
     if (h < 0.0) col = mix(haze, uGround, smoothstep(0.0, -0.25, h) * uGroundMix);
+    // Environment captures describe illumination; only the viewed sky gets cloud-path obscuration.
+    if(uGroundMix<.5)col=cloudCover(col,dir,60000.);
     gl_FragColor = vec4(col, 1.0);
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
@@ -159,7 +162,7 @@ export class World {
     this.buildTerrain();
     this.townLightEntries = [];
     this.buildAirport();
-    this.lights = new AirfieldLights(this.scene, this.townLightEntries);
+    this.lights = new AirfieldLights(this.scene, this.townLightEntries, this.atmo);
     this.buildWeather();
     this.sceneryJobs.push(()=>loadParkedAircraft(this));
     this.assetsReady = Promise.allSettled(this.assetJobs).then(results => {
@@ -661,8 +664,8 @@ export class World {
   // ------------------------------------------------------------------ per frame
   /**
    * @param dt seconds
-   * @param state aircraft state (for altitude-dependent fog, wind sock)
-   * @param eye world position of the pilot's eye
+   * @param state aircraft state (for rain motion and wind sock)
+   * @param eye world position of the pilot's eye (cloud visibility and lighting)
    */
   update(dt, state, eye) {
     this.time += dt;
@@ -670,31 +673,29 @@ export class World {
     this.groundCover?.update(eye);
     if(this.quality==='high')this.requestNearTrees?.(eye);
     this.nearWoodland?.update(dt,eye);
-    // fog density: in cloud above the base, thick; below: visibility
-    const alt = state.alt;
-    let vis = this.visibility;
-    // Extinction grows across a 60 m fringe centered on each charted boundary.
-    // Mixing visibility distances leaves a 20 km scenario almost clear well inside
-    // its cloud. Mix inverse visibility instead, obscuring the ground before the
-    // boundary proxy disappears and avoiding a sudden clear hole on entry.
+    // Ordinary haze stays separate from cloud extinction along each viewing ray.
+    const alt = eye.y,vis = this.visibility;
+    const au = this.atmo.uniforms;
+    au.cloudEye.value.copy(eye);
+    au.cloudLayer.value.set(this.cloudBase,this.cloudTop,Math.min(CLOUD_FRINGE,(this.cloudTop-this.cloudBase)/2),this.hasDeck?CLOUD_EXTINCTION:0);
     let inCloudF = 0, under = this.baseOvercast;
     if (this.hasDeck) {
-      inCloudF = Math.max(0, Math.min(1, (alt - this.cloudBase + 30) / 60, (this.cloudTop - alt + 30) / 60));
-      vis = 1 / ((1 - inCloudF) / vis + inCloudF / 120);
-      // A sheet represents an OUTSIDE surface. Even the transition band inside
-      // the cloud must not see an opaque floor/ceiling cutting across the fog.
-      this.overcast.visible = alt < this.cloudBase + 3;
-      this.overcastTop.visible = this.cloudTop < 6000 && alt > this.cloudTop - 3;
+      inCloudF = cloudDensityAt(alt,this.cloudBase,this.cloudTop);
+      this.deckSurfaces.update(eye);
       // how far down through the deck: 0 at its top (clear sky, sunshine), 1 at its base (overcast)
       under = Math.max(under, clamp((this.cloudTop - alt) / Math.max(this.cloudTop - this.cloudBase, 1), 0, 1));
     }
     const density = 1.73 / Math.max(vis, 50);
     this.scene.fog.density = density;
+    // The cloud's own colour at the eye: its sunlit tops (the deck surface's unresolved interior,
+    // 0.8 of its colour) greying to the overcast base on the way down through it.
+    const depth = this.hasDeck ? clamp((this.cloudTop - alt) / Math.max(this.cloudTop - this.cloudBase, 1), 0, 1) : 1;
+    au.cloudTint.value.copy(this.overcastTop.material.color).multiplyScalar(0.8).lerp(au.skyOvercastColor.value, depth);
+    au.cloudHaze.value = density;
     if (this.cumulus) this.cumulus.update(this.time, density);
     // in fog or heavy rain the sky and the ground merge into the same murk: no horizon line
     const murk = vis < 1500 ? 1 : (vis < 5000 ? (5000 - vis) / 3500 : 0);
-    const au = this.atmo.uniforms;
-    au.skyOvercast.value = Math.max(this.baseOvercast, under * this.deckOvercast, inCloudF, murk);
+    au.skyOvercast.value = Math.max(this.baseOvercast, under * this.deckOvercast, murk);
     // the sun is hidden by the deck: its light and shadows fade on the way down through it
     const sunF = 1 - 0.92 * Math.max(under, inCloudF);
     // Tree cards contain the source model's soft baked lighting. Only the broad
