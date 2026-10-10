@@ -69,7 +69,7 @@ const SKY_FRAG = /* glsl */`
     col = mix(col, haze, exp(-max(h, 0.0) * uHorizonFog));
     if (h < 0.0) col = mix(haze, uGround, smoothstep(0.0, -0.25, h) * uGroundMix);
     // Environment captures describe illumination; only the viewed sky gets cloud-path obscuration.
-    if(uGroundMix<.5)col=mix(col,skyOvercastColor+skyFlash,cloudOpacity(dir,60000.));
+    if(uGroundMix<.5)col=cloudCover(col,dir,60000.);
     gl_FragColor = vec4(col, 1.0);
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
@@ -687,6 +687,11 @@ export class World {
     }
     const density = 1.73 / Math.max(vis, 50);
     this.scene.fog.density = density;
+    // The cloud's own colour at the eye: its sunlit tops (the deck surface's unresolved interior,
+    // 0.8 of its colour) greying to the overcast base on the way down through it.
+    const depth = this.hasDeck ? clamp((this.cloudTop - alt) / Math.max(this.cloudTop - this.cloudBase, 1), 0, 1) : 1;
+    au.cloudTint.value.copy(this.overcastTop.material.color).multiplyScalar(0.8).lerp(au.skyOvercastColor.value, depth);
+    au.cloudHaze.value = density;
     if (this.cumulus) this.cumulus.update(this.time, density);
     // in fog or heavy rain the sky and the ground merge into the same murk: no horizon line
     const murk = vis < 1500 ? 1 : (vis < 5000 ? (5000 - vis) / 3500 : 0);

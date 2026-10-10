@@ -984,3 +984,13 @@ checks pass too. The full functional suite, other GPUs and new FPS benchmarks we
 [The integration performance record](RENDER-PERFORMANCE.md#cloudscenery-integration--2026-10-10)
 contains exact transfer sizes and the preserved raw results. No merge-related regression
 was found in these checks; broader visual limitations above remain.
+
+
+## Cloud colour by side — 2026-10-10
+
+Baseline: `e962658`. Seen from above, the deck's distant tops turned into a grey band at the
+horizon with a hard edge against the sky, also from the captain's seat at the full-approach
+start: all cloud took the grey of the deck's underside. Cloud now takes the colour of the side
+being seen: sunlit tops from above, grey base from below, a blend by depth inside, through the
+haze in front of it. The horizon above the deck is smooth again; below it nothing changes.
+A rendered check guards the band. Details are in [the performance record](RENDER-PERFORMANCE.md).

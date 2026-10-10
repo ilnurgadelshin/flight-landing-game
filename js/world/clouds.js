@@ -91,7 +91,7 @@ const fragmentShader = /* glsl */`
     float distanceM = length((rd*enter)*uScale);
     float fog = 1.0-exp(-uFog*uFog*distanceM*distanceM);
     vec3 color=mix(light/alpha,hazeColor(worldRay),fog);
-    gl_FragColor = vec4(mix(color,skyOvercastColor+skyFlash,cloudOpacity(worldRay,distanceM)),alpha);
+    gl_FragColor = vec4(cloudCover(color,worldRay,distanceM),alpha);
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
   }

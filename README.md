@@ -726,7 +726,8 @@ and 28 steps; low uses 160,000 pixels and 14 steps. Clear weather and the deep i
 the pass. A 32 m density ramp stays inside each boundary: the view away from cloud remains
 clear outside it, short paths out through an edge retain some visibility, and long paths
 inside still become opaque. Billows blend into the interior during entry, including at
-grazing angles. This remains a simplified continuous deck with a vertical density profile
+grazing angles. Seen from above, the cloud takes its sunlit tops' colour through the haze;
+from below, the overcast grey; inside, a blend from one to the other with depth. This remains a simplified continuous deck with a vertical density profile
 and approximate cloud depth, not a fully volumetric weather system. The low tier uses lighter
 sprites for fair-weather cumulus. Cloud-deck visibility and storm physics are shared. All imported assets
 are public domain, CC0, CC BY 4.0 or CDLA Permissive 2.0; licenses, attribution and reproducible asset preparation
@@ -736,7 +737,8 @@ commands are in [`assets/README.md`](assets/README.md). Players can open the cre
 and storm on both tiers. It checks rendered cloud opacity, obscured runway lights, resource
 reuse across resizing, quality reduction and renderer-state restoration.
 `node test/cloud-boundary.mjs` also checks clear rays outside the deck, short exits, nearby
-foreground, smooth entry, deep-cloud light occlusion and GPU/CPU optical-depth agreement.
+foreground, smooth entry, no grey band where the deck meets the horizon from above,
+deep-cloud light occlusion and GPU/CPU optical-depth agreement.
 `node test/cloud-boundary-motion.mjs` records both-tier exterior and captain descents.
 `node test/cloud-boundary-review.mjs` builds the local before/after page from the captures.
 

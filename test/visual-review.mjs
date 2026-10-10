@@ -15,6 +15,12 @@ const browser=await chromium.launch({headless:true,args:[`--use-angle=${angle}`,
 // A compiled shader can still be wrong: missing shared haze uniforms made trees
 // black in fog, and the old cloud sheet cut a dark floor across the transition.
 // Compare actual horizon pixels, and the light contribution beyond visibility.
+// WebGL calls return before the GPU has drawn them; software rendering can still be drawing
+// a full cockpit frame when a screenshot gives up (30 s). Read one pixel to wait for it first.
+async function shot(page,file){
+  await page.evaluate(()=>{const gl=window.__sim.world.renderer.getContext();gl.readPixels(0,0,1,1,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array(4));});
+  await page.screenshot({path:file});
+}
 async function checkCloudTransition(page,tier){
   const pixels=await page.evaluate(async()=>{
     const T=await import('/vendor/three.module.js'),s=window.__sim,w=s.world;
@@ -71,7 +77,7 @@ try{
   assert.deepEqual(assets,{cockpit:true,yokes:2,errors:[],imagery:4,aircraft:5});
   for(const mode of ['cockpit','hud','nd']){
     await page.evaluate(mode=>{const s=window.__sim;s.view.setMode(mode==='hud'?'hud':'cockpit');s.view.setNdView(mode==='nd');for(let i=0;i<40;i++)s.view.update(1/60);s.drawNow();},mode);
-    await page.screenshot({path:path.join(out,`rebuild-${mode}.png`)});
+    await shot(page,path.join(out,`rebuild-${mode}.png`));
     if(mode!=='hud'){
       const visible=await page.evaluate(async mode=>{
         const T=await import('/vendor/three.module.js'),s=window.__sim,screen=s.cockpit[mode==='nd'?'ndScreen':'pfdScreen'];
@@ -94,11 +100,11 @@ try{
       const s=window.__sim;s.view.setNdView(false);s.view.setMode('cockpit');Object.assign(s.view.look,look);
       for(let i=0;i<80;i++)s.view.update(1/60);s.drawNow();
     },look);
-    await page.screenshot({path:path.join(out,`rebuild-${name}.png`)});
+    await shot(page,path.join(out,`rebuild-${name}.png`));
   }
   await page.evaluate(()=>Object.assign(window.__sim.view.look,{down:false,yaw:0,pitch:0}));
   await page.evaluate(()=>{const s=window.__sim;s.start({startId:'short',scenarioId:'clear',night:true,seed:5});s.setTimeScale(0);s.view.setMode('cockpit');for(let i=0;i<40;i++)s.view.update(1/60);s.drawNow();});
-  await page.screenshot({path:path.join(out,'rebuild-night.png')});
+  await shot(page,path.join(out,'rebuild-night.png'));
   // Ground-scale approach and weather reviews expose problems hidden at 4 NM.
   for(const scenarioId of ['clear','crosswind','storm']){
     await page.evaluate(scenarioId=>{
@@ -106,7 +112,7 @@ try{
       s.game.sim.aircraft.place({x:3300,y:115,z:0,headingDeg:270,iasKts:147,flapIndex:4,gearDown:true,gammaDeg:-3});
       s.view.setMode('cockpit');for(let i=0;i<40;i++)s.view.update(1/60);s.drawNow();
     },scenarioId);
-    await page.screenshot({path:path.join(out,`rebuild-final-${scenarioId}.png`)});
+    await shot(page,path.join(out,`rebuild-final-${scenarioId}.png`));
   }
   await checkCloudTransition(page,'high');
   // An airport review camera checks the actual scenery assets at ground scale.
@@ -119,7 +125,7 @@ try{
     w.camera=camera;if(w.composer)w.composer.passes[0].camera=camera;
     w.drawCockpit=false;document.getElementById('hud').style.visibility='hidden';w.render();
   });
-  await page.screenshot({path:path.join(out,'rebuild-airport.png')});
+  await shot(page,path.join(out,'rebuild-airport.png'));
   assert.deepEqual(errors,[]);
   await page.close();
   // A failed model download must leave a flyable cockpit and working instrument view.

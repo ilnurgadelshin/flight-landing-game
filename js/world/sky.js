@@ -57,6 +57,24 @@ export const SKY_GLSL = /* glsl */`
     vec3 c = skyScatter(dir) + skyNightHorizon;
     return mix(c, skyOvercastColor, skyOvercast) + skyFlash;
   }
+  uniform vec3 cloudTint;   // the layer's own colour at the eye's height: sunlit tops to grey base
+  uniform float cloudHaze;  // the scenario's haze density, for clear air in front of the layer
+  // The layer's colour along a ray: its sunlit tops from above, its grey base from below, each
+  // seen through the clear air before the ray enters it (inside, the layer's own colour).
+  vec3 cloudColor(vec3 dir) {
+    float y = cloudEye.y, t = 0.0;
+    if (y > cloudLayer.y && dir.y < 0.0) t = (y - cloudLayer.y) / -dir.y;
+    else if (y < cloudLayer.x && dir.y > 0.0) t = (cloudLayer.x - y) / dir.y;
+    t = min(t, 1e5);
+    return mix(cloudTint + skyFlash, hazeColor(dir), 1.0 - exp(-cloudHaze * cloudHaze * t * t));
+  }
+  // A colour seen along a ray, covered by the layer in front of it. The colour is only worked
+  // out where the ray meets cloud: clear weather and rays away from the layer cost nothing more.
+  vec3 cloudCover(vec3 color, vec3 dir, float distanceM) {
+    float a = cloudOpacity(dir, distanceM);
+    if (a > 0.0) color = mix(color, cloudColor(dir), a);
+    return color;
+  }
 `;
 
 // the fog, as the first thing the tone-mapping chunk does (every material includes it right after
@@ -69,7 +87,7 @@ const FOG_APPLY = /* glsl */`
     float fogFactor = smoothstep( fogNear, fogFar, vFogDepth );
   #endif
   gl_FragColor.rgb = mix( gl_FragColor.rgb, hazeColor( normalize( vFogDir ) ), fogFactor );
-  gl_FragColor.rgb = mix(gl_FragColor.rgb,skyOvercastColor+skyFlash,cloudOpacity(normalize(vFogDir),length(vFogDir)));
+  gl_FragColor.rgb = cloudCover(gl_FragColor.rgb,normalize(vFogDir),length(vFogDir));
 #endif
 `;
 
@@ -126,6 +144,8 @@ export class Atmosphere {
     this.uniforms = {
       cloudLayer: {value:new THREE.Vector4(0,1,CLOUD_FRINGE,0)},
       cloudEye: {value:new THREE.Vector3()},
+      cloudTint: {value:new THREE.Color(0.5, 0.5, 0.5)},
+      cloudHaze: {value:0},
       skySunDir: { value: new THREE.Vector3(0, 1, 0) },
       skyBetaR: { value: new THREE.Vector3() },
       skyBetaM: { value: new THREE.Vector3() },

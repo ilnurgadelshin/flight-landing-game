@@ -87,9 +87,10 @@ const fragmentShader=`
   vec3 radiance=max(vec3(0.),mix(result,hazeColor(rd),fog)+skyFlash);
   // Grazing rays traverse an unresolved length of the continuous deck. Match
   // the shared sky extinction there, so the finite proxy never draws a horizon
-  // stripe or a false floor as the eye crosses the nominal boundary.
-  float resolved=smoothstep(.015,.15,abs(rd.y));
-  radiance=mix(skyOvercastColor+skyFlash,radiance,(1.-uInterior)*resolved);
+  // stripe or a false floor as the eye crosses the nominal boundary. The shared
+  // colour is the side being seen: sunlit tops from above, grey base from below.
+  float resolved=(1.-uInterior)*smoothstep(.015,.15,abs(rd.y));
+  if(resolved<1.)radiance=mix(cloudColor(rd),radiance,resolved);
   // Store highlights in an RGBA8 target; the composite decodes before tone mapping.
   gl_FragColor=vec4(sqrt(radiance/(1.+radiance)),1.);
  }`;

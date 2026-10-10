@@ -1269,3 +1269,32 @@ functional browser suite and new hardware FPS benchmarks were not rerun; earlier
 reports above retain their original pre-integration scope.
 
 Raw integration results: `benchmarks/2026-10-10-cloud-scenery-integration.json`.
+
+
+## Cloud colour by side, and software-rendering screenshots — 2026-10-10
+
+Baseline: `e962658`. Its grazing-ray blend, the sky and every fogged material gave all cloud
+the overcast base's grey, including the sunlit deck seen from above. From 200 m above the top,
+looking at the horizon, the brightness stepped **38.3** levels between adjacent rows (published
+`d844549`: 1.5) and the band below it fell from 214 to 176. The full-approach start is above
+the crosswind deck, so this showed from the first frame.
+
+One shared `cloudColor(dir)` now gives the side being seen: the sunlit tops' colour (0.8 of
+the deck-top surface colour, the deck pass's own unresolved interior) from above, the overcast
+grey from below, a blend by depth inside, each through the scenario haze of the clear air in
+front of the layer. The sky, fog, cumulus and deck pass all use it, so their boundaries stay
+seamless. Two uniforms are added; no texture, pass or draw call, and the colour is only worked
+out where a ray meets cloud, so clear weather and rays away from the layer cost nothing more.
+Median SwiftShader frame times (GPU work included) of the captain view in clear air, below and
+above the crosswind deck stay within run-to-run noise of `e962658` on both tiers (low 6.7–7.4
+s, high 14.1–15.5 s per frame for every build); no GPU was measured. At the view above:
+horizon step **1.1** levels, band brightness 217. The 24 m entry seam falls from 3.6 to 0.8
+levels; the mid-deck whiteout is lighter (204 against 175), between the sunlit top and grey
+base. Below the deck the base colour is unchanged.
+
+`test/cloud-boundary.mjs` now also limits that above-deck horizon step (2.1 measured on both
+tiers; the unfixed build measures 38). The cloud motion test and `test/visual-review.mjs`
+read one pixel before each screenshot: WebGL calls return before the GPU draws them, and
+SwiftShader was still drawing the motion test's sampled frames 36 s later, beyond the
+screenshot's 30 s. With that, both pass in software rendering; visual-review had failed the
+same way on `d844549`. No GPU frame rates were measured.

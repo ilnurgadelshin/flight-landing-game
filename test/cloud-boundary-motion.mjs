@@ -56,6 +56,9 @@ try{
     }
     return {seconds:m.duration,steps,samples,fps:null,p99Ms:null,errors:m.w.assetErrors};
    });
+   // WebGL calls return before the GPU has drawn them: software rendering was still drawing the
+   // sampled frames 36 s later, beyond a screenshot's 30 s. Read one pixel to wait for them first.
+   await page.evaluate(()=>{const gl=window.__sim.world.renderer.getContext();gl.readPixels(0,0,1,1,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array(4));});
    await page.screenshot({path:`test/output/cloud-boundary-motion-${tier}-${cockpit?'captain':'exterior'}.png`});
    if(!record){
     assert.ok(stats.steps>500&&stats.samples.length===5,'The whole descent is stepped');

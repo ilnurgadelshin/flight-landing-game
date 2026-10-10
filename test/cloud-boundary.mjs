@@ -33,6 +33,9 @@ try{
    pose(w.cloudTop-24,80);const exiting=centre(grab());
    pose(w.cloudTop-24,-5);const entry=grab();let horizonJump=0,previousRow;
    for(let y=50;y<150;y++){let mean=0;for(let x=40;x<280;x++){const i=(y*320+x)*4;mean+=(entry[i]+entry[i+1]+entry[i+2])/720;}if(previousRow!==undefined)horizonJump=Math.max(horizonJump,Math.abs(mean-previousRow));previousRow=mean;}
+   // Above the deck the distant tops are sunlit cloud in haze, not the grey of its base.
+   pose(w.cloudTop+200,-4);const overTop=grab();let horizonAbove=0,previousAbove;
+   for(let y=50;y<150;y++){let mean=0;for(let x=5;x<315;x++){const i=(y*320+x)*4;mean+=(overTop[i]+overTop[i+1]+overTop[i+2])/930;}if(previousAbove!==undefined)horizonAbove=Math.max(horizonAbove,Math.abs(mean-previousAbove));previousAbove=mean;}
    pose((w.cloudTop+w.cloudBase)/2,0);const deepImage=grab(),deep=centre(deepImage);w.lights.points.visible=false;const lightDelta=diff(deepImage,grab());w.lights.points.visible=true;
    const boundaryJumps=[];
    for(const edge of [w.cloudTop,w.cloudBase]){pose(edge+1,-5);const a=grab();pose(edge-1,-5);boundaryJumps.push(diff(a,grab()));}
@@ -53,13 +56,14 @@ try{
    try{for(const [y,dy,distance] of [[1012,1,20000],[1012,0,20000],[88,-1,20000],[1012,-1,12],[1012,-1,2000],[984,1,2000],[116,-1,2000],[500,0,120],[500,0,10],[1000.01,.00001,60000],[500,.00001,120],[1004,-.00009,60000],[984,.00001,120],[116,-.00001,120]]){
     uniforms.cloudEye.value.y=y;uniforms.direction.value.set(Math.sqrt(1-dy*dy),dy,0);uniforms.distanceM.value=distance;w.renderer.render(scene,probeCamera);w.renderer.readRenderTargetPixels(rt,0,0,1,1,pixels);gpu.push({y,dy,distance,opacity:pixels[0]/255,alpha:pixels[3]});
    }}finally{w.renderer.setRenderTarget(previous);rt.dispose();mat.dispose();quad.geometry.dispose();}
-   return {above,below,exiting,horizonJump,deep,aboveClearDelta,belowClearDelta,lightDelta,boundaryJumps,foreground,gpu,assetErrors:w.assetErrors};
+   return {above,below,exiting,horizonJump,horizonAbove,deep,aboveClearDelta,belowClearDelta,lightDelta,boundaryJumps,foreground,gpu,assetErrors:w.assetErrors};
   });
   console.log(tier,JSON.stringify(result));
   assert.ok(result.above[2]-result.above[0]>25,'Blue sky survives 12 m above cloud');
   assert.ok(result.aboveClearDelta<.2&&result.belowClearDelta<.2,'Rays away from the cloud retain ordinary clear-air visibility');
   assert.ok(result.exiting[2]-result.exiting[0]>20,'A short upward exit through the fringe retains blue sky');
   assert.ok(result.horizonJump<5,'Entering cloud has no hard horizontal proxy edge');
+  assert.ok(result.horizonAbove<8,'No grey band where the sunlit deck meets the horizon');
   assert.ok(result.deep[0]>50&&Math.max(...result.deep)-Math.min(...result.deep)<20,'Deep cloud remains a grey whiteout');
   assert.ok(result.lightDelta<.02,'Distant lights remain obscured inside deep cloud');
   assert.ok(result.boundaryJumps.every(x=>x<8),'No abrupt full-frame change across the nominal boundary');
