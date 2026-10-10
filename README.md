@@ -700,8 +700,8 @@ Verified panels, trim, seats and yokes receive distinct runtime finishes. High q
 CC0 scanned liner grain and upholstery, plus broad side-window lighting. A cached reflection
 capture of the actual cabin gives materials interior reflections; baked cabin shading shapes
 indirect and window light while retaining direct sunlight. Runway lights use smaller
-daytime cores and fade with visibility in fog. Cloud surfaces are hidden inside
-the deck so they cannot cut a dark floor across the view. The ranked visual audit
+daytime cores and fade with visibility in fog. Cloud boundary surfaces blend away during
+entry and are hidden deep inside the deck, avoiding a false floor or ceiling. The ranked visual audit
 and remaining limits are in [`test/VISUAL-AUDIT.md`](test/VISUAL-AUDIT.md).
 
 Bundled public-domain USGS 3DEP heights now follow the same registration as the aerial imagery,
@@ -719,19 +719,26 @@ cumulus as ray-marched 3D density volumes with self-shadowing. Four original den
 are baked into a 1 MiB volume (about 79 KB compressed), replacing repeated per-pixel noise calculations. The clouds
 have varied connected billows, flatter bases and directional scattering; a failed density
 download retains the analytic shader. Both tiers render overcast boundaries with a bounded,
-reduced-resolution density pass: soft billows above, shaded pockets below and a shared fog
-interior. A generated 256² field adds no texture download. High uses at most 560,000 pixels
-and 28 steps; low uses 160,000 pixels and 14 steps. Clear weather and cloud interiors skip
-the pass. Fog density blends across each boundary so entering a high-visibility scenario's
-cloud no longer reveals the ground through a clear gap. This remains a simplified continuous
-deck, not a fully volumetric weather system. The low tier uses lighter sprites for fair-weather
-cumulus. Cloud-deck visibility and storm physics are shared. All imported assets
+reduced-resolution density pass: soft billows above and shaded pockets below. Shared
+ray-dependent extinction obscures the sky, scenery and lights inside the layer. A generated
+256² field adds no texture download. High uses at most 560,000 pixels
+and 28 steps; low uses 160,000 pixels and 14 steps. Clear weather and the deep interior skip
+the pass. A 32 m density ramp stays inside each boundary: the view away from cloud remains
+clear outside it, short paths out through an edge retain some visibility, and long paths
+inside still become opaque. Billows blend into the interior during entry, including at
+grazing angles. This remains a simplified continuous deck with a vertical density profile
+and approximate cloud depth, not a fully volumetric weather system. The low tier uses lighter
+sprites for fair-weather cumulus. Cloud-deck visibility and storm physics are shared. All imported assets
 are public domain, CC0, CC BY 4.0 or CDLA Permissive 2.0; licenses, attribution and reproducible asset preparation
 commands are in [`assets/README.md`](assets/README.md). Players can open the credits from the menu.
 
 `node test/overcast-review.mjs` captures both cloud boundaries, normal cockpit views, night
 and storm on both tiers. It checks rendered cloud opacity, obscured runway lights, resource
 reuse across resizing, quality reduction and renderer-state restoration.
+`node test/cloud-boundary.mjs` also checks clear rays outside the deck, short exits, nearby
+foreground, smooth entry, deep-cloud light occlusion and GPU/CPU optical-depth agreement.
+`node test/cloud-boundary-motion.mjs` records both-tier exterior and captain descents.
+`node test/cloud-boundary-review.mjs` builds the local before/after page from the captures.
 
 `node test/ground-cover.mjs` checks high-tier grass visibility, terrain contact, bounded
 updates, stable buffers, its release on quality reduction, no grass or atlas on the low
@@ -739,9 +746,10 @@ tier and missing-atlas fallback. It captures close views and ordinary landing at
 `node test/ground-cover-motion.mjs` records slow pasture movement and runway-side motion
 at 55 m/s using the normal tile update budget.
 
-The grass-motion, valley-site and tree-transition videos are recorded only on a GPU
-(`RECORD_VIDEO=1` or `0` overrides): software rendering draws a frame every several seconds.
-Without one, every check still runs; the grass and tree paths are stepped at fixed updates.
+The grass-motion, cloud-boundary-motion, valley-site and tree-transition videos are recorded
+only on a GPU (`RECORD_VIDEO=1` or `0` overrides): software rendering draws a frame every
+several seconds. Without one, every check still runs; the grass, cloud and tree paths are
+stepped at fixed updates, without reporting those updates as a measured frame rate.
 
 `node test/vegetation-weather.mjs` checks rendered canopy coverage from side, oblique and
 overhead views, unchanged buffers for settled trees and the corrupt-volume fallback. It

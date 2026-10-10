@@ -1,0 +1,21 @@
+{
+  "date": "2026-10-09",
+  "renderer": "Chromium 141, ANGLE Metal, Apple M2 Pro",
+  "nodeSuites": 16,
+  "graphicsChecks": 23,
+  "otherPassed": [
+    "cloud-boundary on high and low",
+    "overcast rendering and resource guards on high and low",
+    "PFD/ND visibility and missing-cockpit fallback",
+    "storm boundary continuity and distant-light occlusion",
+    "warm-up cancellation, duplicate Start and timeout",
+    "delivery and automatic quality selection",
+    "20 review image comparisons and actual playback of both WebM recordings",
+    "two corrected real-time crosswind short landings and one published-build baseline: all 84/B, no flight requests"
+  ],
+  "notRun": [
+    "complete functional browser suite",
+    "software renderer and other GPUs"
+  ],
+  "review": "http://127.0.0.1:8080/test/output/cloud-boundary-review.html"
+}

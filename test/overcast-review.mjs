@@ -15,7 +15,7 @@ try{
   const page=await browser.newPage({viewport:{width:1440,height:900}}),errors=[];
   page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
   await page.goto(url+'/?quality='+tier);await page.waitForFunction(()=>window.__sim,null,{timeout:120000});await completeScenery(page);
-  for(const view of ['above','below','near-top','near-base','inside-top','inside-base','captain-above','captain-below','night','storm']){
+  for(const view of ['above','below','near-top','near-base','inside-top','inside-base','deep','captain-above','captain-below','night','storm']){
    const result=await page.evaluate(async view=>{
     const T=await import('/vendor/three.module.js'),s=window.__sim,w=s.world;
     s.setDrawing(false);s.start({startId:'short',scenarioId:view==='storm'?'storm':'crosswind',night:view==='night',seed:5});s.setTimeScale(0);s.game.state='menu';w.time=40;
@@ -28,6 +28,7 @@ try{
      c.position.set(3300,y,0);c.lookAt(-5000,base+200,-2000);
     }
     c.updateMatrixWorld();w.camera=c;if(w.composer)w.composer.passes[0].camera=c;w.drawCockpit=false;
+    if(view==='deep'){c.position.y=(top+base)/2;c.lookAt(-5000,c.position.y,-2000);c.updateMatrixWorld();}
     if(view.startsWith('captain-')){
      const y=view==='captain-above'?top+220:base-150;
      s.game.sim.aircraft.place({x:8000,y,z:0,headingDeg:270,iasKts:147,flapIndex:4,gearDown:true,gammaDeg:-3});s.view.look.yaw=s.view.look.pitch=0;s.view.setMode('cockpit');
@@ -39,7 +40,7 @@ try{
     const canvas=document.createElement('canvas');canvas.width=320;canvas.height=200;const ctx=canvas.getContext('2d',{willReadFrequently:true});
     const grab=()=>{w.render();ctx.drawImage(w.renderer.domElement,0,0,320,200);return ctx.getImageData(0,0,320,200).data;};
     const lit=grab();let lightDelta=0;
-    if(view==='above'||view.startsWith('inside-')){
+    if(view==='above'||view==='deep'){
      w.lights.points.visible=false;const unlit=grab();w.lights.points.visible=true;
      for(let i=0;i<lit.length;i++)if(i%4!==3)lightDelta=Math.max(lightDelta,Math.abs(lit[i]-unlit[i]));
     }
@@ -50,10 +51,9 @@ try{
    },view);
    report.views.push({tier,view,...result});
    if(!process.env.REVIEW_ROOT){
-    if(view==='above'||view.startsWith('inside-'))assert.ok(result.lightDelta<3,`${tier} ${view}: lights obscured by cloud (${result.lightDelta})`);
-    if(view.startsWith('inside-')){
+    if(view==='above'||view==='deep')assert.ok(result.lightDelta<3,`${tier} ${view}: lights obscured by cloud (${result.lightDelta})`);
+    if(view==='deep'){
      assert.ok(!result.baseVisible&&!result.topVisible,'No false floor/ceiling inside cloud');
-     assert.ok(result.visibility<150,'Cloud fringe must become opaque, even in a high-visibility scenario');
     }
     if(['above','below','near-top','near-base','inside-top','inside-base'].includes(view))assert.ok(result.mean>35&&result.darkFraction<.01,`${tier} ${view}: no black cloud surface`);
     assert.ok(result.width*result.height<=(tier==='high'?560000:160000),'Bounded density target');

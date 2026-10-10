@@ -1360,13 +1360,13 @@ if (want('graphics')) {
   await gf(2);
   const deck = await gp.evaluate(() => {
     const w = window.__sim.world, st = Object.assign({}, window.__sim.state()), eye = w.camera.getWorldPosition(w.camera.position.clone());
-    const at = (alt) => { w.update(0, Object.assign({}, st, { alt }), eye); return { env: w.envKey, sun: +w.sun.intensity.toFixed(2), overcast: +w.atmo.uniforms.skyOvercast.value.toFixed(2) }; };
+    const at = (alt) => { w.update(0, Object.assign({}, st, { alt }), eye.clone().setY(alt)); return { env: w.envKey, sun: +w.sun.intensity.toFixed(2), overcast: +w.atmo.uniforms.skyOvercast.value.toFixed(2) }; };
     const r = { above: at(w.cloudTop + 200), inside: at((w.cloudBase + w.cloudTop) / 2), below: at(w.cloudBase - 150) };
     w.update(0, st, eye);
     return r;
   });
   check('above a cloud deck: full sunshine, clear-sky light', deck.above.env === 'above' && deck.above.overcast === 0 && deck.above.sun > 3, JSON.stringify(deck.above));
-  check('inside and below it: the sun is hidden and the light is the overcast\'s', deck.inside.overcast === 1 && deck.below.env === 'below' && deck.below.sun < 0.15 * deck.above.sun && deck.below.overcast > 0.8, `${JSON.stringify(deck.inside)} ${JSON.stringify(deck.below)}`);
+  check('inside and below it: the sun is hidden and the light is the overcast\'s', deck.inside.sun < 0.15 * deck.above.sun && deck.below.env === 'below' && deck.below.sun < 0.15 * deck.above.sun && deck.below.overcast > 0.8, `${JSON.stringify(deck.inside)} ${JSON.stringify(deck.below)}`);
   // every scenario, by day and night, drawn on both tiers: each one's materials compile and draw
   const drawAll = (p) => p.evaluate(async (scenarios) => {
     const out = [];

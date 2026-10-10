@@ -42,12 +42,14 @@ try{
         s.game.sim.aircraft.place({x:scene==='rollout'?1000:3300,y:scene==='rollout'?2.5:scene==='deck-captain'?w.cloudTop+220:115,z:0,headingDeg:270,iasKts:scene==='rollout'?85:147,flapIndex:4,gearDown:true,gammaDeg:-3,onGround:scene==='rollout'});
         s.view.setMode('cockpit');for(let i=0;i<40;i++)s.view.update(1/60);
         s.game.state='menu';w.setPixelRatio(pixelRatio);
-        if(['nearby','site','corridor','extension','opposite','shoulder','north-farm','hamlet','deck-top','deck-base','grass-meadow','grass-pasture'].includes(scene)){
+        if(['nearby','site','corridor','extension','opposite','shoulder','north-farm','hamlet','deck-top','deck-base','deck-near-top','deck-inside-base','grass-meadow','grass-pasture'].includes(scene)){
           const c=new T.PerspectiveCamera(50,innerWidth/innerHeight,.1,60000);
           if(scene==='grass-meadow'){c.position.set(2350,3.45,330);c.lookAt(2470,3,415);}
           else if(scene==='grass-pasture'){const {sceneryGroundHeight}=await import('/js/world/scenery-ground.js');c.position.set(3370,sceneryGroundHeight(3370,-650,w.groundLowDetail)+2.5,-650);c.lookAt(3550,4,-740);}
           else if(scene==='deck-top'){c.position.set(3300,w.cloudTop+320,0);c.lookAt(-5000,w.cloudTop-500,-2000);}
           else if(scene==='deck-base'){c.position.set(3300,w.cloudBase-120,0);c.lookAt(-5000,w.cloudBase+200,-2000);}
+          else if(scene==='deck-near-top'){c.position.set(3300,w.cloudTop+12,0);c.lookAt(-5000,w.cloudTop-500,-2000);}
+          else if(scene==='deck-inside-base'){c.position.set(3300,w.cloudBase+24,0);c.lookAt(-5000,w.cloudBase+200,-2000);}
           else if(scene==='north-farm'){c.position.set(2390,15,-320);c.lookAt(2387,3,-385);}
           else if(scene==='hamlet'){c.position.set(3150,14,-310);c.lookAt(3195,2,-277);}
           else if(scene==='shoulder'){c.position.set(1250,3.7,-29);c.lookAt(1120,1,-41);}

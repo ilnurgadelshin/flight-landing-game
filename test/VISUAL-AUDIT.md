@@ -820,6 +820,11 @@ than claiming a universal 60 FPS result.
 
 ## Overcast shape and boundary visibility — 2026-10-08
 
+**Correction, 2026-10-09:** the boundary-fog assessment below missed a regression.
+The 60 m altitude-only fringe greyed the whole exterior even outside the cloud; the
+comparison slider was correctly labelled. See the cloud-entry correction below for the
+replacement, tests that preserve clear outside rays, and new matched captures.
+
 The flat white upper deck and stretched underside bands now have softly shaded billows on
 both tiers. A generated field supplies density near the cloud boundaries; the interior uses
 shared fog. The pass adds no image or model download, caps its pixel/step budget and skips
@@ -903,3 +908,79 @@ a rendered check covers every fogged material on both tiers. The near-ground gra
 the forward cockpit views do not show, is now drawn on the high tier only; phones keep the
 existing ground and its scanned detail. Details are in
 [the performance record](RENDER-PERFORMANCE.md).
+
+## Cloud-entry correction — 2026-10-09
+
+The user's comparison screenshots exposed an overstatement in the previous overcast pass.
+The images were correctly labelled: published `5b85f57` really did turn the exterior grey
+12 m above cloud top, and nearly uniform grey 24 m inside either edge. An altitude-only fog
+fringe affected every direction, including rays pointing into clear air. The old tests checked
+that cloud obscured terrain but did not also require a clear outside view.
+
+Cloud extinction now integrates the viewing ray through a continuous layer, with a 32 m
+linear density ramp on the **inside** of each edge. Sky, fogged world materials, cumulus and
+runway lights use the same path calculation. Ordinary scenario haze remains separate. Looking
+away from the deck outside it stays clear; looking out through a short path near an edge can
+show blue sky or terrain; long paths and the deep interior still produce a whiteout. The
+cockpit is not cloud-fogged. Cloud heights and flight physics are unchanged.
+
+The boundary density pass remains visible during initial entry and blends into the interior.
+Its proxy stays beyond nearby geometry; grazing rays blend to the same interior colour as
+the sky, avoiding a hard horizontal seam. The generated field and the existing pixel/step
+caps are unchanged. No image/model asset was added.
+
+The [new matched comparison](output/cloud-boundary-review.html) uses published `5b85f57`
+on the left and the correction on the right, with explicit camera offsets and full-image
+buttons. It includes the original problem views, a separate deep-cloud whiteout example,
+and exterior/captain descent recordings. The earlier comparison is preserved as history.
+
+This is still an approximation: detailed edge billows and the smooth vertical extinction
+profile are separate, the proxy depth is approximate, and the deep interior remains uniform.
+It does not implement a full 3D density field for all scenery intersections. Broad weather
+realism, windshield effects and the other outstanding visual items remain separate work.
+
+Validation: all 16 Node suites and 23 graphics checks pass, along with cockpit display/
+fallback, storm-entry, startup/warm-up and delivery checks. The new both-tier pixel tests
+preserve clear outside rays, retain short exits, obscure deep cloud, check nearby foreground,
+and compare grazing-ray math on CPU and GPU. The comparison controls and both videos were
+also exercised in Chromium. Only Metal on this Mac was tested for this correction.
+
+The matched fixed-resolution cloud exterior views remain at about 60 FPS; high 1.5× cockpit
+samples are 1.2–3.4% lower, within a single measured before/after pair. The real-time high 1×
+short landing completes at 84/B in both runs: 59.60 FPS initially, 59.87 FPS on repeat,
+against 59.89 FPS on published main. Two mid-flight hitches in the first corrected run do
+not recur in the repeat; startup still hitches. See [the performance record](RENDER-PERFORMANCE.md)
+for every run and its limits; this pass does not claim a performance improvement or
+stutter-free flight.
+
+
+## Integrating remote scenery fixes with cloud entry — 2026-10-10
+
+Reviewed and fast-forwarded to remote `d844549`, retaining the cloud-entry correction above.
+The runtime changes are compatible and useful:
+
+- The lawn shader now calls the shared atmosphere hook. This fixes its black haze and also
+  supplies the new cloud layer and eye-position uniforms; without it the local cloud fix
+  would leave lawns inconsistent with the surrounding terrain. The authored-scenery check
+  now verifies **all shared uniform references**, rather than one uniform's presence.
+- Near-ground grass is high-only. Its limited contribution in forward cockpit views supports
+  this tradeoff. Quality reduction disposes its private mesh, geometry, material and atlas,
+  retains the shared ground textures, and skips construction if quality drops during loading.
+- Low gravel normal/roughness maps are 256 px; high remains 512 px. The preparation tool and
+  asset byte records agree. Together with removing the low grass atlas, this saves 210,986
+  asset bytes on the low tier. No cockpit, terrain registration or physics change is needed.
+- Portable browser defaults and optional videos preserve the checks. The new cloud tests
+  now follow those conventions too: explicit Metal here, SwiftShader by default, and fixed
+  descent updates with representative renders and no FPS claims when video is disabled.
+
+Only the appended audit/performance histories conflicted textually; both were retained.
+The cloud comparison's still images now show the combined build; its recordings remain the
+pre-integration cloud correction and are labelled accordingly. The baseline is still `5b85f57`.
+
+Integration validation passes on Chromium Metal: all 16 Node suites, 23 graphics checks,
+both-tier cloud/scenery/grass checks, asset fallbacks, download and automatic-quality checks,
+and the cloud descent without recording. Cockpit PFD/ND visibility and storm horizon/light
+checks pass too. The full functional suite, other GPUs and new FPS benchmarks were not run.
+[The integration performance record](RENDER-PERFORMANCE.md#cloudscenery-integration--2026-10-10)
+contains exact transfer sizes and the preserved raw results. No merge-related regression
+was found in these checks; broader visual limitations above remain.

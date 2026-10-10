@@ -944,6 +944,11 @@ Local before/after review: `output/complete-approach-sites-review.html`.
 
 ## Soft overcast boundaries — 2026-10-08
 
+**Correction, 2026-10-09:** the boundary-fog assessment below missed a regression.
+The 60 m altitude-only fringe greyed the whole exterior even outside the cloud; the
+comparison slider was correctly labelled. See the cloud-entry correction below for the
+replacement, tests that preserve clear outside rays, and new matched captures.
+
 Baseline: published `ab6eb2b`. The overcast top used a flat textured plane and the underside
 used a displaced grid. Both now integrate density around a generated periodic height field,
 rendered to a bounded, reduced-resolution target, then composite at the cloud boundary.
@@ -1133,3 +1138,134 @@ videos are recorded only on a GPU (`RECORD_VIDEO=1` or `0` overrides): SwiftShad
 frame every 9–20 s, so its 8 s "motion" was a single frame. Every check runs either way, the
 grass and tree paths stepped at fixed updates, and all three suites complete in software
 rendering. All checks named here ran in SwiftShader; no frame rates were measured.
+
+## Cloud-entry correction — 2026-10-09
+
+Baseline: published `5b85f57`. Its global altitude-based fog obscured clear sky even outside
+the deck. This correction integrates cloud density along each viewing ray while retaining
+ordinary scenario haze. The profile has 32 m ramps inside the boundaries and reaches 95%
+obscuration after 120 m at full density. Clipping to each linear band and integrating its
+midpoint avoids cancellation when rays skim an edge; CPU and rendered GPU probes cover
+horizontal, grazing, outward, crossing and short-exit paths.
+
+There are no new assets or texture fetches. The same 256² generated field and bounded density
+target remain: high at most 560,000 pixels / 28 steps, low 160,000 / 14 steps. Clear weather
+and the deep interior skip that pass. Near an inner boundary it now continues briefly,
+blending into the interior instead of disappearing at 3 m penetration. Those views therefore
+retain the density pass and its composite draw. The per-material extinction is analytic, with an early return for
+clear weather and rays pointing away from the layer.
+
+Strict clear-ray pixel comparisons disable the tree material's alpha-to-coverage: Metal
+rotates its coverage samples across otherwise identical frames. Normal review captures,
+recordings and benchmarks retain that antialiasing. The cloud tests also preserve foreground
+at 10 m, hide distant lamps deep inside, limit discontinuity across the nominal boundary,
+and check that the inner proxy does not draw a hard horizon seam. The existing graphics
+lighting test now moves the eye as well as the aircraft state; opacity is validated from
+rendered pixels rather than requiring the old global sky-overcast uniform to equal one.
+
+Matched hardware runs use Chromium 141 / ANGLE Metal / Apple M2 Pro, 1440×900,
+high fixed 1.5× and low fixed 1×, four seconds warm-up and twelve seconds sampling per
+view. Physics is paused, scenery/weather updates continue, and no other GPU test runs
+concurrently. These are display-capped frame-pacing samples, not uncapped GPU timings.
+Reports: `benchmarks/2026-10-09-cloud-boundary-render-{before,after}.json`.
+
+| View | High FPS before → after | Low FPS before → after | High draw calls before → after |
+| --- | ---: | ---: | ---: |
+| Clear captain | 39.70 → 38.36 | 60.00 → 60.00 | 931 → 931 |
+| 320 m above top | 60.00 → 60.00 | 60.00 → 60.00 | 529 → 529 |
+| 12 m above top | 59.50 → 60.00 | 60.00 → 60.00 | 555 → 555 |
+| 24 m inside base | 60.00 → 60.00 | 60.00 → 60.00 | 587 → 590 |
+| Captain above deck | 46.54 → 45.21 | 60.00 → 60.00 | 926 → 926 |
+| Storm captain | 42.13 → 41.64 | 60.00 → 60.00 | 925 → 928 |
+
+The high cockpit samples are 1.2–3.4% lower. This is a small measured difference, not a
+speed-up; a single pair does not separate shader cost from run-to-run scheduling/thermal
+variation. The near-inner-boundary and storm views add three draws / six triangles from
+the density pass and two-sided transparent composite. Other sampled geometry is unchanged.
+The 60 FPS exterior/low-tier results demonstrate maintained display cadence, not zero cost
+or spare GPU headroom. Other GPUs, software rendering and sustained thermal load have not
+been benchmarked for this correction.
+
+The older storm pixel check assumed identical upper/lower grey bands at 24 m inside the
+base. A short downward exit can now legitimately differ from the cloud overhead. It instead
+checks for a sharp seam at the horizon (less than three display levels per row), bounds the
+broad gradient, and retains the distant-light occlusion check. Measured high/low horizon
+jumps are 1.11 / 0.07 levels, with light contribution at most two levels on either tier.
+The new crosswind test independently requires a grey deep interior and preserves short exits.
+
+All 16 Node suites, all 23 graphics checks, PFD/ND visibility, the missing-cockpit fallback,
+both-tier storm-entry checks, warm-up cancellation, duplicate/timeout Start handling and
+delivery/automatic-quality selection pass on Chromium Metal. Menu resource bodies are
+**14.027 MB high / 8.620 MB low**, fully prepared resources **62.859 MB / 17.718 MB**.
+No model/image payload was added. Delivery checks still wait for a foreground calibration,
+select low for the simulated slow renderer and make no new prepared-scenery requests in flight.
+Reports: `benchmarks/2026-10-09-cloud-boundary-{rays,rendered-checks,delivery}.json`.
+
+Both-tier 1280×800, fixed 1× descent recordings cover entry at the top, the deep interior
+and exit at the base, first with an exterior camera and then the captain view. The scripted
+vertical path is 24 m/s with paused physics, not an approach flight. Recorded RAF pacing is
+59.95–60.00 FPS, p99 16.8 ms; these recordings are visual checks, not a second matched
+performance comparison. The flight deck and displays remain visible during the whiteout.
+Report: `benchmarks/2026-10-09-cloud-boundary-motion.json`. The local comparison verifies
+all 20 before/after image pairs, both quality selectors, full-before/full-after controls
+and actual WebM playback. The original comparison carries a link to this correction.
+
+A real-time crosswind short landing through the UI Start handler completes successfully
+at **84/B**, high fixed 1× / 1440×900, **59.60 FPS**, p99 **16.8 ms**, with no in-flight
+requests and no asset errors. Preparation to the first flight RAF takes 6.08 s on localhost.
+This run is **not stutter-free**: it records a 450.1 ms frame at 44.1 s and a 183.3 ms frame
+at 95.2 s, plus a 200 ms initial frame. The short start is below cloud base; the separate
+recordings cover the actual cloud crossings. Report:
+`benchmarks/2026-10-09-cloud-boundary-flight.json`.
+
+A follow-up run of the published `5b85f57` build on the same short-flight path completes at
+84/B, **59.89 FPS**, p99 **16.8 ms**. Its worst frame is **183.3 ms at startup**; its largest
+mid-flight frame is 33.4 ms. Preparation takes 5.69 s and it makes no flight requests.
+The initial corrected run's two mid-flight hitches were not observed on this baseline.
+Report: `benchmarks/2026-10-09-cloud-boundary-flight-before.json`.
+
+The corrected build's repeat completes at 84/B, **59.87 FPS**, p99 **16.8 ms**, with a
+**216.7 ms startup frame** and a largest later frame of 33.4 ms (excluding the 50 ms frame
+immediately after Start). Preparation takes 5.82 s; there are no flight requests or errors.
+The two larger mid-flight hitches from the first corrected run do **not** recur. Their cause
+has not been established, so both runs are retained rather than discarding the worse one.
+The repeat's display cadence is close to the published baseline, while startup stutter and
+the small fixed-1.5× cockpit differences remain limitations. Report:
+`benchmarks/2026-10-09-cloud-boundary-flight-repeat.json`.
+
+
+## Cloud/scenery integration — 2026-10-10
+
+Remote `d844549` was combined with the uncommitted cloud-entry correction. Its lawn hook
+must bind the same live atmosphere objects as other surfaces, including `cloudLayer` and
+`cloudEye`. The strengthened compiled-material check passes for 192 high / 173 low
+materials, with no missing or copied uniform objects. Both tiers retain clear outside
+rays, short cloud exits, obscured deep-cloud lamps and visible nearby foreground. Cloud
+resize/quality-reduction budgets, target reuse and renderer-state restoration pass.
+
+The high grass pool remains bounded at 32,400 instances and two tile uploads per update.
+The incoming high-to-low reduction releases its mesh and uploaded atlas. A reduction during
+loading builds no grass; initially low requests no atlas. Missing assets retain the terrain.
+The removed low atlas and resized gravel maps save 210,986 image bytes; high imagery is
+unchanged. The merged build's delivered resources on localhost are:
+
+| Tier | Menu resource bodies | Fully prepared resource bodies |
+| --- | ---: | ---: |
+| High | 14,027,090 bytes | 62,859,430 bytes |
+| Low | 8,620,694 bytes | 17,507,354 bytes |
+
+Scenery preparation completes and the delivery test's three-second flight requests no
+further resources. Automatic quality selection still waits for a foreground tab and chooses
+low at the simulated slow cadence, while retaining the 1.5× resolution ceiling.
+
+All 16 Node suites and 23 graphics checks pass on Chromium 141 / ANGLE Metal / Apple M2 Pro.
+The cloud motion test's new `RECORD_VIDEO=0` path also passes for exterior/captain and both
+tiers: 570 fixed updates through both boundaries, five rendered positions, no asset errors.
+It reports no FPS because fixed updates are not a hardware timing measurement. Its default
+now matches the incoming tests: SwiftShader, with optional `VISUAL_GPU=metal` and video
+recording on a GPU. This Mac still cannot initialize SwiftShader WebGL2, so this integration
+has not locally verified that renderer, physical phones or other GPUs. The complete
+functional browser suite and new hardware FPS benchmarks were not rerun; earlier FPS
+reports above retain their original pre-integration scope.
+
+Raw integration results: `benchmarks/2026-10-10-cloud-scenery-integration.json`.

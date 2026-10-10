@@ -13,6 +13,7 @@
 // light before tone mapping (so it is the same whether the frame goes straight to the screen or
 // through the post-processing chain), and its colour comes from the model per view direction.
 import * as THREE from 'three';
+import {CLOUD_LAYER_GLSL,CLOUD_FRINGE} from './cloud-layer.js';
 
 const TOTAL_RAYLEIGH = [5.804542996261093e-6, 1.3562911419845635e-5, 3.0265902468824876e-5];
 const MIE_CONST = [1.8399918514433978e14, 2.7798023919660528e14, 4.0790479543861094e14];
@@ -21,6 +22,7 @@ const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 
 /** GLSL shared by the sky dome and every fogged material. */
 export const SKY_GLSL = /* glsl */`
+  ${CLOUD_LAYER_GLSL}
   uniform vec3 skySunDir;
   uniform vec3 skyBetaR;
   uniform vec3 skyBetaM;
@@ -67,6 +69,7 @@ const FOG_APPLY = /* glsl */`
     float fogFactor = smoothstep( fogNear, fogFar, vFogDepth );
   #endif
   gl_FragColor.rgb = mix( gl_FragColor.rgb, hazeColor( normalize( vFogDir ) ), fogFactor );
+  gl_FragColor.rgb = mix(gl_FragColor.rgb,skyOvercastColor+skyFlash,cloudOpacity(normalize(vFogDir),length(vFogDir)));
 #endif
 `;
 
@@ -121,6 +124,8 @@ export function sceneColor(display, exposure = 1, out = new THREE.Color()) {
 export class Atmosphere {
   constructor() {
     this.uniforms = {
+      cloudLayer: {value:new THREE.Vector4(0,1,CLOUD_FRINGE,0)},
+      cloudEye: {value:new THREE.Vector3()},
       skySunDir: { value: new THREE.Vector3(0, 1, 0) },
       skyBetaR: { value: new THREE.Vector3() },
       skyBetaM: { value: new THREE.Vector3() },

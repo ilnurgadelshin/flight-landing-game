@@ -1,0 +1,1252 @@
+{
+  "date": "2026-10-10",
+  "remoteBase": "d8445496e81f0b11a22bfaf990eef0e265e52c14",
+  "localChanges": "Cloud-entry correction retained uncommitted",
+  "renderer": "Chromium 141, ANGLE Metal, Apple M2 Pro",
+  "nodeSuites": 16,
+  "graphicsChecks": 23,
+  "authoredScenery": [
+    {
+      "tier": "high",
+      "authored": {
+        "bays": 207,
+        "triangles": 148324,
+        "batches": 24,
+        "buildings": 25
+      },
+      "farm": {
+        "buildings": 16,
+        "triangles": 58855,
+        "yardTriangles": 2924,
+        "batches": 38,
+        "sites": 3,
+        "siteTriangles": 81218,
+        "low": false
+      },
+      "roofHeights": [
+        7.800119939917579,
+        6.599929718684521,
+        3.9000785075052846
+      ],
+      "forms": [
+        12832,
+        1935,
+        1999,
+        1938,
+        2916,
+        2957,
+        2869,
+        12635,
+        11919
+      ],
+      "errors": [],
+      "bytes": 62859430,
+      "atmosphere": {
+        "compiled": 192,
+        "missing": []
+      }
+    },
+    {
+      "tier": "low",
+      "authored": {
+        "bays": 79,
+        "triangles": 59327,
+        "batches": 12,
+        "buildings": 9
+      },
+      "farm": {
+        "buildings": 16,
+        "triangles": 58855,
+        "yardTriangles": 2924,
+        "batches": 38,
+        "sites": 3,
+        "siteTriangles": 81218,
+        "low": true
+      },
+      "roofHeights": [
+        7.800119939917579,
+        6.599929718684521,
+        3.9000785075052846
+      ],
+      "forms": [
+        3950,
+        423,
+        474,
+        431,
+        646,
+        643,
+        592,
+        3659,
+        3182
+      ],
+      "errors": [],
+      "bytes": 17507354,
+      "atmosphere": {
+        "compiled": 173,
+        "missing": []
+      }
+    }
+  ],
+  "groundCover": [
+    {
+      "tier": "high",
+      "views": [
+        {
+          "view": "shoulder",
+          "visible": true,
+          "active": 14220,
+          "capacity": 32400,
+          "triangles": 129600,
+          "queued": 0,
+          "eye": [
+            1250,
+            3.7,
+            -29
+          ],
+          "errors": [],
+          "changedPixels": 161804
+        },
+        {
+          "view": "meadow",
+          "visible": true,
+          "active": 20176,
+          "capacity": 32400,
+          "triangles": 129600,
+          "queued": 0,
+          "eye": [
+            2350,
+            3.45,
+            330
+          ],
+          "errors": [],
+          "changedPixels": 292783
+        },
+        {
+          "view": "pasture",
+          "visible": true,
+          "active": 28240,
+          "capacity": 32400,
+          "triangles": 129600,
+          "queued": 0,
+          "eye": [
+            3370,
+            8.690102515698051,
+            -650
+          ],
+          "errors": [],
+          "changedPixels": 386120
+        },
+        {
+          "view": "touchdown",
+          "visible": true,
+          "active": 21420,
+          "capacity": 32400,
+          "triangles": 129600,
+          "queued": 0,
+          "eye": [
+            1350,
+            14,
+            -45
+          ],
+          "errors": [],
+          "changedPixels": 5388
+        },
+        {
+          "view": "rollout",
+          "visible": true,
+          "active": 10440,
+          "capacity": 32400,
+          "triangles": 129600,
+          "queued": 0,
+          "eye": [
+            987.615,
+            2.9394999999999993,
+            0.4080000000000027
+          ],
+          "errors": [],
+          "changedPixels": 0
+        },
+        {
+          "view": "side-rollout",
+          "visible": true,
+          "active": 10440,
+          "capacity": 32400,
+          "triangles": 129600,
+          "queued": 0,
+          "eye": [
+            987.615,
+            2.9394999999999993,
+            0.4080000000000027
+          ],
+          "errors": [],
+          "changedPixels": 1899
+        },
+        {
+          "view": "hud-rollout",
+          "visible": true,
+          "active": 10440,
+          "capacity": 32400,
+          "triangles": 129600,
+          "queued": 0,
+          "eye": [
+            987.615,
+            2.9394999999999993,
+            0.4080000000000027
+          ],
+          "errors": [],
+          "changedPixels": 0
+        },
+        {
+          "view": "flare",
+          "visible": true,
+          "active": 27032,
+          "capacity": 32400,
+          "triangles": 129600,
+          "queued": 0,
+          "eye": [
+            1587.6624983069123,
+            12.169374714562954,
+            0.4080000000000028
+          ],
+          "errors": [],
+          "changedPixels": 0
+        },
+        {
+          "view": "final",
+          "visible": false,
+          "active": 27032,
+          "capacity": 32400,
+          "triangles": 129600,
+          "queued": 0,
+          "eye": [
+            2087.6358828416564,
+            45.84261031607413,
+            0.4080000000000027
+          ],
+          "errors": [],
+          "changedPixels": 0
+        },
+        {
+          "view": "storm",
+          "visible": true,
+          "active": 14220,
+          "capacity": 32400,
+          "triangles": 129600,
+          "queued": 0,
+          "eye": [
+            1250,
+            3.7,
+            -29
+          ],
+          "errors": [],
+          "changedPixels": 1028
+        },
+        {
+          "view": "night",
+          "visible": true,
+          "active": 14220,
+          "capacity": 32400,
+          "triangles": 129600,
+          "queued": 0,
+          "eye": [
+            1250,
+            3.7,
+            -29
+          ],
+          "errors": [],
+          "changedPixels": 351
+        }
+      ],
+      "pool": {
+        "maxTileUploads": 2,
+        "grounded": 2912,
+        "maxGroundError": 4.546896660855178e-06,
+        "stable": true,
+        "bufferReuse": true,
+        "reduced": {
+          "uploaded": true,
+          "cover": null,
+          "inScene": false,
+          "atlasReleased": true
+        },
+        "hiddenRanges": 1,
+        "hiddenReleased": true,
+        "lateSkipped": true,
+        "hiddenAboveRange": true,
+        "bytes": 1036800
+      }
+    },
+    {
+      "tier": "low",
+      "views": [
+        {
+          "view": "shoulder",
+          "triangles": 0,
+          "eye": [
+            1250,
+            3.7,
+            -29
+          ],
+          "errors": []
+        },
+        {
+          "view": "meadow",
+          "triangles": 0,
+          "eye": [
+            2350,
+            3.45,
+            330
+          ],
+          "errors": []
+        },
+        {
+          "view": "pasture",
+          "triangles": 0,
+          "eye": [
+            3370,
+            8.503522742744188,
+            -650
+          ],
+          "errors": []
+        },
+        {
+          "view": "touchdown",
+          "triangles": 0,
+          "eye": [
+            1350,
+            14,
+            -45
+          ],
+          "errors": []
+        },
+        {
+          "view": "rollout",
+          "triangles": 0,
+          "eye": [
+            987.615,
+            2.9394999999999993,
+            0.4080000000000027
+          ],
+          "errors": []
+        },
+        {
+          "view": "side-rollout",
+          "triangles": 0,
+          "eye": [
+            987.615,
+            2.9394999999999993,
+            0.4080000000000027
+          ],
+          "errors": []
+        },
+        {
+          "view": "hud-rollout",
+          "triangles": 0,
+          "eye": [
+            987.615,
+            2.9394999999999993,
+            0.4080000000000027
+          ],
+          "errors": []
+        },
+        {
+          "view": "flare",
+          "triangles": 0,
+          "eye": [
+            1587.6624983069123,
+            12.169374714562954,
+            0.4080000000000028
+          ],
+          "errors": []
+        },
+        {
+          "view": "final",
+          "triangles": 0,
+          "eye": [
+            2087.6358828416564,
+            45.84261031607413,
+            0.4080000000000027
+          ],
+          "errors": []
+        },
+        {
+          "view": "storm",
+          "triangles": 0,
+          "eye": [
+            1250,
+            3.7,
+            -29
+          ],
+          "errors": []
+        },
+        {
+          "view": "night",
+          "triangles": 0,
+          "eye": [
+            1250,
+            3.7,
+            -29
+          ],
+          "errors": []
+        }
+      ]
+    },
+    {
+      "fallback": {
+        "grass": false,
+        "terrain": true,
+        "errors": [
+          "[object Event]"
+        ]
+      }
+    }
+  ],
+  "cloudBoundary": [
+    {
+      "tier": "high",
+      "above": [
+        91.5875,
+        149.261875,
+        196.865625
+      ],
+      "below": [
+        48.115625,
+        57.405625,
+        45.22625
+      ],
+      "exiting": [
+        123.126875,
+        152.9325,
+        188.00875
+      ],
+      "horizonJump": 3.5430555555552417,
+      "deep": [
+        169,
+        175,
+        183
+      ],
+      "aboveClearDelta": 0,
+      "belowClearDelta": 0,
+      "lightDelta": 0,
+      "boundaryJumps": [
+        0.156125,
+        2.2182291666666667
+      ],
+      "foreground": [
+        [
+          239,
+          87.42125,
+          86.15875
+        ],
+        [
+          237,
+          93,
+          92.08
+        ],
+        [
+          239,
+          87.42125,
+          86.15875
+        ],
+        [
+          237,
+          93,
+          92.08
+        ],
+        [
+          237,
+          93,
+          92.08
+        ]
+      ],
+      "gpu": [
+        {
+          "y": 1012,
+          "dy": 1,
+          "distance": 20000,
+          "opacity": 0,
+          "alpha": 255
+        },
+        {
+          "y": 1012,
+          "dy": 0,
+          "distance": 20000,
+          "opacity": 0,
+          "alpha": 255
+        },
+        {
+          "y": 88,
+          "dy": -1,
+          "distance": 20000,
+          "opacity": 0,
+          "alpha": 255
+        },
+        {
+          "y": 1012,
+          "dy": -1,
+          "distance": 12,
+          "opacity": 0,
+          "alpha": 255
+        },
+        {
+          "y": 1012,
+          "dy": -1,
+          "distance": 2000,
+          "opacity": 1,
+          "alpha": 255
+        },
+        {
+          "y": 984,
+          "dy": 1,
+          "distance": 2000,
+          "opacity": 0.09411764705882353,
+          "alpha": 255
+        },
+        {
+          "y": 116,
+          "dy": -1,
+          "distance": 2000,
+          "opacity": 0.09411764705882353,
+          "alpha": 255
+        },
+        {
+          "y": 500,
+          "dy": 0,
+          "distance": 120,
+          "opacity": 0.9490196078431372,
+          "alpha": 255
+        },
+        {
+          "y": 500,
+          "dy": 0,
+          "distance": 10,
+          "opacity": 0.2196078431372549,
+          "alpha": 255
+        },
+        {
+          "y": 1000.01,
+          "dy": 1e-05,
+          "distance": 60000,
+          "opacity": 0,
+          "alpha": 255
+        },
+        {
+          "y": 500,
+          "dy": 1e-05,
+          "distance": 120,
+          "opacity": 0.9490196078431372,
+          "alpha": 255
+        },
+        {
+          "y": 1004,
+          "dy": -9e-05,
+          "distance": 60000,
+          "opacity": 1,
+          "alpha": 255
+        },
+        {
+          "y": 984,
+          "dy": 1e-05,
+          "distance": 120,
+          "opacity": 0.7764705882352941,
+          "alpha": 255
+        },
+        {
+          "y": 116,
+          "dy": -1e-05,
+          "distance": 120,
+          "opacity": 0.7764705882352941,
+          "alpha": 255
+        }
+      ],
+      "assetErrors": []
+    },
+    {
+      "tier": "low",
+      "above": [
+        91.615625,
+        149.280625,
+        196.885625
+      ],
+      "below": [
+        48.099375,
+        56.936875,
+        45.04375
+      ],
+      "exiting": [
+        123.15625,
+        152.956875,
+        188.024375
+      ],
+      "horizonJump": 3.6444444444443036,
+      "deep": [
+        169,
+        175,
+        183
+      ],
+      "aboveClearDelta": 0,
+      "belowClearDelta": 0,
+      "lightDelta": 0,
+      "boundaryJumps": [
+        0.16466145833333334,
+        1.6926197916666668
+      ],
+      "foreground": [
+        [
+          239,
+          87.45,
+          86.165
+        ],
+        [
+          237,
+          93,
+          92.115
+        ],
+        [
+          239,
+          87.45,
+          86.165
+        ],
+        [
+          237,
+          93,
+          92.115
+        ],
+        [
+          237,
+          93,
+          92.115
+        ]
+      ],
+      "gpu": [
+        {
+          "y": 1012,
+          "dy": 1,
+          "distance": 20000,
+          "opacity": 0,
+          "alpha": 255
+        },
+        {
+          "y": 1012,
+          "dy": 0,
+          "distance": 20000,
+          "opacity": 0,
+          "alpha": 255
+        },
+        {
+          "y": 88,
+          "dy": -1,
+          "distance": 20000,
+          "opacity": 0,
+          "alpha": 255
+        },
+        {
+          "y": 1012,
+          "dy": -1,
+          "distance": 12,
+          "opacity": 0,
+          "alpha": 255
+        },
+        {
+          "y": 1012,
+          "dy": -1,
+          "distance": 2000,
+          "opacity": 1,
+          "alpha": 255
+        },
+        {
+          "y": 984,
+          "dy": 1,
+          "distance": 2000,
+          "opacity": 0.09411764705882353,
+          "alpha": 255
+        },
+        {
+          "y": 116,
+          "dy": -1,
+          "distance": 2000,
+          "opacity": 0.09411764705882353,
+          "alpha": 255
+        },
+        {
+          "y": 500,
+          "dy": 0,
+          "distance": 120,
+          "opacity": 0.9490196078431372,
+          "alpha": 255
+        },
+        {
+          "y": 500,
+          "dy": 0,
+          "distance": 10,
+          "opacity": 0.2196078431372549,
+          "alpha": 255
+        },
+        {
+          "y": 1000.01,
+          "dy": 1e-05,
+          "distance": 60000,
+          "opacity": 0,
+          "alpha": 255
+        },
+        {
+          "y": 500,
+          "dy": 1e-05,
+          "distance": 120,
+          "opacity": 0.9490196078431372,
+          "alpha": 255
+        },
+        {
+          "y": 1004,
+          "dy": -9e-05,
+          "distance": 60000,
+          "opacity": 1,
+          "alpha": 255
+        },
+        {
+          "y": 984,
+          "dy": 1e-05,
+          "distance": 120,
+          "opacity": 0.7764705882352941,
+          "alpha": 255
+        },
+        {
+          "y": 116,
+          "dy": -1e-05,
+          "distance": 120,
+          "opacity": 0.7764705882352941,
+          "alpha": 255
+        }
+      ],
+      "assetErrors": []
+    }
+  ],
+  "overcast": {
+    "views": [
+      {
+        "tier": "high",
+        "view": "above",
+        "baseVisible": false,
+        "topVisible": true,
+        "lightDelta": 0,
+        "mean": 224.0054777777669,
+        "darkFraction": 0,
+        "visibility": 20000,
+        "width": 720,
+        "height": 450,
+        "steps": 28
+      },
+      {
+        "tier": "high",
+        "view": "below",
+        "baseVisible": true,
+        "topVisible": false,
+        "lightDelta": 0,
+        "mean": 94.01391111110973,
+        "darkFraction": 0,
+        "visibility": 20000,
+        "width": 720,
+        "height": 450,
+        "steps": 28
+      },
+      {
+        "tier": "high",
+        "view": "near-top",
+        "baseVisible": false,
+        "topVisible": true,
+        "lightDelta": 0,
+        "mean": 221.80951111109061,
+        "darkFraction": 0,
+        "visibility": 20000,
+        "width": 720,
+        "height": 450,
+        "steps": 28
+      },
+      {
+        "tier": "high",
+        "view": "near-base",
+        "baseVisible": true,
+        "topVisible": false,
+        "lightDelta": 0,
+        "mean": 97.59182222222101,
+        "darkFraction": 0,
+        "visibility": 20000,
+        "width": 720,
+        "height": 450,
+        "steps": 28
+      },
+      {
+        "tier": "high",
+        "view": "inside-top",
+        "baseVisible": false,
+        "topVisible": true,
+        "lightDelta": 0,
+        "mean": 219.74525555553282,
+        "darkFraction": 0,
+        "visibility": 20000,
+        "width": 720,
+        "height": 450,
+        "steps": 28
+      },
+      {
+        "tier": "high",
+        "view": "inside-base",
+        "baseVisible": true,
+        "topVisible": false,
+        "lightDelta": 0,
+        "mean": 161.22157777777358,
+        "darkFraction": 0,
+        "visibility": 20000,
+        "width": 720,
+        "height": 450,
+        "steps": 28
+      },
+      {
+        "tier": "high",
+        "view": "deep",
+        "baseVisible": false,
+        "topVisible": false,
+        "lightDelta": 2,
+        "mean": 175.92303333334664,
+        "darkFraction": 0,
+        "visibility": 20000,
+        "width": 720,
+        "height": 450,
+        "steps": 28
+      },
+      {
+        "tier": "high",
+        "view": "captain-above",
+        "baseVisible": false,
+        "topVisible": true,
+        "lightDelta": 0,
+        "mean": 64.2734444444425,
+        "darkFraction": 0.18533333333333332,
+        "visibility": 20000,
+        "width": 720,
+        "height": 450,
+        "steps": 28
+      },
+      {
+        "tier": "high",
+        "view": "captain-below",
+        "baseVisible": true,
+        "topVisible": false,
+        "lightDelta": 0,
+        "mean": 47.52047777777782,
+        "darkFraction": 0.1978,
+        "visibility": 20000,
+        "width": 720,
+        "height": 450,
+        "steps": 28
+      },
+      {
+        "tier": "high",
+        "view": "night",
+        "baseVisible": false,
+        "topVisible": true,
+        "lightDelta": 0,
+        "mean": 28.57790000000287,
+        "darkFraction": 0,
+        "visibility": 20000,
+        "width": 720,
+        "height": 450,
+        "steps": 28
+      },
+      {
+        "tier": "high",
+        "view": "storm",
+        "baseVisible": true,
+        "topVisible": false,
+        "lightDelta": 0,
+        "mean": 53.7905666666645,
+        "darkFraction": 0,
+        "visibility": 900,
+        "width": 720,
+        "height": 450,
+        "steps": 28
+      },
+      {
+        "tier": "low",
+        "view": "above",
+        "baseVisible": false,
+        "topVisible": true,
+        "lightDelta": 0,
+        "mean": 224.01462222221207,
+        "darkFraction": 0,
+        "visibility": 20000,
+        "width": 505,
+        "height": 316,
+        "steps": 14
+      },
+      {
+        "tier": "low",
+        "view": "below",
+        "baseVisible": true,
+        "topVisible": false,
+        "lightDelta": 0,
+        "mean": 94.43301111110927,
+        "darkFraction": 0,
+        "visibility": 20000,
+        "width": 505,
+        "height": 316,
+        "steps": 14
+      },
+      {
+        "tier": "low",
+        "view": "near-top",
+        "baseVisible": false,
+        "topVisible": true,
+        "lightDelta": 0,
+        "mean": 221.78208888887394,
+        "darkFraction": 0,
+        "visibility": 20000,
+        "width": 505,
+        "height": 316,
+        "steps": 14
+      },
+      {
+        "tier": "low",
+        "view": "near-base",
+        "baseVisible": true,
+        "topVisible": false,
+        "lightDelta": 0,
+        "mean": 97.67545555555432,
+        "darkFraction": 0,
+        "visibility": 20000,
+        "width": 505,
+        "height": 316,
+        "steps": 14
+      },
+      {
+        "tier": "low",
+        "view": "inside-top",
+        "baseVisible": false,
+        "topVisible": true,
+        "lightDelta": 0,
+        "mean": 219.7252999999745,
+        "darkFraction": 0,
+        "visibility": 20000,
+        "width": 505,
+        "height": 316,
+        "steps": 14
+      },
+      {
+        "tier": "low",
+        "view": "inside-base",
+        "baseVisible": true,
+        "topVisible": false,
+        "lightDelta": 0,
+        "mean": 160.96018888888426,
+        "darkFraction": 0,
+        "visibility": 20000,
+        "width": 505,
+        "height": 316,
+        "steps": 14
+      },
+      {
+        "tier": "low",
+        "view": "deep",
+        "baseVisible": false,
+        "topVisible": false,
+        "lightDelta": 2,
+        "mean": 175.71397777779165,
+        "darkFraction": 0,
+        "visibility": 20000,
+        "width": 505,
+        "height": 316,
+        "steps": 14
+      },
+      {
+        "tier": "low",
+        "view": "captain-above",
+        "baseVisible": false,
+        "topVisible": true,
+        "lightDelta": 0,
+        "mean": 56.20243333333476,
+        "darkFraction": 0.2047,
+        "visibility": 20000,
+        "width": 505,
+        "height": 316,
+        "steps": 14
+      },
+      {
+        "tier": "low",
+        "view": "captain-below",
+        "baseVisible": true,
+        "topVisible": false,
+        "lightDelta": 0,
+        "mean": 39.68166666666606,
+        "darkFraction": 0.21736666666666668,
+        "visibility": 20000,
+        "width": 505,
+        "height": 316,
+        "steps": 14
+      },
+      {
+        "tier": "low",
+        "view": "night",
+        "baseVisible": false,
+        "topVisible": true,
+        "lightDelta": 0,
+        "mean": 28.567277777780394,
+        "darkFraction": 0,
+        "visibility": 20000,
+        "width": 505,
+        "height": 316,
+        "steps": 14
+      },
+      {
+        "tier": "low",
+        "view": "storm",
+        "baseVisible": true,
+        "topVisible": false,
+        "lightDelta": 0,
+        "mean": 53.1433333333308,
+        "darkFraction": 0,
+        "visibility": 900,
+        "width": 505,
+        "height": 316,
+        "steps": 14
+      }
+    ],
+    "checks": [
+      {
+        "tier": "high",
+        "clearDraws": 0,
+        "insideDraws": 0,
+        "restored": true,
+        "stable": true,
+        "sizes": [
+          [
+            "high",
+            946,
+            591
+          ],
+          [
+            "low",
+            505,
+            316
+          ]
+        ],
+        "lowSteps": 14
+      },
+      {
+        "tier": "low",
+        "clearDraws": 0,
+        "insideDraws": 0,
+        "restored": true,
+        "stable": true,
+        "sizes": [
+          [
+            "low",
+            505,
+            316
+          ],
+          [
+            "low",
+            505,
+            316
+          ]
+        ],
+        "lowSteps": 14
+      }
+    ]
+  },
+  "delivery": [
+    {
+      "tier": "high",
+      "startupBytes": 14027090,
+      "preparedBytes": 62859430
+    },
+    {
+      "tier": "low",
+      "startupBytes": 8620694,
+      "preparedBytes": 17507354
+    }
+  ],
+  "notRun": [
+    "complete functional browser suite",
+    "SwiftShader and other GPUs",
+    "new hardware FPS benchmark"
+  ],
+  "notes": [
+    "Existing pre-integration FPS reports remain historical; this report makes no new FPS claim.",
+    "Low-tier scenery assets save 210986 bytes; delivered JavaScript adds 238 bytes compared with the previous local cloud delivery report."
+  ],
+  "cloudMotionWithoutRecording": [
+    {
+      "tier": "high",
+      "cockpit": false,
+      "recorded": false,
+      "seconds": 18.97,
+      "steps": 570,
+      "samples": [
+        {
+          "seconds": 0,
+          "aboveBase": 395.28,
+          "aboveTop": 60
+        },
+        {
+          "seconds": 3.8,
+          "aboveBase": 304.0799999999999,
+          "aboveTop": -31.200000000000045
+        },
+        {
+          "seconds": 9.5,
+          "aboveBase": 167.27999999999997,
+          "aboveTop": -168
+        },
+        {
+          "seconds": 15.2,
+          "aboveBase": 30.480000000000018,
+          "aboveTop": -304.79999999999995
+        },
+        {
+          "seconds": 18.97,
+          "aboveBase": -60,
+          "aboveTop": -395.28
+        }
+      ],
+      "fps": null,
+      "p99Ms": null,
+      "errors": []
+    },
+    {
+      "tier": "high",
+      "cockpit": true,
+      "recorded": false,
+      "seconds": 18.97,
+      "steps": 570,
+      "samples": [
+        {
+          "seconds": 0,
+          "aboveBase": 396.1226103160741,
+          "aboveTop": 60.842610316074115
+        },
+        {
+          "seconds": 3.8,
+          "aboveBase": 304.92261031607404,
+          "aboveTop": -30.35738968392593
+        },
+        {
+          "seconds": 9.5,
+          "aboveBase": 168.1226103160741,
+          "aboveTop": -167.15738968392589
+        },
+        {
+          "seconds": 15.2,
+          "aboveBase": 31.32261031607419,
+          "aboveTop": -303.9573896839258
+        },
+        {
+          "seconds": 18.97,
+          "aboveBase": -59.15738968392583,
+          "aboveTop": -394.4373896839258
+        }
+      ],
+      "fps": null,
+      "p99Ms": null,
+      "errors": []
+    },
+    {
+      "tier": "low",
+      "cockpit": false,
+      "recorded": false,
+      "seconds": 18.97,
+      "steps": 570,
+      "samples": [
+        {
+          "seconds": 0,
+          "aboveBase": 395.28,
+          "aboveTop": 60
+        },
+        {
+          "seconds": 3.8,
+          "aboveBase": 304.0799999999999,
+          "aboveTop": -31.200000000000045
+        },
+        {
+          "seconds": 9.5,
+          "aboveBase": 167.27999999999997,
+          "aboveTop": -168
+        },
+        {
+          "seconds": 15.2,
+          "aboveBase": 30.480000000000018,
+          "aboveTop": -304.79999999999995
+        },
+        {
+          "seconds": 18.97,
+          "aboveBase": -60,
+          "aboveTop": -395.28
+        }
+      ],
+      "fps": null,
+      "p99Ms": null,
+      "errors": []
+    },
+    {
+      "tier": "low",
+      "cockpit": true,
+      "recorded": false,
+      "seconds": 18.97,
+      "steps": 570,
+      "samples": [
+        {
+          "seconds": 0,
+          "aboveBase": 396.1226103160741,
+          "aboveTop": 60.842610316074115
+        },
+        {
+          "seconds": 3.8,
+          "aboveBase": 304.92261031607404,
+          "aboveTop": -30.35738968392593
+        },
+        {
+          "seconds": 9.5,
+          "aboveBase": 168.1226103160741,
+          "aboveTop": -167.15738968392589
+        },
+        {
+          "seconds": 15.2,
+          "aboveBase": 31.32261031607419,
+          "aboveTop": -303.9573896839258
+        },
+        {
+          "seconds": 18.97,
+          "aboveBase": -59.15738968392583,
+          "aboveTop": -394.4373896839258
+        }
+      ],
+      "fps": null,
+      "p99Ms": null,
+      "errors": []
+    }
+  ],
+  "visualReview": {
+    "passed": [
+      "visual assets",
+      "PFD/ND visibility",
+      "missing-cockpit fallback",
+      "both-tier storm cloud transition"
+    ],
+    "storm": [
+      {
+        "tier": "high",
+        "sky": 91.02293650792879,
+        "ground": 99.73452380952543,
+        "lightDelta": 2,
+        "horizonJump": 1.1111111111111
+      },
+      {
+        "tier": "low",
+        "sky": 91.257793650785,
+        "ground": 99.38201587301694,
+        "lightDelta": 2,
+        "horizonJump": 0.07222222222222285
+      }
+    ]
+  },
+  "reviewPage": "20 matched comparisons, both existing recordings play, divider/full-image controls pass"
+}

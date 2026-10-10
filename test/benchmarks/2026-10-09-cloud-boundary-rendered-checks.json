@@ -1,0 +1,332 @@
+{
+  "views": [
+    {
+      "tier": "high",
+      "view": "above",
+      "baseVisible": false,
+      "topVisible": true,
+      "lightDelta": 0,
+      "mean": 224.0054777777669,
+      "darkFraction": 0,
+      "visibility": 20000,
+      "width": 720,
+      "height": 450,
+      "steps": 28
+    },
+    {
+      "tier": "high",
+      "view": "below",
+      "baseVisible": true,
+      "topVisible": false,
+      "lightDelta": 0,
+      "mean": 94.00926666666535,
+      "darkFraction": 0,
+      "visibility": 20000,
+      "width": 720,
+      "height": 450,
+      "steps": 28
+    },
+    {
+      "tier": "high",
+      "view": "near-top",
+      "baseVisible": false,
+      "topVisible": true,
+      "lightDelta": 0,
+      "mean": 221.80951111109061,
+      "darkFraction": 0,
+      "visibility": 20000,
+      "width": 720,
+      "height": 450,
+      "steps": 28
+    },
+    {
+      "tier": "high",
+      "view": "near-base",
+      "baseVisible": true,
+      "topVisible": false,
+      "lightDelta": 0,
+      "mean": 97.59182222222101,
+      "darkFraction": 0,
+      "visibility": 20000,
+      "width": 720,
+      "height": 450,
+      "steps": 28
+    },
+    {
+      "tier": "high",
+      "view": "inside-top",
+      "baseVisible": false,
+      "topVisible": true,
+      "lightDelta": 0,
+      "mean": 219.74525555553282,
+      "darkFraction": 0,
+      "visibility": 20000,
+      "width": 720,
+      "height": 450,
+      "steps": 28
+    },
+    {
+      "tier": "high",
+      "view": "inside-base",
+      "baseVisible": true,
+      "topVisible": false,
+      "lightDelta": 0,
+      "mean": 161.22157777777358,
+      "darkFraction": 0,
+      "visibility": 20000,
+      "width": 720,
+      "height": 450,
+      "steps": 28
+    },
+    {
+      "tier": "high",
+      "view": "deep",
+      "baseVisible": false,
+      "topVisible": false,
+      "lightDelta": 2,
+      "mean": 175.92303333334664,
+      "darkFraction": 0,
+      "visibility": 20000,
+      "width": 720,
+      "height": 450,
+      "steps": 28
+    },
+    {
+      "tier": "high",
+      "view": "captain-above",
+      "baseVisible": false,
+      "topVisible": true,
+      "lightDelta": 0,
+      "mean": 64.2734444444425,
+      "darkFraction": 0.18533333333333332,
+      "visibility": 20000,
+      "width": 720,
+      "height": 450,
+      "steps": 28
+    },
+    {
+      "tier": "high",
+      "view": "captain-below",
+      "baseVisible": true,
+      "topVisible": false,
+      "lightDelta": 0,
+      "mean": 47.52047777777782,
+      "darkFraction": 0.1978,
+      "visibility": 20000,
+      "width": 720,
+      "height": 450,
+      "steps": 28
+    },
+    {
+      "tier": "high",
+      "view": "night",
+      "baseVisible": false,
+      "topVisible": true,
+      "lightDelta": 0,
+      "mean": 28.57790000000287,
+      "darkFraction": 0,
+      "visibility": 20000,
+      "width": 720,
+      "height": 450,
+      "steps": 28
+    },
+    {
+      "tier": "high",
+      "view": "storm",
+      "baseVisible": true,
+      "topVisible": false,
+      "lightDelta": 0,
+      "mean": 53.755922222220036,
+      "darkFraction": 0.00013333333333333334,
+      "visibility": 900,
+      "width": 720,
+      "height": 450,
+      "steps": 28
+    },
+    {
+      "tier": "low",
+      "view": "above",
+      "baseVisible": false,
+      "topVisible": true,
+      "lightDelta": 0,
+      "mean": 224.01462222221207,
+      "darkFraction": 0,
+      "visibility": 20000,
+      "width": 505,
+      "height": 316,
+      "steps": 14
+    },
+    {
+      "tier": "low",
+      "view": "below",
+      "baseVisible": true,
+      "topVisible": false,
+      "lightDelta": 0,
+      "mean": 94.42845555555382,
+      "darkFraction": 0,
+      "visibility": 20000,
+      "width": 505,
+      "height": 316,
+      "steps": 14
+    },
+    {
+      "tier": "low",
+      "view": "near-top",
+      "baseVisible": false,
+      "topVisible": true,
+      "lightDelta": 0,
+      "mean": 221.78208888887394,
+      "darkFraction": 0,
+      "visibility": 20000,
+      "width": 505,
+      "height": 316,
+      "steps": 14
+    },
+    {
+      "tier": "low",
+      "view": "near-base",
+      "baseVisible": true,
+      "topVisible": false,
+      "lightDelta": 0,
+      "mean": 97.67545555555432,
+      "darkFraction": 0,
+      "visibility": 20000,
+      "width": 505,
+      "height": 316,
+      "steps": 14
+    },
+    {
+      "tier": "low",
+      "view": "inside-top",
+      "baseVisible": false,
+      "topVisible": true,
+      "lightDelta": 0,
+      "mean": 219.7252999999745,
+      "darkFraction": 0,
+      "visibility": 20000,
+      "width": 505,
+      "height": 316,
+      "steps": 14
+    },
+    {
+      "tier": "low",
+      "view": "inside-base",
+      "baseVisible": true,
+      "topVisible": false,
+      "lightDelta": 0,
+      "mean": 160.96018888888426,
+      "darkFraction": 0,
+      "visibility": 20000,
+      "width": 505,
+      "height": 316,
+      "steps": 14
+    },
+    {
+      "tier": "low",
+      "view": "deep",
+      "baseVisible": false,
+      "topVisible": false,
+      "lightDelta": 2,
+      "mean": 175.71397777779165,
+      "darkFraction": 0,
+      "visibility": 20000,
+      "width": 505,
+      "height": 316,
+      "steps": 14
+    },
+    {
+      "tier": "low",
+      "view": "captain-above",
+      "baseVisible": false,
+      "topVisible": true,
+      "lightDelta": 0,
+      "mean": 56.20243333333476,
+      "darkFraction": 0.2047,
+      "visibility": 20000,
+      "width": 505,
+      "height": 316,
+      "steps": 14
+    },
+    {
+      "tier": "low",
+      "view": "captain-below",
+      "baseVisible": true,
+      "topVisible": false,
+      "lightDelta": 0,
+      "mean": 39.68166666666606,
+      "darkFraction": 0.21736666666666668,
+      "visibility": 20000,
+      "width": 505,
+      "height": 316,
+      "steps": 14
+    },
+    {
+      "tier": "low",
+      "view": "night",
+      "baseVisible": false,
+      "topVisible": true,
+      "lightDelta": 0,
+      "mean": 28.567277777780394,
+      "darkFraction": 0,
+      "visibility": 20000,
+      "width": 505,
+      "height": 316,
+      "steps": 14
+    },
+    {
+      "tier": "low",
+      "view": "storm",
+      "baseVisible": true,
+      "topVisible": false,
+      "lightDelta": 0,
+      "mean": 53.07502222221978,
+      "darkFraction": 0.00016666666666666666,
+      "visibility": 900,
+      "width": 505,
+      "height": 316,
+      "steps": 14
+    }
+  ],
+  "checks": [
+    {
+      "tier": "high",
+      "clearDraws": 0,
+      "insideDraws": 0,
+      "restored": true,
+      "stable": true,
+      "sizes": [
+        [
+          "high",
+          946,
+          591
+        ],
+        [
+          "low",
+          505,
+          316
+        ]
+      ],
+      "lowSteps": 14
+    },
+    {
+      "tier": "low",
+      "clearDraws": 0,
+      "insideDraws": 0,
+      "restored": true,
+      "stable": true,
+      "sizes": [
+        [
+          "low",
+          505,
+          316
+        ],
+        [
+          "low",
+          505,
+          316
+        ]
+      ],
+      "lowSteps": 14
+    }
+  ]
+}

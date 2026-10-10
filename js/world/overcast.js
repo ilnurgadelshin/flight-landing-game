@@ -40,18 +40,22 @@ const fragmentShader=`
  uniform sampler2D deckField;
  uniform vec3 uEye,uLight,uColor;
  uniform vec2 uDrift;
- uniform float uTop,uRelief,uBoundary,uFog,uSteps;
+ uniform float uTop,uRelief,uBoundary,uFog,uSteps,uInterior;
  ${SKY_GLSL}
  float profile(vec3 p){return texture2D(deckField,p.xz/2304.+uDrift).r;}
  void main(){
-  vec3 ray=vWorld-uEye;float entry=length(ray);vec3 rd=ray/max(entry,.001);
+  vec3 ray=vWorld-uEye;vec3 rd=normalize(ray);
+  // The proxy is in the opaque core. Start sampling at the nominal boundary or
+  // the eye when entering the fringe, keeping billows visible through entry.
+  float entry=max(0.,(uBoundary-uEye.y)/(abs(rd.y)>.0001?rd.y:(uTop>.5?-.0001:.0001)));
+  vec3 start=uEye+rd*entry;
   float stepM=clamp((uRelief+140.)/uSteps/max(abs(rd.y),.08),7.,70.);
   float jitter=.25+.5*fract(sin(dot(gl_FragCoord.xy,vec2(12.9898,78.233)))*43758.5453);
   float trans=1.,first=entry;vec3 result=vec3(0.);
   for(int i=0;i<28;i++){
    if(float(i)>=uSteps)break;
    float distanceM=(float(i)+jitter)*stepM;
-   vec3 p=vWorld+rd*distanceM;
+   vec3 p=start+rd*distanceM;
    vec3 field=texture2D(deckField,p.xz/2304.+uDrift).rgb;
    float surface=uBoundary+(uTop>.5?-1.:1.)*(8.+(1.-field.r)*uRelief);
    float depth=uTop>.5?surface-p.y:p.y-surface;
@@ -81,6 +85,11 @@ const fragmentShader=`
   result+=trans*uColor*(uTop>.5?.8:.78);
   float fog=1.-exp(-uFog*uFog*first*first);
   vec3 radiance=max(vec3(0.),mix(result,hazeColor(rd),fog)+skyFlash);
+  // Grazing rays traverse an unresolved length of the continuous deck. Match
+  // the shared sky extinction there, so the finite proxy never draws a horizon
+  // stripe or a false floor as the eye crosses the nominal boundary.
+  float resolved=smoothstep(.015,.15,abs(rd.y));
+  radiance=mix(skyOvercastColor+skyFlash,radiance,(1.-uInterior)*resolved);
   // Store highlights in an RGBA8 target; the composite decodes before tone mapping.
   gl_FragColor=vec4(sqrt(radiance/(1.+radiance)),1.);
  }`;
@@ -91,12 +100,13 @@ export function buildOvercast(world){
  const geometry=new THREE.PlaneGeometry(80000,80000),target=new THREE.WebGLRenderTarget(1,1,{depthBuffer:false});
  world.deckDrift={value:new THREE.Vector2()};
  const uniforms={...world.atmo.uniforms,deckField:{value:map},uEye:{value:new THREE.Vector3()},uDrift:world.deckDrift,
-  uLight:{value:new THREE.Vector3()},uColor:{value:new THREE.Color()},uTop:{value:0},uRelief:{value:90},uBoundary:{value:0},uFog:{value:0},uSteps:{value:28}};
+  uLight:{value:new THREE.Vector3()},uColor:{value:new THREE.Color()},uTop:{value:0},uRelief:{value:90},uBoundary:{value:0},uFog:{value:0},uSteps:{value:28},uInterior:{value:0}};
  const volumeMaterial=new THREE.ShaderMaterial({vertexShader,fragmentShader,uniforms,side:THREE.DoubleSide,depthTest:false,depthWrite:false,toneMapped:false});
  const scene=new THREE.Scene(),volume=new THREE.Mesh(geometry,volumeMaterial);volume.rotation.x=Math.PI/2;volume.frustumCulled=false;scene.add(volume);
  const clear=new THREE.Color(),viewport=new THREE.Vector4(),drawingSize=new THREE.Vector2(),screen={value:new THREE.Vector2(1,1)};
  const meshes=[false,true].map(top=>{
-  // The proxy places the cloud image at its boundary so terrain still depth-tests normally.
+  // Put the proxy inside the opaque core, so close foreground terrain is not covered
+  // by an image of cloud farther down the ray. Nearer cloud uses shared ray extinction.
   const material=new THREE.MeshBasicMaterial({side:THREE.DoubleSide,transparent:true,depthWrite:true,fog:false});
   material.onBeforeCompile=shader=>{
    THREE.Material.prototype.onBeforeCompile.call(material,shader);
@@ -114,17 +124,30 @@ export function buildOvercast(world){
   world.scene.add(mesh);return mesh;
  });
  world.overcast=meshes[0];world.overcastTop=meshes[1];let thickness=400;
+ const relief=top=>Math.min(top?190:110,thickness*(top?.32:.22));
+ const cap=top=>Math.min(relief(top)+80,thickness*.45);
  return {scene,target,uniforms,textureBytes:pixels.byteLength,
   configure(depth,sun){thickness=depth;uniforms.uLight.value.copy(sun);},
+  update(eye){
+   meshes[0].visible=eye.y<world.cloudBase+cap(false)-1;
+   meshes[1].visible=world.cloudTop<6000&&eye.y>world.cloudTop-cap(true)+1;
+   // Keep the image beyond nearby geometry while crossing the inner cap. The
+   // ray march still begins at the eye/boundary, independently of proxy depth.
+   meshes[0].position.y=Math.max(world.cloudBase+cap(false),eye.y+160);
+   meshes[1].position.y=Math.min(world.cloudTop-cap(true),eye.y-160);
+  },
   render(camera){
    const top=meshes[1].visible,source=top?meshes[1]:meshes[0];if(!source.visible)return;
    const renderer=world.renderer,high=world.quality==='high';renderer.getDrawingBufferSize(drawingSize);
    const scale=Math.min(high?.5:.4,Math.sqrt((high?560000:160000)/(drawingSize.x*drawingSize.y)));
    const width=Math.max(1,Math.floor(drawingSize.x*scale)),height=Math.max(1,Math.floor(drawingSize.y*scale));
    if(target.width!==width||target.height!==height)target.setSize(width,height);
-   uniforms.uSteps.value=high?28:14;uniforms.uTop.value=top?1:0;uniforms.uBoundary.value=source.position.y;
-   uniforms.uRelief.value=Math.min(top?190:110,thickness*(top?.32:.22));uniforms.uColor.value.copy(source.material.color);uniforms.uFog.value=world.scene.fog.density;
-   camera.getWorldPosition(uniforms.uEye.value);volume.position.copy(source.position);volume.updateMatrixWorld();
+   uniforms.uSteps.value=high?28:14;uniforms.uTop.value=top?1:0;uniforms.uBoundary.value=top?world.cloudTop:world.cloudBase;
+   uniforms.uRelief.value=relief(top);uniforms.uColor.value.copy(source.material.color);uniforms.uFog.value=world.scene.fog.density;
+   camera.getWorldPosition(uniforms.uEye.value);
+   const penetration=top?world.cloudTop-uniforms.uEye.value.y:uniforms.uEye.value.y-world.cloudBase;
+   uniforms.uInterior.value=THREE.MathUtils.smoothstep(penetration,0,cap(top)-1);
+   volume.position.copy(source.position);volume.updateMatrixWorld();
    const previous=renderer.getRenderTarget(),savedClear=renderer.getClearColor(clear),alpha=renderer.getClearAlpha(),auto=renderer.autoClear;
    try{renderer.setRenderTarget(target);renderer.setClearColor(0,0);renderer.autoClear=true;renderer.render(scene,camera);}
    finally{renderer.setRenderTarget(previous);renderer.setClearColor(savedClear,alpha);renderer.autoClear=auto;}

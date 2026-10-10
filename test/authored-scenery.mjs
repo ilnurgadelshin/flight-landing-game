@@ -50,11 +50,15 @@ try{
       w.scene.traverse(o=>{for(const m of [].concat(o.material||[])){
         if(seen.has(m))continue;seen.add(m);const p=R.properties.get(m);
         if(!p.uniforms||!m.fog||m.isShaderMaterial)continue;compiled++;
-        if(!('skySunDir' in p.uniforms))missing.push(o.name||m.name||m.type);
+        // Check the shared references, including cloud extinction and eye position:
+        // a copied/default uniform can pass a presence check but never follow weather.
+        const unbound=Object.entries(w.atmo.uniforms).filter(([key,value])=>p.uniforms[key]!==value).map(([key])=>key);
+        if(unbound.length)missing.push(`${o.name||m.name||m.type}: ${unbound.join(', ')}`);
       }});
       return {compiled,missing};
     });
     assert.ok(unhazed.compiled>100&&!unhazed.missing.length,`${tier}: fogged materials without the atmosphere's uniforms: ${unhazed.missing.join(', ')} (of ${unhazed.compiled})`);
+    reports.at(-1).atmosphere=unhazed;console.log(tier,'shared atmosphere',unhazed);
     for(const view of ['farm','house','village','airport','trees','night','farm-overcast',...(!process.env.REVIEW_ROOT&&tier==='high'?['tree-7','tree-8']:[])]){
       await page.evaluate(async view=>{
         const T=await import('/vendor/three.module.js'),s=window.__sim,w=s.world;

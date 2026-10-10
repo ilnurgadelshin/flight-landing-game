@@ -21,7 +21,8 @@ async function checkCloudTransition(page,tier){
     s.start({startId:'short',scenarioId:'storm',night:false,seed:5});s.setTimeScale(0);
     const alt=w.cloudBase+24;
     // Even the nearest approach lamp is 2.1 km away, beyond this transition's
-    // 588 m visibility. A nearby light may legitimately penetrate the mist.
+    // ordinary 900 m storm visibility, with additional cloud-path extinction.
+    // A nearby light may legitimately penetrate the mist.
     s.game.sim.aircraft.place({x:4500,y:alt,z:0,headingDeg:270,iasKts:147,flapIndex:4,gearDown:true,gammaDeg:-3});
     for(let i=0;i<40;i++)s.view.update(1/60);
     const previous={camera:w.camera,deck:w.drawCockpit,rain:w.rain.visible};
@@ -41,13 +42,19 @@ async function checkCloudTransition(page,tier){
         ground+=(unlit[b]+unlit[b+1]+unlit[b+2])/3;n++;
       }
       for(let i=0;i<lit.length;i++)if(i%4!==3)lightDelta=Math.max(lightDelta,Math.abs(lit[i]-unlit[i]));
-      return {sky:sky/n,ground:ground/n,lightDelta};
+      // Directional extinction can retain a smooth ceiling/ground gradient at
+      // 24 m inside. Reject a sharp false horizon, not all directional variation.
+      let horizonJump=0,previous;
+      for(let y=84;y<97;y++){let row=0;for(let x=10;x<310;x++){const i=(y*320+x)*4;row+=(unlit[i]+unlit[i+1]+unlit[i+2])/900;}if(previous!==undefined)horizonJump=Math.max(horizonJump,Math.abs(row-previous));previous=row;}
+      window.__stormTransition=canvas.toDataURL();
+      return {sky:sky/n,ground:ground/n,lightDelta,horizonJump};
     }finally{
       w.camera=previous.camera;if(w.composer)w.composer.passes[0].camera=previous.camera;
       w.drawCockpit=previous.deck;w.rain.visible=previous.rain;w.lights.points.visible=true;
     }
   });
-  assert.ok(pixels.sky>25&&Math.abs(pixels.sky-pixels.ground)<8,`${tier}: distant ground must fade to cloud grey: ${JSON.stringify(pixels)}`);
+  fs.writeFileSync(path.join(out,`cloud-boundary-storm-transition-${tier}.png`),Buffer.from((await page.evaluate(()=>window.__stormTransition)).split(',')[1],'base64'));
+  assert.ok(pixels.sky>25&&pixels.ground>25&&Math.abs(pixels.sky-pixels.ground)<20&&pixels.horizonJump<3,`${tier}: distant ground must fade to cloud grey: ${JSON.stringify(pixels)}`);
   assert.ok(pixels.lightDelta<3,`${tier}: opaque cloud must hide the distant runway lights: ${JSON.stringify(pixels)}`);
   console.log(`${tier} rendered cloud transition passed: ${JSON.stringify(pixels)}`);
 }
