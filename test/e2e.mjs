@@ -726,6 +726,16 @@ if (want('mobile')) {
   }
   await mp.setViewportSize({ width: 852, height: 393 }); await setSafe(SAFE); await mf(2);
 
+  // The flight has been flying through the layout checks, which take minutes on a loaded machine.
+  // The control checks below need it in the air, not at a point of the approach: put it 7 nm out,
+  // level at 2,300 ft in its configuration, and slow the simulation (as E12 does), so a slow
+  // renderer cannot land it before they finish. REPOSITION still takes it back to the 10 nm start.
+  await mp.evaluate(async () => {
+    const { RUNWAY, NM, FT } = await import('./js/config.js'), s = window.__sim, inp = s.input();
+    s.game.sim.aircraft.place({ x: RUNWAY.thresholdX + 7 * NM, y: 2300 * FT, z: 0, headingDeg: RUNWAY.headingDeg, iasKts: 175, flapIndex: inp.flapIndex, gearDown: inp.gearDown });
+    s.setTimeScale(0.2);
+  });
+
   // buttons: real taps
   const i0 = await MI();
   await mp.tap('#t-gear'); await mp.tap('#t-flaps-dn'); await mp.tap('#t-arm'); await mp.tap('#t-autobrake'); await mp.tap('#t-autobrake'); await mf(2);
@@ -791,6 +801,7 @@ if (want('mobile')) {
   const g2 = await MS();
   const repositioned = await mp.evaluate(() => window.__sim.events().some((e) => e.type === 'reposition'));
   check('REPOSITION puts the aircraft back on final', repositioned && !g2.gaMode && g2.dist <= 10.02 * 1852 && g2.dist > gaDist + 0.2 * 1852 && await mp.evaluate(() => document.getElementById('t-reposition').classList.contains('hidden')), `${fmt(gaDist / 1852)} → ${fmt(g2.dist / 1852)} nm`);
+  await mp.evaluate(() => window.__sim.setTimeScale(1));
 
   // pause, rotation, leaving the app
   await mp.tap('#t-pause'); await mf(1);
@@ -892,7 +903,12 @@ if (want('tilt')) {
   const { ctx, mp, mf } = await tiltPhonePage();
   // after the pose changes: 0.3 s of sensor readings (the tilt filter's time constant is 0.06 s),
   // then frames flowing again (see steady) so the controls have followed
-  const tiltSettle = async () => { await mf(3); await mp.waitForTimeout(300); await steady(mp); };
+  // Each pose is flown from the approach start again: the checks are about the controls, and a
+  // pose held while a loaded machine renders slowly could otherwise fly the aircraft into the ground.
+  const tiltSettle = async () => {
+    await mp.evaluate(() => { const g = window.__sim.game; if (g.state === 'flying') g.sim.reposition(); });
+    await mf(3); await mp.waitForTimeout(300); await steady(mp);
+  };
   const MI = () => mp.evaluate(() => Object.assign({}, window.__sim.input()));
   const TL = () => mp.evaluate(() => Object.assign({}, window.__sim.inputManager.tilt, { status: window.__sim.tilt.status, flip: window.__sim.tilt.flip, neutral: !!window.__sim.tilt.neutral, body: document.body.classList.contains('tilt'), checked: document.getElementById('opt-tilt').checked, msg: document.getElementById('tilt-msg').textContent }));
   await mf(2);
