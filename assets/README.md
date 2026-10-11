@@ -257,30 +257,36 @@ it is not a version-pinned mirror. The game never calls the Poly Haven API.
 ## Interpreted approach land cover — public-domain imagery / original mask
 
 `scenery/approach-corridor.png` and `.json` describe meadow, stubble and woodland on both
-sides of final: a 4 km × 850 m region and a 2 km × 820 m region opposite it. Forty-five
+sides of final: a 4 km × 850 m region and a 4 km × 820 m region opposite it. Seventy-one
 polygon boundaries were interpreted from bundled USDA NAIP / USGS `scenery/detail/2_0.webp`
-through `5_0.webp`, plus `2_-1.webp` and `3_-1.webp`. They are artistic land-cover
+through `5_0.webp`, plus `2_-1.webp` through `5_-1.webp`. They are artistic land-cover
 interpretations, not a land-use survey. No additional imagery or licensed models are required.
 The mask and code are original MIT project work; the source imagery is public domain.
 
 Linear RGB channels store meadow/stubble/woodland coverage. The 2000 × 1015 mask retains
 2 m/px over combined bounds of 4 km × 2.03 km, including unmapped gaps. Region edges feather
-independently, and the protected airport, mapped buildings and roads remain clear. The
+along the outside (not at the internal planting allocation boundary), and the protected
+airport, mapped buildings and roads remain clear. The
 same data guides reconstructed surfaces and tree placement. Existing CC0 grass scans and
 tree models are reused. Fine scan grain now fades earlier across fields to reduce visible
-repetition at approach height; near-eye surface relief remains.
+repetition at approach height; near-eye surface relief remains. At approach distance,
+open fields retain more of the already sampled photograph's soil and crop variation;
+uniform cover colours and incorrectly aligned procedural cultivation bands no longer
+erase that detail. Woodland still replaces photographed crowns with a shaded floor.
 
-Coverage is approximately 41.92 ha meadow, 13.28 ha stubble and 240.80 ha woodland, about
-296 ha total. The previous region's mask pixels are unchanged. Its seed and 10,000 high /
-4,800 low planting allocation remain independent of the new 5,500 / 2,600 allocation. This
+Coverage is approximately 68.43 ha meadow, 32.35 ha stubble and 282.36 ha woodland, about
+383 ha total (87 ha more than the previous pass). The original region's seed and 10,000 high /
+4,800 low planting allocation remain independent of the close opposite 5,500 / 2,600 allocation
+and the upper opposite 3,500 / 1,400 allocation. The old internal feather at x=4100 is removed
+where the opposite coverage now joins. The added polygons follow contour crops, pastures,
+woodland margins and the creek, leaving yards, lanes and ponds in the photographs. This
 reallocates trees from the wider photographic planting, retaining the overall 52,000 high /
 14,000 low budgets. Close spacing is 9.5 m high / 14 m low, and the farther original stretch
-uses 16 m / 23 m. Current mapped stands contain 15,377 high / 7,281 low trees, plus 14 placed
-site trees. Background positions and tints can change when that budget is reallocated.
+uses 16 m / 23 m. Background positions and tints can change when that budget is reallocated.
 
-The PNG/JSON pair is 228,509 bytes, below its 250 KB budget, versus 111,199 previously. The
-unmipmapped RGBA8 data texture grows from approximately 3.40 to 8.12 MB; the retained CPU
-sample buffer grows by the same amount. No additional ground draw call or shader texture
+The PNG/JSON pair is 322,507 bytes, below its 340 KB budget, versus 228,509 previously.
+The unmipmapped RGBA8 data texture and retained CPU sample buffer each remain approximately
+8.12 MB: this fills an existing gap inside the mask bounds. No additional ground draw call or shader texture
 sample is introduced. Site surfaces and their existing tree exclusions retain priority.
 
 Reproduce with `node tools/bake-corridor.mjs`; validate with `npm run test:corridor`.

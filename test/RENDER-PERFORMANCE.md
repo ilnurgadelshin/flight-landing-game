@@ -1298,3 +1298,52 @@ read one pixel before each screenshot: WebGL calls return before the GPU draws t
 SwiftShader was still drawing the motion test's sampled frames 36 s later, beyond the
 screenshot's 30 s. With that, both pass in software rendering; visual-review had failed the
 same way on `d844549`. No GPU frame rates were measured.
+
+## Upper opposite approach coverage — 2026-10-11
+
+Baseline: published `4433b0b`. The working pass extends mapped ground and planting on the
+opposite side by 2 km, and retains more surveyed variation in open-field albedo. It reuses
+all imagery/material/model assets and the existing mask dimensions. The added PNG/JSON
+resource bodies total **93,998 bytes** (322,507 bytes combined). GPU texture and CPU sampling
+storage each stay approximately 8.12 MB. Total planting remains 52,000 high / 14,000 low.
+
+Measured sequentially on Apple M2 Pro, Chromium 141.0.7390.37 / ANGLE Metal. Viewport is
+1440 × 900; high is fixed at 1.5×, low at 1×. Each scene warms for 4 seconds and samples for
+12 seconds, with physics paused and normal scenery/render updates. `captain-upper` is the
+normal captain camera 4 km before threshold; `captain` is the existing 1.8 km sample.
+`upper-opposite` matches the new overview capture. No other graphics tests ran concurrently.
+
+| Quality / scene | Before FPS | After FPS | After frame ms p50 / p95 | Draw calls before → after |
+| --- | ---: | ---: | ---: | ---: |
+| High / captain-upper | 36.15 | 37.45 | 33.3 / 33.4 | 1076 → 1076 |
+| High / captain | 37.81 | 39.14 | 33.3 / 33.4 | 931 → 931 |
+| High / upper-opposite | 50.93 | 52.51 | 16.7 / 33.4 | 788 → 788 |
+| Low / captain-upper | 60.00 | 60.00 | 16.7 / 16.7 | 597 → 597 |
+| Low / captain | 59.17 | 60.00 | 16.7 / 16.7 | 542 → 542 |
+| Low / upper-opposite | 60.00 | 60.00 | 16.7 / 16.7 | 486 → 486 |
+
+There is no measured frame-rate regression in this pair. The small increases are within
+short-run scheduling variability and do **not** demonstrate a speedup. High 1.5× still
+misses 60 FPS in these views; the normal automatic resolution/quality policy remains.
+Low results are display capped. This does not benchmark a complete flight, startup over
+the Internet, mobile hardware, another graphics driver or uncapped GPU throughput.
+
+The first baseline overlapped part of the CPU asset bake and was discarded for comparison.
+It is retained as `benchmarks/2026-10-11-upper-corridor-before.json`. The uncontended baseline
+and completed build are `benchmarks/2026-10-11-upper-corridor-before-clean.json` and
+`benchmarks/2026-10-11-upper-corridor-final.json`. The review page uses the uncontended pair.
+Reproduce with `BENCHMARK_SCENES=captain-upper,captain,upper-opposite` and
+`BENCHMARK_ROOT` pointing to an archived `4433b0b` for the baseline.
+
+Both-tier scenery checks retain clear mapped fields, road/building exclusions, total tree
+budgets and the missing-mask fallback. The asset check verifies contour strips across the
+internal allocation boundary, registration, protected airport clearance and the 340 KB
+combined data budget. The wider views and unchanged captain views are available in
+[the local comparison](output/upper-approach-review.html). The effect is substantially
+clearer in the wider views than straight ahead from the cockpit; this is additional
+coverage, not a complete scenery replacement.
+
+Final validation: all 16 Node suites, 23 day/night/weather graphics checks and the both-tier
+corridor/material/fallback checks pass on Chromium Metal. Review-page image selections,
+labels, zoom/layout controls and six benchmark rows were checked. The full functional
+browser suite, a fresh full-flight benchmark and another GPU were not run for this pass.

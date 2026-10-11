@@ -647,14 +647,16 @@ The visual assets are bundled locally and need no map service, account or API ke
   so crowns retain their area when viewed from above. Settled near trees reuse their buffers.
   The distant views are baked from the delivered geometry, and selection hysteresis plus a
   common fade rate reduce visible detail changes.
-  Reviewed ground extends along 4 km on one side of final and 2 km on the opposite side.
-  Forty-five interpreted field/woodland boundaries guide both ground materials and tree
+  Reviewed ground extends along 4 km on both sides of final.
+  Seventy-one interpreted field/woodland boundaries guide both ground materials and tree
   placement. Meadow, stubble and woodland-floor surfaces reduce photographic blur and baked
-  shadows across about 296 hectares; mapped fields remain open and woodland gains a denser
+  shadows across about 383 hectares; mapped fields remain open and woodland gains a denser
   canopy. The original mapped stands retain their planting allocation while the new area
-  draws from the existing 52,000 / 14,000 tree budget. Land-cover data totals 229 KB; roads,
+  draws from the existing 52,000 / 14,000 tree budget. Land-cover data totals 323 KB; roads,
   buildings and the protected airport area remain clear. These are interpretations of bundled
-  imagery, not surveyed land-use data. Unmapped areas retain photographic surfaces and planting.
+  imagery, not surveyed land-use data. Open fields retain photographed soil and crop variation
+  at approach height, including the upper valley's curved crop strips. Unmapped areas retain
+  photographic surfaces and planting.
 - **2,160 individual approach buildings** follow openly licensed Microsoft footprints,
   with pitched/flat roofs, twelve facade layouts, eaves, foundations and night windows.
   Houses have a principal entrance bay; nearby high-quality windows have beveled frames,

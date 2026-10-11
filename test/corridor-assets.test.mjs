@@ -6,7 +6,7 @@ import {protectedScenery} from '../js/world/scenery-ground.js';
 const root='assets/scenery/approach-corridor',manifest=JSON.parse(await fs.readFile(root+'.json'));
 const {data,info}=await sharp(root+'.png').removeAlpha().raw().toBuffer({resolveWithObject:true});
 assert.deepEqual([info.width,info.height,info.channels],[manifest.width,manifest.height,3]);
-assert.ok((await fs.stat(root+'.png')).size+(await fs.stat(root+'.json')).size<250000,'Two-sided land cover stays below 250 KB');
+assert.ok((await fs.stat(root+'.png')).size+(await fs.stat(root+'.json')).size<340000,'Four-kilometre bilateral land cover stays below 340 KB');
 assert.ok(manifest.licence.includes('Not a land-use survey'));
 const [x0,z0,width,depth]=manifest.bounds,totals=[0,0,0];
 for(let j=0;j<info.height;j++)for(let i=0;i<info.width;i++){
@@ -26,10 +26,15 @@ assert.ok(sample(4500,700)[2]>.8&&sample(5500,550)[2]>.8,'Extended woodland is c
 assert.ok(manifest.bounds[2]>=4000&&manifest.width*manifest.height<=2048*1024,'Two-sided coverage retains bounded data texture');
 assert.ok(sample(3370,-650)[0]>.8,'Opposite pasture is reconstructed');
 assert.ok(sample(3650,-560)[2]>.8,'Opposite wooded margin is reconstructed');
+assert.ok(sample(4560,-891)[0]>.8&&sample(5650,-666)[0]>.8,'Upper approach pastures are reconstructed');
+assert.ok(sample(4314,-626)[1]>.8,'The upper harvested field keeps its own cover');
+assert.ok(sample(4100,-756)[0]>.8&&sample(4100,-711)[1]>.8,'Curved crop strips remain distinct across the planting-zone boundary');
+assert.ok(sample(5774,-216)[2]>.8,'The upper woodland replaces flat photographic trees');
 for(const site of JSON.parse(await fs.readFile('assets/scenery/approach-sites.json')).sites)for(const tree of site.trees){
  const cover=sample(tree.x,tree.z);assert.ok(cover[0]+cover[1]<=.6,'Placed garden trees keep mapped fields open');
 }
-assert.equal(manifest.plantingZones.length,2);
+assert.equal(manifest.plantingZones.length,3);
 assert.deepEqual(manifest.plantingZones[0],{bounds:[2100,180,4000,850],seed:94051,highLimit:10000,lowLimit:4800},'Original canopy retains its planting allocation');
-assert.ok(manifest.plantingZones.reduce((sum,z)=>sum+z.highLimit,0)<=20000&&manifest.plantingZones.reduce((sum,z)=>sum+z.lowLimit,0)<=8000);
+assert.deepEqual(manifest.plantingZones[1],{bounds:[2100,-1000,2000,820],seed:77021,highLimit:5500,lowLimit:2600},'Close opposite canopy retains its planting allocation');
+assert.ok(manifest.plantingZones.reduce((sum,z)=>sum+z.highLimit,0)<=20000&&manifest.plantingZones.reduce((sum,z)=>sum+z.lowLimit,0)<=10000);
 console.log('Corridor coverage, airport clearance, registration and transfer budget passed');
