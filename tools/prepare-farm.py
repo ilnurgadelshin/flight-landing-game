@@ -31,6 +31,7 @@ M={
  'paint':material('Weathered cream clapboard',(.49,.47,.40),.86),
  'redroof':material('Oxide red standing seam',(.24,.085,.065),.85,.12),
  'door':material('Faded barn door',(.26,.085,.055),.9),
+ 'silo':material('Weathered galvanized silo',(.34,.38,.38),.68,.28),
 }
 # Small surface relief belongs in a filtered normal map. Centimetre-wide raised
 # strips become bright, broken lines at flight distances when built as geometry.
@@ -102,6 +103,46 @@ class Builder:
    obj=bpy.data.objects.new(self.name+' '+key,mesh);bpy.context.collection.objects.link(obj);obj.parent=parent
   return parent
 
+def silo(B,cx,cz,r,height):
+ # Cylinders and shallow domed roofs, with substantial hoops and a ladder.
+ # Skins, domes and hoops share a material; foundations and rails reuse existing ones.
+ n=48;roof=min(2.2,height*.18);eave=height-roof
+ def ring(radius,y):return [(cx+radius*math.cos(i*2*math.pi/n),y,cz+radius*math.sin(i*2*math.pi/n)) for i in range(n)]
+ def skin(a,b,mat='silo'):
+  for i in range(n):
+   j=(i+1)%n;B.face([a[i],a[j],b[j],b[i]],mat,outward=(a[i][0]-cx,0,a[i][2]-cz))
+ skin(ring(r+.16,-.1),ring(r+.16,.35),'stone');skin(ring(r,.30),ring(r,eave))
+ for k in range(4):
+  a=k*math.pi/8;b=(k+1)*math.pi/8
+  skin(ring(r*math.cos(a),eave+roof*math.sin(a)),ring(r*math.cos(b),eave+roof*math.sin(b)))
+ for y in [eave*.2,eave*.4,eave*.6,eave*.8]:
+  skin(ring(r+.055,y-.045),ring(r+.055,y+.045))
+  for sign in [-1,1]:skin(ring(r,y+sign*.045),ring(r+.055,y+sign*.045))
+ for x in [-.27,.27]:B.beam((cx+x,.7,cz+r+.12),(cx+x,eave+.1,cz+r+.12),.035,'dark',5)
+ for k in range(int((eave-.6)/.33)):
+  y=.75+k*.33;B.beam((cx-.27,y,cz+r+.12),(cx+.27,y,cz+r+.12),.026,'silo',5)
+
+def farmWing(B,x0,x1,z0,z1,eave,rise,axis='z'):
+ # Separate pitched wings match the dairy's T-shaped roof instead of one broad roof.
+ # Coordinates are in the source footprint frame; the runtime places the whole site.
+ roof=lambda x,z:eave+rise*(1-abs(((x-x0)/(x1-x0) if axis=='z' else (z-z0)/(z1-z0))*2-1))
+ points=[(x0,z0),(x1,z0),(x1,z1),(x0,z1)]
+ for a,b in zip(points,points[1:]+points[:1]):
+  out=((a[0]+b[0])/2-(x0+x1)/2,0,(a[1]+b[1])/2-(z0+z1)/2)
+  B.face([(a[0],.3,a[1]),(b[0],.3,b[1]),(b[0],eave,b[1]),(a[0],eave,a[1])],'siding',outward=out)
+  mid=((a[0]+b[0])/2,(a[1]+b[1])/2)
+  if roof(*mid)>eave+.01:B.face([(a[0],eave,a[1]),(b[0],eave,b[1]),(mid[0],roof(*mid),mid[1])],'paint',outward=out)
+  B.beam((a[0],eave,a[1]),(b[0],eave,b[1]),.10,'trim',4)
+ if axis=='z':
+  mid=(x0+x1)/2
+  for edge in [x0-.3,x1+.3]:B.face([(edge,eave,z0-.3),(mid,eave+rise,z0-.3),(mid,eave+rise,z1+.3),(edge,eave,z1+.3)],'roof',up=True)
+  B.beam((mid,eave+rise+.04,z0-.3),(mid,eave+rise+.04,z1+.3),.12,'roof',4)
+ else:
+  mid=(z0+z1)/2
+  for edge in [z0-.3,z1+.3]:B.face([(x0-.3,eave,edge),(x0-.3,eave+rise,mid),(x1+.3,eave+rise,mid),(x1+.3,eave,edge)],'roof',up=True)
+  B.beam((x0-.3,eave+rise+.04,mid),(x1+.3,eave+rise+.04,mid),.12,'roof',4)
+ B.box(((x0+x1)/2,.12,(z0+z1)/2),(x1-x0+.12,.4,z1-z0+.12),'stone')
+
 def clip(points,sign):
  out=[]
  for i,a in enumerate(points):
@@ -135,8 +176,46 @@ for x,z,name,style,height,cluster in [
 ]:
  b=next(b for b in registered if b['x']==x and b['z']==z)
  bs.append(dict(b,id=name,style=style,height=height,sourceHeight=b['height'],cluster=cluster,sparseBattens=True))
+# The conspicuous upper-valley complex: two detected "buildings" are silos.
+# Interpret their cylindrical forms from 4_-1; retain all registered footprints.
+for x,z,name,style,height in [
+ (4401.2,-503.4,'contour-dairy','dairy',8.4),
+ (4403.7,-442.8,'contour-machinery-shed','garage',4.4),
+ (4434.1,-443.2,'contour-tall-silo','silo',14),
+ (4434.4,-468.3,'contour-twin-silos','silos',10.2),
+ (4454.3,-490,'contour-store','barn',6),
+ (4470.6,-522.4,'contour-service-shed','garage',3.2),
+]:
+ b=next(b for b in registered if b['x']==x and b['z']==z)
+ bs.append(dict(b,id=name,style=style,height=height,sourceHeight=b['height'],cluster='contour-farm',sparseBattens=True))
 manifest=[]
 for b in bs:
+ placement={**{k:b[k] for k in ['id','x','z','angle','w','d','height']},'style':b.get('style','barn'),'sourceHeight':b.get('sourceHeight',b['height']),'cluster':b.get('cluster','valley')}
+ if b.get('style') in ['silo','silos']:
+  B=Builder(b['id'],b['style']);w,d=b['w'],b['d'];centres=[(0,0,min(w,d)*.46)] if b['style']=='silo' else [(-w*.25,0,min(w*.225,d*.43)),(w*.25,0,min(w*.225,d*.43))]
+  for x,z,r in centres:silo(B,x,z,r,b['height'])
+  # Projection uses the cylinders' plan shape, not the old rectangular facade.
+  c,s=math.cos(b['angle']),math.sin(b['angle']);outline=[]
+  for x,z,r in centres:
+   for i in range(24):
+    u=x+r*math.cos(i*math.pi/12);v=z+r*math.sin(i*math.pi/12);outline.append([round(u*c-v*s,3),round(u*s+v*c,3)])
+  placement['shadowOutline']=outline;placement['roofSamples']=[[round(x*c-z*s,3),round(x*s+z*c,3)] for x,z,_ in centres]
+  B.finish();manifest.append(placement);continue
+ if b.get('style')=='dairy':
+  B=Builder(b['id'],'dairy')
+  farmWing(B,-18,-3,-19,8,5.9,2.5,'z');farmWing(B,-3,13,-19,8,5.9,2.5,'z');farmWing(B,-24,26,8,19,4.5,1.8,'x')
+  # Recessed access doors and a continuous row of smaller dairy ventilation windows.
+  for side,sign in [(-18,-1),(13,1)]:
+   for z in [-12,-6,0,6]:
+    B.box((side+sign*.025,3.2,z),(.09,1.25,2.1),'dark');B.box((side+sign*.08,3.2,z),(.035,1.02,1.86),'glass')
+    for y in [2.53,3.87]:B.box((side+sign*.15,y,z),(.20,.10,2.24),'trim')
+   for z in [-18.95,7.95]:B.box((side,3,z),(.18,5.85,.18),'trim')
+  for x in [-10.5,5]:
+   B.box((x,2,-19.03),(4.1,3.65,.09),'dark');B.box((x,2,-19.10),(3.8,3.4,.06),'door');B.box((x,3.93,-19.18),(4.4,.12,.3),'trim')
+  for x in [-12,16]:
+   B.box((x,2,19.03),(4.1,3.65,.09),'dark');B.box((x,2,19.10),(3.8,3.4,.06),'door');B.box((x,3.93,19.18),(4.4,.12,.3),'trim')
+  placement['roofSamples']=[[x*math.cos(b['angle']),x*math.sin(b['angle'])] for x in [-10.5,5]]
+  B.finish();manifest.append(placement);continue
  style=b.get('style','barn');B=Builder(b['id'],style);w,d=b['w'],b['d'];rise=min(d*.27,b['height']*.38,4)
  if 'style' in b:rise=min(rise,max(.35,b['height']-2.65))
  eave=b['height']-rise
@@ -218,7 +297,7 @@ for b in bs:
   for u in [-w*.23,w*.23]:
    y=eave+rise;B.box((u,y+.27,0),(.9,.48,.7),'dark');B.box((u,y+.57,0),(1.16,.14,.92),'roof')
    for h in [.12,.24,.36]:B.box((u,y+h,.37),(.92,.028,.1),'roof');B.box((u,y+h,-.37),(.92,.028,.1),'roof')
- B.finish();manifest.append({**{k:b[k] for k in ['id','x','z','angle','w','d','height']},'style':style,'sourceHeight':b.get('sourceHeight',b['height']),'cluster':b.get('cluster','valley')})
+ B.finish();manifest.append(placement)
 bpy.ops.export_scene.gltf(filepath=str(OUT/'farm-source.glb'),export_format='GLB',export_yup=True,export_texcoords=True,export_normals=True,export_materials='EXPORT')
 (OUT/'placement.json').write_text(json.dumps(manifest,indent=2)+'\n')
 bpy.ops.wm.save_as_mainfile(filepath=str(OUT/'valley-farm.blend'))

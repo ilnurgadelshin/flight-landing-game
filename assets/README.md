@@ -293,11 +293,12 @@ Reproduce with `node tools/bake-corridor.mjs`; validate with `npm run test:corri
 
 ## Complete approach sites — original geometry / CC0 materials
 
-`scenery/valley-farm.glb` and its `-low` variant contain sixteen complete buildings, originally
+`scenery/valley-farm.glb` and its `-low` variant contain twenty-two complete building placements, originally
 authored by `tools/prepare-farm.py` in Blender under the project's MIT license. The original
 two valley barns and two opposite-side barns use the NAIP-traced infill outlines; the other
-twelve buildings retain their Microsoft footprints. The models include three clapboard homes,
-red-roofed working buildings, workshops and timber barns. Recessed openings, thick roof edges/ridge caps, gutters, door
+eighteen placements retain their Microsoft footprints. The models include three clapboard homes,
+red-roofed working buildings, workshops, timber barns and three domed silos in two groups.
+Recessed openings, thick roof edges/ridge caps, gutters, door
 canopies, foundations and home chimneys are geometry. Fine clapboard laps and standing seams
 use original 512 px repeating normal maps, filtered through mipmaps instead of thin raised
 strips that produced bright broken lines at flight distances. Source heights are estimates; the
@@ -312,14 +313,18 @@ existing CC0 ground materials. Photographed structures and shadows beneath these
 are covered. Fourteen eligible boundary/garden trees replace random planting inside the site,
 within the unchanged overall tree budget; roads, yards and buildings remain clear.
 
-`scenery/approach-sites.json` adds a three-building farm and a four-building wooded hamlet
-on the opposite side of final. It retains the source pixel outlines from the bundled
-`detail/2_-1-low.webp` and `detail/3_-1-low.webp` images (1032 px, one metre per pixel including
+`scenery/approach-sites.json` adds a three-building farm, a four-building wooded hamlet
+and a six-placement dairy/silo complex on the opposite side of final. It retains the source
+pixel outlines from the bundled `detail/2_-1-low.webp`, `detail/3_-1-low.webp` and
+`detail/4_-1-low.webp` images (1032 px, one metre per pixel including
 the 16 m gutter). `tools/prepare-approach-sites.mjs` converts these to world coordinates.
-Two terrain-following gravel lanes, three access connections, five aprons, lawns and timber
+Three terrain-following gravel lanes, six access connections, seven aprons, lawns and timber
 boundaries form the grounds. Existing gravel scans provide fine texture; vertex colours
-add broad variation and paired wheel wear. Seven new buildings add 11,382 triangles.
-Twenty-seven eligible garden/boundary trees now serve all three sites, within the same total
+add broad variation and paired wheel wear. The dairy has two parallel pitched roofs and a
+crosswing, recessed doors and side ventilation windows. Three 48-sided silos with domes,
+hoops and ladders replace two incorrect rectangular blocks; their projected shadows use
+rounded plan outlines. The dairy's interpreted 8.4 m ridge replaces the 3.4 m source estimate.
+Thirty eligible garden/boundary trees now serve all four sites, within the same total
 planting budget. Heights, lane widths, planting and architecture are artistic interpretations.
 
 The siding and gravel yard use these **CC0** scans:
@@ -333,15 +338,17 @@ Source URLs, authors, checksums, placements and exact delivered byte counts are 
 `scenery/farm-sources.json`. Wood textures use 1024 px high / 512 px low WebP. The gravel
 colour map follows those sizes; gravel normal and roughness maps use 512 px high / 256 px low.
 Meshes are Meshopt-compressed. Building meshes merge by material within each site, retaining
-local culling bounds rather than one large bound spanning the approach. Twenty-five building
-material batches, the original yard, nine ground surfaces and three timber-boundary batches
-total 38 draw batches before subtracting replaced facade geometry. Buildings use 58,855 triangles;
-grounds/fences use 81,218 triangles plus the original 2,924-triangle yard. Only referenced parcel-grid vertices are uploaded; the narrow lane uses a feathered ribbon. The assets
+local culling bounds rather than one large bound spanning the approach. Thirty-five building
+material batches, the original yard, twelve ground surfaces and four timber-boundary batches
+total 52 draw batches before subtracting replaced facade geometry. Buildings use 71,077 triangles;
+grounds/fences use 119,900 triangles plus the original 2,924-triangle yard. Only referenced parcel-grid vertices are uploaded; the narrow lane uses a feathered ribbon. The assets
 load during scenery preparation behind the menu. A missing model, site data or yard texture
 retains the original procedural buildings and the underlying imagery. Missing or invalid
 extension data keeps the original nine complete valley buildings and falls back only for the
-seven additional buildings. Both tiers add about 221 KB of model/site data; no new source
-material or imagery is introduced.
+thirteen additional placements. The latest dairy/silo pass adds 184,777 bytes high /
+184,757 bytes low, including placement/site JSON, relative to `ae16093`. It reuses all material
+images; no new texture download is introduced. Farm models, site data and gravel maps total
+2,485,007 bytes high / 1,533,409 bytes low, excluding the shared source manifest.
 
 Reproduce (download cache and Blender source remain under ignored `test/output/farm-sources/`):
 
@@ -351,6 +358,9 @@ blender --background --python tools/prepare-farm.py
 node tools/prepare-approach-sites.mjs
 node tools/prepare-farm.mjs
 ```
+
+For geometry-only updates with existing delivered gravel maps, use
+`node tools/prepare-farm.mjs --geometry-only` to preserve those map bytes.
 
 The downloader verifies each map against Poly Haven's manifest. The game makes no requests
 to Poly Haven and does not distribute the intermediate Blender file or original JPGs.

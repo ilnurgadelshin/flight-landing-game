@@ -1347,3 +1347,57 @@ Final validation: all 16 Node suites, 23 day/night/weather graphics checks and t
 corridor/material/fallback checks pass on Chromium Metal. Review-page image selections,
 labels, zoom/layout controls and six benchmark rows were checked. The full functional
 browser suite, a fresh full-flight benchmark and another GPU were not run for this pass.
+
+
+## Upper-valley dairy and silos — 2026-10-13
+
+Baseline: published `ae16093`. Six placements become a complete dairy/silo site beside the
+contour fields. The existing GLBs grow by 169,360 bytes high / 169,340 bytes low; extension
+site data grows by 9,508 bytes and the shared manifest by 5,909 bytes. The net resource-body
+increase is **184,777 bytes high / 184,757 bytes low**. No new images are introduced and
+existing gravel maps are unchanged. All four farm/site packages total 2,485,007 bytes high /
+1,533,409 low, excluding the source manifest. Scenery still prepares behind the menu.
+
+The complete-building pool grows from 58,855 to 71,077 triangles; site grounds/fences from
+81,218 to 119,900 (plus the unchanged original 2,924-triangle yard). Material/site batches
+increase from 38 to 52, with per-site culling retained. Three eligible boundary trees replace
+random planting inside the site, keeping total woodland budgets unchanged. Two rounded
+silhouette records replace the old rectangular silo shadow plans; no new shadow pass is added.
+
+Measured sequentially, with no other browser test or asset bake running: Apple M2 Pro,
+Chromium 141.0.7390.37 / ANGLE Metal, 1440 × 900, fixed 1.5× high / 1× low. Each scene warms
+for four seconds and samples twelve seconds. Physics is paused; normal scenery/render
+updates continue. `captain-upper` is 4 km before threshold, `captain` is 1.8 km, and
+`contour-farm` is the close exterior review camera.
+
+| Quality / scene | Before FPS | After FPS | After frame ms p50 / p95 | Draw calls before → after |
+| --- | ---: | ---: | ---: | ---: |
+| high / captain-upper | 37.90 | 36.27 | 33.3 / 33.4 | 1076 → 1090 |
+| high / captain | 38.81 | 38.56 | 33.3 / 33.4 | 931 → 931 |
+| high / contour-farm | 49.68 | 50.10 | 16.7 / 33.4 | 317 → 333 |
+| low / captain-upper | 60.00 | 60.00 | 16.7 / 16.8 | 597 → 611 |
+| low / captain | 60.00 | 60.00 | 16.7 / 16.7 | 542 → 542 |
+| low / contour-farm | 60.00 | 59.92 | 16.7 / 16.8 | 167 → 181 |
+
+The upper-captain view is **4.3% slower** in this pair and submits 47,242 more triangles on
+high. The other high views are close to baseline; their small differences do not prove a
+speedup or zero cost. Low results are display capped near 60 FPS. The normal automatic
+resolution/quality policy remains; these fixed-high views still miss 60 FPS. This pass was
+not benchmarked over a complete flight, on mobile hardware, another GPU or a remote network.
+
+Raw reports: `benchmarks/2026-10-13-contour-farm-render-{before,final}.json`. Reproduce with
+`BENCHMARK_SCENES=captain-upper,captain,contour-farm node test/render-benchmark.mjs LABEL`,
+using `BENCHMARK_ROOT` pointed at an archived `ae16093` for the baseline.
+
+Validation: all 16 Node suites pass. Both-tier site checks verify 22 registered models,
+24 roof samples, six extension-road connections and ground errors below 0.00002 m, with no
+unplanned or intrusive site planting. Missing/invalid extension data retains the nine-model
+original valley site; missing main model/material/site data retains all procedural buildings.
+The authored-scenery check confirms shared atmospheric uniforms on every compiled fogged
+material. Rounded shadows pass a geometry regression and a rendered on/off visibility check.
+Records: `benchmarks/2026-10-13-contour-farm-{sites,authored}.json`. The full functional browser
+suite and unrelated graphics scenarios were not rerun for this localized asset pass.
+
+[The local review](output/contour-farm-review.html) includes both quality tiers, matched
+close/wide/weather/night views and unchanged forward captain cameras. The visual gain is
+localized; the normal forward seat shows much less than the exterior detail view.

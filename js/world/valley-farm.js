@@ -133,7 +133,13 @@ export async function loadValleyFarm(world,buildings){
   const sourceGeometry=new Set();model.traverse(o=>{if(o.isMesh)sourceGeometry.add(o.geometry);});sourceGeometry.forEach(g=>g.dispose());
   // Update projected shadows only after the whole replacement has succeeded.
   // Failed optional assets must leave the procedural buildings unchanged.
-  for(const b of replaces)b.height=manifest.placements.find(p=>Math.abs(b.x-p.x)<.1&&Math.abs(b.z-p.z)<.1).height;
+  for(const b of replaces){
+   const placement=manifest.placements.find(p=>Math.abs(b.x-p.x)<.1&&Math.abs(b.z-p.z)<.1);
+   b.height=placement.height;
+   // Cylindrical farm assets keep their circular projected silhouette. Apply
+   // only after the complete replacement succeeds, preserving failure fallback.
+   if(placement.shadowOutline)b.shadowOutline=placement.shadowOutline;
+  }
   return {group,replaces,site,materials:glass,stats:{buildings:replaces.size,triangles,yardTriangles:yard.geometry.index.count/3,batches:batchCount+1+sites.length*4,sites:sites.length,siteTriangles:sites.reduce((n,s)=>n+s.triangles,0),low}};
  }catch(error){
   const geometries=new Set(),materials=new Set();model.traverse(o=>{if(o.isMesh){geometries.add(o.geometry);materials.add(o.material);}});

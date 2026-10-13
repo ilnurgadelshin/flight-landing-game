@@ -26,7 +26,7 @@ export function buildShadowMeshes(buildings,sun,ground,material){
     const key=`${Math.floor(b.x/1000)}:${Math.floor(b.z/1000)}`;
     if(!batches.has(key))batches.set(key,{positions:[],colors:[]});
     const batch=batches.get(key),dx=-sun.x/Math.max(.25,sun.y)*b.height,dz=-sun.z/Math.max(.25,sun.y)*b.height;
-    const hull=convexHull(b.outline.flatMap(([x,z])=>[[b.x+x,b.z+z],[b.x+x+dx,b.z+z+dz]]));
+    const hull=convexHull((b.shadowOutline||b.outline).flatMap(([x,z])=>[[b.x+x,b.z+z],[b.x+x+dx,b.z+z+dz]]));
     const feather=Math.min(1.8,.35+b.height*.075,Math.min(b.w,b.d)*.15);
     const inner=offsetHull(hull,-feather*.4),outer=offsetHull(hull,feather);
     const vertex=(p,alpha)=>[p[0],p[1],alpha];

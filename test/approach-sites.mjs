@@ -1,4 +1,4 @@
-// Both new complete sites: rendered registration/contact, planting, and optional-data fallback.
+// Complete approach sites: rendered registration/contact, planting, and optional-data fallback.
 import {chromium} from 'playwright';
 import {startServer} from './server.mjs';
 import {completeScenery} from './scene-ready.mjs';
@@ -17,13 +17,15 @@ try{
   await page.goto(url+'/?quality='+tier);await page.waitForFunction(()=>window.__sim,null,{timeout:120000});await completeScenery(page);
   const stats=await page.evaluate(async baseline=>{
    const s=window.__sim,w=s.world,T=await import('/vendor/three.module.js');s.setDrawing(false);s.game.state='menu';
-   const result={...w.approachBuildings.farm,groundError:0,roofs:0,roadConnections:0,trees:0,unplanned:0,intrusions:0,errors:w.assetErrors};
+   const result={...w.approachBuildings.farm,groundError:0,roofs:0,roofSamples:0,roadConnections:0,trees:0,unplanned:0,intrusions:0,errors:w.assetErrors};
    if(baseline)return result;
    const {sceneryGroundHeight}=await import('/js/world/scenery-ground.js'),data=await(await fetch('/assets/scenery/approach-sites.json')).json();
    const manifest=await(await fetch('/assets/scenery/farm-sources.json')).json(),farm=w.approachBuildings.group.getObjectByName('Authored valley farm');farm.updateMatrixWorld(true);
    for(const p of manifest.placements){
-    const ground=sceneryGroundHeight(p.x,p.z,w.groundLowDetail),hit=new T.Raycaster(new T.Vector3(p.x,ground+100,p.z),new T.Vector3(0,-1,0)).intersectObject(farm,true)[0];
-    if(!hit||hit.face.normal.y<.5||hit.point.y-ground<p.height-.5)throw new Error('Missing/low/inverted roof '+p.id);result.roofs++;
+    for(const [dx,dz] of p.roofSamples||[[0,0]]){
+     const x=p.x+dx,z=p.z+dz,ground=sceneryGroundHeight(x,z,w.groundLowDetail),hit=new T.Raycaster(new T.Vector3(x,ground+100,z),new T.Vector3(0,-1,0)).intersectObject(farm,true)[0];
+     if(!hit||hit.face.normal.y<.5||hit.point.y-ground<p.height-.5)throw new Error('Missing/low/inverted roof '+p.id);result.roofSamples++;
+    }result.roofs++;
    }
    for(const site of data.sites){
     const group=farm.getObjectByName(site.name),road=group.getObjectByName('Roadside roads');
@@ -46,17 +48,19 @@ try{
    return result;
   },baseline);
   assert.deepEqual(stats.errors,[]);
-  if(!baseline){assert.equal(stats.buildings,16);assert.equal(stats.sites,3);assert.equal(stats.roofs,16);assert.equal(stats.roadConnections,3);assert.ok(stats.groundError<.001);assert.equal(stats.intrusions,0);assert.equal(stats.unplanned,0);assert.ok(stats.trees>14);}
+  if(!baseline){assert.equal(stats.buildings,22);assert.equal(stats.sites,4);assert.equal(stats.roofs,22);assert.equal(stats.roofSamples,24);assert.equal(stats.roadConnections,6);assert.ok(stats.groundError<.001);assert.equal(stats.intrusions,0);assert.equal(stats.unplanned,0);assert.ok(stats.trees>14);}
   console.log(tier,stats);report.push({tier,...stats});
-  for(const view of ['farm-wide','farm-close','hamlet-wide','hamlet-close','overcast','night','captain-4300','captain-3500','captain-2900']){
+  for(const view of process.env.REVIEW_VIEWS?.split(',')||['farm-wide','farm-close','hamlet-wide','hamlet-close','contour-wide','contour-close','contour-overcast','contour-night','overcast','night','captain-5500','captain-4300','captain-3500','captain-2900']){
    await page.evaluate(async view=>{
     const T=await import('/vendor/three.module.js'),s=window.__sim,w=s.world;
-    s.start({startId:'short',scenarioId:view==='overcast'?'storm':'clear',night:view==='night',seed:5});s.setDrawing(false);s.setTimeScale(0);s.game.state='menu';
+    s.start({startId:'short',scenarioId:view.endsWith('overcast')?'storm':'clear',night:view.endsWith('night'),seed:5});s.setDrawing(false);s.setTimeScale(0);s.game.state='menu';
     const c=new T.PerspectiveCamera(50,1440/900,.1,60000);
     if(view==='farm-wide'){c.position.set(2620,140,-610);c.lookAt(2370,0,-390);}
     if(view==='farm-close'){c.position.set(2390,15,-320);c.lookAt(2387,3,-385);}
     if(view==='hamlet-wide'){c.position.set(3410,125,-490);c.lookAt(3180,0,-285);}
     if(['hamlet-close','night','overcast'].includes(view)){c.position.set(3150,14,-310);c.lookAt(3195,2,-277);}
+    if(view==='contour-wide'){c.position.set(4585,160,-335);c.lookAt(4420,10,-490);}
+    if(['contour-close','contour-overcast','contour-night'].includes(view)){c.position.set(4500,25,-406);c.lookAt(4415,8,-493);}
     c.updateMatrixWorld();w.camera=c;if(w.composer)w.composer.passes[0].camera=c;w.drawCockpit=false;
     if(view.startsWith('captain-')){
      w.camera=s.view.cockpit.camera;if(w.composer)w.composer.passes[0].camera=w.camera;
@@ -64,7 +68,7 @@ try{
      s.view.look.yaw=s.view.look.pitch=0;s.view.setMode('cockpit');for(let i=0;i<40;i++)s.view.update(1/60);
     }
     document.getElementById('hud').style.visibility='hidden';w.setPixelRatio(1);
-    const eye=w.camera.getWorldPosition(new T.Vector3());w.update(0,{...s.state(),alt:eye.y},eye);await w.groundDetail.settle(eye);w.nearWoodland?.settle(eye);w.render();
+    const eye=w.camera.getWorldPosition(new T.Vector3());w.update(0,{...s.state(),alt:eye.y},eye);await w.groundDetail.settle(eye);w.nearWoodland?.settle(eye);w.groundCover?.settle(eye);w.render();w.renderer.getContext().finish();
    },view);
    await page.screenshot({path:`test/output/${label}-${tier}-${view}.png`});
   }

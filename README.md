@@ -667,10 +667,12 @@ The visual assets are bundled locally and need no map service, account or API ke
   and unselected buildings retain their procedural forms.
   Five additional farm roofs traced from the public-domain imagery fill prominent gaps
   in the source footprints, with interpreted corrugated roofs and agricultural facades.
-  Sixteen buildings across the valley roadside cluster and two opposite-approach sites use complete original
-  models: timber barns, clapboard homes and a red-roofed garage with recessed openings,
-  roof details, gutters and foundations. Matching lawns, gravel yards, connected drives,
-  three local lanes, fences and 27 placed trees replace the photographic ground at these sites.
+  Twenty-two building placements across four sites use complete original models: timber
+  barns, clapboard homes, working sheds and three domed silos. The upper-valley dairy has
+  separate pitched wings; silo groups replace two incorrectly inferred windowed blocks.
+  Recessed openings, roof details, gutters and foundations add depth. Matching lawns,
+  gravel yards, connected drives, four local lanes, fences and 30 placed trees replace the
+  photographic ground at these sites. Projected silo shadows follow their rounded outlines.
   Fine clapboard and roof seams use filtered normal maps to avoid bright subpixel strips.
   Timber and gravel use CC0 scans. Footprints are retained; architecture, grounds and some
   estimated heights are interpreted. The previous buildings remain as a fallback if the
