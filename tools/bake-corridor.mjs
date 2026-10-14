@@ -94,7 +94,7 @@ traces.push(...upperTraces.map(([tile,type,points])=>[tile,type,points,1032]));
 const bounds=[2100,-1000,4000,2030],width=2000,height=1015;
 // Preserve the original region's grid, feather and planting seed while adding the
 // opposite side. Separate planting allocations avoid thinning the reviewed stands.
-const plantingZones=[{bounds:[2100,180,4000,850],seed:94051,highLimit:10000,lowLimit:4800},
+const plantingZones=[{bounds:[2100,180,4000,850],seed:94051,highLimit:13000,lowLimit:5800},
  {bounds:[2100,-1000,2000,820],seed:77021,highLimit:5500,lowLimit:2600},
  {bounds:[4100,-1000,2000,820],seed:62039,highLimit:3500,lowLimit:1400}];
 // Feather the outside of the coverage, not the internal planting-budget boundary.

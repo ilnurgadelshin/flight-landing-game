@@ -31,12 +31,12 @@ try{
    return {trees,inside,extended,opposite,upperOpposite,intrusions,fieldTrees,corridor:w.approachCorridor?.trees,ready:w.groundUniforms.uCorridorReady?.value,errors:w.assetErrors};
   });
   assert.equal(stats.intrusions,0);assert.deepEqual(stats.errors,[]);
-  if(!baseline){assert.equal(stats.ready,1);assert.equal(stats.fieldTrees,0);assert.ok(stats.extended>(tier==='high'?4000:1800));assert.ok(stats.corridor.count>(tier==='high'?2200:900));assert.ok(stats.opposite>(tier==='high'?3000:1500));assert.ok(stats.upperOpposite>(tier==='high'?1800:850));assert.ok(stats.trees<=stats.corridor.limit);}
+  if(!baseline){assert.equal(stats.ready,1);assert.equal(stats.fieldTrees,0);assert.ok(stats.extended>(tier==='high'?6500:3000));assert.ok(stats.corridor.count>(tier==='high'?20000:9000));assert.ok(stats.opposite>(tier==='high'?3000:1500));assert.ok(stats.upperOpposite>(tier==='high'?3000:1200));assert.equal(stats.trees,stats.corridor.limit);}
   const report={tier,...stats};reports.push(report);console.log(report);
   for(const view of views){
    await page.evaluate(async view=>{
     const T=await import('/vendor/three.module.js'),s=window.__sim,w=s.world;
-    s.start({startId:'short',scenarioId:['overcast','opposite-storm'].includes(view)?'storm':'clear',seed:5});s.setTimeScale(0);s.setDrawing(false);s.game.state='menu';
+    s.start({startId:'short',scenarioId:['overcast','opposite-storm'].includes(view)?'storm':'clear',night:view==='canopy-night',seed:5});s.setTimeScale(0);s.setDrawing(false);s.game.state='menu';
     const c=new T.PerspectiveCamera(50,1440/900,.1,60000);
     if(view==='opposite'){c.position.set(4040,250,-910);c.lookAt(2810,35,-475);}
     if(view==='upper-opposite'){c.position.set(6030,340,-920);c.lookAt(4420,60,-460);}
@@ -49,7 +49,7 @@ try{
     if(view==='opposite-storm'){c.position.set(3750,65,-700);c.lookAt(3320,0,-600);}
     if(view==='wide'){c.position.set(3900,240,850);c.lookAt(2650,0,400);}
     if(view==='extension'){c.position.set(5950,240,950);c.lookAt(4250,40,300);}
-    if(view==='canopy'){c.position.set(3190,85,810);c.lookAt(2800,16,675);}
+    if(['canopy','canopy-night'].includes(view)){c.position.set(3190,85,810);c.lookAt(2800,16,675);}
     if(view==='field'){
      const {sceneryGroundHeight}=await import('/js/world/scenery-ground.js');
      const y=sceneryGroundHeight(2350,330,w.groundLowDetail);

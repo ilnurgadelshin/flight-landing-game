@@ -32,13 +32,15 @@ export async function addWoodland(world,photo,approachPhoto) {
   const columns=atlas.columns,azimuthStep=2*Math.PI/columns;
   const texture=await new THREE.TextureLoader().loadAsync(new URL(`../../assets/scenery/tree-variety${low?'-low':''}.webp`,import.meta.url).href);
   texture.colorSpace=THREE.SRGBColorSpace;texture.anisotropy=world.maxAniso;
-  const material=new THREE.MeshBasicMaterial({map:texture,alphaTest:.28,alphaToCoverage:true,side:THREE.DoubleSide});
+  // Four-view blending and mip filtering already reduce thin-leaf coverage.
+  // Small crowns need a lower cutoff; large crowns keep the near model's outline.
+  const material=new THREE.MeshBasicMaterial({map:texture,alphaTest:.15,alphaToCoverage:true,side:THREE.DoubleSide});
   material.onBeforeCompile=shader=>{
     THREE.Material.prototype.onBeforeCompile.call(material,shader);
     shader.vertexShader=shader.vertexShader.replace('#include <common>',`#include <common>
       attribute vec2 treeUvOffset; attribute float treeYaw; attribute vec2 treeFrame;
       varying vec2 vTreeViews; varying float vTreeBlend; varying vec2 vTreeUV;
-      varying float vTreeElevation; varying float vTreeRow;`)
+      varying float vTreeElevation; varying float vTreeRow; varying float vTreeScale;`)
       .replace('#include <project_vertex>',`
         vec3 treeCenter=(modelMatrix*instanceMatrix*vec4(0.0,0.0,0.0,1.0)).xyz;
         float treeHeight=length(instanceMatrix[1].xyz);
@@ -55,11 +57,11 @@ export async function addWoodland(world,photo,approachPhoto) {
         gl_Position=projectionMatrix*mvPosition;
         float treeView=mod((treeYaw-atan(treeFacing.x,treeFacing.y))/${azimuthStep}+treeUvOffset.x*${columns/4}.0+${columns*2}.0,${columns}.0);
         vTreeViews=vec2(floor(treeView),mod(floor(treeView)+1.0,${columns}.0));vTreeBlend=fract(treeView);
-        vTreeUV=uv;vTreeRow=treeUvOffset.y;vTreeElevation=treePitch/0.785398163397;
+        vTreeUV=uv;vTreeRow=treeUvOffset.y;vTreeElevation=treePitch/0.785398163397;vTreeScale=treeFrame.x;
       `);
     shader.fragmentShader=shader.fragmentShader.replace('#include <common>',`#include <common>
       varying vec2 vTreeViews; varying float vTreeBlend; varying vec2 vTreeUV;
-      varying float vTreeElevation; varying float vTreeRow;`)
+      varying float vTreeElevation; varying float vTreeRow; varying float vTreeScale;`)
       .replace('#include <map_pars_fragment>',`#include <map_pars_fragment>
       vec4 treeTexel(float view,float elevation){
         vec2 tileUV=mix(vec2(.004),vec2(.996),vTreeUV);
@@ -72,6 +74,13 @@ export async function addWoodland(world,photo,approachPhoto) {
         vec4 treeB=mix(treePremultiplied(treeTexel(vTreeViews.x,treeUpper)),treePremultiplied(treeTexel(vTreeViews.y,treeUpper)),vTreeBlend);
         vec4 treeColor=mix(treeA,treeB,fract(vTreeElevation));
         diffuseColor*=vec4(treeColor.rgb/max(.001,treeColor.a),treeColor.a);
+      `)
+      .replace('#include <alphatest_fragment>',`
+        float treePixels=1.0/max(.00001,max(length(dFdx(vTreeUV)),length(dFdy(vTreeUV))))/vTreeScale;
+        float treeAlphaTest=mix(alphaTest,.28,smoothstep(64.0,128.0,treePixels));
+        #define alphaTest treeAlphaTest
+        #include <alphatest_fragment>
+        #undef alphaTest
       `);
   };
   treeFadeShader(material,false);
@@ -90,11 +99,11 @@ export async function addWoodland(world,photo,approachPhoto) {
     const zones=corridor.manifest.plantingZones||[{bounds:corridor.manifest.bounds,seed:94051,highLimit:10000,lowLimit:4800}];
     const zoneCounts=[];
     for(const zone of zones){
-      const [x0,z0,width,depth]=zone.bounds,localRng=makeRng(zone.seed),zoneTrees=[];
+      const [x0,z0,width,depth]=zone.bounds,localRng=makeRng(zone.seed),zoneTrees=[],upperTrees=[];
       // Keep the existing close canopy density. Higher parts of final can use
       // wider stand spacing, conserving the same overall tree-instance budget.
       for(let xx=x0;xx<x0+width;){
-        const spacing=xx<4100?(low?14:9.5):(low?23:16);
+        const spacing=xx<4100?(low?14:9.5):(low?18:12);
         for(let zz=z0;zz<z0+depth;zz+=spacing){
           const x=xx+(localRng()-.5)*spacing*.8,z=zz+(localRng()-.5)*spacing*.8;
           const cover=corridor.sample(x,z),weight=cover[2];
@@ -106,14 +115,16 @@ export async function addWoodland(world,photo,approachPhoto) {
           const edge=.76+.24*weight;
           const h=(row===0?14+localRng()*7:row===7?16+localRng()*7:row===8?12+localRng()*6:row<4?3+localRng()*3:10+localRng()*5)*edge;
           const w=Math.min(24,h*atlas.species[row].aspect*(.94+localRng()*.14));
-          zoneTrees.push({x,z,type:Math.floor(localRng()*4),row,h,w,yaw:localRng()*Math.PI});
+          (xx<4100?zoneTrees:upperTrees).push({x,z,type:Math.floor(localRng()*4),row,h,w,yaw:localRng()*Math.PI});
         }
         xx+=spacing;
       }
-      // Uniform thinning if future boundary edits exceed this site's allocation.
-      for(let i=zoneTrees.length-1;i>0;i--){const j=Math.floor(localRng()*(i+1));[zoneTrees[i],zoneTrees[j]]=[zoneTrees[j],zoneTrees[i]];}
-      zoneTrees.length=Math.min(zoneTrees.length,low?zone.lowLimit:zone.highLimit);
-      localTrees.push(...zoneTrees);zoneCounts.push(zoneTrees.length);
+      // Retain the close stand when the denser upper section reaches the cap.
+      // Uniformly thin only the remaining upper allocation, not both together.
+      const cap=low?zone.lowLimit:zone.highLimit;
+      for(const list of [zoneTrees,upperTrees])for(let i=list.length-1;i>0;i--){const j=Math.floor(localRng()*(i+1));[list[i],list[j]]=[list[j],list[i]];}
+      zoneTrees.length=Math.min(zoneTrees.length,cap);upperTrees.length=Math.min(upperTrees.length,cap-zoneTrees.length);
+      localTrees.push(...zoneTrees,...upperTrees);zoneCounts.push(zoneTrees.length+upperTrees.length);
     }
     corridor.zoneCounts=zoneCounts;
   }
@@ -157,7 +168,7 @@ export async function addWoodland(world,photo,approachPhoto) {
     const key=`${Math.floor(t.x/(low?2000:1000))}:${Math.floor(t.z/(low?2000:1000))}`;
     if(!patches.has(key))patches.set(key,[]);patches.get(key).push(t);forms[t.row]++;count++;
   }
-  if(corridor)corridor.trees={count:localTrees.length,total:count,limit,spacing:low?[14,23]:[9.5,16],zones:corridor.zoneCounts};
+  if(corridor)corridor.trees={count:localTrees.length,total:count,limit,spacing:low?[14,18]:[9.5,12],zones:corridor.zoneCounts};
   const group=new THREE.Group();group.name='Photographed woodland stands';
   const geometry=crownGeometry(),matrix=new THREE.Matrix4(),q=new THREE.Quaternion(),up=new THREE.Vector3(0,1,0);
   const contact=document.createElement('canvas');contact.width=contact.height=64;

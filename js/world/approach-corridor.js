@@ -22,7 +22,7 @@ export async function loadApproachCorridor(world){
    zone.bounds[0]+zone.bounds[2]>manifest.bounds[0]+manifest.bounds[2]||
    zone.bounds[1]+zone.bounds[3]>manifest.bounds[1]+manifest.bounds[3]||
    !Number.isInteger(zone.highLimit)||zone.highLimit<1||!Number.isInteger(zone.lowLimit)||zone.lowLimit<1)||
-   zones.reduce((n,z)=>n+z.highLimit,0)>20000||zones.reduce((n,z)=>n+z.lowLimit,0)>10000)throw new Error('Invalid approach planting allocation');
+   zones.reduce((n,z)=>n+z.highLimit,0)>22000||zones.reduce((n,z)=>n+z.lowLimit,0)>10000)throw new Error('Invalid approach planting allocation');
  }
  const texture=await new THREE.TextureLoader().loadAsync(url('png'));
  if(texture.image.width!==manifest.width||texture.image.height!==manifest.height){texture.dispose();throw new Error('Approach land-cover image does not match its manifest');}

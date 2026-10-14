@@ -644,15 +644,18 @@ The visual assets are bundled locally and need no map service, account or API ke
   On high quality, nearby crowns transition to the same models' 3D branches and leaves
   within 180 m, with fixed instance and triangle budgets. Distant and low-quality trees
   use camera-facing quads blending eight azimuths and side/oblique/overhead elevations,
-  so crowns retain their area when viewed from above. Settled near trees reuse their buffers.
+  so crowns retain their area when viewed from above. A lower foliage cutoff retains fine leaves
+  after those views are blended and minified; larger crowns retain the original outline for
+  their transition to 3D geometry. Settled near trees reuse their buffers.
   The distant views are baked from the delivered geometry, and selection hysteresis plus a
   common fade rate reduce visible detail changes.
   Reviewed ground extends along 4 km on both sides of final.
   Seventy-one interpreted field/woodland boundaries guide both ground materials and tree
   placement. Meadow, stubble and woodland-floor surfaces reduce photographic blur and baked
   shadows across about 383 hectares; mapped fields remain open and woodland gains a denser
-  canopy. The original mapped stands retain their planting allocation while the new area
-  draws from the existing 52,000 / 14,000 tree budget. Land-cover data totals 323 KB; roads,
+  canopy. Upper woodland uses closer 12 m / 18 m high/low spacing, drawing from the existing
+  52,000 / 14,000 tree budget. Close mapped stands take priority when an allocation fills.
+  Land-cover data totals 323 KB; roads,
   buildings and the protected airport area remain clear. These are interpretations of bundled
   imagery, not surveyed land-use data. Open fields retain photographed soil and crop variation
   at approach height, including the upper valley's curved crop strips. Unmapped areas retain

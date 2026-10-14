@@ -275,14 +275,16 @@ uniform cover colours and incorrectly aligned procedural cultivation bands no lo
 erase that detail. Woodland still replaces photographed crowns with a shaded floor.
 
 Coverage is approximately 68.43 ha meadow, 32.35 ha stubble and 282.36 ha woodland, about
-383 ha total (87 ha more than the previous pass). The original region's seed and 10,000 high /
-4,800 low planting allocation remain independent of the close opposite 5,500 / 2,600 allocation
+383 ha total. The original region keeps its seed with a 13,000 high / 5,800 low planting
+allocation, independent of the close opposite 5,500 / 2,600 allocation
 and the upper opposite 3,500 / 1,400 allocation. The old internal feather at x=4100 is removed
 where the opposite coverage now joins. The added polygons follow contour crops, pastures,
 woodland margins and the creek, leaving yards, lanes and ponds in the photographs. This
 reallocates trees from the wider photographic planting, retaining the overall 52,000 high /
 14,000 low budgets. Close spacing is 9.5 m high / 14 m low, and the farther original stretch
-uses 16 m / 23 m. Background positions and tints can change when that budget is reallocated.
+uses 12 m / 18 m. Close mapped trees take priority over the upper section when the allocation
+fills. Mapped allocation caps total 22,000 high / 9,800 low. Background positions and tints
+change when that budget is reallocated.
 
 The PNG/JSON pair is 322,507 bytes, below its 340 KB budget, versus 228,509 previously.
 The unmipmapped RGBA8 data texture and retained CPU sample buffer each remain approximately
@@ -380,7 +382,13 @@ Nine authored forms have eight azimuths at three elevations (0°, 45°, 90°), 2
 proportions, varies orientation/scale/tint, and groups smaller conifers beneath broadleaf
 woodland. Each distant tree uses one quad facing the eye in yaw and pitch, blending adjacent
 azimuth and elevation views with premultiplied alpha. Source framing is recorded per form;
-the quad still costs two triangles. These remain impostors: azimuth transitions, repeated
+the quad still costs two triangles. An alpha cutoff of 0.15 retains more filtered leaf
+coverage for crowns up to approximately 64 rendered pixels, blending back to the original
+0.28 at 128 pixels
+to preserve close geometry transitions. UV derivatives estimate size in the current render
+target, so this follows resolution changes automatically. Standard alpha-to-coverage
+smoothing remains on multisampled targets, with a hard cutoff on single-sample targets.
+No new texture sample, mip chain or alpha-blending pass is added. These remain impostors: azimuth transitions, repeated
 species and extreme close-up silhouettes are less convincing than full 3D branches.
 The atlases are 1536×5184 (high, 1,845,660 bytes) and 768×2592 (low, 543,018 bytes).
 High frames are 192 px and low frames 96 px. Eight directions reduce silhouette doubling

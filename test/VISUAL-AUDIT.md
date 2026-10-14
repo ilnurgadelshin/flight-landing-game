@@ -28,7 +28,7 @@ ignored `test/output/visual-audit-before/` folder; current captures are `test/ou
 | 2 | Muddy cockpit colours and flattened material separation | Restored source material values in the GLBs. Verified part assignments in Blender, then added distinct, subtle coated-panel, molded-trim, frame, seat-weave and yoke-rubber finishes at runtime. Modeled lettering is retained. | Liner/upholstery now use CC0 scans, with procedural panel/frame/rubber detail. A uniquely authored aircraft wear/texture set remains absent. See the 2026-09-30 followups. |
 | 3 | A completely flat approach corridor | Registered USGS elevation follows the imagery; rendering, collision and navigation share it. The airport is locally graded and a rising terrain cap protects final. | Elevations are locally modified around the fictional airport. Distant mesh resolution and imagery shadows remain limitations. |
 | 4 | Blurry aerial imagery ahead of the airport | Sixteen local 1 km detail tiles along the last 8 km, sampled at 0.5 m/px high and 1 m/px low, feather into the existing imagery; four textures stay resident. Distance-faded scanned colour, normal and roughness detail reconstructs fine surface grain in nearby fields and soil. | Underlying NAIP is generally 0.6 m; exports cannot supply finer survey detail. Coverage is a 2 km wide corridor. Five reviewed farm roofs fill prominent detection gaps. Twenty-two complete building placements across four sites have matching lawns, gravel yards, drives and lanes, including a dairy with three silos in place of two incorrect rectangular blocks. Interpreted land cover along 4 km on both sides now treats about 383 ha and guides denser planting. Open fields retain photographed crop/soil variation at approach height. Photographed grass adds close turf/pasture cover on high only, without a visible change in the sampled forward cockpit views. Blur, missing buildings and photographic shadows remain beyond mapped areas; distant fields and site lawns remain simple. |
-| 5 | Sparse, three-lobed tree blobs | Nine authored forms from three broadleaf sources plus pine/fir, eight azimuths at three elevations each, baked from the delivered geometry. Leaf masks are preserved in all nearby GLBs. One quad faces the eye in yaw and pitch and blends neighboring views. High retains bounded 3D branches and leaves within 180 m. | Distant/low trees remain impostors; view blending and repeated species are still visible. The wider palette is artistic, not a local botanical survey. Shared land-cover boundaries improve density and keep fields open along 4 km on both sides of final; density elsewhere and close-up silhouettes still expose the approximations. |
+| 5 | Sparse, three-lobed tree blobs | Nine authored forms from three broadleaf sources plus pine/fir, eight azimuths at three elevations each, baked from the delivered geometry. Leaf masks are preserved in all nearby GLBs. One quad faces the eye in yaw and pitch and blends neighboring views. High retains bounded 3D branches and leaves within 180 m. Small crowns now retain more filtered leaves; denser upper mapped planting uses the same total tree budgets and prioritizes existing close stands. | Distant/low trees remain impostors; view blending and repeated species are still visible. The wider palette is artistic, not a local botanical survey. Shared land-cover boundaries improve density and keep fields open along 4 km on both sides of final; density elsewhere and close-up silhouettes still expose the approximations. |
 | 6 | Thin cloud rings and weak volume | Cached 3D density, connected billows, flatter bases, self-shadowing and directional scattering. Overcast integrates density near both boundaries at reduced resolution, with soft billows, self-shadowing and a fog interior. | Fair-weather volumes remain simplified and soft at close range. Low uses sprites; overcast uses a bounded boundary volume plus shared fog, not a fully volumetric weather system. |
 | 7 | Runway lights look like a luminous rectangle by day | Smaller daytime cores, lower daylight intensity, distinct PAPI/beacon sizing and fog attenuation without a minimum visibility floor. Night bloom retained. | Point-based lights approximate optical glare; no lens-scattering simulation. |
 | 8 | Flat, muddy illumination and weak foreground depth | Reduced warm daytime lamps in favour of neutral sky light. Sun shadows plus a rebake of close contact and cabin sky access, including the fitted roof. Baked occlusion now affects indirect light rather than darkening the paint and direct sunlight. | No real-time global illumination. The bake approximates sky access and bounced light; it cannot replace fully authored materials. |
@@ -1081,3 +1081,50 @@ captain **38.81 → 38.56**, and farm detail **49.68 → 50.10**; low 1× stays 
 The upper view has 14 additional draw calls. These short measurements include scheduling
 variation and do not establish full-flight or other-device performance. See the
 [performance record](RENDER-PERFORMANCE.md#upper-valley-dairy-and-silos--2026-10-13).
+
+
+## Woodland crown coverage and upper stand density — 2026-10-14
+
+Baseline: published `3089610`. Blending four atlas views and filtering the result removed
+fine foliage at distance. The cutout threshold now varies with the crown's approximate
+rendered size: 0.15 up to 64 pixels, smoothly returning to the original 0.28 at 128 pixels.
+Large crowns retain their original outline during the transition to nearby geometry.
+High still uses alpha-to-coverage; low retains hard cutouts. UV derivatives make the size
+estimate follow the render-target resolution, including adaptive resolution changes.
+
+Upper mapped planting changes from 16 to 12 m spacing on high and 23 to 18 m on low.
+Close stands retain 9.5 / 14 m spacing and take priority within each zone's allocation.
+Mapped caps rise to 22,000 high / 9,800 low; actual mapped counts rise from 17,081 to
+**21,497 high** and 8,129 to **9,750 low**. Total woodland remains **52,000 / 14,000**:
+these allocations replace wider photo-selected planting. Background positions, tints and
+some nearby-tree selections change as a result. All existing field, road, building, site
+and airport exclusions remain. The land-cover image, geometry and texture assets are unchanged.
+
+[The local review](output/woodland-coverage-review.html) contains matched high/low canopy,
+upper approach, field, storm and night views, two unchanged captain cameras, and a moving
+420 m pass. The benefit is clearest in the wider mapped woods. The forward cockpit gain is
+subtle; distant image planes, repeated species, shimmer, sparse unmapped hills and photographic
+shadows remain. This does not complete the vegetation work or the wider realism plan.
+
+The isolated coverage check passes 54 size/azimuth/elevation cases per tier using the actual
+atlas and shader. At 24 / 64 pixels, summed leaf alpha increases by **46.1% high / 45.4% low**;
+empty borders stay transparent. That diagnostic does not mean every scene gains 46% forest.
+At 128 pixels coverage stays within 1% of the original. Sixteen close card-versus-geometry
+silhouettes match the baseline exactly (mean overlap 0.397); this preserves the existing
+approximation rather than proving a perfect match. An initial constant-threshold candidate
+reduced that overlap and was replaced by the size-dependent version.
+
+The moving check preserves the 0.35-second complementary fade and stays within 48 nearby
+trees / 2.4 million triangles: this path reaches 33 trees and 2,391,378 triangles. Both-tier
+scenery tests find no trees in mapped fields or protected clearances and retain the missing-mask
+fallback. See the [performance record](RENDER-PERFORMANCE.md#woodland-crown-coverage-and-upper-stand-density--2026-10-14)
+for the matched hardware measurements and retained reports.
+
+The largest remaining scenery gaps are incomplete coverage of authored sites and ground
+outside the mapped corridor. Vegetation still needs better distant volume and species variety;
+weather needs finer cloud structure and windshield water. Cockpit-specific wear and phone
+framing also remain. No engine replacement is needed to address those asset/effect gaps.
+
+Final validation also passes all 16 Node suites and the vegetation/weather browser checks
+on Metal. The review page's image selections, labels, videos and benchmark table are verified.
+The full functional suite and mobile/other-GPU performance remain unmeasured for this pass.

@@ -1401,3 +1401,71 @@ suite and unrelated graphics scenarios were not rerun for this localized asset p
 [The local review](output/contour-farm-review.html) includes both quality tiers, matched
 close/wide/weather/night views and unchanged forward captain cameras. The visual gain is
 localized; the normal forward seat shows much less than the exterior detail view.
+
+
+## Woodland crown coverage and upper stand density — 2026-10-14
+
+Baseline: published `3089610`. The woodland pass retains more fine foliage on small crowns
+and allocates more of the existing trees to upper mapped stands. The alpha cutoff uses UV
+derivatives to blend from 0.15 at 64 rendered pixels to the original 0.28 at 128 pixels.
+It adds shader arithmetic and a varying, but no texture fetch, draw pass, geometry asset,
+image or GPU texture. The map/manifest pair remains 322,507 bytes; the numeric allocation
+edits do not change its byte size. This is **zero additional asset transfer**, not zero
+additional rendering work: fuller leaves and denser visible stands can increase overdraw.
+
+Total woodland instances remain 52,000 high / 14,000 low. Actual mapped instances grow
+17,081 → 21,497 high and 8,129 → 9,750 low; wider photo-selected planting decreases to
+compensate. Close mapped stands keep their spacing and take priority within their allocation.
+No new material or render pass is added. Different background positions/tints can change
+which nearby trees enter the existing bounded geometry pool, so rendered triangle counts
+can move even with unchanged model and total instance budgets.
+
+Measured sequentially on Apple M2 Pro, Chromium 141.0.7390.37 / ANGLE Metal, 1440 × 900,
+fixed high 1.5× / low 1×. Each scene warms for four seconds and samples twelve seconds with
+physics paused. Normal scenery and rendering updates run. No other graphics test or asset
+bake ran concurrently. The nearby camera also moves through 30 m during sampling.
+
+| Quality / scene | Before FPS | After FPS | After frame ms p50 / p95 | Draw calls before → after |
+| --- | ---: | ---: | ---: | ---: |
+| high / captain-upper | 37.28 | 36.73 | 33.3 / 33.4 | 1090 → 1090 |
+| high / captain | 39.11 | 39.03 | 33.3 / 33.4 | 931 → 931 |
+| high / upper-opposite | 51.61 | 50.93 | 16.7 / 33.4 | 802 → 802 |
+| high / nearby | 50.60 | 50.86 | 16.7 / 33.4 | 430 → 430 |
+| low / captain-upper | 60.00 | 60.00 | 16.7 / 16.8 | 611 → 611 |
+| low / captain | 59.75 | 60.00 | 16.7 / 16.7 | 542 → 542 |
+| low / upper-opposite | 60.00 | 60.00 | 16.7 / 16.7 | 500 → 500 |
+| low / nearby | 60.00 | 60.00 | 16.7 / 16.7 | 288 → 288 |
+
+High upper-captain and upper-woodland views are about **1.5% / 1.3% slower** in this pair;
+the closer captain is about 0.2% slower and nearby about 0.5% faster. These short differences
+include scheduling variation and establish neither a speedup nor zero cost. Draw calls
+stay unchanged in all four views; the largest sampled triangle increase is 30,721 in the
+nearby high view, with different nearby selections. Low is display capped near 60 FPS.
+High fixed 1.5× still misses 60 FPS; automatic resolution/quality behavior is unchanged.
+This does not measure a full live flight, mobile hardware, another driver or Internet loading.
+
+Raw reports: `benchmarks/2026-10-14-woodland-render-{before,final}.json`. Reproduce with
+`BENCHMARK_SCENES=captain-upper,captain,upper-opposite,nearby node test/render-benchmark.mjs LABEL`,
+using `BENCHMARK_ROOT` pointed at an archived `3089610` for the baseline.
+
+Validation uses the actual material/atlas on both tiers: 54 size/view cases each show
+46.1% / 45.4% more summed leaf alpha at 24 and 64 pixels, transparent empty borders and
+unchanged large-crown coverage within 1%. Sixteen close card/geometry silhouette cases
+match the baseline exactly (mean overlap 0.397); this preserves, rather than resolves,
+the existing imperfect match. The matched 420 m moving check retains the 0.35-second fade,
+peaks at 33 nearby trees / 2,391,378 triangles, and stays within the original 48-tree /
+2.4-million-triangle limits. The recordings are motion evidence, not FPS benchmarks.
+Both-tier scenery checks retain clear fields, protected airport/road/building/site areas,
+fixed total budgets, shared ground registration and the missing-mask fallback.
+Reports: `benchmarks/2026-10-14-woodland-{coverage,motion-before,motion-final,scenery}.json`.
+
+[The local review](output/woodland-coverage-review.html) includes matched both-tier canopy,
+upper woodland, contour-field, storm/night and captain views, plus both motion clips.
+The normal forward cockpit benefit is subtle; wider mapped woodland shows the difference
+more clearly. Distant/low trees remain image planes and unmapped hills remain sparse.
+
+Final validation: all 16 Node suites and the vegetation/weather browser suite pass on
+Chromium Metal, including decompressor fallbacks and the new both-tier coverage check.
+The review page passes all 20 view/quality/captain combinations, image dimensions and
+before/after paths, eight benchmark rows, zoom/layout, both motion clips and narrow layout.
+The full functional browser suite, a full-flight benchmark and another GPU were not run.

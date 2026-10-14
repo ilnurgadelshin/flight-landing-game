@@ -1,0 +1,54 @@
+[
+  {
+    "tier": "high",
+    "trees": 52000,
+    "inside": 5733,
+    "extended": 8467,
+    "opposite": 5860,
+    "upperOpposite": 3846,
+    "intrusions": 0,
+    "fieldTrees": 0,
+    "corridor": {
+      "count": 21497,
+      "total": 52000,
+      "limit": 52000,
+      "spacing": [
+        9.5,
+        12
+      ],
+      "zones": [
+        13000,
+        5500,
+        2967
+      ]
+    },
+    "ready": 1,
+    "errors": []
+  },
+  {
+    "tier": "low",
+    "trees": 14000,
+    "inside": 2327,
+    "extended": 3657,
+    "opposite": 2652,
+    "upperOpposite": 1438,
+    "intrusions": 0,
+    "fieldTrees": 0,
+    "corridor": {
+      "count": 9750,
+      "total": 14000,
+      "limit": 14000,
+      "spacing": [
+        14,
+        18
+      ],
+      "zones": [
+        5800,
+        2600,
+        1320
+      ]
+    },
+    "ready": 1,
+    "errors": []
+  }
+]

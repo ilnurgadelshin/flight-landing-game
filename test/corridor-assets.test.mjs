@@ -34,7 +34,7 @@ for(const site of JSON.parse(await fs.readFile('assets/scenery/approach-sites.js
  const cover=sample(tree.x,tree.z);assert.ok(cover[0]+cover[1]<=.6,'Placed garden trees keep mapped fields open');
 }
 assert.equal(manifest.plantingZones.length,3);
-assert.deepEqual(manifest.plantingZones[0],{bounds:[2100,180,4000,850],seed:94051,highLimit:10000,lowLimit:4800},'Original canopy retains its planting allocation');
+assert.deepEqual(manifest.plantingZones[0],{bounds:[2100,180,4000,850],seed:94051,highLimit:13000,lowLimit:5800},'Denser upper woodland has a bounded share of the existing total tree budget');
 assert.deepEqual(manifest.plantingZones[1],{bounds:[2100,-1000,2000,820],seed:77021,highLimit:5500,lowLimit:2600},'Close opposite canopy retains its planting allocation');
-assert.ok(manifest.plantingZones.reduce((sum,z)=>sum+z.highLimit,0)<=20000&&manifest.plantingZones.reduce((sum,z)=>sum+z.lowLimit,0)<=10000);
+assert.ok(manifest.plantingZones.reduce((sum,z)=>sum+z.highLimit,0)<=22000&&manifest.plantingZones.reduce((sum,z)=>sum+z.lowLimit,0)<=10000);
 console.log('Corridor coverage, airport clearance, registration and transfer budget passed');
