@@ -634,6 +634,9 @@ The visual assets are bundled locally and need no map service, account or API ke
   the source model's open roof. Glazing follows the source window rails, with faint reflections,
   moving water in rain and synchronized wiper clearing. High quality refracts the exterior
   through drops; low uses a cheaper water highlight. The old cockpit remains available if the model cannot load.
+- Outside rain uses fresh, individually recycled drops with soft streaks aligned to wind and
+  aircraft velocity. Looking sideways no longer rotates the rain toward the pilot. Pane drops
+  also change position and shape on each arrival instead of replaying the same short pattern.
 - Four **USDA NAIP aerial photographs** cover the 80 km region, 24 km approach and
   8 km airport, plus an 8 km final-approach layer at 2 m/px. They blend across rolling
   terrain that remains level under the airport and approach safety strip;

@@ -43,6 +43,16 @@ The glazing/wipers are excluded from cabin reflection captures and diffuse windo
 bakes, avoiding feedback from the exterior screenshot. Original model attribution remains;
 no new source model, image, remote request or paid asset is introduced.
 
+The subsequent rain-motion correction replaces the repeating outside line field with a
+bounded pool of 2,600 high / 900 low drops. `js/world/rain-field.js` integrates their positions
+using wind minus aircraft velocity and varied fall speeds. Drops fade out at the boundary,
+then respawn at fresh positions on upstream faces; their seed stream is independent of scenery.
+`js/world/rain.js` draws soft, tapered motion streaks in one instanced pass. The pool follows
+eye translation but retains world orientation when the pilot looks around. Pane beads in
+`glazing.js` now include the arrival index in their position/shape hashes. These are procedural
+changes with no new image or model asset. Lightning, weather/flight physics and the source
+cockpit geometry remain unchanged.
+
 The runtime adds surface finishes to verified parts of this model. Original procedural maps
 distinguish coated panels, window framing and yoke rubber. On high quality, the liner and seats
 now use packed **CC0 Poly Haven scans**: [Leather White](https://polyhaven.com/a/leather_white)

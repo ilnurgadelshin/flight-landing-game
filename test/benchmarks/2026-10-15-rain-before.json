@@ -1,0 +1,24 @@
+[
+  {
+    "tier": "high",
+    "outside": {
+      "overlap": 0.9989321777353874,
+      "covered": 6654
+    },
+    "beads": {
+      "overlap": 1,
+      "covered": 10337
+    }
+  },
+  {
+    "tier": "low",
+    "outside": {
+      "overlap": 0.9989321777353874,
+      "covered": 6654
+    },
+    "beads": {
+      "overlap": 1,
+      "covered": 10337
+    }
+  }
+]

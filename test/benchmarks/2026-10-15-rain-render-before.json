@@ -1,0 +1,89 @@
+{
+  "date": "2026-10-15T08:32:33.076Z",
+  "browser": "141.0.7390.37",
+  "platform": "darwin",
+  "arch": "arm64",
+  "viewport": [
+    1440,
+    900
+  ],
+  "pixelRatio": {
+    "high": 1.5,
+    "low": 1
+  },
+  "disabled": [],
+  "warmupSeconds": 4,
+  "sampleSeconds": 12,
+  "method": "Private Chromium ANGLE Metal; fixed-resolution renderer and scenery updates, paused physics. RAF pacing is display capped; no gl.finish. CPU times exclude asynchronous GPU work.",
+  "results": [
+    {
+      "tier": "high",
+      "scene": "captain",
+      "frames": 476,
+      "fps": 39.61318886170337,
+      "p50FrameMs": 33.20000000000073,
+      "p95FrameMs": 33.400000000001455,
+      "p99FrameMs": 33.400000000001455,
+      "cpuP50Ms": 4.600000381469727,
+      "cpuP95Ms": 6.300000190734863,
+      "medianDrawCalls": 939,
+      "medianTriangles": 2115830,
+      "nearTreesAtEnd": 0,
+      "pixelRatio": 1.5,
+      "assets": []
+    },
+    {
+      "tier": "high",
+      "scene": "storm",
+      "frames": 493,
+      "fps": 40.97100449600679,
+      "p50FrameMs": 16.700000000004366,
+      "p95FrameMs": 33.400000000001455,
+      "p99FrameMs": 33.400000000001455,
+      "cpuP50Ms": 4.799999713897705,
+      "cpuP95Ms": 5.800000190734863,
+      "medianDrawCalls": 939,
+      "medianTriangles": 2126933,
+      "nearTreesAtEnd": 0,
+      "pixelRatio": 1.5,
+      "assets": []
+    },
+    {
+      "tier": "low",
+      "scene": "captain",
+      "frames": 721,
+      "fps": 60.002330187580085,
+      "p50FrameMs": 16.69999999999891,
+      "p95FrameMs": 16.700000000000728,
+      "p99FrameMs": 16.799999999999272,
+      "cpuP50Ms": 2.9000000953674316,
+      "cpuP95Ms": 4.800000190734863,
+      "medianDrawCalls": 548,
+      "medianTriangles": 802592,
+      "nearTreesAtEnd": 0,
+      "pixelRatio": 1,
+      "assets": []
+    },
+    {
+      "tier": "low",
+      "scene": "storm",
+      "frames": 721,
+      "fps": 60.002330187580114,
+      "p50FrameMs": 16.69999999999709,
+      "p95FrameMs": 16.700000000004366,
+      "p99FrameMs": 16.799999999999272,
+      "cpuP50Ms": 2.9000000953674316,
+      "cpuP95Ms": 4.200000286102295,
+      "medianDrawCalls": 532,
+      "medianTriangles": 813733,
+      "nearTreesAtEnd": 0,
+      "pixelRatio": 1,
+      "assets": []
+    }
+  ],
+  "startupBytes": {
+    "high": 14039692,
+    "low": 8633296
+  },
+  "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M2 Pro, Unspecified Version)"
+}

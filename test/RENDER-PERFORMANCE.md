@@ -1523,3 +1523,54 @@ on published main. Cloud runtime code was not changed. The full functional suite
 [The local review](output/windshield-review.html) includes matched high/low weather, side and
 night images, wiper recordings, and landscape touch captures. Water flow and blade contact
 remain approximations. There is no icing, condensation or physically complete transmission.
+
+
+## Rain repetition and continuous motion — 2026-10-15
+
+Baseline: published `c8869d5`. A CPU-integrated pool replaces the fixed, wrapping GPU line
+field. The original positions repeated exactly every ten seconds at 70 m/s ground speed;
+velocity changes could reposition the field because the shader multiplied current speed by
+total elapsed time. New drops respawn upstream with fresh positions and sizes, fade at pool
+edges and follow world-space wind minus aircraft velocity. Looking around does not rotate
+their motion. One instanced soft-streak pass replaces one line pass: **5,200 triangles high /
+1,800 low**, with no extra draw call. Low now enforces 900 drops even on desktop and after
+adaptive downgrade; high retains 2,600. The old desktop low path kept 2,600 line segments.
+
+The two dynamic instance attributes upload at most **72,800 bytes per wet frame** on a pool
+allocated for high, or **25,200 bytes** for a pool created low. No rain texture, render target
+or model is added. Startup transfer grows **3,634 bytes** on both tiers from code changes.
+Existing windshield refraction memory/copies are unchanged. Pane droplet hashes now include
+their arrival index, removing the same-location 4–8 second cycle without another texture
+fetch or pass. The change adds particle updates and shader arithmetic; it is not zero cost.
+
+Measured sequentially on Apple M2 Pro / Chromium 141.0.7390.37 / ANGLE Metal, 1440 × 900 CSS
+pixels, fixed high 1.5× / low 1×. Four-second warm-up, twelve-second sample, paused physics
+with scenery, rain and windshield updates. No concurrent graphics test or asset bake.
+
+| Quality / scene | Before → after FPS | After frame ms p50 / p95 | CPU p50 ms before → after | Draw calls before → after |
+| --- | ---: | ---: | ---: | ---: |
+| high / captain | 39.61 → 39.56 | 33.2 / 33.4 | 4.6 → 4.4 | 939 → 939 |
+| high / storm | 40.97 → 41.64 | 16.7 / 33.4 | 4.8 → 3.8 | 939 → 939 |
+| low / captain | 60.00 → 60.00 | 16.7 / 16.7 | 2.9 → 2.9 | 548 → 548 |
+| low / storm | 60.00 → 59.92 | 16.7 / 16.7 | 2.9 → 2.8 | 532 → 532 |
+
+No slowdown beyond short-run variation is apparent in this pair; the 1.6% higher storm FPS
+does not establish a speedup. Low is display capped and high at fixed 1.5× still misses 60 FPS.
+Full-flight, mobile hardware and other GPUs were not benchmarked. The existing automatic
+resolution/quality policy remains. Raw reports: `benchmarks/2026-10-15-rain-render-{before,final}.json`.
+Reproduce with `BENCHMARK_SCENES=captain,storm node test/render-benchmark.mjs LABEL`, using
+`BENCHMARK_ROOT` pointed at an archived `c8869d5` for baseline.
+
+All 17 Node suites pass. Both-tier rendered rain checks use the actual shaders: ten-second
+outside-frame overlap falls from 99.89% to 0.33% high / 0.17% low; consecutive normalized pane
+arrival overlap falls from 100% to 8.02%. These are pattern tests, not a physical accuracy
+measure. Rain remains visible, side views retain world orientation, clear weather hides it
+and adaptive low limits the pool. Both-tier windshield checks retain clearing, instrument
+occlusion, buffer disposal and low fallback. The night assertion allows fewer bright pixels
+from the softer rain but still checks visible distortion and unchanged instruments.
+Reports: `benchmarks/2026-10-15-rain-{before,final,glass-final}.json`.
+
+[The local review](output/rain-motion-review.html) includes matched storm/side/night/stopped
+captures, twenty-second videos and isolated loop frames. The full functional browser suite
+was not rerun for this effect-only correction. Rain shafts, spray, splashes and full water
+films remain unimplemented; lightning timing and flight physics are unchanged.

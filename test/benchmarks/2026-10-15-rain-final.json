@@ -1,0 +1,40 @@
+[
+  {
+    "tier": "high",
+    "outside": {
+      "overlap": 0.0033074417439238287,
+      "covered": 684
+    },
+    "beads": {
+      "overlap": 0.080220391529189,
+      "covered": 9863
+    }
+  },
+  {
+    "tier": "high",
+    "bounds": {
+      "worldOriented": true,
+      "count": 900,
+      "dry": true
+    }
+  },
+  {
+    "tier": "low",
+    "outside": {
+      "overlap": 0.0016967908520841017,
+      "covered": 240
+    },
+    "beads": {
+      "overlap": 0.080220391529189,
+      "covered": 9863
+    }
+  },
+  {
+    "tier": "low",
+    "bounds": {
+      "worldOriented": true,
+      "count": 900,
+      "dry": true
+    }
+  }
+]

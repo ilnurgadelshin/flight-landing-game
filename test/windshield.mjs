@@ -37,12 +37,17 @@ try{
     }
     return {view,wet:c.windshield?.wet,changed,panelChanged,maxDelta,copyCount:c.windshield?.copyCount,captures:[...w.cabinEnvironment.captures.values()].map(x=>!!x.target)};
    },view);
+   reports.push({tier,...stats});console.log(tier,stats);await page.screenshot({path:`test/output/${label}-${tier}-${view}.png`});
    if(!baseline){
     assert.ok(stats.captures.every(Boolean),'Glazing must not invalidate cabin captures');
     if(view==='clear'){assert.equal(stats.wet,0);assert.equal(stats.changed,0);}
-    else {assert.ok(stats.wet>.99&&stats.changed>200,'Rain visibly changes the panes');if(view!=='side')assert.equal(stats.panelChanged,0,'Water must not cover instruments');}
+    else {
+     // Softer exterior rain offers fewer bright pixels to refract at night.
+     // Keep visible distortion of lights, without making dark glass glow.
+     assert.ok(stats.wet>.99&&stats.changed>(view==='night'?50:200)&&stats.maxDelta>10,'Rain visibly changes the panes');
+     assert.equal(stats.panelChanged,0,'Water must not cover instruments');
+    }
    }
-   reports.push({tier,...stats});console.log(tier,stats);await page.screenshot({path:`test/output/${label}-${tier}-${view}.png`});
    if(view==='storm'&&process.env.RECORD_VIDEO==='1'){
     const video=await page.evaluate(async()=>{
      const s=window.__sim,w=s.world,stream=w.renderer.domElement.captureStream(30),chunks=[];

@@ -47,11 +47,16 @@ uniform sampler2D uOutside;
 float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
 vec3 drops(vec2 uv,vec2 cells,float seed){
  vec2 cell=floor(uv*cells),q=fract(uv*cells)-.5;
- float h=hash(cell+seed),h2=hash(cell+seed+7.3);
+ // A fresh arrival has a new location/shape. Reusing each cell's hash made
+ // identical beads blink back into the same spots every 4–8 seconds.
+ float base=hash(cell+seed),phase=hash(cell+seed+7.3);
+ float arrival=uTime*(.13+.12*base)+phase;
+ float cycle=floor(arrival),age=fract(arrival);
+ float h=hash(cell+seed+cycle*vec2(17.17,53.71));
+ float h2=hash(cell+seed+7.3+cycle*vec2(31.73,11.19));
  q-=vec2(h-.5,h2-.5)*.52;
  vec2 radius=vec2(.075+.045*h,.10+.08*h2);
  vec2 d=q/radius;float r=dot(d,d);
- float age=fract(uTime*(.13+.12*h)+h2);
  float life=smoothstep(0.,.08,age)*(1.-smoothstep(.85,1.,age));
  float mask=(1.-smoothstep(.65,1.,r))*life;
  return vec3(d*mask,mask);

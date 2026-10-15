@@ -1177,3 +1177,54 @@ for raw reports, transfer/memory cost and measurement limits.
 The review page also passes all eight image/quality selections, before/after paths,
 both-tier video playback, landscape touch image dimensions, benchmark rows, zoom and
 narrow-screen layout. It remains a local review artifact in ignored `test/output/`.
+
+
+## Rain repetition and motion — 2026-10-15
+
+Baseline: published `c8869d5`. The reported short storm loop was real. The outside shader
+translated one fixed constellation through a 44 × 30 × 40 m wrapping box. At 70 m/s ground
+speed, ten seconds moved it down three box heights and forward fourteen box depths, returning
+every drop to the same location. Multiplying the current velocity by total elapsed time also
+made speed changes reposition the whole field. Streaks had a fixed shape and the box rotated
+with the pilot's view. The newly added pane beads reused their positions on 4–8 second cycles.
+
+Outside rain now integrates a bounded, world-oriented pool. Drops fade near its edges and
+respawn at fresh upstream positions with varied fall speeds, widths and exposures. Soft,
+tapered streaks follow projected wind-minus-aircraft motion, including sideways views and
+stopped aircraft. Looking around does not rotate the field. High retains 2,600 drops; low
+uses 900, including desktop low and adaptive downgrade (desktop low previously kept 2,600).
+This reduces the uniform white-dash clutter and adds no image, model or additional rain pass.
+The independent rain RNG preserves repeatable scenarios without a short animation loop;
+the established cloud/lightning RNG sequence is retained. Lightning and flight physics are
+unchanged. Pane hashes now include the arrival number, giving each arrival a new shape/location.
+Wipers retain their regular mechanical sweep and clearing behavior.
+
+The actual old shader's isolated frames ten seconds apart overlap by **99.89%**. The new
+frames overlap by **0.33% high / 0.17% low**. Normalizing the pane arrival clock in an isolated
+shader check gives **100% old / 8.02% new** overlap across successive arrivals. These numbers
+demonstrate removal of repeated patterns, not a physical realism score. Both rain tiers remain
+visible in the isolated render. The regression also checks clear-weather removal, world
+orientation during a side look and the 900-drop adaptive limit.
+
+All 17 Node suites pass, including deterministic replay, bounded recycling, continuous
+acceleration without position jumps and wind direction. The windshield browser checks pass
+on both tiers: PFD/ND pixels remain unchanged, wipers clear water, dry reset removes it, HUD/ND
+skip copies, resize disposes the buffer, and low quality removes refraction. The night check
+now allows fewer refracted bright pixels after removal of the dense hard dashes, while still
+requiring visible distortion and unchanged instruments. No extra night glow was introduced.
+
+[The local review](output/rain-motion-review.html) contains matched storm, side, night and
+stopped views, twenty-second motion recordings on both tiers and the isolated repetition
+comparison. Rain still approximates individual drops; local precipitation shafts, spray,
+splashes and fuller water films remain future work. The broader ground/cloud/cockpit plan is
+not completed by this correction. Hardware cost is recorded in the performance report.
+
+The paired M2 Pro measurement is roughly unchanged: high storm **40.97 → 41.64 FPS** and
+clear captain **39.61 → 39.56 FPS**, low about **60 FPS**, with unchanged draw-call totals.
+These are short fixed-resolution samples, not evidence of a speedup or mobile performance.
+See the [performance record](RENDER-PERFORMANCE.md#rain-repetition-and-continuous-motion--2026-10-15)
+for rendering/transfer cost, raw reports and limits.
+
+The review page passes all eight view/quality selections, both-tier motion playback,
+isolated image dimensions, benchmark rows, zoom and narrow layout. Diagnostic mask panels
+are brightened for legibility; their overlap metrics use the original unaltered alpha.
