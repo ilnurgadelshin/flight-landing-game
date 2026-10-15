@@ -18,29 +18,35 @@ try{
   const stats=await page.evaluate(async()=>{
    const T=await import('/vendor/three.module.js'),s=window.__sim,w=s.world;
    s.setDrawing(false);s.game.state='menu';
-   const matrix=new T.Matrix4(),p=new T.Vector3();let trees=0,inside=0,extended=0,opposite=0,upperOpposite=0,intrusions=0,fieldTrees=0;
+   const matrix=new T.Matrix4(),p=new T.Vector3();let trees=0,inside=0,extended=0,opposite=0,upperOpposite=0,upperValley=0,intrusions=0,fieldTrees=0;
    for(const m of w.woodland.children)if(m.material===w.woodlandMaterial)for(let i=0;i<m.count;i++){
     m.getMatrixAt(i,matrix);p.setFromMatrixPosition(matrix);trees++;
     if(p.x>2100&&p.x<4100&&p.z>180&&p.z<1030)inside++;
     if(p.x>=4100&&p.x<6100&&p.z>180&&p.z<1030)extended++;
     if(p.x>2100&&p.x<4100&&p.z>-1000&&p.z< -180)opposite++;
     if(p.x>=4100&&p.x<6100&&p.z>-1000&&p.z< -180)upperOpposite++;
+    if(p.x>=6100&&p.x<9000&&p.z>-1000&&p.z<1030)upperValley++;
     if(w.approachBuildingExcludes(p.x,p.z)||w.approachRoadExcludes(p.x,p.z))intrusions++;
     const cover=w.approachCorridor?.sample(p.x,p.z);if(cover&&cover[0]+cover[1]>.6)fieldTrees++;
    }
-   return {trees,inside,extended,opposite,upperOpposite,intrusions,fieldTrees,corridor:w.approachCorridor?.trees,ready:w.groundUniforms.uCorridorReady?.value,errors:w.assetErrors};
+   const mask=w.approachCorridor?.texture.image;
+   return {trees,inside,extended,opposite,upperOpposite,upperValley,intrusions,fieldTrees,corridor:w.approachCorridor?.trees,maskSize:mask?[mask.width,mask.height]:null,ready:w.groundUniforms.uCorridorReady?.value,errors:w.assetErrors};
   });
   assert.equal(stats.intrusions,0);assert.deepEqual(stats.errors,[]);
   if(!baseline){assert.equal(stats.ready,1);assert.equal(stats.fieldTrees,0);assert.ok(stats.extended>(tier==='high'?6500:3000));assert.ok(stats.corridor.count>(tier==='high'?20000:9000));assert.ok(stats.opposite>(tier==='high'?3000:1500));assert.ok(stats.upperOpposite>(tier==='high'?3000:1200));assert.equal(stats.trees,stats.corridor.limit);}
+  if(!baseline){assert.ok(stats.upperValley>(tier==='high'?17500:2500),'Upper stands receive their bounded allocation');assert.equal(stats.trees,tier==='high'?52000:14000);}
+  if(!baseline)assert.deepEqual(stats.maskSize,tier==='high'?[3450,1015]:[2048,603],'Low quality bounds the GPU data mask while retaining full CPU placement precision');
   const report={tier,...stats};reports.push(report);console.log(report);
   for(const view of views){
    await page.evaluate(async view=>{
     const T=await import('/vendor/three.module.js'),s=window.__sim,w=s.world;
-    s.start({startId:'short',scenarioId:['overcast','opposite-storm'].includes(view)?'storm':'clear',night:view==='canopy-night',seed:5});s.setTimeScale(0);s.setDrawing(false);s.game.state='menu';
+    s.start({startId:'short',scenarioId:['overcast','opposite-storm'].includes(view)?'storm':'clear',night:view.endsWith('-night'),seed:5});s.setTimeScale(0);s.setDrawing(false);s.game.state='menu';
     const c=new T.PerspectiveCamera(50,1440/900,.1,60000);
     if(view==='opposite'){c.position.set(4040,250,-910);c.lookAt(2810,35,-475);}
     if(view==='upper-opposite'){c.position.set(6030,340,-920);c.lookAt(4420,60,-460);}
     if(view==='crop-strips'){c.position.set(4560,270,-170);c.lookAt(4210,30,-700);}
+    if(view==='upper-woodland'||view==='upper-woodland-night'){c.position.set(8950,560,900);c.lookAt(7200,160,250);}
+    if(view==='upper-clearing'){c.position.set(8160,440,-950);c.lookAt(7510,180,-410);}
     if(view==='pasture'){c.position.set(3730,120,-210);c.lookAt(3370,40,-720);}
     if(view==='opposite-field'){
      const {sceneryGroundHeight}=await import('/js/world/scenery-ground.js');const y=sceneryGroundHeight(3370,-650,w.groundLowDetail);

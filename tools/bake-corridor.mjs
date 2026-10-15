@@ -4,6 +4,7 @@
 import fs from 'node:fs/promises';
 import sharp from 'sharp';
 import {protectedScenery} from '../js/world/scenery-ground.js';
+import {upperValleyTraces} from './upper-valley-cover.mjs';
 const traces=[
  ['2_0','meadow',[[104,0],[195,0],[619,580],[695,734],[642,847],[549,927],[424,698]]],
  ['2_0','stubble',[[206,0],[336,0],[522,279],[610,492],[678,664],[698,732],[623,637]]],
@@ -91,15 +92,20 @@ const upperTraces=[
  ['5_-1','woodland',[[222,727],[256,725],[288,707],[321,711],[366,716],[395,741],[370,781],[353,822],[376,864],[399,896],[382,923],[401,952],[397,986],[424,1017],[427,1032],[64,1032],[64,1009],[46,980],[53,950],[38,922],[59,898],[90,905],[113,892],[133,865],[164,853],[183,839],[196,811],[207,788]]],
 ];
 traces.push(...upperTraces.map(([tile,type,points])=>[tile,type,points,1032]));
-const bounds=[2100,-1000,4000,2030],width=2000,height=1015;
+traces.push(...upperValleyTraces);
+const bounds=[2100,-1000,6900,2030],width=3450,height=1015;
 // Preserve the original region's grid, feather and planting seed while adding the
 // opposite side. Separate planting allocations avoid thinning the reviewed stands.
 const plantingZones=[{bounds:[2100,180,4000,850],seed:94051,highLimit:13000,lowLimit:5800},
  {bounds:[2100,-1000,2000,820],seed:77021,highLimit:5500,lowLimit:2600},
- {bounds:[4100,-1000,2000,820],seed:62039,highLimit:3500,lowLimit:1400}];
+ {bounds:[4100,-1000,2000,820],seed:62039,highLimit:3500,lowLimit:1400},
+ {bounds:[6100,-1000,2900,2030],seed:251015,highLimit:18000,lowLimit:2600,highSpacing:16,lowSpacing:30}];
 // Feather the outside of the coverage, not the internal planting-budget boundary.
-const coverRegions=[plantingZones[0].bounds,[2100,-1000,4000,820]];
-const areas=traces.map(([tile,type,points,size=1600])=>({tile,type,points:points.map(([x,z])=>[Number((Number(tile.split('_')[0])*1000-16+x*1032/size).toFixed(2)),Number((Number(tile.split('_')[1])*1000-16+z*1032/size).toFixed(2))])}));
+const coverRegions=[[2100,180,6900,850],[2100,-1000,6900,820],[6100,-230,2900,460]];
+const areas=traces.map(([tile,type,points,size=1600,holes=[]])=>{
+ const project=ps=>ps.map(([x,z])=>[Number((Number(tile.split('_')[0])*1000-16+x*1032/size).toFixed(2)),Number((Number(tile.split('_')[1])*1000-16+z*1032/size).toFixed(2))]);
+ return {tile,type,points:project(points),...(holes.length?{holes:holes.map(project)}:{})};
+});
 // Polygon bounds reject distant pixels before the more expensive edge distances.
 const boundedAreas=areas.map(a=>({...a,rect:[Math.min(...a.points.map(p=>p[0])),Math.min(...a.points.map(p=>p[1])),Math.max(...a.points.map(p=>p[0])),Math.max(...a.points.map(p=>p[1]))]}));
 function signedDistance(x,z,points){
@@ -112,25 +118,42 @@ function signedDistance(x,z,points){
 }
 const buildings=[...JSON.parse(await fs.readFile('assets/scenery/approach-buildings.json')).buildings,...JSON.parse(await fs.readFile('assets/scenery/approach-infill.json')).buildings].filter(b=>b.x>bounds[0]-100&&b.x<bounds[0]+bounds[2]+100&&b.z>bounds[1]-100&&b.z<bounds[1]+bounds[3]+100);
 const roads=JSON.parse(await fs.readFile('assets/scenery/approach-roads.json')).roads;
-function roadDistance(x,z){let d=Infinity;for(const r of roads)for(let i=1;i<r.points.length;i++){
- const a=r.points[i-1],b=r.points[i],dx=b[0]-a[0],dz=b[1]-a[1],t=Math.max(0,Math.min(1,((x-a[0])*dx+(z-a[1])*dz)/(dx*dx+dz*dz)));
+// Clearance is already saturated 14 m from roads and 24 m from buildings.
+// Index just those bounds so extending the map doesn't test every road segment
+// and roof for every pixel. The distance/feather calculation is unchanged.
+const roadCells=new Map(),buildingCells=new Map(),cellSize=64;
+const index=(map,rect,item)=>{
+ for(let x=Math.floor(rect[0]/cellSize);x<=Math.floor(rect[2]/cellSize);x++)for(let z=Math.floor(rect[1]/cellSize);z<=Math.floor(rect[3]/cellSize);z++){
+  const key=`${x}:${z}`;if(!map.has(key))map.set(key,[]);map.get(key).push(item);
+ }
+};
+for(const r of roads)for(let i=1;i<r.points.length;i++){
+ const a=r.points[i-1],b=r.points[i];index(roadCells,[Math.min(a[0],b[0])-14,Math.min(a[1],b[1])-14,Math.max(a[0],b[0])+14,Math.max(a[1],b[1])+14],[a,b]);
+}
+for(const b of buildings){const radius=Math.hypot(b.w,b.d)/2+24;index(buildingCells,[b.x-radius,b.z-radius,b.x+radius,b.z+radius],b);}
+function roadDistance(x,z,segments){let d=Infinity;for(const [a,b] of segments){
+ const dx=b[0]-a[0],dz=b[1]-a[1],t=Math.max(0,Math.min(1,((x-a[0])*dx+(z-a[1])*dz)/(dx*dx+dz*dz)));
  d=Math.min(d,Math.hypot(x-a[0]-dx*t,z-a[1]-dz*t));
 }return d;}
 const pixels=new Uint8Array(width*height*3),counts=[0,0,0];
 for(let j=0;j<height;j++)for(let i=0;i<width;i++){
  const x=bounds[0]+(i+.5)*bounds[2]/width,z=bounds[1]+(j+.5)*bounds[3]/height;
  if(protectedScenery(x,z,16))continue;
- let clearance=Math.min(1,Math.max(0,(roadDistance(x,z)-7)/7));
- for(const b of buildings){const dx=x-b.x,dz=z-b.z,c=Math.cos(b.angle),s=Math.sin(b.angle);
+ const cell=`${Math.floor(x/cellSize)}:${Math.floor(z/cellSize)}`;
+ let clearance=Math.min(1,Math.max(0,(roadDistance(x,z,roadCells.get(cell)||[])-7)/7));
+ for(const b of buildingCells.get(cell)||[]){const dx=x-b.x,dz=z-b.z,c=Math.cos(b.angle),s=Math.sin(b.angle);
   const d=Math.hypot(Math.max(0,Math.abs(dx*c+dz*s)-b.w/2),Math.max(0,Math.abs(-dx*s+dz*c)-b.d/2));
   clearance=Math.min(clearance,Math.max(0,Math.min(1,(d-12)/12)));
  }
- const region=coverRegions.find(r=>x>=r[0]&&x<r[0]+r[2]&&z>=r[1]&&z<r[1]+r[3]);
- if(!region)continue;
- const [rx,rz,rw,rd]=region;
- const boundary=Math.min(1,(x-rx)/35,(rx+rw-x)/35,(z-rz)/25,(rz+rd-z)/25);
+ let boundary=Math.max(0,...coverRegions.map(([rx,rz,rw,rd])=>Math.min(1,(x-rx)/35,(rx+rw-x)/35,(z-rz)/25,(rz+rd-z)/25)));
+ // These woods continue beyond our interpreted area. Taper their outer coverage
+ // over several crowns instead of presenting the rectangular map edge as a treeline.
+ const extension=Math.max(0,Math.min(1,(x-5980)/160));
+ const outer=Math.max(0,Math.min(1,(9000-x)/180,(z+1000)/160,(1030-z)/160));
+ boundary*=1-extension*(1-outer);
+ if(!boundary)continue;
  const weights=[0,0,0];
- for(const a of boundedAreas){if(x<a.rect[0]||z<a.rect[1]||x>a.rect[2]||z>a.rect[3])continue;const d=signedDistance(x,z,a.points),channel=['meadow','stubble','woodland'].indexOf(a.type);
+ for(const a of boundedAreas){if(x<a.rect[0]||z<a.rect[1]||x>a.rect[2]||z>a.rect[3])continue;const d=Math.min(signedDistance(x,z,a.points),...(a.holes||[]).map(h=>-signedDistance(x,z,h))),channel=['meadow','stubble','woodland'].indexOf(a.type);
   weights[channel]=Math.max(weights[channel],Math.max(0,Math.min(1,d/(channel===2?12:6))));
  }
  // Woods take precedence at shared field margins; keep total coverage <= 1.
@@ -138,5 +161,5 @@ for(let j=0;j<height;j++)for(let i=0;i<width;i++){
  for(let c=0;c<3;c++){pixels[(j*width+i)*3+c]=Math.round(weights[c]*clearance*boundary*255);counts[c]+=pixels[(j*width+i)*3+c]/255;}
 }
 await sharp(pixels,{raw:{width,height,channels:3}}).png().toFile('assets/scenery/approach-corridor.png');
-await fs.writeFile('assets/scenery/approach-corridor.json',JSON.stringify({bounds,width,height,plantingZones,licence:'Interpreted boundaries derived from public-domain USDA NAIP / USGS imagery already bundled in detail/2_0.webp through detail/5_0.webp and detail/2_-1.webp through detail/5_-1.webp. Not a land-use survey.',areas,hectares:counts.map(c=>Number((c*bounds[2]/width*bounds[3]/height/10000).toFixed(2)))},null,2)+'\n');
+await fs.writeFile('assets/scenery/approach-corridor.json',JSON.stringify({bounds,width,height,plantingZones,licence:'Interpreted boundaries derived from public-domain USDA NAIP / USGS imagery already bundled in detail/2_0.webp through detail/8_0.webp and detail/2_-1.webp through detail/8_-1.webp. Not a land-use survey.',areas,hectares:counts.map(c=>Number((c*bounds[2]/width*bounds[3]/height/10000).toFixed(2)))},null,2)+'\n');
 console.log('Corridor meadow/stubble/woodland hectares',counts.map(c=>c*4/10000),'mask bytes',(await fs.stat('assets/scenery/approach-corridor.png')).size);

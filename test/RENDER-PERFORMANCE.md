@@ -1574,3 +1574,64 @@ Reports: `benchmarks/2026-10-15-rain-{before,final,glass-final}.json`.
 captures, twenty-second videos and isolated loop frames. The full functional browser suite
 was not rerun for this effect-only correction. Rain shafts, spray, splashes and full water
 films remain unimplemented; lightning timing and flight physics are unchanged.
+
+
+## Upper-valley coverage — 2026-10-15
+
+Baseline: published `d9a30ef`. The ground-cover map extends another 2.9 km and the
+existing tree pool is redistributed into the upper valley's woods. Both tiers retain
+52,000 / 14,000 total trees; mapped allocations now account for 39,848 / 12,430 including
+30 existing site trees. Denser foreground coverage can increase fragment work even when
+the instance and draw-call totals do not grow. The existing near-tree triangle/count
+limits, renderer quality policy and detail-tile streaming are unchanged.
+
+The mask/manifest grows from 322,507 to **435,319 bytes (+112,812)**, loaded with optional
+scenery. No new tree/model/photo download is added. The high GPU data mask and retained
+CPU mask each grow from 8.12 to 14.007 MB. Low filters its GPU copy to 2048 × 603,
+**4.940 MB**, retaining full CPU precision for placement. Ground shading adds a few
+arithmetic operations to retain photographic variation, with no extra texture lookup
+or ground pass. The offline bake's spatial index reproduces the prior full-search
+coverage while avoiding testing every road/building for every pixel.
+
+The same Apple M2 Pro / Chromium 141 / ANGLE Metal setup uses 1440 × 900 CSS pixels,
+fixed high 1.5× and low 1×, four seconds of warm-up and twelve seconds per position,
+paused physics but active scenery updates. The first two positions are at 7.5 and 6 km
+before threshold, where the extension is visible; the other two are at 4 and 1.8 km.
+
+| Tier / scene | FPS before → after | After p95 | Draw calls before → after | Triangles before → after |
+| --- | --- | --- | --- | --- |
+| high / captain-entry | 37.45 → 35.12 | 33.4 ms | 1302 → 1300 | 2,543,215 → 2,551,187 |
+| high / captain-valley | 36.85 → 35.74 | 33.4 ms | 1233 → 1233 | 2,442,318 → 2,441,966 |
+| high / captain-upper | 37.03 → 37.45 | 33.4 ms | 1098 → 1094 | 2,321,149 → 2,294,329 |
+| high / captain | 38.11 → 37.37 | 33.4 ms | 939 → 936 | 2,115,830 → 2,106,078 |
+| low / captain-entry | 60.00 → 60.00 | 16.8 ms | 707 → 703 | 993,831 → 993,811 |
+| low / captain-valley | 60.00 → 59.84 | 16.7 ms | 673 → 673 | 968,424 → 968,060 |
+| low / captain-upper | 60.00 → 60.00 | 16.7 ms | 617 → 617 | 926,767 → 921,619 |
+| low / captain | 57.09 → 60.00 | 16.7 ms | 548 → 548 | 802,592 → 800,252 |
+
+High FPS falls **6.2% at entry and 3.0% over the upper valley** in this pair. The closer
+samples vary from +1.1% to −2.0%; low is display-capped near 60 FPS, except the original
+closer sample at 57.09. These short samples include scheduling variation and do not
+prove a speedup in the closer/low views. The roughly 35–37 FPS high result confirms
+that forcing 1.5× remains expensive. Automatic resolution/quality remains available.
+
+Raw reports: `benchmarks/2026-10-15-upper-valley-render-before.json` and
+`benchmarks/2026-10-15-upper-valley-render-final.json`. Rendered land-cover checks are
+retained in `benchmarks/2026-10-15-upper-valley-scenery.json`. All 17 Node suites and
+both-tier clearances, field openness, GPU mask dimensions, close material visibility
+and missing-mask fallback pass. The local `output/upper-valley-review.html` contains
+matched normal-cockpit, wide, low/high and night captures.
+
+A **complete real-time short-final autoland** through the UI Start handler also passes:
+137.61 s, score 100, fixed high at **1×**, average **58.94 FPS**, p95 **16.8 ms**, p99
+**33.3 ms**. It records three intervals over 50 ms: a 199.9 ms spike at flight start,
+66.7 ms around x=5649 and 50.1 ms around x=8536. Menu preparation takes 6.67 s; no resource
+requests start during flight. Quality remains high/1× throughout. This is a cold local
+browser run on the same M2 Pro, not an Internet download test or paired proof of a
+performance improvement. Report: `benchmarks/2026-10-15-upper-valley-flight.json`.
+Other GPUs, real phone hardware and the complete functional browser suite were not run
+for this scenery pass.
+
+All 23 browser graphics regression checks pass. Review-page validation confirms 16
+matched view/quality selections, eight benchmark rows, full-width comparison, zoom
+and narrow-screen layout without page or resource errors.

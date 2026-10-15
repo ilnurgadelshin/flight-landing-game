@@ -103,7 +103,7 @@ export async function addWoodland(world,photo,approachPhoto) {
       // Keep the existing close canopy density. Higher parts of final can use
       // wider stand spacing, conserving the same overall tree-instance budget.
       for(let xx=x0;xx<x0+width;){
-        const spacing=xx<4100?(low?14:9.5):(low?18:12);
+        const spacing=(low?zone.lowSpacing:zone.highSpacing)??(xx<4100?(low?14:9.5):(low?18:12));
         for(let zz=z0;zz<z0+depth;zz+=spacing){
           const x=xx+(localRng()-.5)*spacing*.8,z=zz+(localRng()-.5)*spacing*.8;
           const cover=corridor.sample(x,z),weight=cover[2];

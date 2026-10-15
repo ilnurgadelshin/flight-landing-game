@@ -12,7 +12,7 @@ export async function loadApproachCorridor(world){
  const manifest=await response.json();
  if(!Array.isArray(manifest.bounds)||manifest.bounds.length!==4||!manifest.bounds.every(Number.isFinite)||
    manifest.bounds[2]<=0||manifest.bounds[3]<=0||!Number.isInteger(manifest.width)||!Number.isInteger(manifest.height)||
-   manifest.width<1||manifest.height<1||manifest.width*manifest.height>2048*1024)throw new Error('Invalid approach land-cover dimensions');
+   manifest.width<1||manifest.height<1||manifest.width>4096||manifest.height>2048||manifest.width*manifest.height>4096*1024)throw new Error('Invalid approach land-cover dimensions');
  if(manifest.plantingZones){
   const zones=manifest.plantingZones;
   if(!Array.isArray(zones)||zones.length<1||zones.length>4||zones.some(zone=>
@@ -21,8 +21,9 @@ export async function loadApproachCorridor(world){
    zone.bounds[0]<manifest.bounds[0]||zone.bounds[1]<manifest.bounds[1]||
    zone.bounds[0]+zone.bounds[2]>manifest.bounds[0]+manifest.bounds[2]||
    zone.bounds[1]+zone.bounds[3]>manifest.bounds[1]+manifest.bounds[3]||
-   !Number.isInteger(zone.highLimit)||zone.highLimit<1||!Number.isInteger(zone.lowLimit)||zone.lowLimit<1)||
-   zones.reduce((n,z)=>n+z.highLimit,0)>22000||zones.reduce((n,z)=>n+z.lowLimit,0)>10000)throw new Error('Invalid approach planting allocation');
+   !Number.isInteger(zone.highLimit)||zone.highLimit<1||!Number.isInteger(zone.lowLimit)||zone.lowLimit<1||
+   [zone.highSpacing,zone.lowSpacing].some(s=>s!==undefined&&(!Number.isFinite(s)||s<9||s>40)))||
+   zones.reduce((n,z)=>n+z.highLimit,0)>40000||zones.reduce((n,z)=>n+z.lowLimit,0)>12400)throw new Error('Invalid approach planting allocation');
  }
  const texture=await new THREE.TextureLoader().loadAsync(url('png'));
  if(texture.image.width!==manifest.width||texture.image.height!==manifest.height){texture.dispose();throw new Error('Approach land-cover image does not match its manifest');}
@@ -30,6 +31,17 @@ export async function loadApproachCorridor(world){
  const canvas=document.createElement('canvas');canvas.width=manifest.width;canvas.height=manifest.height;
  const context=canvas.getContext('2d',{willReadFrequently:true});context.drawImage(texture.image,0,0);
  const pixels=context.getImageData(0,0,manifest.width,manifest.height).data;
+ // Keep the full 2 m CPU mask for placement clearances. The low tier only needs
+ // a smaller, filtered ground-colour mask; never exceed the device texture limit.
+ const low=world.lowDetail||world.quality==='low';
+ const maxSize=Math.min(world.renderer.capabilities.maxTextureSize,low?2048:4096);
+ if(Math.max(manifest.width,manifest.height)>maxSize){
+  const scale=Math.min(1,maxSize/Math.max(manifest.width,manifest.height));
+  const reduced=document.createElement('canvas');
+  reduced.width=Math.round(manifest.width*scale);reduced.height=Math.round(manifest.height*scale);
+  reduced.getContext('2d').drawImage(canvas,0,0,reduced.width,reduced.height);
+  texture.image=reduced;texture.needsUpdate=true;
+ }
  const [x0,z0,width,depth]=manifest.bounds;
  const sample=(x,z)=>{
   const i=Math.floor((x-x0)/width*manifest.width),j=Math.floor((z-z0)/depth*manifest.height);

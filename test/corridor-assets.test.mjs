@@ -6,7 +6,7 @@ import {protectedScenery} from '../js/world/scenery-ground.js';
 const root='assets/scenery/approach-corridor',manifest=JSON.parse(await fs.readFile(root+'.json'));
 const {data,info}=await sharp(root+'.png').removeAlpha().raw().toBuffer({resolveWithObject:true});
 assert.deepEqual([info.width,info.height,info.channels],[manifest.width,manifest.height,3]);
-assert.ok((await fs.stat(root+'.png')).size+(await fs.stat(root+'.json')).size<340000,'Four-kilometre bilateral land cover stays below 340 KB');
+assert.ok((await fs.stat(root+'.png')).size+(await fs.stat(root+'.json')).size<450000,'Extended valley land cover stays below 450 KB');
 assert.ok(manifest.licence.includes('Not a land-use survey'));
 const [x0,z0,width,depth]=manifest.bounds,totals=[0,0,0];
 for(let j=0;j<info.height;j++)for(let i=0;i<info.width;i++){
@@ -23,7 +23,7 @@ const sample=(x,z)=>{
 };
 assert.ok(sample(2350,330)[0]>.8,'Close review lies in the reconstructed meadow');
 assert.ok(sample(4500,700)[2]>.8&&sample(5500,550)[2]>.8,'Extended woodland is covered by the shared map');
-assert.ok(manifest.bounds[2]>=4000&&manifest.width*manifest.height<=2048*1024,'Two-sided coverage retains bounded data texture');
+assert.ok(manifest.bounds[2]>=6900&&manifest.width<=4096&&manifest.width*manifest.height<=4096*1024,'Extended coverage retains a bounded data texture');
 assert.ok(sample(3370,-650)[0]>.8,'Opposite pasture is reconstructed');
 assert.ok(sample(3650,-560)[2]>.8,'Opposite wooded margin is reconstructed');
 assert.ok(sample(4560,-891)[0]>.8&&sample(5650,-666)[0]>.8,'Upper approach pastures are reconstructed');
@@ -33,8 +33,13 @@ assert.ok(sample(5774,-216)[2]>.8,'The upper woodland replaces flat photographic
 for(const site of JSON.parse(await fs.readFile('assets/scenery/approach-sites.json')).sites)for(const tree of site.trees){
  const cover=sample(tree.x,tree.z);assert.ok(cover[0]+cover[1]<=.6,'Placed garden trees keep mapped fields open');
 }
-assert.equal(manifest.plantingZones.length,3);
+for(const [x,z] of [[6500,600],[7500,600],[8500,600],[6500,-400],[7800,-800],[8500,-600]])assert.ok(sample(x,z)[2]>.8,'Upper valley woodland follows both sides of final');
+assert.ok(sample(7550,-400)[1]>.8,'The large upper harvested clearing stays open');
+assert.ok(sample(8660,-760)[0]>.8&&sample(8200,-445)[0]>.8,'Clearings inside woodland polygons remain meadows');
+assert.equal(manifest.plantingZones.length,4);
 assert.deepEqual(manifest.plantingZones[0],{bounds:[2100,180,4000,850],seed:94051,highLimit:13000,lowLimit:5800},'Denser upper woodland has a bounded share of the existing total tree budget');
 assert.deepEqual(manifest.plantingZones[1],{bounds:[2100,-1000,2000,820],seed:77021,highLimit:5500,lowLimit:2600},'Close opposite canopy retains its planting allocation');
-assert.ok(manifest.plantingZones.reduce((sum,z)=>sum+z.highLimit,0)<=22000&&manifest.plantingZones.reduce((sum,z)=>sum+z.lowLimit,0)<=10000);
+assert.ok(manifest.plantingZones.reduce((sum,z)=>sum+z.highLimit,0)<=40000&&manifest.plantingZones.reduce((sum,z)=>sum+z.lowLimit,0)<=12400);
+assert.deepEqual(manifest.plantingZones[3].bounds,[6100,-1000,2900,2030]);
+assert.ok(manifest.plantingZones[3].highSpacing>=16&&manifest.plantingZones[3].lowSpacing>=30,'The extension uses wider spacing without increasing the whole-world tree budget');
 console.log('Corridor coverage, airport clearance, registration and transfer budget passed');

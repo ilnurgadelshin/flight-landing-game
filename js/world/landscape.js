@@ -87,6 +87,11 @@ export function buildLandscape(world) {
         vec3 meadow=mix(vec3(.105,.145,.056)*fieldVariation,surveyedAlbedo,fieldPhoto)*fieldGrain;
         vec3 stubble=mix(vec3(.195,.153,.084)*fieldVariation,surveyedAlbedo,fieldPhoto)*fieldGrain;
         vec3 floorCover=vec3(.052,.070,.029)*fieldVariation*fieldGrain;
+        // Retain the aerial photograph's broad light/shade between distant
+        // crowns. A constant forest floor becomes a smooth green sheet where
+        // the bounded tree pool (especially low quality) cannot close the canopy.
+        float forestVariation=clamp(dot(surveyedAlbedo,vec3(.2126,.7152,.0722))*8.0,.45,1.65);
+        floorCover*=mix(1.0,forestVariation,.8*smoothstep(180.0,900.0,length(vViewPosition)));
         vec3 reconstructed=(meadow*cover.r+stubble*cover.g+floorCover*cover.b)/max(.001,coverTotal);
         land=mix(land,reconstructed,coverTotal*coverReach*.86);
       }

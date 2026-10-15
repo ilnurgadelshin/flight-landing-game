@@ -27,8 +27,8 @@ ignored `test/output/visual-audit-before/` folder; current captures are `test/ou
 | 1 | Distorted cockpit/window proportions and poorly placed camera | Removed the upper-shell stretch; fitted the eye to the original cabin; retained desktop 58° FOV and narrow-screen coverage. Checked PFD and ND visibility. | Some surfaces remain simple, but this comparison does not justify replacing the source geometry. |
 | 2 | Muddy cockpit colours and flattened material separation | Restored source material values in the GLBs. Verified part assignments in Blender, then added distinct, subtle coated-panel, molded-trim, frame, seat-weave and yoke-rubber finishes at runtime. Modeled lettering is retained. | Liner/upholstery now use CC0 scans, with procedural panel/frame/rubber detail. A uniquely authored aircraft wear/texture set remains absent. See the 2026-09-30 followups. |
 | 3 | A completely flat approach corridor | Registered USGS elevation follows the imagery; rendering, collision and navigation share it. The airport is locally graded and a rising terrain cap protects final. | Elevations are locally modified around the fictional airport. Distant mesh resolution and imagery shadows remain limitations. |
-| 4 | Blurry aerial imagery ahead of the airport | Sixteen local 1 km detail tiles along the last 8 km, sampled at 0.5 m/px high and 1 m/px low, feather into the existing imagery; four textures stay resident. Distance-faded scanned colour, normal and roughness detail reconstructs fine surface grain in nearby fields and soil. | Underlying NAIP is generally 0.6 m; exports cannot supply finer survey detail. Coverage is a 2 km wide corridor. Five reviewed farm roofs fill prominent detection gaps. Twenty-two complete building placements across four sites have matching lawns, gravel yards, drives and lanes, including a dairy with three silos in place of two incorrect rectangular blocks. Interpreted land cover along 4 km on both sides now treats about 383 ha and guides denser planting. Open fields retain photographed crop/soil variation at approach height. Photographed grass adds close turf/pasture cover on high only, without a visible change in the sampled forward cockpit views. Blur, missing buildings and photographic shadows remain beyond mapped areas; distant fields and site lawns remain simple. |
-| 5 | Sparse, three-lobed tree blobs | Nine authored forms from three broadleaf sources plus pine/fir, eight azimuths at three elevations each, baked from the delivered geometry. Leaf masks are preserved in all nearby GLBs. One quad faces the eye in yaw and pitch and blends neighboring views. High retains bounded 3D branches and leaves within 180 m. Small crowns now retain more filtered leaves; denser upper mapped planting uses the same total tree budgets and prioritizes existing close stands. | Distant/low trees remain impostors; view blending and repeated species are still visible. The wider palette is artistic, not a local botanical survey. Shared land-cover boundaries improve density and keep fields open along 4 km on both sides of final; density elsewhere and close-up silhouettes still expose the approximations. |
+| 4 | Blurry aerial imagery ahead of the airport | Sixteen local 1 km detail tiles along the last 8 km, sampled at 0.5 m/px high and 1 m/px low, feather into the existing imagery; four textures stay resident. Distance-faded scanned colour, normal and roughness detail reconstructs fine surface grain in nearby fields and soil. | Underlying NAIP is generally 0.6 m; exports cannot supply finer survey detail. Coverage is a 2 km wide corridor. Five reviewed farm roofs fill prominent detection gaps. Twenty-two complete building placements across four sites have matching lawns, gravel yards, drives and lanes, including a dairy with three silos in place of two incorrect rectangular blocks. Interpreted land cover now spans 6.9 km and treats about 910 ha, including upper-valley woods visible from the normal early approach. Open fields retain photographed crop/soil variation at approach height. Photographed grass adds close turf/pasture cover on high only, without a visible change in the sampled forward cockpit views. Blur, missing buildings and photographic shadows remain beyond mapped areas; distant fields and site lawns remain simple. |
+| 5 | Sparse, three-lobed tree blobs | Nine authored forms from three broadleaf sources plus pine/fir, eight azimuths at three elevations each, baked from the delivered geometry. Leaf masks are preserved in all nearby GLBs. One quad faces the eye in yaw and pitch and blends neighboring views. High retains bounded 3D branches and leaves within 180 m. Small crowns now retain more filtered leaves; denser upper mapped planting uses the same total tree budgets and prioritizes existing close stands. | Distant/low trees remain impostors; view blending and repeated species are still visible. The wider palette is artistic, not a local botanical survey. Shared land-cover boundaries improve density and keep fields open along 6.9 km of final; density elsewhere and close-up silhouettes still expose the approximations. |
 | 6 | Thin cloud rings and weak volume | Cached 3D density, connected billows, flatter bases, self-shadowing and directional scattering. Overcast integrates density near both boundaries at reduced resolution, with soft billows, self-shadowing and a fog interior. | Fair-weather volumes remain simplified and soft at close range. Low uses sprites; overcast uses a bounded boundary volume plus shared fog, not a fully volumetric weather system. |
 | 7 | Runway lights look like a luminous rectangle by day | Smaller daytime cores, lower daylight intensity, distinct PAPI/beacon sizing and fog attenuation without a minimum visibility floor. Night bloom retained. | Point-based lights approximate optical glare; no lens-scattering simulation. |
 | 8 | Flat, muddy illumination and weak foreground depth | Reduced warm daytime lamps in favour of neutral sky light. Sun shadows plus a rebake of close contact and cabin sky access, including the fitted roof. Baked occlusion now affects indirect light rather than darkening the paint and direct sunlight. | No real-time global illumination. The bake approximates sky access and bounced light; it cannot replace fully authored materials. |
@@ -1228,3 +1228,53 @@ for rendering/transfer cost, raw reports and limits.
 The review page passes all eight view/quality selections, both-tier motion playback,
 isolated image dimensions, benchmark rows, zoom and narrow layout. Diagnostic mask panels
 are brightened for legibility; their overlap metrics use the original unaltered alpha.
+
+
+## Upper-valley ground cover and connected woodland — 2026-10-15
+
+Baseline: published `d9a30ef`. The upper short-final view still showed broad leaf-off
+photographic woods as bare-looking grey hills with sparse, randomly clustered trees.
+The interpreted ground cover now extends from x=6100 to x=9000 on both sides, adding
+another 2.9 km to the existing four-kilometre section. Fifteen original polygons from
+six already bundled NAIP tiles add woodland, meadow and a large harvested clearing;
+holes retain fields and residential clearings inside the stands. This is a leafy scenery
+interpretation of the photographs, not a survey or a change to the terrain elevation.
+
+Mapped coverage rises from **383.14 to 910.27 ha**: 73.80 meadow, 46.24 stubble and
+790.23 woodland. The extension's outer edges taper over 160–180 m where the forest
+continues beyond the map. Forest-floor colour retains photographic light/shade at
+longer distances, avoiding a uniform green sheet between widely spaced low-tier trees.
+The original mask is unchanged west of x=5980; the additional source tiles overlap
+its former upper edge farther east. Airport, roads, buildings and site exclusions remain.
+
+The extension receives up to 18,000 high / 2,600 low trees from the existing **52,000 /
+14,000 overall budgets**. Existing mapped allocations are retained; wider background
+planting is reduced. Candidate spacing is 16 / 30 m before uniform thinning. Actual
+mapped counts, including the existing 30 site trees, are **39,848 high / 12,430 low**.
+No tree model, atlas, aerial tile or new shader texture sample is added. The mask/manifest
+add **112,812 bytes**; high GPU mask memory increases by 5.887 MB, while low uses a reduced
+2048 × 603 mask and saves about 3.18 MB. Both retain the full 2 m CPU map, adding 5.887 MB.
+
+[The matched review](output/upper-valley-review.html) starts with the normal captain view
+at 7.5 and 6 km before threshold, followed by the closer approach, wide field/woodland
+views and night. The extended woods visibly change the early cockpit view; closer views
+change less. Low still has conspicuous sparse image-based trees. Repeated crowns,
+unmapped hills, photographic shadows and incomplete building/site coverage remain.
+The ground-detail tile loader is unchanged: a view-prioritisation experiment showed too
+little benefit in the sampled later cockpit views to retain in this pass.
+
+All 17 Node suites pass. Both-tier rendered scenery checks pass, including all-field,
+road and building tree clearances, fixed tree totals, low GPU mask dimensions, close
+surface visibility and missing-mask fallback. The paired Metal benchmark measures a
+3–6.2% FPS cost in the newly wooded high 1.5× views (about 35–36 FPS), while low stays
+near 60 FPS. This is a measured visual tradeoff; fixed high 1.5× still does not meet 60 FPS.
+See the performance record for raw measurements and the full-flight check.
+
+The complete real-time short-final autoland also succeeds (score 100). At fixed high
+1× it averages 58.94 FPS over 137.61 s, p95 16.8 ms, with no in-flight resource requests.
+A 199.9 ms flight-start spike and two additional intervals over 50 ms remain in the
+record. This is one local M2 Pro flight, not a cross-device performance claim.
+
+All 23 browser graphics regression checks pass. The comparison page also passes all
+16 view/quality selections, eight benchmark rows, full-width comparison, zoom and
+narrow-screen layout checks, with no page or resource errors.

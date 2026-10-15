@@ -39,8 +39,8 @@ try{
         const T=await import('/vendor/three.module.js'),s=window.__sim,w=s.world;
         w.camera=s.benchmarkCamera;if(w.composer)w.composer.passes[0].camera=w.camera;
         s.start({startId:'short',scenarioId:scene==='storm'?'storm':scene.startsWith('deck-')?'crosswind':'clear',seed:5});s.setTimeScale(0);
-        const approachX=scene==='captain-upper'?5500:3300;
-        s.game.sim.aircraft.place({x:scene==='rollout'?1000:approachX,y:scene==='rollout'?2.5:scene==='deck-captain'?w.cloudTop+220:scene==='captain-upper'?15+(approachX-1500)*Math.tan(Math.PI/60):115,z:0,headingDeg:270,iasKts:scene==='rollout'?85:147,flapIndex:4,gearDown:true,gammaDeg:-3,onGround:scene==='rollout'});
+        const approachX=scene==='captain-entry'?9000:scene==='captain-valley'?7500:scene==='captain-upper'?5500:3300;
+        s.game.sim.aircraft.place({x:scene==='rollout'?1000:approachX,y:scene==='rollout'?2.5:scene==='deck-captain'?w.cloudTop+220:scene.startsWith('captain-')?15+(approachX-1500)*Math.tan(Math.PI/60):115,z:0,headingDeg:270,iasKts:scene==='rollout'?85:147,flapIndex:4,gearDown:true,gammaDeg:-3,onGround:scene==='rollout'});
         s.view.setMode('cockpit');for(let i=0;i<40;i++)s.view.update(1/60);
         s.game.state='menu';w.setPixelRatio(pixelRatio);
         if(['nearby','site','corridor','extension','opposite','upper-opposite','contour-farm','shoulder','north-farm','hamlet','deck-top','deck-base','deck-near-top','deck-inside-base','grass-meadow','grass-pasture'].includes(scene)){
@@ -69,7 +69,7 @@ try{
         if(disabled.includes('cumulus')&&w.cumulus)w.cumulus.group.visible=false;
         if(disabled.includes('bloom')&&w.bloom)w.bloom.enabled=false;
         if(disabled.includes('shadows'))w.renderer.shadowMap.enabled=false;
-        const base=w.camera.position.clone(),state={...s.state(),alt:scene.startsWith('deck-')||scene.startsWith('grass-')||['captain-upper','upper-opposite','contour-farm'].includes(scene)?eye.y:scene==='north-farm'?15:scene==='hamlet'?14:scene==='shoulder'?3.7:scene==='rollout'?5:scene==='site'?24:scene==='nearby'?18:scene==='opposite'?250:['corridor','extension'].includes(scene)?240:115};
+        const base=w.camera.position.clone(),state={...s.state(),alt:scene.startsWith('captain-')||scene.startsWith('deck-')||scene.startsWith('grass-')||['upper-opposite','contour-farm'].includes(scene)?eye.y:scene==='north-farm'?15:scene==='hamlet'?14:scene==='shoulder'?3.7:scene==='rollout'?5:scene==='site'?24:scene==='nearby'?18:scene==='opposite'?250:['corridor','extension'].includes(scene)?240:115};
         const intervals=[],cpu=[],calls=[],triangles=[];let start,last;
         w.renderer.info.autoReset=false;
         await new Promise(resolve=>{

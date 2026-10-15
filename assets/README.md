@@ -281,42 +281,49 @@ it is not a version-pinned mirror. The game never calls the Poly Haven API.
 
 ## Interpreted approach land cover — public-domain imagery / original mask
 
-`scenery/approach-corridor.png` and `.json` describe meadow, stubble and woodland on both
-sides of final: a 4 km × 850 m region and a 4 km × 820 m region opposite it. Seventy-one
-polygon boundaries were interpreted from bundled USDA NAIP / USGS `scenery/detail/2_0.webp`
-through `5_0.webp`, plus `2_-1.webp` through `5_-1.webp`. They are artistic land-cover
-interpretations, not a land-use survey. No additional imagery or licensed models are required.
+`scenery/approach-corridor.png` and `.json` describe meadow, stubble and woodland
+along 6.9 km of final, over combined bounds of 6.9 × 2.03 km. The original bilateral
+4 km coverage now continues another 2.9 km through the upper valley, including the
+woods beneath the early short-final view. Boundaries and clearing holes are original
+interpretations of bundled USDA NAIP / USGS `scenery/detail/2_0.webp` through `8_0.webp`
+and `2_-1.webp` through `8_-1.webp`. They are artistic land-cover interpretations, not
+a land-use survey. The photographs show leaf-off woodland; the scenery interprets
+those stands with the existing leafy tree palette. No new imagery or models are used.
 The mask and code are original MIT project work; the source imagery is public domain.
 
-Linear RGB channels store meadow/stubble/woodland coverage. The 2000 × 1015 mask retains
-2 m/px over combined bounds of 4 km × 2.03 km, including unmapped gaps. Region edges feather
-along the outside (not at the internal planting allocation boundary), and the protected
-airport, mapped buildings and roads remain clear. The
-same data guides reconstructed surfaces and tree placement. Existing CC0 grass scans and
-tree models are reused. Fine scan grain now fades earlier across fields to reduce visible
-repetition at approach height; near-eye surface relief remains. At approach distance,
-open fields retain more of the already sampled photograph's soil and crop variation;
-uniform cover colours and incorrectly aligned procedural cultivation bands no longer
-erase that detail. Woodland still replaces photographed crowns with a shaded floor.
+Linear RGB stores meadow/stubble/woodland coverage. The 3450 × 1015 mask preserves
+2 m/px for CPU planting clearances. High uploads that full mask; low filters it to
+2048 × 603 for ground colour, retaining the full CPU sample buffer. Upload dimensions
+also respect the renderer's maximum texture size. The existing ground shader still
+uses one land-cover lookup and adds no draw call. The larger mask requires about
+14.01 MB each for its high-tier RGBA8 texture and retained CPU pixels (previously
+8.12 MB each); low's GPU copy is about 4.94 MB, below the previous 8.12 MB.
 
-Coverage is approximately 68.43 ha meadow, 32.35 ha stubble and 282.36 ha woodland, about
-383 ha total. The original region keeps its seed with a 13,000 high / 5,800 low planting
-allocation, independent of the close opposite 5,500 / 2,600 allocation
-and the upper opposite 3,500 / 1,400 allocation. The old internal feather at x=4100 is removed
-where the opposite coverage now joins. The added polygons follow contour crops, pastures,
-woodland margins and the creek, leaving yards, lanes and ponds in the photographs. This
-reallocates trees from the wider photographic planting, retaining the overall 52,000 high /
-14,000 low budgets. Close spacing is 9.5 m high / 14 m low, and the farther original stretch
-uses 12 m / 18 m. Close mapped trees take priority over the upper section when the allocation
-fills. Mapped allocation caps total 22,000 high / 9,800 low. Background positions and tints
-change when that budget is reallocated.
+Coverage is approximately 73.80 ha meadow, 46.24 ha stubble and 790.23 ha woodland:
+910.27 ha total, versus 383.14 ha previously. Clearing holes preserve the large
+harvested field and lawns inside the upper woods. Airport, building, road and complete
+site exclusions remain. The outer extension tapers over 160–180 m where woods continue
+outside the interpreted area, avoiding a sharp rectangular treeline. The old mask is
+unchanged west of x=5980; the added tile overlaps its former upper edge beyond that.
 
-The PNG/JSON pair is 322,507 bytes, below its 340 KB budget, versus 228,509 previously.
-The unmipmapped RGBA8 data texture and retained CPU sample buffer each remain approximately
-8.12 MB: this fills an existing gap inside the mask bounds. No additional ground draw call or shader texture
-sample is introduced. Site surfaces and their existing tree exclusions retain priority.
+The three existing planting allocations remain 13,000 / 5,800, 5,500 / 2,600 and
+3,500 / 1,400 (high / low). The extension receives up to 18,000 / 2,600 at 16 / 30 m
+candidate spacing, uniformly thinned to its cap. These allocations replace wider
+photo-selected planting within the unchanged **52,000 / 14,000 total tree budgets**.
+The close spacing remains 9.5 / 14 m and the older upper stands 12 / 18 m. Thirty
+existing site trees remain individually placed. Background positions/tints and some
+near-tree selections change when the fixed budget is redistributed.
 
-Reproduce with `node tools/bake-corridor.mjs`; validate with `npm run test:corridor`.
+Open fields retain surveyed crop and soil variation. Nearby forest floors retain the
+existing scanned detail; distant floors now retain photographic light/shade between
+crowns instead of becoming uniform green surfaces. Tree cards, sparse low-tier canopy,
+photographic shadows and unmapped hills remain approximations.
+
+The PNG/JSON pair is 435,319 bytes, below a 450 KB budget, versus 322,507 before this
+extension: **112,812 extra bytes**. It still loads with optional scenery. Reproduce with
+`node tools/bake-corridor.mjs` (upper traces are in `tools/upper-valley-cover.mjs`);
+validate with `npm run test:corridor`. The bake indexes road/building clearance bounds;
+its distance calculation and feathering are unchanged.
 
 ## Complete approach sites — original geometry / CC0 materials
 
