@@ -43,7 +43,7 @@ async function boot() {
   await new Promise((r) => setTimeout(r, 10));
   const cockpit = new Cockpit(world.camera, { lowDetail: world.lowDetail || world.quality === 'low' });
   await Promise.all([world.assetsReady, cockpit.assetsReady]);
-  world.setupCockpit(cockpit.root,cockpit.eyeLocal);
+  world.setupCockpit(cockpit.root,cockpit.eyeLocal,cockpit.windshield);
   const input = new InputManager(canvas);
   const audio = new AudioSystem({ ios: isIOS });
   const gpws = new GPWS(audio);

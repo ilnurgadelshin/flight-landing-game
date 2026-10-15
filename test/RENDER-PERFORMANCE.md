@@ -1469,3 +1469,57 @@ Chromium Metal, including decompressor fallbacks and the new both-tier coverage 
 The review page passes all 20 view/quality/captain combinations, image dimensions and
 before/after paths, eight benchmark rows, zoom/layout, both motion clips and narrow layout.
 The full functional browser suite, a full-flight benchmark and another GPU were not run.
+
+
+## Fitted glazing, water and wipers — 2026-10-14
+
+Baseline: published `e9b194f`. Six patches follow the source window frame. They share
+1,152 pane triangles between a faint reflection pass and a wet-only water pass. Two fitted
+wipers add 48 triangles and replace the fallback blades. No GLB or image is added or changed;
+the measured startup transfer grows by **9,744 bytes** on both tiers, from JavaScript changes.
+This is an effect/geometry addition, not zero rendering cost.
+
+High quality copies the already tone-mapped exterior once per wet cockpit frame and samples
+it for droplet refraction. At fixed high 1.5× here, the 2160 × 1350 RGBA8 texture consumes
+**11,664,000 bytes**, excluding driver overhead. Low has no copy or extra framebuffer texture
+and draws shaded water instead. Dry, HUD and settled ND views skip copying; resizing replaces
+and disposes the old texture, and scenario reset/adaptive downgrade release it. The glazing
+is excluded from both cabin PMREM capture and baked diffuse light.
+
+Measured sequentially on Apple M2 Pro / Chromium 141.0.7390.37 / ANGLE Metal, 1440 × 900 CSS
+pixels, fixed high 1.5× / low 1×. Each scene warms for four seconds and samples twelve seconds
+with physics paused; scenery, windshield animation and rendering update during sampling.
+No other graphics test or asset bake ran concurrently. The repeat reverses run order
+(candidate then baseline), because CPU/frame timings varied in the first pair.
+
+| Quality / scene | First before → after FPS | Repeat before → after FPS | After p95 ms first / repeat | Draw calls before → after |
+| --- | ---: | ---: | ---: | ---: |
+| high / captain | 39.81 → 37.31 | 38.56 → 38.06 | 33.4 / 33.4 | 931 → 939 |
+| high / storm | 42.38 → 38.20 | 40.00 → 38.56 | 33.4 / 33.4 | 928 → 939 |
+| low / captain | 60.00 → 59.92 | 59.67 → 60.00 | 16.8 / 16.8 | 542 → 548 |
+| low / storm | 60.00 → 59.92 | 59.84 → 59.92 | 16.8 / 16.7 | 523 → 532 |
+
+High captain is **1.3–6.3% slower** and high storm **3.6–9.9% slower** across these pairs.
+The ranges include scheduling variation, not just the effect's cost. Low remains display
+capped near 60 FPS; that does not establish spare GPU capacity. High fixed 1.5× still misses
+60 FPS. The existing automatic resolution/quality policy remains, and its downgrade also
+disables refraction. Full-flight performance, other GPUs and real mobile hardware were not
+benchmarked. This pass does not claim a performance improvement.
+
+Raw reports: `benchmarks/2026-10-14-windshield-render-{before,final,before-repeat,final-repeat}.json`.
+Reproduce with `BENCHMARK_SCENES=captain,storm node test/render-benchmark.mjs LABEL`, using
+`BENCHMARK_ROOT` pointed at an archived `e9b194f` for baseline. An earlier candidate without
+logarithmic depth support was discarded; these retained final measurements use the corrected
+shader and its derivative handling.
+
+Validation: all 16 Node suites, the existing visual/cabin-lighting browser checks and the new
+both-tier windshield checks pass on Metal. Visible pane water leaves the PFD/ND pixels unchanged;
+the isolated shader checks droplet movement, bounded clearing and dry reset. HUD/ND skip copies,
+resizing disposes the old texture, and quality downgrade retains water without refraction.
+Retained report: `benchmarks/2026-10-14-windshield-validation.json`. The lighting test's stale
+cloud-crossing probe was corrected to change camera height; its original assertion also failed
+on published main. Cloud runtime code was not changed. The full functional suite was not rerun.
+
+[The local review](output/windshield-review.html) includes matched high/low weather, side and
+night images, wiper recordings, and landscape touch captures. Water flow and blade contact
+remain approximations. There is no icing, condensation or physically complete transmission.

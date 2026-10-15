@@ -63,6 +63,8 @@ export class CabinEnvironment {
       scene.environmentIntensity=w.cabinOutdoorIntensity;
       scene.environmentRotation.set(0,0,0);
       this.root.visible=true;
+      const excluded=[];
+      this.root.traverse(o=>{if(o.userData.excludeCabinCapture){excluded.push([o,o.visible]);o.visible=false;}});
       // The same finite, baked diffuse window light illuminates the reflection
       // capture and normal frames. No driver-dependent LTC area-light shader.
       // Looking down or leaning into an instrument must not bake the cabin
@@ -79,6 +81,7 @@ export class CabinEnvironment {
         target?.dispose();
         capture={target:null,reason:String(error)};
       }finally{
+        for(const [object,visible] of excluded)object.visible=visible;
         scene.remove(this.sky);this.root.visible=previous.visible;
         scene.environment=previous.environment;scene.environmentIntensity=previous.intensity;
         scene.environmentRotation.copy(previous.rotation);

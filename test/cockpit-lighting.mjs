@@ -81,7 +81,8 @@ try{
         let layers=true;
         if(scenarioId==='crosswind'){
           const eye=w.camera.getWorldPosition(new T.Vector3());
-          w.update(0,{...s.state(),alt:w.cloudTop+100},eye);
+          // Atmosphere now follows the actual render eye, not the aircraft alt field.
+          w.update(0,s.state(),eye.clone().setY(w.cloudTop+100));
           const above=w.cockpitScene.environment;
           w.update(0,s.state(),eye);
           layers=above!==texture&&w.cockpitScene.environment===texture&&w.cabinEnvironment.captures.size===2;

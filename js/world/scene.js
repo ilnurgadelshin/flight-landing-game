@@ -264,7 +264,7 @@ export class World {
   /** Drop expensive effects without restarting a flight or moving its camera. */
   reduceQuality() {
     if(this.quality==='low')return;
-    this.quality='low';this.renderer.shadowMap.enabled=false;this.groundCover?.reduceQuality();
+    this.quality='low';this.renderer.shadowMap.enabled=false;this.groundCover?.reduceQuality();this.windshield?.reduceQuality();
     for(const light of [this.sun,this.cockpitSun]){
       light.castShadow=false;light.shadow.map?.dispose();light.shadow.map=null;
     }
@@ -340,7 +340,8 @@ export class World {
   }
 
   /** Let the flight deck cast and receive the sun's shadow (called once the cockpit is built). */
-  setupCockpit(root,eyeLocal) {
+  setupCockpit(root,eyeLocal,windshield) {
+    this.windshield=windshield;
     this.cabinEnvironment=new CabinEnvironment(this,root,eyeLocal);
     if (this.quality !== 'high') return;
     root.traverse((o) => {
@@ -765,6 +766,7 @@ export class World {
     // the flight deck on top, straight to the screen (its displays keep their exact colours);
     // the head-up view has none (drawCockpit false)
     if (this.drawCockpit === false) return;
+    this.windshield?.captureOutside(r,this.camera);
     r.autoClear = false;
     r.clearDepth();
     r.render(this.cockpitScene, this.camera);

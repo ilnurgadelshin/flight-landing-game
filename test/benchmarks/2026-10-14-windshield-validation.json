@@ -1,0 +1,131 @@
+[
+  {
+    "tier": "high",
+    "view": "clear",
+    "wet": 0,
+    "changed": 0,
+    "panelChanged": 0,
+    "maxDelta": 1,
+    "copyCount": 0,
+    "captures": [
+      true
+    ]
+  },
+  {
+    "tier": "high",
+    "view": "storm",
+    "wet": 0.9993313232485735,
+    "changed": 17351,
+    "panelChanged": 0,
+    "maxDelta": 120,
+    "copyCount": 3,
+    "captures": [
+      true
+    ]
+  },
+  {
+    "tier": "high",
+    "view": "side",
+    "wet": 0.9993313232485735,
+    "changed": 19505,
+    "panelChanged": 0,
+    "maxDelta": 122,
+    "copyCount": 246,
+    "captures": [
+      true
+    ]
+  },
+  {
+    "tier": "high",
+    "view": "night",
+    "wet": 0.9993313232485735,
+    "changed": 988,
+    "panelChanged": 0,
+    "maxDelta": 173,
+    "copyCount": 249,
+    "captures": [
+      true
+    ]
+  },
+  {
+    "tier": "high",
+    "behavior": {
+      "wipeRatio": 0.7062690477574509,
+      "motion": 618009,
+      "empty": 0,
+      "hudCopies": 0,
+      "ndCopies": 0,
+      "resized": [
+        1800,
+        1125
+      ],
+      "disposed": 1,
+      "noRefraction": true,
+      "lowCopies": 0,
+      "resetDry": true
+    }
+  },
+  {
+    "tier": "low",
+    "view": "clear",
+    "wet": 0,
+    "changed": 0,
+    "panelChanged": 0,
+    "maxDelta": 1,
+    "copyCount": 0,
+    "captures": [
+      true
+    ]
+  },
+  {
+    "tier": "low",
+    "view": "storm",
+    "wet": 0.9993313232485735,
+    "changed": 20270,
+    "panelChanged": 0,
+    "maxDelta": 30,
+    "copyCount": 0,
+    "captures": [
+      true
+    ]
+  },
+  {
+    "tier": "low",
+    "view": "side",
+    "wet": 0.9993313232485735,
+    "changed": 22532,
+    "panelChanged": 0,
+    "maxDelta": 25,
+    "copyCount": 0,
+    "captures": [
+      true
+    ]
+  },
+  {
+    "tier": "low",
+    "view": "night",
+    "wet": 0.9993313232485735,
+    "changed": 16021,
+    "panelChanged": 0,
+    "maxDelta": 19,
+    "copyCount": 0,
+    "captures": [
+      true
+    ]
+  },
+  {
+    "tier": "low",
+    "behavior": {
+      "wipeRatio": 0.7062690477574509,
+      "motion": 618009,
+      "empty": 0,
+      "hudCopies": 0,
+      "ndCopies": 0,
+      "resized": null,
+      "disposed": 0,
+      "noRefraction": true,
+      "lowCopies": 0,
+      "resetDry": true
+    }
+  }
+]

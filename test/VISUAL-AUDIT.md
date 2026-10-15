@@ -34,8 +34,8 @@ ignored `test/output/visual-audit-before/` folder; current captures are `test/ou
 | 8 | Flat, muddy illumination and weak foreground depth | Reduced warm daytime lamps in favour of neutral sky light. Sun shadows plus a rebake of close contact and cabin sky access, including the fitted roof. Baked occlusion now affects indirect light rather than darkening the paint and direct sunlight. | No real-time global illumination. The bake approximates sky access and bounced light; it cannot replace fully authored materials. |
 | 9 | Box-like airport and disconnected jet bridges | Five glazed gate halls with curved metal roofs and recessed piers connect through a lower concourse. Existing jet bridges reach their aircraft; roof seams, plant, hangar ribs and bases remain. | Buildings are still procedural architecture. A detailed terminal asset would offer a larger further improvement. |
 | 10 | Clean rectangular pavement pasted onto the terrain | Textured aggregate shoulders with feathered soil margins, subtle mowing, asphalt resurfacing/repairs and tyre deposits, apron slabs and expansion joints. | Ground-level wear, drainage and small debris remain sparse. |
-| 11 | Windshields appear absent | Removed the approximation planes fitted to the incorrectly stretched shell during the source-fidelity correction. | Glazing should follow the actual source panes. Refraction, water droplets and optical distortion remain unimplemented; the separate cockpit pass limits physical transmission. |
-| 12 | Hard black fog horizon, a dark sheet inside the cloud transition, and lights visible through opaque cloud | Fixed shared atmospheric uniforms on foliage/deck shaders; show cloud surfaces only from outside the deck; removed the lights' 3% fog visibility floor. Added rendered regression checks. | The earlier audit incorrectly blamed a CSS rain overlay: it was already disabled. Existing rain uses 3D streaks driven by relative velocity; realistic water on glass remains future work. |
+| 11 | Windshields appear absent | Glazing now follows the source frame rails. Faint reflections and moving water stay attached to six panes; fitted wipers clear front sectors. High refracts the rendered exterior through droplets; low uses shaded drops. | Droplets and blade contact are approximations, not fluid simulation. Glass has no scratches, ice, condensation or fully physical transmission; phone framing remains unchanged. |
+| 12 | Hard black fog horizon, a dark sheet inside the cloud transition, and lights visible through opaque cloud | Fixed shared atmospheric uniforms on foliage/deck shaders; show cloud surfaces only from outside the deck; removed the lights' 3% fog visibility floor. Added rendered regression checks. | The earlier audit incorrectly blamed a CSS rain overlay: it was already disabled. Existing rain uses 3D streaks driven by relative velocity. Pane-bound water and wiper clearing now complement those streaks; richer water films remain future work. |
 | 13 | Jagged foliage, grain and inconsistent fine-detail sharpness | Alpha-to-coverage for foliage, anisotropic filtering and mipmapped, metric-scale cockpit finishes. Removed the cockpit shadow normal offset that stippled the double-sided liner; existing 4× world MSAA and cockpit antialiasing remain. | No temporal AA. Thin modeled labels, shadow edges and branches can still shimmer at distance. |
 | 14 | Repeating facade grids and weak building contact | Twelve approach facade bays share an atlas: house fronts with doors/shutters, upper floors, sparse sides, barns and loading bays. Houses have a principal entry bay; nearby bevels, smoother panes, canopies and thresholds add depth. Siding relief and roughness separate materials. Gables stay solid. Terrain-following projected shadows now have feathered edges. | Twenty-five nearby buildings on high / nine low use CC0 wall modules. Twenty-two building placements across four sites have complete models, matching grounds, access and placed vegetation. Rounded silo shadows retain the same terrain-following projection. Most architecture remains procedural; more complete sites and missing-footprint coverage remain needed. |
 | 15 | Prototype-like desktop readout bar | Inset, quieter translucent status strip with restrained borders and spacing; controls and readouts retained. | The simulator intentionally retains training/status UI. This matters less than asset quality. |
@@ -43,7 +43,7 @@ ignored `test/output/visual-audit-before/` folder; current captures are `test/ou
 Further cockpit work should begin with a source-versus-game comparison, not a replacement
 model. The approach now has matching building footprints and two valley roads. The next large
 scenery gaps are broader coverage of complete buildings with matching ground detail, missing building detections and more convincing crown density;
-weather still needs finer cloud structure and windshield water. An engine migration alone would not
+weather still needs finer cloud structure and richer water films beyond the fitted pane droplets. An engine migration alone would not
 provide those assets or effects.
 
 All imported assets remain free and openly licensed. The foliage atlases use
@@ -1128,3 +1128,52 @@ framing also remain. No engine replacement is needed to address those asset/effe
 Final validation also passes all 16 Node suites and the vegetation/weather browser checks
 on Metal. The review page's image selections, labels, videos and benchmark table are verified.
 The full functional suite and mobile/other-GPU performance remain unmeasured for this pass.
+
+
+## Fitted glazing, water and wipers — 2026-10-14
+
+Baseline: published `e9b194f`. The authored flight deck previously had open window holes:
+its animated fallback wipers had been repositioned, but there was no corresponding wet glass.
+Six glazing patches now follow measured source frame rails. Neither the source GLBs nor
+camera/eye position changes. Dry reflections are deliberately faint. Two replacement blades
+follow the front panes; their shared sweep phase also clears the water shader.
+
+Water is attached to pane UVs rather than the screen. High refracts the already rendered
+exterior through beads and moving rivulets; low draws shaded highlights without a framebuffer
+copy. Wiped sectors gradually collect water again. The existing outside rain streaks remain.
+Clear weather starts dry, and leaving rain lets moisture fade. HUD and settled ND views skip
+refraction copying, as does low quality; adaptive quality changes release the texture.
+Glazing is hidden during cabin reflection capture and excluded from the baked diffuse light.
+
+No new model or texture download is added. This adds shader code, geometry and a high-tier
+wet-view framebuffer copy; its cost is recorded in the performance report. Droplet flow,
+blade contact on the faceted source and dry reflectance remain approximations. This does not
+add ice, condensation, scratches, physically complete transmission or a water-fluid simulation.
+Phone framing and the broader ground/scenery gaps remain.
+
+The [local review](output/windshield-review.html) contains matched high/low clear, storm,
+side and night views, moving wiper recordings and landscape touch captures. All 16 Node
+suites pass. The existing visual and cabin-lighting checks pass on Chromium Metal, including
+missing-model/material fallback, finite reflection captures and weather/night transitions.
+The lighting test's cloud-crossing probe now changes camera height, matching the atmosphere's
+current input; the previous aircraft-altitude-only probe also failed on published main.
+No cloud-rendering behavior was changed for this pass.
+
+The new both-tier windshield check verifies visible pane water, zero changed PFD/ND pixels,
+moving droplets and bounded clearing (the sampled wiped alpha is 70.6% of the unwiped alpha).
+Dry reset leaves no water; HUD and settled ND cause no exterior copies. Resolution changes
+replace and dispose the texture, and adaptive low quality releases it and uses the simpler
+shader. The water shader uses the renderer's logarithmic depth and computes UV derivatives
+before discarding fragments. This is verified on Metal; another GPU, real mobile hardware
+and the full functional browser suite were not exercised for this pass.
+
+Two paired M2 Pro samples at fixed high 1.5× show captain FPS **39.81 → 37.31** and
+**38.56 → 38.06**, and storm **42.38 → 38.20** and **40.00 → 38.56**. High therefore has a
+measurable cost (1.3–6.3% captain / 3.6–9.9% storm across these short pairs); low stays near
+60 FPS. The existing adaptive policy remains and drops refraction when it lowers quality.
+See the [performance record](RENDER-PERFORMANCE.md#fitted-glazing-water-and-wipers--2026-10-14)
+for raw reports, transfer/memory cost and measurement limits.
+
+The review page also passes all eight image/quality selections, before/after paths,
+both-tier video playback, landscape touch image dimensions, benchmark rows, zoom and
+narrow-screen layout. It remains a local review artifact in ignored `test/output/`.

@@ -5,6 +5,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { applyCockpitSurfaces } from './surfaces.js';
 import { headlinerData } from './headliner.js';
+import { Windshield } from './glazing.js';
 
 const point=(x,y,z)=>new THREE.Vector3(-1.7*x,.14+1.7*(y-2.22),-1.7*(z-.9));
 
@@ -90,7 +91,8 @@ export async function loadFlightDeck(cockpit) {
   c.gearLever.position.copy(point(-.081,1.844,1.435));c.gearLever.scale.setScalar(.7);c.gearLever.visible=true;
   c.gearLights.forEach((l,i)=>{live.add(l);l.position.copy(point(-.078+(i===1?.012:i===2?-.012:0),1.93-(i===0?0:.016),1.435));});
   live.add(c.flapGauge);c.flapGauge.position.copy(point(-.088,1.99,1.435));c.flapGauge.scale.setScalar(.65);c.flapGauge.visible=true;
-  c.wipers.forEach(w=>{w.visible=true;w.position.z=-.82;w.position.y=-.10;w.scale.set(.55,.55,.55);});
+  c.wipers.forEach(w=>{w.visible=false;});
+  c.windshield=new Windshield(root,{lowDetail:c.lowDetail});
   // Separate the modeled columns and wheels for pitch and roll, with pilot-eye clearance.
   const yokeDrop=.16;
   c.yokes=[];

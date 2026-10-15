@@ -80,6 +80,8 @@ try{
             // Move the close camera through 30 m to include tree/ground selection updates.
             if(scene==='nearby'||scene.startsWith('grass-')){w.camera.position.x=base.x-Math.min(30,elapsed*1.875);w.camera.updateMatrixWorld();}
             const t=performance.now();w.update(dt,state,w.camera.getWorldPosition(new T.Vector3()));
+            // Include the animated water/blades and its conditional framebuffer copy.
+            s.cockpit.windshield?.update(dt,w.rain.visible,state.groundSpeed,w.daylight);
             w.renderer.info.reset();w.render();
             if(elapsed>warmup){cpu.push(performance.now()-t);calls.push(w.renderer.info.render.calls);triangles.push(w.renderer.info.render.triangles);}
             if(elapsed<warmup+seconds)requestAnimationFrame(frame);else resolve();

@@ -26,7 +26,22 @@ The GLB files retain the source's shell/window proportions, material colours and
 is fitted to the original cabin. An earlier conversion stretched the upper shell and darkened
 the trim; comparison with the source in Blender exposed these integration errors, and they
 have been removed. The downloaded glTF contains no texture images. The extra glazing planes
-fitted to the stretched shell were also removed; proper glass would need to follow the source panes.
+fitted to the stretched shell were removed. `js/cockpit/glazing.js` now follows measured inner
+rails of `Body.020` / `Material.008` in the delivered, source-faithful model. Six small curved
+patches add glazing without altering either GLB, the camera, framing or instrument geometry.
+The front patches interpolate both faceted rails; these are fitted visual surfaces rather
+than surveyed aircraft glass. Mirroring uses the source frame's centreline at x = −0.01821 m.
+
+Rain is generated in each pane's UV coordinates, so water stays on the glass as the eye moves.
+An analytic sweep age clears drops behind two fitted blades and allows water to accumulate
+again. It approximates beads and airflow, not fluid dynamics. High copies the already rendered
+exterior into one RGBA8 texture while wet panes are in view, then samples small offsets for
+refraction; low uses shaded drops without that copy or texture. A settled ND, HUD or dry view
+skips copying. Resolution changes dispose and replace the texture; a new scenario or quality
+downgrade disposes it. At 2160 × 1350 this buffer is 11,664,000 bytes, excluding driver overhead.
+The glazing/wipers are excluded from cabin reflection captures and diffuse window-light
+bakes, avoiding feedback from the exterior screenshot. Original model attribution remains;
+no new source model, image, remote request or paid asset is introduced.
 
 The runtime adds surface finishes to verified parts of this model. Original procedural maps
 distinguish coated panels, window framing and yoke rubber. On high quality, the liner and seats
