@@ -32,7 +32,7 @@ ignored `test/output/visual-audit-before/` folder; current captures are `test/ou
 | 6 | Thin cloud rings and weak volume | Six distinct cached 3D forms, smaller connected billows, flatter bases, self-shadowing and directional scattering; fixed midpoint integration removes screen-locked sampling grain. Overcast integrates density near both boundaries at reduced resolution, with soft billows, self-shadowing and a fog interior. | Fair-weather volumes remain simplified and soft at close range. Low uses sprites; overcast uses a bounded boundary volume plus shared fog, not a fully volumetric weather system. |
 | 7 | Runway lights look like a luminous rectangle by day | Smaller daytime cores, lower daylight intensity, distinct PAPI/beacon sizing and fog attenuation without a minimum visibility floor. Night bloom retained. | Point-based lights approximate optical glare; no lens-scattering simulation. |
 | 8 | Flat, muddy illumination and weak foreground depth | Reduced warm daytime lamps in favour of neutral sky light. Sun shadows plus a rebake of close contact and cabin sky access, including the fitted roof. Baked occlusion now affects indirect light rather than darkening the paint and direct sunlight. | No real-time global illumination. The bake approximates sky access and bounced light; it cannot replace fully authored materials. |
-| 9 | Box-like airport and disconnected jet bridges | Five glazed gate halls with curved metal roofs and recessed piers connect through a lower concourse. Existing jet bridges reach their aircraft; roof seams, plant, hangar ribs and bases remain. | Buildings are still procedural architecture. A detailed terminal asset would offer a larger further improvement. |
+| 9 | Box-like airport and disconnected jet bridges | Five stepped gate halls connect through glazed galleries and solid stair cores. Recessed glazing, mezzanines, braces and end wings give the terminal a clearer structure; pitched hangars and a sloped eight-sided tower cab replace basic boxes/cylinders. Existing jet bridges still reach their aircraft. | Architecture remains simplified. Opaque glass has painted interior suggestions, no interior parallax or airport reflections. Wear, apron equipment and finer local shadows remain sparse. |
 | 10 | Clean rectangular pavement pasted onto the terrain | Textured aggregate shoulders with feathered soil margins, subtle mowing, asphalt resurfacing/repairs and tyre deposits, apron slabs and expansion joints. | Ground-level wear, drainage and small debris remain sparse. |
 | 11 | Windshields appear absent | Glazing now follows the source frame rails. Faint reflections and moving water stay attached to six panes; fitted wipers clear front sectors. High refracts the rendered exterior through droplets; low uses shaded drops. | Droplets and blade contact are approximations, not fluid simulation. Glass has no scratches, ice, condensation or fully physical transmission; phone framing remains unchanged. |
 | 12 | Hard black fog horizon, a dark sheet inside the cloud transition, and lights visible through opaque cloud | Fixed shared atmospheric uniforms on foliage/deck shaders; show cloud surfaces only from outside the deck; removed the lights' 3% fog visibility floor. Added rendered regression checks. | The earlier audit incorrectly blamed a CSS rain overlay: it was already disabled. Existing rain uses 3D streaks driven by relative velocity. Pane-bound water and wiper clearing now complement those streaks; richer water films remain future work. |
@@ -1312,3 +1312,43 @@ All 23 graphics regression checks pass on Metal. Corrupt-volume, missing-decompr
 host-decoded gzip and automatic-quality disposal checks also pass. The review page passes
 all 16 matched image selections, eight benchmark rows, full-width comparison, zoom and
 narrow-screen layout without page or resource errors.
+
+
+## Airport architecture and night glazing — 2026-10-16
+
+Baseline: published `0a59a48`. Five almost identical halls, window-grid end blocks and
+a cylinder tower remained conspicuous around the landing destination. The revised
+original geometry gives the central hall a taller roof, steps the outer halls down,
+connects their fronts with glazed galleries and solid stair cores, and adds mezzanine
+bands and V-shaped supports. Curtain walls are recessed behind the eaves. The end
+wings use shaded continuous glazing, while pitched hangars gain sliding-door panels,
+service doors and side ribs. An eight-sided sloping control cab, balcony, supported
+underside, annex and aerials replace the cylinder tower.
+
+Small original glass/interior paintings and a sign canvas share the existing sky
+reflections. Their emission changes at dusk/night without regenerating textures.
+The glass remains opaque; its faint interior marks are an approximation without
+parallax. No downloaded assets are added. The same design reaches low quality with
+smaller canvases and fewer fine seams. The ordinary approach improvement is modest;
+the new structure is clearest during rollout, a side look and closer airport views.
+
+All 17 Node suites and 23 graphics browser checks pass on Metal. The dedicated
+both-tier airport check verifies finite, non-degenerate geometry, outward-facing
+front glazing, preserved operational clearance, bounded geometry/texture cost and
+scenario lighting, and captures ten matched views per tier. Roof-normal inspection
+and close captures also removed reversed normals and thin hangar roof strips that
+aliased at shallow viewing angles. Shadows beneath narrow eaves still expose the
+coarse airport-wide shadow map at close range. The full flight suite, real phones
+and another GPU were not exercised for this static scenery pass.
+
+The [local comparison](output/airport-architecture-review.html) shows all matched
+views, including ordinary cockpit views where the difference is smaller. See the
+performance report for paired measurements and residency cost. The broader plan
+still includes incomplete landscape/building coverage, distant tree impostors,
+unique cockpit wear textures, finer atmospheric structure and sparse apron detail.
+
+The paired M2 Pro run is effectively unchanged: high captain **38.78 → 39.03 FPS**,
+rollout **41.05 → 41.11**, airport **56.76 → 57.26**, and terminal **53.43 → 53.69**;
+low stays at about **60 FPS**. The 0.1–0.9% high differences are too small to establish
+a speedup. Cockpit draw calls decrease from 936 to 917, with no added asset requests.
+Generated texture residency is 2 MiB high / 0.5 MiB low, replacing a 0.67 MiB map.

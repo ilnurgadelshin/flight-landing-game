@@ -15,13 +15,14 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RUNWAY, DEG } from '../config.js';
 import { makeRng } from '../physics/atmosphere.js';
-import { makeRunwayTexture, makeTaxiwayTexture, makeDetailTexture, makeCloudTexture, makeBuildingTexture } from './textures.js';
+import { makeRunwayTexture, makeTaxiwayTexture, makeDetailTexture, makeCloudTexture } from './textures.js';
 import { AirfieldLights } from './lights.js';
 import { Atmosphere, SKY_GLSL, installHaze, sceneColor } from './sky.js';
 import { Cumulus } from './clouds.js';
 import { Rain } from './rain.js';
 import { buildOvercast } from './overcast.js';
 import { addAirportDetail } from './airport-detail.js';
+import { buildAirportArchitecture } from './airport-architecture.js';
 import { buildLandscape } from './landscape.js';
 import { addRunwayShoulders } from './runway-surfaces.js';
 import { loadParkedAircraft } from './scenery-models.js';
@@ -384,25 +385,7 @@ export class World {
     apron.rotation.x = -Math.PI / 2; apron.position.set(0, 0.014, 285); add(apron, false);
     this.pavementMats.push(apron.material);
 
-    // buildings: terminal, hangars, tower
-    this.buildingTex = makeBuildingTexture(false);
-    const bMat = std({ map: this.buildingTex, color: 0xb8b8b8, roughness: 0.8 });
-    const roofMat = std({ color: 0x777a80, roughness: 0.7, metalness: 0.2 });
-    this.buildingMats = [bMat];
-    const box = (w, h, d, x, z, mat = bMat) => {
-      const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), [mat, mat, roofMat, roofMat, mat, mat]);
-      m.position.set(x, h / 2, z); return add(m);
-    };
-    this.buildingTex.repeat.set(4, 1);
-    // Low connecting concourse between five separate glazed departure halls.
-    box(750, 8, 40, 0, 465);
-    box(105, 12, 55, -430, 492); box(105, 12, 55, 430, 492);
-    const hangarMat = std({ color: 0x8e9298, roughness: 0.6, metalness: 0.3 });
-    for (let i = 0; i < 3; i++) box(90, 24, 70, 700 + i * 110, 300, hangarMat); // hangars
-    // control tower
-    const towerMat = std({ color: 0xb8bcc4, roughness: 0.8 });
-    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(5, 7, 52, 12), towerMat); shaft.position.set(-250, 26, 330); add(shaft);
-    const cab = new THREE.Mesh(new THREE.CylinderGeometry(11, 9, 9, 12), std({ color: 0x1a2530, roughness: 0.1, metalness: 0.6 })); cab.position.set(-250, 56, 330); add(cab);
+    this.airportArchitecture=buildAirportArchitecture(this.scene,this.quality==='low',aniso);
     // jet bridges + parked aircraft on the apron
     this.parkedAircraft = new THREE.Group();
     this.scene.add(this.parkedAircraft);
@@ -574,16 +557,7 @@ export class World {
     // building windows glow at night
     for(const m of this.approachBuildings?.materials||[])m.emissiveIntensity=tod==='night'?.55:tod==='dusk'?.2:0;
     this.approachBuildings?.updateShadows();
-    this.buildingTex.dispose();
-    this.buildingTex = makeBuildingTexture(tod !== 'day');
-    this.buildingTex.repeat.set(4, 1);
-    for (const m of this.buildingMats) {
-      m.map = this.buildingTex;
-      m.emissiveMap = tod !== 'day' ? this.buildingTex : null;
-      m.emissive.set(tod !== 'day' ? 0xffffff : 0x000000);
-      m.emissiveIntensity = tod === 'night' ? 0.55 : 0.25;
-      m.needsUpdate = true;
-    }
+    this.airportArchitecture.setTimeOfDay(tod);
     // Day and night share surface albedo; illumination supplies the time of day.
     this.groundMat.map = this.groundTex;
     // the airport's shadows are drawn once for this sun

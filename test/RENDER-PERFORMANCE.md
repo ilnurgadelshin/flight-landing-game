@@ -1693,3 +1693,75 @@ All 23 graphics regression checks pass on Metal. Corrupt-volume, missing-decompr
 host-decoded gzip and automatic-quality disposal checks also pass. The review page passes
 all 16 matched image selections, eight benchmark rows, full-width comparison, zoom and
 narrow-screen layout without page or resource errors.
+
+## Airport architecture and night glazing — 2026-10-16
+
+Baseline: `0a59a48`. Terminal halls now have stepped roof heights, connected galleries,
+service cores, mezzanine bands, braced supports and opaque painted glazing. The tower
+has a supported sloped cab and balcony, and the hangars have pitched roofs and framed
+doors. Both tiers use the same architecture; initial low quality reduces fine seams,
+side ribs and canvas dimensions. Geometry is grouped by building section and material.
+
+The airport module contains **13,672 triangles high / 8,980 low**, in 33 spatial/material
+batches including the sign. This replaces the previous halls, tower, hangar bodies and
+fittings; these are module totals, not additional triangles. Draw counts and visible
+triangles for the actual views are recorded below. Merged geometry has about **1.80 MB
+high / 1.19 MB low** of attribute/index storage, retained on the CPU and uploaded to the
+GPU. This trades some instancing efficiency for fewer material submissions and useful
+spatial culling.
+
+Two generated facade canvases and a sign use approximately **2 MiB high / 0.5 MiB low**
+of RGBA GPU storage including mipmaps, replacing the former **0.67 MiB** window map.
+Their retained base canvas images are **1.5 MiB / 0.375 MiB**. Automatic downgrade keeps
+these small static meshes and maps. Day/night changes reuse them rather than generating
+new window textures. There are no additional image/model requests; the runtime JS size
+change is recorded with the final comparison below. No new render target, shader pass,
+light or frame-loop update is added.
+
+Measurements use Chromium 141 / ANGLE Metal on Apple M2 Pro, 1440×900 CSS pixels, fixed
+high 1.5× and low 1×, four seconds of warm-up and twelve seconds of RAF samples per
+position. Physics is paused and normal scenery updates continue. The paired runs are
+short display-capped samples, not a full-flight or cross-device performance claim.
+
+| Tier / view | Before FPS | After FPS | After p95 frame | Draw calls |
+| --- | ---: | ---: | ---: | ---: |
+| high / captain | 38.78 | 39.03 | 33.4 ms | 936 → 917 |
+| high / rollout | 41.05 | 41.11 | 33.4 ms | 707 → 700 |
+| high / airport | 56.76 | 57.26 | 16.8 ms | 328 → 328 |
+| high / terminal | 53.43 | 53.69 | 33.3 ms | 263 → 263 |
+| low / captain | 60.00 | 60.00 | 16.7 ms | 548 → 529 |
+| low / rollout | 60.00 | 60.00 | 16.7 ms | 404 → 397 |
+| low / airport | 60.00 | 60.00 | 16.7 ms | 236 → 236 |
+| low / terminal | 60.00 | 60.00 | 16.7 ms | 173 → 173 |
+
+Runtime source grows by **9,132 bytes** across the three changed modules
+(approximately 3,807 additional bytes if each is gzip-served). Local test hosting serves
+uncompressed JS. High FPS differs by **+0.1% to +0.9%**, small scheduling variation rather
+than evidence of a speedup. Low remains display-capped at about **60 FPS**. Fixed high
+1.5× still does not hold 60 FPS in the cockpit; the existing adaptive quality policy
+remains necessary. No new asset/resource errors were recorded.
+
+All 17 Node suites and the 23-check graphics browser group pass. The airport browser
+check validates finite/non-degenerate geometry, front-face orientation, airport
+clearance, lighting state and geometry/texture budgets, with ten matched views per
+tier. Images include the forward cockpit, rollout side look, terminal, tower, hangars,
+landside, night and storm. Close roof inspection corrected reversed surface normals
+and removed tiny hangar roof ribs that aliased at shallow angles; small eave shadows
+still reveal the coarse airport-wide shadow map. Other GPUs, software rendering,
+physical phones and the full functional flight suite were not tested for this pass.
+
+Reproduce (set `PLAYWRIGHT_BROWSERS_PATH` to the installed browser cache if needed):
+
+```sh
+VISUAL_GPU=metal npm run test:airport
+VISUAL_GPU=metal REVIEW_ROOT=/path/to/0a59a48 node test/airport-architecture.mjs airport-before
+BENCHMARK_ROOT=/path/to/0a59a48 BENCHMARK_SCENES=captain,rollout,airport,terminal node test/render-benchmark.mjs airport-before
+BENCHMARK_SCENES=captain,rollout,airport,terminal node test/render-benchmark.mjs airport-final
+```
+
+Raw records: `benchmarks/2026-10-16-airport-captures.json`,
+`benchmarks/2026-10-16-airport-render-before.json` and
+`benchmarks/2026-10-16-airport-render-final.json`. The ignored local
+`output/airport-architecture-review.html` presents matched views and these timings.
+The architecture remains simplified; transparent interiors, unique wear, richer ramp
+and landside furnishings, and finer local shadows remain future work.

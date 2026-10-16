@@ -568,6 +568,13 @@ edge, centreline and touchdown-zone lights, a PAPI computed from the pilot's
 eye position, taxiways, terminal buildings, photographed countryside, woodland, clouds, rain, fog and
 lightning.
 
+The airport's original architecture (`js/world/airport-architecture.js`) connects five
+stepped departure halls with glazed galleries, recessed fronts and structural braces.
+Pitched hangars and an eight-sided control cab replace the basic boxes/cylinders.
+Small generated glass and sign atlases provide restrained day/night detail on both
+quality tiers; there are no additional model or image downloads. This remains a
+simplified airport, with opaque glazing and sparse apron equipment.
+
 **Light and atmosphere** (`js/world/sky.js`, `js/world/scene.js`): one
 scattering model of the sky (Preetham, as in three.js' Sky) gives the sky dome,
 the haze over the land (it takes the colour of the horizon sky in each
@@ -745,6 +752,10 @@ and approximate cloud depth, not a fully volumetric weather system. The low tier
 sprites for fair-weather cumulus. Cloud-deck visibility and storm physics are shared. All imported assets
 are public domain, CC0, CC BY 4.0 or CDLA Permissive 2.0; licenses, attribution and reproducible asset preparation
 commands are in [`assets/README.md`](assets/README.md). Players can open the credits from the menu.
+
+`npm run test:airport` checks the terminal/tower/hangar geometry, operational clearance,
+material lighting and size budgets, and captures ten full-game views on both tiers.
+Use `VISUAL_GPU=metal` on the local Mac; the default browser backend is SwiftShader.
 
 `npm run test:cumulus` checks the baked fields, rendered sunlight/night/interior behaviour
 and matched cockpit/exterior views. Set `VISUAL_GPU=metal` on macOS to use the hardware

@@ -571,3 +571,38 @@ Source files remain in ignored `test/output/grass-source/`. The manifest records
 license and atlas layout. Runtime crossed patches are original geometry, planted in a fixed
 near-camera pool on airport turf and strongly mapped meadow, with pavement, roads, buildings
 and complete-site grounds excluded. They are interpreted scenery, not a local vegetation survey.
+
+## Airport architecture — original project geometry
+
+`js/world/airport-architecture.js` builds the fictional Westhaven terminal, three
+hangars and control tower. The original project geometry, facade paintings and signage
+are MIT-licensed; no downloaded building, image, font or network service is used.
+The gate locations and aircraft/jet-bridge placements are retained. Architecture
+remains visual scenery and does not change the runway, taxiways or flight physics.
+
+Five stepped curved roofs, recessed curtain walls, mezzanine bands and V-shaped
+supports connect through four glazed galleries and solid stair cores. The end wings
+have continuous shaded glazing. Hangars have pitched roofs, glazed sliding doors,
+side ribs and service doors. The tower uses an eight-sided outward-sloping cab with a
+balcony, support transition, roof and aerials over a core and entrance annex.
+
+The opaque glass approximates reflected sky and interior/blind silhouettes. It has
+no true transparency, interior parallax or reflected airport geometry. Eight small
+original facade paintings share a colour/emission atlas, and lettering uses one local
+canvas. Night lighting changes emissive intensity without rebuilding textures. High
+uses two 512×256 facade maps and a 1024×128 sign; initial low quality uses half those dimensions.
+Estimated RGBA GPU storage including mipmaps is **2 MiB high / 0.5 MiB low**, replacing
+one previous 512×256 map (about 0.67 MiB). These are residency estimates, not downloads;
+the canvases also retain their uncompressed base images on the CPU.
+
+Materials are shared across spatial batches for frustum culling. Low omits fine hall
+roof seams and reduces hangar side ribs, while retaining the complete silhouette.
+Automatic downgrade keeps this small static geometry and its existing maps.
+The resulting buildings remain simplified original architecture, not a detailed
+commercial airport asset. Surface weathering, richer apron equipment, transparent
+interiors and finer local shadows remain possible improvements.
+
+`VISUAL_GPU=metal npm run test:airport` records matched pilot/airport/terminal/tower/
+hangar/night/storm views on both tiers and checks finite geometry, clear operational
+areas, outward-facing glazing and bounded geometry/texture cost. Use `REVIEW_ROOT`
+to capture the same views against an archived baseline.
