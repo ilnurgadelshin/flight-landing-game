@@ -2,20 +2,32 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import {gunzipSync} from 'node:zlib';
 import sharp from 'sharp';
+import {CUMULUS_SIZE as size,CUMULUS_VARIANTS as variants,CUMULUS_DIMENSIONS as dimensions,CUMULUS_BYTES} from '../js/world/cumulus-layout.js';
 const compressed=await fs.readFile(new URL('../assets/weather/cumulus-density.bin.gz',import.meta.url));
-assert.ok(compressed.length<100000,'Cloud density transfer stays below 100 KB');
+assert.ok(compressed.length<250000,'Cloud density transfer stays below 250 KB');
 const data=gunzipSync(compressed);
-assert.equal(data.length,64**3*4,'Four bounded 64³ density fields');
+assert.equal(data.length,CUMULUS_BYTES,'Complete packed density texture');
+assert.ok(dimensions.every(n=>n<=256),'Fits the WebGL2 minimum 3D texture dimensions');
+assert.ok(data.length<=3.1e6,'Bounded CPU/GPU density storage');
 const signatures=new Set();
-for(let layer=0;layer<4;layer++){
+const volumes=[];
+for(let layer=0;layer<variants;layer++){
   let filled=0,sum=0;
-  for(let z=0;z<64;z++)for(let y=0;y<64;y++)for(let x=0;x<64;x++){
-    const value=data[((layer*64+z)*64+y)*64+x];sum+=value;if(value)filled++;
-    if([x,y,z].some(v=>v===0||v===63))assert.equal(value,0,'Empty border prevents filtering between cloud variants');
+  const volume=[];
+  for(let z=0;z<size;z++)for(let y=0;y<size;y++)for(let x=0;x<size;x++){
+    const px=layer%2*size+x,pz=Math.floor(layer/2)*size+z;
+    const value=data[(pz*dimensions[1]+y)*dimensions[0]+px];sum+=value;if(value)filled++;volume.push(value);
+    if([x,y,z].some(v=>v===0||v===size-1))assert.equal(value,0,'Empty border prevents filtering between cloud variants');
+    if(y/(size-1)-.5<-.29)assert.equal(value,0,'No density below the bounded condensation base');
   }
-  assert.ok(filled>5000&&filled<64**3*.6,'Each variant contains a bounded, nonempty cloud');signatures.add(sum);
+  assert.ok(filled>5000&&filled<size**3*.6,'Each variant contains a bounded, nonempty cloud');signatures.add(sum);volumes.push(volume);
 }
-assert.equal(signatures.size,4,'Distinct cloud variants');
+assert.equal(signatures.size,variants,'Distinct cloud variants');
+for(let a=0;a<variants;a++)for(let b=a+1;b<variants;b++){
+ let intersection=0,union=0;
+ for(let i=0;i<volumes[a].length;i++){intersection+=Math.min(volumes[a][i],volumes[b][i]);union+=Math.max(volumes[a][i],volumes[b][i]);}
+ assert.ok(intersection/union<.85,'Variants differ in occupied volume, not just a small noise seed');
+}
 const atlas=JSON.parse(await fs.readFile(new URL('../assets/scenery/tree-variety.json',import.meta.url)));
 assert.deepEqual(atlas.elevations,[0,45,90]);assert.equal(atlas.species.length,9);
 assert.equal(atlas.columns,8);assert.equal(atlas.geometrySource,'bundled near-tree GLBs');

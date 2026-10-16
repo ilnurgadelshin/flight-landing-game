@@ -29,7 +29,7 @@ ignored `test/output/visual-audit-before/` folder; current captures are `test/ou
 | 3 | A completely flat approach corridor | Registered USGS elevation follows the imagery; rendering, collision and navigation share it. The airport is locally graded and a rising terrain cap protects final. | Elevations are locally modified around the fictional airport. Distant mesh resolution and imagery shadows remain limitations. |
 | 4 | Blurry aerial imagery ahead of the airport | Sixteen local 1 km detail tiles along the last 8 km, sampled at 0.5 m/px high and 1 m/px low, feather into the existing imagery; four textures stay resident. Distance-faded scanned colour, normal and roughness detail reconstructs fine surface grain in nearby fields and soil. | Underlying NAIP is generally 0.6 m; exports cannot supply finer survey detail. Coverage is a 2 km wide corridor. Five reviewed farm roofs fill prominent detection gaps. Twenty-two complete building placements across four sites have matching lawns, gravel yards, drives and lanes, including a dairy with three silos in place of two incorrect rectangular blocks. Interpreted land cover now spans 6.9 km and treats about 910 ha, including upper-valley woods visible from the normal early approach. Open fields retain photographed crop/soil variation at approach height. Photographed grass adds close turf/pasture cover on high only, without a visible change in the sampled forward cockpit views. Blur, missing buildings and photographic shadows remain beyond mapped areas; distant fields and site lawns remain simple. |
 | 5 | Sparse, three-lobed tree blobs | Nine authored forms from three broadleaf sources plus pine/fir, eight azimuths at three elevations each, baked from the delivered geometry. Leaf masks are preserved in all nearby GLBs. One quad faces the eye in yaw and pitch and blends neighboring views. High retains bounded 3D branches and leaves within 180 m. Small crowns now retain more filtered leaves; denser upper mapped planting uses the same total tree budgets and prioritizes existing close stands. | Distant/low trees remain impostors; view blending and repeated species are still visible. The wider palette is artistic, not a local botanical survey. Shared land-cover boundaries improve density and keep fields open along 6.9 km of final; density elsewhere and close-up silhouettes still expose the approximations. |
-| 6 | Thin cloud rings and weak volume | Cached 3D density, connected billows, flatter bases, self-shadowing and directional scattering. Overcast integrates density near both boundaries at reduced resolution, with soft billows, self-shadowing and a fog interior. | Fair-weather volumes remain simplified and soft at close range. Low uses sprites; overcast uses a bounded boundary volume plus shared fog, not a fully volumetric weather system. |
+| 6 | Thin cloud rings and weak volume | Six distinct cached 3D forms, smaller connected billows, flatter bases, self-shadowing and directional scattering; fixed midpoint integration removes screen-locked sampling grain. Overcast integrates density near both boundaries at reduced resolution, with soft billows, self-shadowing and a fog interior. | Fair-weather volumes remain simplified and soft at close range. Low uses sprites; overcast uses a bounded boundary volume plus shared fog, not a fully volumetric weather system. |
 | 7 | Runway lights look like a luminous rectangle by day | Smaller daytime cores, lower daylight intensity, distinct PAPI/beacon sizing and fog attenuation without a minimum visibility floor. Night bloom retained. | Point-based lights approximate optical glare; no lens-scattering simulation. |
 | 8 | Flat, muddy illumination and weak foreground depth | Reduced warm daytime lamps in favour of neutral sky light. Sun shadows plus a rebake of close contact and cabin sky access, including the fitted roof. Baked occlusion now affects indirect light rather than darkening the paint and direct sunlight. | No real-time global illumination. The bake approximates sky access and bounced light; it cannot replace fully authored materials. |
 | 9 | Box-like airport and disconnected jet bridges | Five glazed gate halls with curved metal roofs and recessed piers connect through a lower concourse. Existing jet bridges reach their aircraft; roof seams, plant, hangar ribs and bases remain. | Buildings are still procedural architecture. A detailed terminal asset would offer a larger further improvement. |
@@ -1278,3 +1278,37 @@ record. This is one local M2 Pro flight, not a cross-device performance claim.
 All 23 browser graphics regression checks pass. The comparison page also passes all
 16 view/quality selections, eight benchmark rows, full-width comparison, zoom and
 narrow-screen layout checks, with no page or resource errors.
+
+
+## Fair-weather cloud forms and shading — 2026-10-16
+
+Baseline: published `0b3c2c5`. The ordinary clear-weather sky still used four similarly
+arranged density fields. The replacement has six distinct forms: spreading/low banks,
+leaning and compact towers, paired turrets and an uneven bank. Smaller attached billows
+and erosion are baked at 80³ rather than 64³. Increased opacity and a closer first light
+sample separate the sunlit lobes from their shaded body. The result remains stylised,
+especially close up; it does not constitute a full weather or fluid simulation.
+
+The existing pixel-random ray start became conspicuous with stronger billow shading.
+Cached rendering now uses 36 fixed midpoint samples in place of 36 jittered samples.
+Three shadow lookups, 26 volumes, placement, wind drift and the low-tier sprites remain.
+The visual benefit is visible from the normal cockpit as well as the exterior views.
+Overcast boundaries, rain, cloud-deck visibility and all flight physics are unchanged.
+
+The packed 160×80×240 field is 208,555 bytes compressed, adding 129,491 bytes to high startup;
+low does not download it. CPU density and GPU texture each add about 2.02 MB. The six
+fields fit below 256 texels on every texture axis. Empty borders prevent variant leakage.
+
+All 17 Node suites pass, including density bounds, distinct occupied volumes and transfer
+limits. Actual Metal shader checks verify all six silhouettes, response to a changed sun
+direction, darker night lighting and a lit interior. These establish rendering
+behaviour, not physical accuracy. Matched captures and measured costs are recorded in the
+performance record and the local `output/cumulus-review.html` page.
+
+The attempted software-renderer check is unavailable on this host: even an isolated
+`WebGLRenderer` cannot create a SwiftShader context. No software-renderer pass is claimed.
+
+All 23 graphics regression checks pass on Metal. Corrupt-volume, missing-decompressor,
+host-decoded gzip and automatic-quality disposal checks also pass. The review page passes
+all 16 matched image selections, eight benchmark rows, full-width comparison, zoom and
+narrow-screen layout without page or resource errors.

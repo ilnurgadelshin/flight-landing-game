@@ -727,9 +727,10 @@ depend on the device and graphics tier.
 
 At night the flight deck's flood and dome lights are turned well down, as crews fly, so the
 panel is dimmer than by day and the displays stand out. The high tier also draws fair-weather
-cumulus as ray-marched 3D density volumes with self-shadowing. Four original density fields
-are baked into a 1 MiB volume (about 79 KB compressed), replacing repeated per-pixel noise calculations. The clouds
-have varied connected billows, flatter bases and directional scattering; a failed density
+cumulus as ray-marched 3D density volumes with self-shadowing. Six original 80³ fields
+use a 3.07 MB volume (209 KB compressed), replacing repeated per-pixel noise calculations.
+Low banks, leaning towers and paired turrets have smaller connected billows, flatter bases
+and directional shading. Fixed midpoint integration avoids screen-locked speckling; a failed density
 download retains the analytic shader. Both tiers render overcast boundaries with a bounded,
 reduced-resolution density pass: soft billows above and shaded pockets below. Shared
 ray-dependent extinction obscures the sky, scenery and lights inside the layer. A generated
@@ -744,6 +745,10 @@ and approximate cloud depth, not a fully volumetric weather system. The low tier
 sprites for fair-weather cumulus. Cloud-deck visibility and storm physics are shared. All imported assets
 are public domain, CC0, CC BY 4.0 or CDLA Permissive 2.0; licenses, attribution and reproducible asset preparation
 commands are in [`assets/README.md`](assets/README.md). Players can open the credits from the menu.
+
+`npm run test:cumulus` checks the baked fields, rendered sunlight/night/interior behaviour
+and matched cockpit/exterior views. Set `VISUAL_GPU=metal` on macOS to use the hardware
+renderer. The low tier retains its existing sprite clouds.
 
 `node test/overcast-review.mjs` captures both cloud boundaries, normal cockpit views, night
 and storm on both tiers. It checks rendered cloud opacity, obscured runway lights, resource

@@ -1635,3 +1635,61 @@ for this scenery pass.
 All 23 browser graphics regression checks pass. Review-page validation confirms 16
 matched view/quality selections, eight benchmark rows, full-width comparison, zoom
 and narrow-screen layout without page or resource errors.
+
+
+## Fair-weather cloud forms and shading — 2026-10-16
+
+Baseline: published `0b3c2c5`. Six distinct 80³ cloud fields replace four 64³ fields.
+The 160×80×240 packed texture occupies **3,072,000 bytes**, up **2,023,424 bytes** on
+both the GPU and in retained CPU density data. Compressed startup transfer rises from
+**79,064 to 208,555 bytes (+129,491)**. Low does not request the density asset. There
+are still 26 cloud volumes, 36 view steps and three shadow lookups at occupied steps.
+The renderer uses fixed midpoints rather than per-pixel random ray starts. New cloud
+shapes, opacity and shadowing can change occupied samples even with the same step cap.
+
+A 48-step candidate was rejected after measuring extra cost without a sufficient visual
+benefit. The final 36-step version keeps the richer silhouettes and removes the random
+sampling grain. Fine structure is still soft close up; fixed-step integration can reveal
+faint bands in very large views. There is no temporal accumulation or simulated weather
+formation. Overcast, low-tier sprites, rain and flight physics are unchanged.
+
+The final paired runs use Apple M2 Pro / Chromium 141 / ANGLE Metal, 1440×900 CSS pixels,
+fixed high 1.5× / low 1×, four seconds warm-up and twelve seconds per view, with physics
+paused and scenery active. Baseline and final were measured back-to-back on October 16
+after the interrupted development session. The numbers measure display-paced frame
+intervals, not uncapped GPU throughput; small differences include scheduling variation.
+
+| Tier / scene | FPS before → after | After p95 | Draw calls before → after |
+| --- | --- | --- | --- |
+| high / captain-entry | 34.70 → 34.57 | 33.4 ms | 1300 → 1300 |
+| high / captain | 38.61 → 38.64 | 33.4 ms | 936 → 936 |
+| high / cloud-sky | 56.01 → 56.43 | 33.3 ms | 402 → 402 |
+| high / cloud-close | 47.29 → 48.19 | 33.4 ms | 52 → 52 |
+| low / captain-entry | 60.00 → 60.00 | 16.7 ms | 703 → 703 |
+| low / captain | 59.92 → 60.00 | 16.7 ms | 548 → 548 |
+| low / cloud-sky | 60.00 → 60.00 | 16.8 ms | 269 → 269 |
+| low / cloud-close | 60.00 → 60.00 | 16.7 ms | 49 → 49 |
+
+High differs by −0.4% to +1.9% in this pair; low remains near 60 FPS. This is broadly
+unchanged measured pacing, not evidence of a speedup. Draw calls and triangle totals are
+unchanged. Forced high 1.5× still does not sustain 60 FPS in the cockpit. Other hardware
+and real phones have not been benchmarked.
+
+Raw reports: `benchmarks/2026-10-16-cumulus-render-before.json` and
+`benchmarks/2026-10-16-cumulus-render-final.json`. The matched local review is
+`output/cumulus-review.html`. All eight low captures and the high overcast capture are
+byte-identical to the baseline; only high fair-weather rendering changes.
+
+Validation includes all 17 Node suites and the actual production cloud/atmosphere shaders
+on Metal: six distinct silhouettes, response to a changed sun direction, darker moonlit
+clouds and nonblack interiors. Raw isolated-shader results are in
+`benchmarks/2026-10-16-cumulus-lighting.json`; full-game captures use the actual game scene.
+A SwiftShader attempt first timed out during game startup. A minimal renderer-only harness
+then failed at WebGL context creation, before loading the cloud, so software-renderer
+compatibility remains **unverified on this host**, not a passed check. The full functional
+browser suite and full-flight performance were not rerun for this weather-only pass.
+
+All 23 graphics regression checks pass on Metal. Corrupt-volume, missing-decompressor,
+host-decoded gzip and automatic-quality disposal checks also pass. The review page passes
+all 16 matched image selections, eight benchmark rows, full-width comparison, zoom and
+narrow-screen layout without page or resource errors.

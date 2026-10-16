@@ -1,0 +1,140 @@
+{
+  "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M2 Pro, Unspecified Version)",
+  "stats": [
+    {
+      "variant": 0,
+      "day": {
+        "coverage": 1111,
+        "mean": 222.54005400540038,
+        "opaque": 663,
+        "max": 255
+      },
+      "lightDelta": 3.5837605794270835,
+      "night": {
+        "coverage": 1111,
+        "mean": 12.662166216621644,
+        "opaque": 663,
+        "max": 26
+      },
+      "inside": {
+        "coverage": 16384,
+        "mean": 87.85772705079042,
+        "opaque": 8534,
+        "max": 96
+      }
+    },
+    {
+      "variant": 1,
+      "day": {
+        "coverage": 1285,
+        "mean": 232.13878080415017,
+        "opaque": 776,
+        "max": 255
+      },
+      "lightDelta": 5.690673828125,
+      "night": {
+        "coverage": 1285,
+        "mean": 12.851880674448788,
+        "opaque": 776,
+        "max": 26
+      },
+      "inside": {
+        "coverage": 16384,
+        "mean": 87.69663492838347,
+        "opaque": 13403,
+        "max": 96
+      }
+    },
+    {
+      "variant": 2,
+      "day": {
+        "coverage": 1661,
+        "mean": 227.7706201083683,
+        "opaque": 1015,
+        "max": 255
+      },
+      "lightDelta": 7.63079833984375,
+      "night": {
+        "coverage": 1661,
+        "mean": 12.378085490668296,
+        "opaque": 1015,
+        "max": 26
+      },
+      "inside": {
+        "coverage": 16384,
+        "mean": 88.36513264974307,
+        "opaque": 12878,
+        "max": 97
+      }
+    },
+    {
+      "variant": 3,
+      "day": {
+        "coverage": 1345,
+        "mean": 226.9001239157372,
+        "opaque": 876,
+        "max": 255
+      },
+      "lightDelta": 6.572102864583333,
+      "night": {
+        "coverage": 1345,
+        "mean": 12.751920693928131,
+        "opaque": 876,
+        "max": 26
+      },
+      "inside": {
+        "coverage": 16384,
+        "mean": 88.66743977865484,
+        "opaque": 16384,
+        "max": 97
+      }
+    },
+    {
+      "variant": 4,
+      "day": {
+        "coverage": 1081,
+        "mean": 227.06413814369424,
+        "opaque": 693,
+        "max": 255
+      },
+      "lightDelta": 4.111328125,
+      "night": {
+        "coverage": 1081,
+        "mean": 12.600061671291982,
+        "opaque": 693,
+        "max": 25
+      },
+      "inside": {
+        "coverage": 16384,
+        "mean": 96.13195800781043,
+        "opaque": 5673,
+        "max": 110
+      }
+    },
+    {
+      "variant": 5,
+      "day": {
+        "coverage": 979,
+        "mean": 234.48076268300986,
+        "opaque": 534,
+        "max": 255
+      },
+      "lightDelta": 1.8330891927083333,
+      "night": {
+        "coverage": 979,
+        "mean": 13.373169901259782,
+        "opaque": 534,
+        "max": 25
+      },
+      "inside": {
+        "coverage": 16384,
+        "mean": 102.78568522134864,
+        "opaque": 12300,
+        "max": 113
+      }
+    }
+  ],
+  "minSilhouetteDelta": 4.0069580078125,
+  "cached": true,
+  "error": null
+}

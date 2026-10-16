@@ -43,9 +43,11 @@ try{
         s.game.sim.aircraft.place({x:scene==='rollout'?1000:approachX,y:scene==='rollout'?2.5:scene==='deck-captain'?w.cloudTop+220:scene.startsWith('captain-')?15+(approachX-1500)*Math.tan(Math.PI/60):115,z:0,headingDeg:270,iasKts:scene==='rollout'?85:147,flapIndex:4,gearDown:true,gammaDeg:-3,onGround:scene==='rollout'});
         s.view.setMode('cockpit');for(let i=0;i<40;i++)s.view.update(1/60);
         s.game.state='menu';w.setPixelRatio(pixelRatio);
-        if(['nearby','site','corridor','extension','opposite','upper-opposite','contour-farm','shoulder','north-farm','hamlet','deck-top','deck-base','deck-near-top','deck-inside-base','grass-meadow','grass-pasture'].includes(scene)){
+        if(['nearby','site','corridor','extension','opposite','upper-opposite','contour-farm','shoulder','north-farm','hamlet','cloud-sky','cloud-close','deck-top','deck-base','deck-near-top','deck-inside-base','grass-meadow','grass-pasture'].includes(scene)){
           const c=new T.PerspectiveCamera(50,innerWidth/innerHeight,.1,60000);
-          if(scene==='grass-meadow'){c.position.set(2350,3.45,330);c.lookAt(2470,3,415);}
+          if(scene==='cloud-sky'){c.position.set(3300,115,0);c.lookAt(-5000,2000,-5500);}
+          else if(scene==='cloud-close'){c.position.set(-2300,2100,-4500);c.lookAt(-5000,2250,-5500);}
+          else if(scene==='grass-meadow'){c.position.set(2350,3.45,330);c.lookAt(2470,3,415);}
           else if(scene==='grass-pasture'){const {sceneryGroundHeight}=await import('/js/world/scenery-ground.js');c.position.set(3370,sceneryGroundHeight(3370,-650,w.groundLowDetail)+2.5,-650);c.lookAt(3550,4,-740);}
           else if(scene==='deck-top'){c.position.set(3300,w.cloudTop+320,0);c.lookAt(-5000,w.cloudTop-500,-2000);}
           else if(scene==='deck-base'){c.position.set(3300,w.cloudBase-120,0);c.lookAt(-5000,w.cloudBase+200,-2000);}
@@ -69,7 +71,7 @@ try{
         if(disabled.includes('cumulus')&&w.cumulus)w.cumulus.group.visible=false;
         if(disabled.includes('bloom')&&w.bloom)w.bloom.enabled=false;
         if(disabled.includes('shadows'))w.renderer.shadowMap.enabled=false;
-        const base=w.camera.position.clone(),state={...s.state(),alt:scene.startsWith('captain-')||scene.startsWith('deck-')||scene.startsWith('grass-')||['upper-opposite','contour-farm'].includes(scene)?eye.y:scene==='north-farm'?15:scene==='hamlet'?14:scene==='shoulder'?3.7:scene==='rollout'?5:scene==='site'?24:scene==='nearby'?18:scene==='opposite'?250:['corridor','extension'].includes(scene)?240:115};
+        const base=w.camera.position.clone(),state={...s.state(),alt:scene.startsWith('cloud-')||scene.startsWith('captain-')||scene.startsWith('deck-')||scene.startsWith('grass-')||['upper-opposite','contour-farm'].includes(scene)?eye.y:scene==='north-farm'?15:scene==='hamlet'?14:scene==='shoulder'?3.7:scene==='rollout'?5:scene==='site'?24:scene==='nearby'?18:scene==='opposite'?250:['corridor','extension'].includes(scene)?240:115};
         const intervals=[],cpu=[],calls=[],triangles=[];let start,last;
         w.renderer.info.autoReset=false;
         await new Promise(resolve=>{

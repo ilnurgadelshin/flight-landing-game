@@ -1,0 +1,149 @@
+{
+  "baseline": false,
+  "results": [
+    {
+      "tier": "high",
+      "view": "captain-entry",
+      "calls": 1475,
+      "triangles": 2613033,
+      "errors": [],
+      "cloudVisible": true,
+      "cached": true
+    },
+    {
+      "tier": "high",
+      "view": "captain",
+      "calls": 1112,
+      "triangles": 2176682,
+      "errors": [],
+      "cloudVisible": true,
+      "cached": true
+    },
+    {
+      "tier": "high",
+      "view": "sky",
+      "calls": 578,
+      "triangles": 705465,
+      "errors": [],
+      "cloudVisible": true,
+      "cached": true
+    },
+    {
+      "tier": "high",
+      "view": "side",
+      "calls": 1312,
+      "triangles": 1327504,
+      "errors": [],
+      "cloudVisible": true,
+      "cached": true
+    },
+    {
+      "tier": "high",
+      "view": "above",
+      "calls": 342,
+      "triangles": 429085,
+      "errors": [],
+      "cloudVisible": true,
+      "cached": true
+    },
+    {
+      "tier": "high",
+      "view": "close",
+      "calls": 227,
+      "triangles": 281692,
+      "errors": [],
+      "cloudVisible": true,
+      "cached": true
+    },
+    {
+      "tier": "high",
+      "view": "night",
+      "calls": 575,
+      "triangles": 717087,
+      "errors": [],
+      "cloudVisible": true,
+      "cached": true
+    },
+    {
+      "tier": "high",
+      "view": "overcast",
+      "calls": 815,
+      "triangles": 829082,
+      "errors": [],
+      "cloudVisible": false,
+      "cached": true
+    },
+    {
+      "tier": "low",
+      "view": "captain-entry",
+      "calls": 703,
+      "triangles": 993811,
+      "errors": [],
+      "cloudVisible": false,
+      "cached": false
+    },
+    {
+      "tier": "low",
+      "view": "captain",
+      "calls": 548,
+      "triangles": 800252,
+      "errors": [],
+      "cloudVisible": false,
+      "cached": false
+    },
+    {
+      "tier": "low",
+      "view": "sky",
+      "calls": 269,
+      "triangles": 264252,
+      "errors": [],
+      "cloudVisible": false,
+      "cached": false
+    },
+    {
+      "tier": "low",
+      "view": "side",
+      "calls": 610,
+      "triangles": 611673,
+      "errors": [],
+      "cloudVisible": false,
+      "cached": false
+    },
+    {
+      "tier": "low",
+      "view": "above",
+      "calls": 114,
+      "triangles": 99379,
+      "errors": [],
+      "cloudVisible": false,
+      "cached": false
+    },
+    {
+      "tier": "low",
+      "view": "close",
+      "calls": 49,
+      "triangles": 40122,
+      "errors": [],
+      "cloudVisible": false,
+      "cached": false
+    },
+    {
+      "tier": "low",
+      "view": "night",
+      "calls": 241,
+      "triangles": 244988,
+      "errors": [],
+      "cloudVisible": false,
+      "cached": false
+    },
+    {
+      "tier": "low",
+      "view": "overcast",
+      "calls": 419,
+      "triangles": 399772,
+      "errors": [],
+      "cloudVisible": false,
+      "cached": false
+    }
+  ]
+}

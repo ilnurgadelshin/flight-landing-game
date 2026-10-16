@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { makeRng } from '../physics/atmosphere.js';
 import { SKY_GLSL } from './sky.js';
+import {CUMULUS_SIZE,CUMULUS_VARIANTS,CUMULUS_GRID,CUMULUS_DIMENSIONS,CUMULUS_BYTES} from './cumulus-layout.js';
 
 const vertexShader = /* glsl */`
   varying vec3 vLocal;
@@ -39,8 +40,8 @@ const fragmentShader = /* glsl */`
   float density(vec3 p) {
     #ifdef CACHED_DENSITY
       if(any(lessThan(p,vec3(-.5)))||any(greaterThan(p,vec3(.5))))return 0.0;
-      vec3 uv=((p+.5)*63.0+.5)/64.0;
-      uv.z=(uv.z+uVariant)/4.0;
+      vec3 uv=((p+.5)*${CUMULUS_SIZE-1}.0+.5)/${CUMULUS_SIZE}.0;
+      uv=(uv+vec3(mod(uVariant,2.0),0.0,floor(uVariant/2.0)))/vec3(${CUMULUS_GRID.map(n=>n+'.0').join(',')});
       return texture(uDensity,uv).r*5.0;
     #else
     if (p.y < -0.32) return 0.0;
@@ -66,19 +67,22 @@ const fragmentShader = /* glsl */`
     float enter = max(max(lo.x,lo.y),lo.z), leave = min(min(hi.x,hi.y),hi.z);
     enter = max(enter,0.0);
     if (leave <= enter) discard;
+    // Fixed midpoints avoid screen-locked speckling as the cloud moves. Keep
+    // the bounded 36-step integration without a temporal history buffer.
     float stepSize = (leave-enter)/36.0;
-    float jitter = fract(sin(dot(gl_FragCoord.xy,vec2(12.9898,78.233)))*43758.5453);
     float trans = 1.0; vec3 light = vec3(0.0);
     vec3 sunRay=normalize(uSun/uScale);
     float forward=pow(max(0.0,dot(normalize(rd*uScale),uSun)),6.0);
     for (int i=0;i<36;i++) {
-      vec3 p = uEye + rd*(enter + (float(i)+jitter)*stepSize);
+      vec3 p = uEye + rd*(enter + (float(i)+.5)*stepSize);
       float d = density(p);
       if (d > 0.005) {
         // Transform the sun into the non-uniformly scaled volume's frame.
-        float shadow = density(p+sunRay*.07)*.5 + density(p+sunRay*.16)*.32 + density(p+sunRay*.28)*.18;
-        float sun = exp(-shadow*1.7);
-        float alpha = 1.0-exp(-d*stepSize*22.0);
+        // A closer first tap picks up shade between the smaller billows. Keep
+        // the existing three shadow samples and a soft scattered-light floor.
+        float shadow = density(p+sunRay*.035)*.28 + density(p+sunRay*.10)*.42 + density(p+sunRay*.22)*.30;
+        float sun = exp(-shadow*3.8);
+        float alpha = 1.0-exp(-d*stepSize*50.0);
         vec3 col = mix(uShade, uLit*(.95+.25*forward), sun);
         col *= mix(.78,1.0,smoothstep(-.28,.22,p.y));
         light += trans*alpha*col; trans *= 1.0-alpha;
@@ -127,7 +131,7 @@ export class Cumulus {
         const u = this.material.uniforms;
         camera.getWorldPosition(u.uEye.value); mesh.worldToLocal(u.uEye.value);
         u.uScale.value.copy(mesh.scale); u.uSeed.value = mesh.userData.seed;
-        u.uVariant.value=i%4;
+        u.uVariant.value=i%CUMULUS_VARIANTS;
         u.uRotation.value.copy(mesh.userData.rotation);
         u.uSun.value.copy(this.sunDirection).applyAxisAngle(new THREE.Vector3(0,1,0),-mesh.rotation.y);
         this.material.uniformsNeedUpdate = true;
@@ -146,9 +150,9 @@ export class Cumulus {
         const stream=new Blob([data]).stream().pipeThrough(new DecompressionStream('gzip'));
         data=new Uint8Array(await new Response(stream).arrayBuffer());
       }
-      if(data.length!==64**3*4)throw new Error('Invalid cloud density dimensions');
+      if(data.length!==CUMULUS_BYTES)throw new Error('Invalid cloud density dimensions');
       if(this.disposed)return;
-      const texture=new THREE.Data3DTexture(data,64,64,256);
+      const texture=new THREE.Data3DTexture(data,...CUMULUS_DIMENSIONS);
       texture.format=THREE.RedFormat;texture.type=THREE.UnsignedByteType;
       texture.minFilter=texture.magFilter=THREE.LinearFilter;texture.unpackAlignment=1;texture.needsUpdate=true;
       this.material.uniforms.uDensity.value=texture;
