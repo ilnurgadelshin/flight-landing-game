@@ -43,14 +43,15 @@ async function boot() {
   await new Promise((r) => setTimeout(r, 10));
   const cockpit = new Cockpit(world.camera, { lowDetail: world.lowDetail || world.quality === 'low' });
   await Promise.all([world.assetsReady, cockpit.assetsReady]);
-  world.setupCockpit(cockpit.root,cockpit.eyeLocal);
+  world.setupCockpit(cockpit.root,cockpit.eyeLocal,cockpit.windshield);
   const input = new InputManager(canvas);
   const audio = new AudioSystem({ ios: isIOS });
   const gpws = new GPWS(audio);
   const haptics = new Haptics();
   const touch = new TouchControls(input, document.getElementById('hud'), haptics);
   const game = new Game({ player: input, gpws });
-  const view = new GameView({ game, world, cockpit, look: input.look, hud: new HeadUpDisplay(document.getElementById('hud-canvas')) });
+  const view = new GameView({ game, world, cockpit, look: input.look, hud: new HeadUpDisplay(document.getElementById('hud-canvas')),
+    compactCockpit: () => getScheme() === 'touch' && innerHeight <= 600 && innerWidth / innerHeight >= 1.35 });
   const presentation = new Presentation({ game, view, world, ui, audio, gpws, haptics, touch, input });
   input.onAction((name, arg) => presentation.onAction(name, arg));
   const platform = new Platform({ game, input, world });

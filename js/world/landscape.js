@@ -53,6 +53,7 @@ export function buildLandscape(world) {
       land=detailTile(land,uDetail1,uDetailRect1,vGroundXZ);
       land=detailTile(land,uDetail2,uDetailRect2,vGroundXZ);
       land=detailTile(land,uDetail3,uDetailRect3,vGroundXZ);
+      vec3 surveyedAlbedo=land;
       // Uneven rough grass margins blend the maintained airfield into real fields.
       float margin=sin(vGroundXZ.x*.024)*8.0+sin(vGroundXZ.y*.035)*6.0;
       float airfield = (1.0-smoothstep(1590.0,1840.0,abs(vGroundXZ.x)+margin)) *
@@ -71,8 +72,9 @@ export function buildLandscape(world) {
       vec3 rotatedGrass=texture2D(uGrass,mat2(.8,-.6,.6,.8)*vGroundXZ/10.7+vec2(.37,.61)).rgb;
       float grain=clamp(dot(mix(fineGrass,rotatedGrass,.38),vec3(.25,.5,.25))*7.5,.45,1.75);
       land*=mix(1.0,grain,surfaceMask*closeSurface*.82);
-      // Reconstruct continuous field/forest surfaces, not the photographed crowns
-      // and shadows. Keep parcel boundaries, with broad weathering and metre-scale grain.
+      // Replace photographed forest crowns with a floor beneath the planted trees.
+      // Open fields retain more surveyed crop/soil variation at approach distance;
+      // a constant cover colour otherwise erases the detail the tiles provide.
       vec3 cover=corridorCover(vGroundXZ);
       float coverTotal=dot(cover,vec3(1.0));
       if(coverTotal>.001){
@@ -81,11 +83,15 @@ export function buildLandscape(world) {
         // Strong, distant scan grain reads as tiled checks across open fields.
         // Retain the scanned relief near the eye, fading before its repetition resolves.
         float fieldGrain=mix(1.0,clamp(grain,.65,1.35),.35*(1.0-smoothstep(100.0,650.0,length(vViewPosition))));
-        vec3 meadow=vec3(.105,.145,.056)*fieldVariation*fieldGrain;
-        vec3 stubble=vec3(.195,.153,.084)*fieldVariation*fieldGrain;
-        // Subtle cultivation bands follow the long axis of the photographed fields.
-        stubble*=1.0+.035*sin(dot(vGroundXZ,vec2(.34,-.21)));
+        float fieldPhoto=mix(.25,.60,smoothstep(80.0,500.0,length(vViewPosition)));
+        vec3 meadow=mix(vec3(.105,.145,.056)*fieldVariation,surveyedAlbedo,fieldPhoto)*fieldGrain;
+        vec3 stubble=mix(vec3(.195,.153,.084)*fieldVariation,surveyedAlbedo,fieldPhoto)*fieldGrain;
         vec3 floorCover=vec3(.052,.070,.029)*fieldVariation*fieldGrain;
+        // Retain the aerial photograph's broad light/shade between distant
+        // crowns. A constant forest floor becomes a smooth green sheet where
+        // the bounded tree pool (especially low quality) cannot close the canopy.
+        float forestVariation=clamp(dot(surveyedAlbedo,vec3(.2126,.7152,.0722))*8.0,.45,1.65);
+        floorCover*=mix(1.0,forestVariation,.8*smoothstep(180.0,900.0,length(vViewPosition)));
         vec3 reconstructed=(meadow*cover.r+stubble*cover.g+floorCover*cover.b)/max(.001,coverTotal);
         land=mix(land,reconstructed,coverTotal*coverReach*.86);
       }

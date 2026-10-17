@@ -148,7 +148,7 @@ export class Presentation {
     if (this.haptics && simDt > 0 && g.state === 'flying') this.haptics.update(simDt, st);
     const configWarning = this.gpws && this.gpws.hornOn ? 'GEAR NOT DOWN' : (st.destroyed ? 'CRASHED' : '');
     const view = this.view.shown;
-    this.ui.setView(view);
+    this.ui.setView(view, view === 'cockpit' && g.state !== 'school' && this.view.cockpit.lookDown > 0.25);
     this.ui.updateHUD(st, { mouse: this.input.mouseEngaged, pad: this.input.pad.active, configWarning, fd: g.fdCommand(), headUp: view === 'hud' });
     if (this.touch) this.touch.sync(st, inp, { gaMode: g.ctx.gaMode, view, at: g.controls.autothrottle.mode });
     if (this.gpws) this.ui.setCaption(this.gpws.caption, this.gpws.captionKind);

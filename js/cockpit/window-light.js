@@ -18,7 +18,7 @@ export function bakeWindowLight(root,lights,strength) {
   const materials=new Set(),geometries=new Set(),color={value:lights[0].color.clone()};
   root.traverse(mesh=>{
     if(!mesh.isMesh||!mesh.material.isMeshStandardMaterial)return;
-    for(let o=mesh;o&&o!==root;o=o.parent)if(!o.visible)return;
+    for(let o=mesh;o&&o!==root;o=o.parent)if(!o.visible||o.userData.excludeCabinCapture)return;
     if(geometries.has(mesh.geometry))mesh.geometry=mesh.geometry.clone();
     geometries.add(mesh.geometry);
     const g=mesh.geometry,p=g.attributes.position,n=g.attributes.normal;

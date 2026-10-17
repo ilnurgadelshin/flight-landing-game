@@ -316,7 +316,7 @@ export class Cockpit {
     // head moves slightly under lateral/vertical acceleration (feels heavy)
     this.camera.position.y -= clamp((st.gLoad - 1) * 0.02, -0.04, 0.04);
     const base = extra.viewPitch === undefined ? this.basePitch : extra.viewPitch;
-    this.camera.rotation.set(base - this.lookDown * 40 * DEG + this.lookPitch, this.lookYaw, 0, 'YXZ');
+    this.camera.rotation.set(base - this.lookDown * (extra.panelTilt ?? 40 * DEG) + this.lookPitch, this.lookYaw, 0, 'YXZ');
     // the instrument view: from the eye's pose to one square in front of the ND in 0.45 s, eased
     const step = Math.min(dt, 0.1) / 0.45;
     this.focus = extra.focus ? Math.min(1, this.focus + step) : Math.max(0, this.focus - step);
@@ -376,6 +376,10 @@ export class Cockpit {
    */
   update(st, input, dt, extra = {}) {
     this.updateCamera(st, dt, extra);
+    if(this.windshield){
+      this.windshield.viewVisible=!extra.hidden&&this.focus<1;
+      this.windshield.update(dt,!!extra.rain,st.groundSpeed,extra.daylight??1);
+    }
     if (extra.hidden) return;
     // levers
     this.throttles.forEach((t) => {
@@ -399,8 +403,10 @@ export class Cockpit {
     // yokes
     this.yokes.forEach((y) => { y.col.rotation.x = -input.pitch * 0.14; y.hub.rotation.z = -input.roll * 1.1; });
     // wipers
-    if (extra.rain) { this.wiperT = (this.wiperT || 0) + dt * 2.2; const a = (Math.sin(this.wiperT) * 0.5 + 0.5) * 1.1; this.wipers[0].rotation.z = 1.25 - a; this.wipers[1].rotation.z = -1.25 + a; }
-    else { this.wipers[0].rotation.z = 1.25; this.wipers[1].rotation.z = -1.25; }
+    if (!this.windshield) {
+      if (extra.rain) { this.wiperT = (this.wiperT || 0) + dt * 2.2; const a = (Math.sin(this.wiperT) * 0.5 + 0.5) * 1.1; this.wipers[0].rotation.z = 1.25 - a; this.wipers[1].rotation.z = -1.25 + a; }
+      else { this.wipers[0].rotation.z = 1.25; this.wipers[1].rotation.z = -1.25; }
+    }
     // displays
     this.pfd.fdEnabled = !!extra.fd;
     if (extra.fd) this.pfd.fd = extra.fd;

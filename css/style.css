@@ -344,3 +344,14 @@ body.compact #t-at { bottom: calc(102px * var(--k)); }
 body.compact #t-brake { height: calc(44px * var(--k)); }
 body.touch.compact #hud-top { left: calc(var(--sal) + 208px * var(--k)); }
 body.compact #hgs { width: min(40vw, 420px); }
+
+/* A short touch cockpit has a narrower camera lens (GameView). Keep its readouts
+   above the autopilot panel; HUD and MAP retain their own independent layouts.
+   Looking down at the instruments removes duplicate floating readouts. */
+body.touch.view-panel #hgs { display: none; }
+@media (max-height: 600px) and (min-aspect-ratio: 1.35) {
+  body.touch:not(.view-hud):not(.nd-view) #hgs { top: calc(var(--sat) + 14%); height: 28%; }
+  /* The enlarged PFD reaches the old MAP button's bottom-row position. Put MAP
+     above the rudder beside A/T (TO/GA in the compact layout), clear of both displays. */
+  body.touch #t-map { left: calc(136px * var(--k)); bottom: calc(52px * var(--k)); height: calc(44px * var(--k)); }
+}

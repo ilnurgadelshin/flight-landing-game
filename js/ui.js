@@ -187,11 +187,12 @@ export class UI {
     if (getScheme() === 'touch' || extra.headUp) this.updateHGS(st, extra);
   }
 
-  /** The view shown ('cockpit' | 'hud'): the head-up view shows the #hgs readouts on every device. */
-  setView(view) {
-    if (view === this._view) return;
-    this._view = view;
+  /** The view shown: head-up readouts on every device, hidden when looking down at the panel. */
+  setView(view, panel = false) {
+    if (view === this._view && panel === this._panel) return;
+    this._view = view; this._panel = panel;
     document.body.classList.toggle('view-hud', view === 'hud');
+    document.body.classList.toggle('view-panel', panel);
   }
 
   /**

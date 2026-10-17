@@ -3,8 +3,8 @@
 // It reads the game and never changes it.
 //
 // Two first-person views from the captain's eye point:
-//   cockpit   the flight deck around the eye, looking 14° down so the panel shows (the PANEL look
-//             tilts further down to it)
+//   cockpit   the flight deck around the eye, looking 14° down (11° on short touch screens);
+//             PANEL tilts further down to the instruments
 //   head-up   the flight deck hidden and a head-up display over the outside world (js/hud.js), like
 //             X-Plane's "forward with HUD" or a 737 flown on its head-up guidance system. The eye
 //             looks 6° below the nose, so on the approach the runway is near the middle of the
@@ -33,9 +33,10 @@ export class GameView {
    * @param cockpit js/cockpit/cockpit.js
    * @param look    { yaw, pitch, down } where the player is looking (InputManager.look)
    */
-  constructor({ game, world, cockpit, look, hud = null }) {
+  constructor({ game, world, cockpit, look, hud = null, compactCockpit = () => false }) {
     this.game = game; this.world = world; this.cockpit = cockpit; this.look = look;
     this.hud = hud;                             // js/hud.js HeadUpDisplay (the head-up view's symbols)
+    this.compactCockpit = compactCockpit;       // short landscape touch viewport, independent of graphics quality
     this.mode = 'cockpit';                      // 'cockpit' | 'hud', chosen by the player
     this.onMode = null;                         // (mode) => void: the choice changed
     this.ndView = false;                        // leaning in to the ND (over either view)
@@ -51,6 +52,7 @@ export class GameView {
       world.applyScenario(scenario, night);
       cockpit.setNight(night || scenario.timeOfDay !== 'day');
       this.raining = scenario.rain > 0;
+      cockpit.windshield?.reset();
       this.schoolLook = 0;
       this.ndView = false;
       this.sync();
@@ -125,17 +127,24 @@ export class GameView {
     const headUp = this.mode === 'hud' && this.game.state !== 'school';
     // Preserve the panel coverage on narrow screens; a desktop no longer uses a
     // 100-degree wide-angle lens that shrinks the runway and exaggerates pillars.
-    const deckFov = cam.aspect < 1.35 ? 70 : COCKPIT_FOV;
+    // On a phone the wide desktop lens makes both the windshield and instruments tiny.
+    // A narrower lens and a slightly higher gaze use the same source-model eye point.
+    // PANEL widens the lens and tilts to the instruments, rather than down to the
+    // floor. School keeps its original camera for highlights; MAP frames itself.
+    const compact = this.compactCockpit() && g.state !== 'school';
+    const deckFov = cam.aspect < 1.35 ? 70 : COCKPIT_FOV - (compact ? 10 * (1 - this.cockpit.lookDown) : 0);
+    const deckPitch = COCKPIT_PITCH + (compact ? 3 * DEG : 0);
     const fov = (headUp ? hudFov(cam.aspect) : deckFov) * (1 - s) + ND_FOV * s;
     if (Math.abs(cam.fov - fov) > 1e-3) { cam.fov = fov; cam.updateProjectionMatrix(); }
     this.world.drawCockpit = !hud;
     this.cockpit.update(st, inp, frameDt, {
       // the selected speed: the autoland's on its MCP, the player's autothrottle's, otherwise the approach's Vref + 5
       look, fd: g.fdCommand(), targetSpeed: !st.onGround ? (mcp ? mcp.spd : (atSpd || st.vref + 5)) : null, papi: this.world.lights.papiWhites(this.eye), checklist: g.checklist(),
-      gaMode: g.ctx.gaMode, rain: this.raining, autothrottle: fma ? fma.at : at.mode,
+      gaMode: g.ctx.gaMode, rain: this.raining, daylight:this.world.daylight, autothrottle: fma ? fma.at : at.mode,
       rollMode: fma ? fma.roll : (g.mode === 'training' ? 'FD' : ''), pitchMode: fma ? fma.pitch : (g.mode === 'training' ? 'FD' : ''),
       mcp, efis: g.efis, nd: g.ndOpts(),
-      hidden: hud, viewPitch: headUp ? HUD_PITCH : COCKPIT_PITCH,
+      hidden: hud, viewPitch: headUp ? HUD_PITCH : deckPitch,
+      panelTilt: (compact && !headUp ? 16 : 40) * DEG,
       focus: this.ndView, focusFov: ND_FOV, focusFrame: this.ndFrame,
     });
     // the speed trend for the display's acceleration caret (kt per simulated second, smoothed)

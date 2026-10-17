@@ -15,12 +15,14 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RUNWAY, DEG } from '../config.js';
 import { makeRng } from '../physics/atmosphere.js';
-import { makeRunwayTexture, makeTaxiwayTexture, makeDetailTexture, makeCloudTexture, makeBuildingTexture } from './textures.js';
+import { makeRunwayTexture, makeTaxiwayTexture, makeDetailTexture, makeCloudTexture } from './textures.js';
 import { AirfieldLights } from './lights.js';
 import { Atmosphere, SKY_GLSL, installHaze, sceneColor } from './sky.js';
 import { Cumulus } from './clouds.js';
+import { Rain } from './rain.js';
 import { buildOvercast } from './overcast.js';
 import { addAirportDetail } from './airport-detail.js';
+import { buildAirportArchitecture } from './airport-architecture.js';
 import { buildLandscape } from './landscape.js';
 import { addRunwayShoulders } from './runway-surfaces.js';
 import { loadParkedAircraft } from './scenery-models.js';
@@ -71,37 +73,6 @@ const SKY_FRAG = /* glsl */`
     // Environment captures describe illumination; only the viewed sky gets cloud-path obscuration.
     if(uGroundMix<.5)col=cloudCover(col,dir,60000.);
     gl_FragColor = vec4(col, 1.0);
-    #include <tonemapping_fragment>
-    #include <colorspace_fragment>
-  }
-`;
-
-const RAIN_VERT = /* glsl */`
-  attribute float seed;
-  attribute vec3 anchor;          // the start of this drop's streak: both ends wrap together
-  uniform float uTime; uniform vec3 uBox; uniform vec3 uVel;
-  varying float vA;
-  #include <common>
-  #include <logdepthbuf_pars_vertex>
-  void main() {
-    // each drop falls with the relative velocity (camera space); wrap inside the box
-    vec3 d = uVel * (uTime + seed * 100.0);
-    vec3 a = mod(anchor + d + uBox * 0.5, uBox) - uBox * 0.5;
-    vec3 p = a + (position - anchor);
-    vA = 0.35 + 0.3 * seed;
-    vec4 mvPosition = modelViewMatrix * vec4(p, 1.0);
-    gl_Position = projectionMatrix * mvPosition;
-    #include <logdepthbuf_vertex>
-  }
-`;
-const RAIN_FRAG = /* glsl */`
-  varying float vA;
-  uniform float uIntensity;
-  uniform vec3 uColor;
-  #include <logdepthbuf_pars_fragment>
-  void main() {
-    #include <logdepthbuf_fragment>
-    gl_FragColor = vec4(uColor, vA * uIntensity * 0.45);
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
   }
@@ -264,7 +235,7 @@ export class World {
   /** Drop expensive effects without restarting a flight or moving its camera. */
   reduceQuality() {
     if(this.quality==='low')return;
-    this.quality='low';this.renderer.shadowMap.enabled=false;this.groundCover?.reduceQuality();
+    this.quality='low';this.renderer.shadowMap.enabled=false;this.groundCover?.reduceQuality();this.windshield?.reduceQuality();this.precipitation?.reduceQuality();
     for(const light of [this.sun,this.cockpitSun]){
       light.castShadow=false;light.shadow.map?.dispose();light.shadow.map=null;
     }
@@ -340,7 +311,8 @@ export class World {
   }
 
   /** Let the flight deck cast and receive the sun's shadow (called once the cockpit is built). */
-  setupCockpit(root,eyeLocal) {
+  setupCockpit(root,eyeLocal,windshield) {
+    this.windshield=windshield;
     this.cabinEnvironment=new CabinEnvironment(this,root,eyeLocal);
     if (this.quality !== 'high') return;
     root.traverse((o) => {
@@ -413,25 +385,7 @@ export class World {
     apron.rotation.x = -Math.PI / 2; apron.position.set(0, 0.014, 285); add(apron, false);
     this.pavementMats.push(apron.material);
 
-    // buildings: terminal, hangars, tower
-    this.buildingTex = makeBuildingTexture(false);
-    const bMat = std({ map: this.buildingTex, color: 0xb8b8b8, roughness: 0.8 });
-    const roofMat = std({ color: 0x777a80, roughness: 0.7, metalness: 0.2 });
-    this.buildingMats = [bMat];
-    const box = (w, h, d, x, z, mat = bMat) => {
-      const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), [mat, mat, roofMat, roofMat, mat, mat]);
-      m.position.set(x, h / 2, z); return add(m);
-    };
-    this.buildingTex.repeat.set(4, 1);
-    // Low connecting concourse between five separate glazed departure halls.
-    box(750, 8, 40, 0, 465);
-    box(105, 12, 55, -430, 492); box(105, 12, 55, 430, 492);
-    const hangarMat = std({ color: 0x8e9298, roughness: 0.6, metalness: 0.3 });
-    for (let i = 0; i < 3; i++) box(90, 24, 70, 700 + i * 110, 300, hangarMat); // hangars
-    // control tower
-    const towerMat = std({ color: 0xb8bcc4, roughness: 0.8 });
-    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(5, 7, 52, 12), towerMat); shaft.position.set(-250, 26, 330); add(shaft);
-    const cab = new THREE.Mesh(new THREE.CylinderGeometry(11, 9, 9, 12), std({ color: 0x1a2530, roughness: 0.1, metalness: 0.6 })); cab.position.set(-250, 56, 330); add(cab);
+    this.airportArchitecture=buildAirportArchitecture(this.scene,this.quality==='low',aniso);
     // jet bridges + parked aircraft on the apron
     this.parkedAircraft = new THREE.Group();
     this.scene.add(this.parkedAircraft);
@@ -474,34 +428,11 @@ export class World {
       this.cumulus = new Cumulus(this.scene, this.atmo);this.assetJobs.push(this.cumulus.ready);
     }
     this.deckSurfaces=buildOvercast(this);
-    // rain: line segments in camera space
-    const n = this.lowDetail ? 900 : 2600;
-    const pos = new Float32Array(n * 2 * 3), anchor = new Float32Array(n * 2 * 3), seed = new Float32Array(n * 2);
-    const box = new THREE.Vector3(44, 30, 40);
-    for (let i = 0; i < n; i++) {
-      const x = (rng() - 0.5) * box.x, y = (rng() - 0.5) * box.y, z = (rng() - 0.5) * box.z;
-      const sd = rng();
-      pos.set([x, y, z, x, y - 0.22, z + 0.45], i * 6);   // ~0.5 m streak: what a drop covers in a 60 Hz frame
-      anchor.set([x, y, z, x, y, z], i * 6);
-      seed[i * 2] = sd; seed[i * 2 + 1] = sd;
-    }
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-    geo.setAttribute('anchor', new THREE.BufferAttribute(anchor, 3));
-    geo.setAttribute('seed', new THREE.BufferAttribute(seed, 1));
-    this.rainMat = new THREE.ShaderMaterial({
-      vertexShader: RAIN_VERT, fragmentShader: RAIN_FRAG, transparent: true, depthWrite: false,
-      uniforms: { uTime: { value: 0 }, uBox: { value: box }, uVel: { value: new THREE.Vector3(0, -9, 3) }, uIntensity: { value: 0 }, uColor: { value: new THREE.Color(0.72, 0.78, 0.88) } },
-    });
-    this.rain = new THREE.LineSegments(geo, this.rainMat);
-    this.rain.renderOrder=3; // Foreground rain follows the opaque cloud boundary.
-    this.rain.frustumCulled = false;
-    this.rain.visible = false;
-    this.rain.position.set(0, 0, -27);     // the whole box sits well outside the windshield (7..47 m)
-    // the rain rig copies the camera transform every frame (the camera itself lives in the cockpit scene)
-    this.rainRig = new THREE.Object3D();
-    this.rainRig.add(this.rain);
-    this.scene.add(this.rainRig);
+    this.precipitation=new Rain(this.scene,{lowDetail:this.quality==='low'});
+    this.rain=this.precipitation.mesh;this.rainMat=this.precipitation.material;
+    // Preserve the established cloud/lightning seed sequence while rain moves
+    // to its own RNG (the old pool consumed four numbers per drop at startup).
+    for(let i=0,n=(this.lowDetail?900:2600)*4;i<n;i++)rng();
     this.lightningTimer = 4;
     this.lightningFlash = 0;
   }
@@ -621,20 +552,12 @@ export class World {
     this.rainMat.uniforms.uIntensity.value = scenario.rain;
     this.rainMat.uniforms.uColor.value.set(tod === 'night' ? 0x5a6070 : 0xb8c4d8);
     this.rain.visible = scenario.rain > 0;
+    this.precipitation.reset();
     this.lightningEnabled = !!scenario.lightning;
     // building windows glow at night
     for(const m of this.approachBuildings?.materials||[])m.emissiveIntensity=tod==='night'?.55:tod==='dusk'?.2:0;
     this.approachBuildings?.updateShadows();
-    this.buildingTex.dispose();
-    this.buildingTex = makeBuildingTexture(tod !== 'day');
-    this.buildingTex.repeat.set(4, 1);
-    for (const m of this.buildingMats) {
-      m.map = this.buildingTex;
-      m.emissiveMap = tod !== 'day' ? this.buildingTex : null;
-      m.emissive.set(tod !== 'day' ? 0xffffff : 0x000000);
-      m.emissiveIntensity = tod === 'night' ? 0.55 : 0.25;
-      m.needsUpdate = true;
-    }
+    this.airportArchitecture.setTimeOfDay(tod);
     // Day and night share surface albedo; illumination supplies the time of day.
     this.groundMat.map = this.groundTex;
     // the airport's shadows are drawn once for this sun
@@ -738,14 +661,7 @@ export class World {
     if (this.overcastTop.visible) {
       this.overcastTop.position.x = eye.x; this.overcastTop.position.z = eye.z;
     }
-    // rain in camera space: relative velocity = fall + aircraft speed (approx along the view axis)
-    this.camera.getWorldQuaternion(this.rainRig.quaternion);
-    this.rainRig.position.copy(eye);
-    if (this.rain.visible) {
-      this.rainMat.uniforms.uTime.value = this.time;
-      const gs = state.groundSpeed;
-      this.rainMat.uniforms.uVel.value.set(0, -9, Math.min(gs, 90) * 0.8);
-    }
+    this.precipitation.update(dt,state,eye,this.renderer);
     // wind sock points downwind
     if (this.sock) {
       const wdir = (state.windDirDeg + 180) * DEG;
@@ -765,6 +681,7 @@ export class World {
     // the flight deck on top, straight to the screen (its displays keep their exact colours);
     // the head-up view has none (drawCockpit false)
     if (this.drawCockpit === false) return;
+    this.windshield?.captureOutside(r,this.camera);
     r.autoClear = false;
     r.clearDepth();
     r.render(this.cockpitScene, this.camera);
