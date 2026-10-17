@@ -6,6 +6,24 @@ export function corridorUniforms(fallback){
  return {uCorridor:{value:fallback},uCorridorRect:{value:new THREE.Vector4(2100,180,2000,850)},uCorridorReady:{value:0},uCorridorInfluence:{value:1}};
 }
 
+/**
+ * The decoded mask kept for placement, exactly, in half the memory of its RGBA pixels (alpha is
+ * unused). Each pixel holds one class and its weight; the few pixels where classes blend (about
+ * 0.2%) keep all three weights in a side table. Returns i => [r, g, b] in 0..1.
+ */
+export function packCover(rgba,count){
+ const MIXED=0xffff,packed=new Uint16Array(count),mixed=new Map();
+ for(let i=0;i<count;i++){
+  const p=i*4,r=rgba[p],g=rgba[p+1],b=rgba[p+2];
+  if((r>0)+(g>0)+(b>0)>1){packed[i]=MIXED;mixed.set(i,[r/255,g/255,b/255]);}
+  else packed[i]=r?r:g?256|g:b?512|b:0;
+ }
+ return i=>{
+  const v=packed[i];if(v===MIXED)return mixed.get(i).slice();
+  const out=[0,0,0];out[v>>8]=(v&255)/255;return out;
+ };
+}
+
 export async function loadApproachCorridor(world){
  const url=name=>new URL('../../assets/scenery/approach-corridor.'+name,import.meta.url).href;
  const response=await fetch(url('json'));if(!response.ok)throw new Error(`Approach corridor: HTTP ${response.status}`);
@@ -30,9 +48,9 @@ export async function loadApproachCorridor(world){
  texture.colorSpace=THREE.NoColorSpace;texture.generateMipmaps=false;texture.minFilter=THREE.LinearFilter;
  const canvas=document.createElement('canvas');canvas.width=manifest.width;canvas.height=manifest.height;
  const context=canvas.getContext('2d',{willReadFrequently:true});context.drawImage(texture.image,0,0);
- const pixels=context.getImageData(0,0,manifest.width,manifest.height).data;
- // Keep the full 2 m CPU mask for placement clearances. The low tier only needs
- // a smaller, filtered ground-colour mask; never exceed the device texture limit.
+ // Keep the full 2 m mask for placement clearances (packed: 7 MB, not 14). The low tier
+ // only needs a smaller, filtered ground-colour mask; never exceed the device texture limit.
+ const cover=packCover(context.getImageData(0,0,manifest.width,manifest.height).data,manifest.width*manifest.height);
  const low=world.lowDetail||world.quality==='low';
  const maxSize=Math.min(world.renderer.capabilities.maxTextureSize,low?2048:4096);
  if(Math.max(manifest.width,manifest.height)>maxSize){
@@ -42,11 +60,13 @@ export async function loadApproachCorridor(world){
   reduced.getContext('2d').drawImage(canvas,0,0,reduced.width,reduced.height);
   texture.image=reduced;texture.needsUpdate=true;
  }
+ // Release the full-size canvas now rather than at collection (iOS budgets canvas memory).
+ canvas.width=canvas.height=0;
  const [x0,z0,width,depth]=manifest.bounds;
  const sample=(x,z)=>{
   const i=Math.floor((x-x0)/width*manifest.width),j=Math.floor((z-z0)/depth*manifest.height);
   if(i<0||j<0||i>=manifest.width||j>=manifest.height)return [0,0,0];
-  const p=(j*manifest.width+i)*4;return [pixels[p]/255,pixels[p+1]/255,pixels[p+2]/255];
+  return cover(j*manifest.width+i);
  };
  world.groundUniforms.uCorridor.value=texture;
  world.groundUniforms.uCorridorRect.value.fromArray(manifest.bounds);
