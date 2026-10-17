@@ -1796,3 +1796,16 @@ Raw records: `benchmarks/2026-10-17-phone-cockpit-captures.json`,
 `benchmarks/2026-10-17-phone-cockpit-render-final.json`. The visual audit records
 geometry, layout and browser coverage. Physical phones, other GPUs and the full
 flight suite were not benchmarked or rerun for this view/layout change.
+
+
+## Packed land-cover placement copy — 2026-10-17
+
+Baseline: `5c6099a`. The CPU copy of the land-cover mask that tree and grass placement sample
+kept the decoded RGBA pixels: **14.007 MB** on every tier, phones included, although alpha is
+unused. Each pixel now holds one class and its weight in two bytes; the 6,116 pixels (0.17%)
+where classes blend keep all three weights in a side table. Measured in Node, the copy takes
+**7.00 MB plus 0.66 MB**, 45% less, and returns exactly the old values: `test/corridor-assets.test.mjs`
+compares every one of the 3,501,750 pixels. Placement is therefore unchanged on both tiers, and
+two million samples take 75 ms. The full-size canvas used to decode the mask is released as soon
+as it has been read, rather than at garbage collection. The GPU texture is unchanged (14.007 MB
+high, 4.940 MB low). Physical phones were not measured.

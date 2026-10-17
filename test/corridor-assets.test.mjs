@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import sharp from 'sharp';
 import {protectedScenery} from '../js/world/scenery-ground.js';
+import {packCover} from '../js/world/approach-corridor.js';
 
 const root='assets/scenery/approach-corridor',manifest=JSON.parse(await fs.readFile(root+'.json'));
 const {data,info}=await sharp(root+'.png').removeAlpha().raw().toBuffer({resolveWithObject:true});
@@ -42,4 +43,7 @@ assert.deepEqual(manifest.plantingZones[1],{bounds:[2100,-1000,2000,820],seed:77
 assert.ok(manifest.plantingZones.reduce((sum,z)=>sum+z.highLimit,0)<=40000&&manifest.plantingZones.reduce((sum,z)=>sum+z.lowLimit,0)<=12400);
 assert.deepEqual(manifest.plantingZones[3].bounds,[6100,-1000,2900,2030]);
 assert.ok(manifest.plantingZones[3].highSpacing>=16&&manifest.plantingZones[3].lowSpacing>=30,'The extension uses wider spacing without increasing the whole-world tree budget');
-console.log('Corridor coverage, airport clearance, registration and transfer budget passed');
+// The packed placement copy returns exactly what the decoded RGBA pixels give, every pixel.
+const rgba=(await sharp(root+'.png').ensureAlpha().raw().toBuffer()),count=info.width*info.height,cover=packCover(rgba,count);
+for(let i=0;i<count;i++){const c=cover(i);for(let k=0;k<3;k++)if(c[k]!==rgba[i*4+k]/255)assert.fail(`Packed cover differs at pixel ${i}`);}
+console.log('Corridor coverage, airport clearance, registration, transfer budget and exact packed cover passed');
