@@ -243,7 +243,7 @@ thrust lever that stays where it is left for the other.
 | Wheel brakes | **BRAKE** (hold): appears on the ground, above the stick's area |
 | Reposition on final | **REPOSITION**: appears during a go-around |
 | Look around / views | Drag on the windshield (lets go straight ahead) · **VIEW** steps cockpit → panel → head-up, and names the one shown |
-| Navigation display | **MAP** (between the rudder strip and the stick) leans in to the flight deck's ND, from the cockpit or the head-up view: the ND fills the space between the controls, the speed and the altitude beside it. **−** / **+** set its range and the mode button (MAP, APP, PLN) its mode, in the bottom row. **✕** or **VIEW** (it reads MAP) goes back |
+| Navigation display | **MAP** (above the rudder on short screens) leans in to the flight deck's ND, from the cockpit or the head-up view: the ND fills the space between the controls, the speed and the altitude beside it. **−** / **+** set its range and the mode button (MAP, APP, PLN) its mode, in the bottom row. **✕** or **VIEW** (it reads MAP) goes back |
 | Approach chart | **❚❚**, then **Approach chart**. A tap zooms it to full size (then drag to move it); **✕** closes it |
 | Pause / Flight School | **❚❚** / **?** at the top right |
 
@@ -252,6 +252,12 @@ against Vref + 5, N1, altitude, radio altitude, vertical speed, wind, the
 localizer and glideslope diamonds, and the flight director in Flight School.
 Flight School and the instructor hints name the touch controls instead of keys,
 and highlight them.
+
+On short landscape touch screens, the cockpit uses a closer lens so the windshield
+and instruments are larger. Its speed and altitude readouts sit above the autopilot
+panel. **VIEW → PANEL** centers the flight instruments and pedestal and hides the
+floating readouts. **MAP** moves above the rudder to clear the primary displays;
+the map and head-up views keep their dedicated framing and readout layouts.
 
 **Short screens.** In landscape, Safari's address and tab bars leave an
 iPhone's page only 265–330 px tall (Chrome on Android about 300). When the

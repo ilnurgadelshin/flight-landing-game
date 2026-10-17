@@ -34,11 +34,11 @@ ignored `test/output/visual-audit-before/` folder; current captures are `test/ou
 | 8 | Flat, muddy illumination and weak foreground depth | Reduced warm daytime lamps in favour of neutral sky light. Sun shadows plus a rebake of close contact and cabin sky access, including the fitted roof. Baked occlusion now affects indirect light rather than darkening the paint and direct sunlight. | No real-time global illumination. The bake approximates sky access and bounced light; it cannot replace fully authored materials. |
 | 9 | Box-like airport and disconnected jet bridges | Five stepped gate halls connect through glazed galleries and solid stair cores. Recessed glazing, mezzanines, braces and end wings give the terminal a clearer structure; pitched hangars and a sloped eight-sided tower cab replace basic boxes/cylinders. Existing jet bridges still reach their aircraft. | Architecture remains simplified. Opaque glass has painted interior suggestions, no interior parallax or airport reflections. Wear, apron equipment and finer local shadows remain sparse. |
 | 10 | Clean rectangular pavement pasted onto the terrain | Textured aggregate shoulders with feathered soil margins, subtle mowing, asphalt resurfacing/repairs and tyre deposits, apron slabs and expansion joints. | Ground-level wear, drainage and small debris remain sparse. |
-| 11 | Windshields appear absent | Glazing now follows the source frame rails. Faint reflections and moving water stay attached to six panes; fitted wipers clear front sectors. High refracts the rendered exterior through droplets; low uses shaded drops. | Droplets and blade contact are approximations, not fluid simulation. Glass has no scratches, ice, condensation or fully physical transmission; phone framing remains unchanged. |
+| 11 | Windshields appear absent | Glazing follows the source frame rails. Faint reflections and moving water stay attached to six panes; fitted wipers clear front sectors. High refracts the exterior through droplets; low uses shaded drops. Short touch screens now use a closer lens, larger windshield band and readouts above the MCP. | Droplets and blade contact are approximations, not fluid simulation. Glass has no scratches, ice, condensation or fully physical transmission. Phone controls still compete for limited screen space. |
 | 12 | Hard black fog horizon, a dark sheet inside the cloud transition, and lights visible through opaque cloud | Fixed shared atmospheric uniforms on foliage/deck shaders; show cloud surfaces only from outside the deck; removed the lights' 3% fog visibility floor. Added rendered regression checks. | The earlier audit incorrectly blamed a CSS rain overlay: it was already disabled. Existing rain uses 3D streaks driven by relative velocity. Pane-bound water and wiper clearing now complement those streaks; richer water films remain future work. |
 | 13 | Jagged foliage, grain and inconsistent fine-detail sharpness | Alpha-to-coverage for foliage, anisotropic filtering and mipmapped, metric-scale cockpit finishes. Removed the cockpit shadow normal offset that stippled the double-sided liner; existing 4× world MSAA and cockpit antialiasing remain. | No temporal AA. Thin modeled labels, shadow edges and branches can still shimmer at distance. |
 | 14 | Repeating facade grids and weak building contact | Twelve approach facade bays share an atlas: house fronts with doors/shutters, upper floors, sparse sides, barns and loading bays. Houses have a principal entry bay; nearby bevels, smoother panes, canopies and thresholds add depth. Siding relief and roughness separate materials. Gables stay solid. Terrain-following projected shadows now have feathered edges. | Twenty-five nearby buildings on high / nine low use CC0 wall modules. Twenty-two building placements across four sites have complete models, matching grounds, access and placed vegetation. Rounded silo shadows retain the same terrain-following projection. Most architecture remains procedural; more complete sites and missing-footprint coverage remain needed. |
-| 15 | Prototype-like desktop readout bar | Inset, quieter translucent status strip with restrained borders and spacing; controls and readouts retained. | The simulator intentionally retains training/status UI. This matters less than asset quality. |
+| 15 | Prototype-like desktop readout bar | Inset, quieter translucent status strip. Phone readouts clear the MCP, and PANEL centers the instruments while hiding duplicate floating readouts. | The simulator intentionally retains training/status UI. This matters less than asset quality. |
 
 Further cockpit work should begin with a source-versus-game comparison, not a replacement
 model. The approach now has matching building footprints and two valley roads. The next large
@@ -1352,3 +1352,41 @@ rollout **41.05 → 41.11**, airport **56.76 → 57.26**, and terminal **53.43 �
 low stays at about **60 FPS**. The 0.1–0.9% high differences are too small to establish
 a speedup. Cockpit draw calls decrease from 936 to 917, with no added asset requests.
 Generated texture residency is 2 MiB high / 0.5 MiB low, replacing a 0.67 MiB map.
+
+## Phone cockpit framing and readouts — 2026-10-17
+
+Baseline: published `758d903`. On a short landscape touch screen the 58° vertical
+lens made the windshield and instruments small, floating speed/altitude readouts
+overlapped the autopilot panel, and PANEL tilted 54° down toward the floor.
+
+The forward view now uses a 48° lens and an 11° downward gaze, preserving the
+original pilot eye point and source geometry. PANEL smoothly widens back to 58°
+and looks 27° down, centering the primary instruments and pedestal. The floating
+readouts move upward in the forward cockpit and hide during the panel look. MAP
+moves above the rudder on these screens, clearing the larger captain displays.
+The rule follows the active touch scheme and viewport (height ≤600 px, aspect
+≥1.35), independently of graphics quality. Taller tablets, desktop cameras,
+Flight School camera anchors, and MAP/head-up framing retain their existing values.
+
+Matched full-scene captures measure the center of the captain's forward pane at
+103.4 → 125.5 CSS pixels on an 852×393 phone: about 21% taller. The altitude column
+ends 61.6 px above the MCP anchor instead of overlapping it by 12.1 px. Even on the
+812×265 Safari viewport it clears that anchor by 20 px. Primary PFD/ND corners
+remain inside the screen, and MAP clears both displays. The before/after page is
+`output/phone-cockpit-review.html`; it includes storm, panel, MAP, HUD, three smaller
+phone sizes, tablet and desktop captures.
+
+All 17 Node suites pass. Desktop keyboard/camera, navigation and phone groups pass
+110 browser checks; graphics passes 23. After relocating MAP, the final phone
+group (including its common setup checks) passes 45/45, covering multiple sizes,
+safe insets, touch input, rotation, MAP and Flight School. Dedicated full-scene
+captures and projected geometry/readout checks pass. Tests use Chromium/Metal,
+with emulated touch and safe areas; physical iOS/Android devices remain untested.
+
+Paired M2 Pro samples at 852×393, low, fixed 1× remain display-capped at 60 FPS in
+clear and storm. Draw calls fall 575 → 540 and 555 → 521 because the lens excludes
+more objects; this does not establish a speedup or physical-phone performance.
+There are no added models, images, textures or render passes. The closer lens
+trades some peripheral view for larger detail; touch controls still occupy scarce
+space. Broader scenery coverage, unique cockpit wear, distant vegetation and finer
+weather remain open visual work.

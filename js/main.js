@@ -50,7 +50,8 @@ async function boot() {
   const haptics = new Haptics();
   const touch = new TouchControls(input, document.getElementById('hud'), haptics);
   const game = new Game({ player: input, gpws });
-  const view = new GameView({ game, world, cockpit, look: input.look, hud: new HeadUpDisplay(document.getElementById('hud-canvas')) });
+  const view = new GameView({ game, world, cockpit, look: input.look, hud: new HeadUpDisplay(document.getElementById('hud-canvas')),
+    compactCockpit: () => getScheme() === 'touch' && innerHeight <= 600 && innerWidth / innerHeight >= 1.35 });
   const presentation = new Presentation({ game, view, world, ui, audio, gpws, haptics, touch, input });
   input.onAction((name, arg) => presentation.onAction(name, arg));
   const platform = new Platform({ game, input, world });

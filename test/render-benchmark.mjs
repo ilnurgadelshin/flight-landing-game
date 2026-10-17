@@ -10,6 +10,8 @@ import os from 'node:os';
 
 const label=(process.argv[2]||'current').replace(/[^a-z0-9_-]/gi,'-');
 const highPixelRatio=Number(process.env.BENCHMARK_DPR||1.5);
+const touch=process.env.BENCHMARK_TOUCH==='1';
+const viewport={width:Number(process.env.BENCHMARK_WIDTH||1440),height:Number(process.env.BENCHMARK_HEIGHT||900)};
 const disabled=(process.env.BENCHMARK_DISABLE||'').split(',').filter(Boolean);
 const scenes=process.env.BENCHMARK_SCENES?.split(',')||['captain','nearby','storm'];
 const outputRoot=path.resolve(new URL('..',import.meta.url).pathname);
@@ -17,11 +19,11 @@ const root=process.env.BENCHMARK_ROOT||outputRoot;
 const {server,url}=await startServer(root);
 const browser=await chromium.launch({headless:true,args:['--use-angle=metal']});
 const report={date:new Date().toISOString(),browser:browser.version(),platform:os.platform(),arch:os.arch(),
-  viewport:[1440,900],pixelRatio:{high:highPixelRatio,low:1},disabled,warmupSeconds:4,sampleSeconds:12,
+  viewport:[viewport.width,viewport.height],touch,pixelRatio:{high:highPixelRatio,low:1},disabled,warmupSeconds:4,sampleSeconds:12,
   method:'Private Chromium ANGLE Metal; fixed-resolution renderer and scenery updates, paused physics. RAF pacing is display capped; no gl.finish. CPU times exclude asynchronous GPU work.',results:[]};
 try{
-  for(const tier of ['high','low']){
-    const page=await browser.newPage({viewport:{width:1440,height:900},deviceScaleFactor:1}),errors=[];
+  for(const tier of (process.env.BENCHMARK_TIERS||'high,low').split(',')){
+    const page=await browser.newPage({viewport,hasTouch:touch,isMobile:touch,deviceScaleFactor:1}),errors=[];
     page.on('pageerror',e=>errors.push(e.message));
     await page.goto(url+'/?quality='+tier);await page.waitForFunction(()=>window.__sim,null,{timeout:120000});
     const startupBytes=await page.evaluate(()=>performance.getEntriesByType('resource').reduce((sum,r)=>sum+r.encodedBodySize,0));

@@ -1765,3 +1765,34 @@ Raw records: `benchmarks/2026-10-16-airport-captures.json`,
 `output/airport-architecture-review.html` presents matched views and these timings.
 The architecture remains simplified; transparent interiors, unique wear, richer ramp
 and landside furnishings, and finer local shadows remain future work.
+
+## Phone cockpit framing — 2026-10-17
+
+Baseline `758d903`, Apple M2 Pro / Chromium ANGLE Metal. Paired samples use a
+852×393 touch viewport, low quality, fixed 1× rendering, four seconds warm-up and
+twelve seconds sampling. Physics is paused; scenery and windshield updates run.
+This measures the desktop GPU at phone resolution, not a physical phone.
+
+| Scene | Before FPS | After FPS | After p95 frame | Draw calls before → after | Triangles before → after |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Captain, clear | 60.00 | 60.00 | 16.8 ms | 575 → 540 | 803,616 → 793,834 |
+| Captain, storm | 60.00 | 60.00 | 16.8 ms | 555 → 521 | 818,061 → 807,971 |
+
+The narrower lens excludes some scene geometry. Both runs reach the display cap,
+so they establish no measured frame-rate improvement. No GPU resources, asset
+requests or render passes were added. The changes are camera parameters and CSS,
+plus one cached body-class update when entering/leaving the panel look.
+
+Reproduce with the installed Playwright browser cache configured:
+
+```sh
+VISUAL_GPU=metal npm run test:phone-cockpit
+BENCHMARK_TOUCH=1 BENCHMARK_WIDTH=852 BENCHMARK_HEIGHT=393 BENCHMARK_TIERS=low BENCHMARK_SCENES=captain,storm node test/render-benchmark.mjs phone-cockpit-final
+# For a baseline, add BENCHMARK_ROOT=/path/to/758d903 and use label phone-cockpit-before.
+```
+
+Raw records: `benchmarks/2026-10-17-phone-cockpit-captures.json`,
+`benchmarks/2026-10-17-phone-cockpit-render-before.json` and
+`benchmarks/2026-10-17-phone-cockpit-render-final.json`. The visual audit records
+geometry, layout and browser coverage. Physical phones, other GPUs and the full
+flight suite were not benchmarked or rerun for this view/layout change.

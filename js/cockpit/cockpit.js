@@ -316,7 +316,7 @@ export class Cockpit {
     // head moves slightly under lateral/vertical acceleration (feels heavy)
     this.camera.position.y -= clamp((st.gLoad - 1) * 0.02, -0.04, 0.04);
     const base = extra.viewPitch === undefined ? this.basePitch : extra.viewPitch;
-    this.camera.rotation.set(base - this.lookDown * 40 * DEG + this.lookPitch, this.lookYaw, 0, 'YXZ');
+    this.camera.rotation.set(base - this.lookDown * (extra.panelTilt ?? 40 * DEG) + this.lookPitch, this.lookYaw, 0, 'YXZ');
     // the instrument view: from the eye's pose to one square in front of the ND in 0.45 s, eased
     const step = Math.min(dt, 0.1) / 0.45;
     this.focus = extra.focus ? Math.min(1, this.focus + step) : Math.max(0, this.focus - step);
