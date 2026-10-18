@@ -25,7 +25,7 @@ ignored `test/output/visual-audit-before/` folder; current captures are `test/ou
 | Rank | Cause of the dated appearance | Changes made | Remaining limitation |
 | --- | --- | --- | --- |
 | 1 | Distorted cockpit/window proportions and poorly placed camera | Removed the upper-shell stretch; fitted the eye to the original cabin; retained desktop 58° FOV and narrow-screen coverage. Checked PFD and ND visibility. | Some surfaces remain simple, but this comparison does not justify replacing the source geometry. |
-| 2 | Muddy cockpit colours and flattened material separation | Restored source material values in the GLBs. Verified part assignments in Blender, then added distinct, subtle coated-panel, molded-trim, frame, seat-weave and yoke-rubber finishes at runtime. Modeled lettering is retained. | Liner/upholstery now use CC0 scans, with procedural panel/frame/rubber detail. A uniquely authored aircraft wear/texture set remains absent. See the 2026-09-30 followups. |
+| 2 | Muddy cockpit colours and flattened material separation | Restored source material values in the GLBs. Verified part assignments in Blender, then added distinct, subtle coated-panel, molded-trim, frame, seat-weave and yoke-rubber finishes at runtime. Modeled lettering is retained. The 2026-10-18 pass adds part-fitted panel edge/contact masks, glareshield padding and polished yoke grips. | The new wear is restrained in the ordinary forward view. It covers selected front panels, rails, padding and grips; a complete aircraft-specific texture set, including side consoles and overhead, remains absent. See the dated followups. |
 | 3 | A completely flat approach corridor | Registered USGS elevation follows the imagery; rendering, collision and navigation share it. The airport is locally graded and a rising terrain cap protects final. | Elevations are locally modified around the fictional airport. Distant mesh resolution and imagery shadows remain limitations. |
 | 4 | Blurry aerial imagery ahead of the airport | Sixteen local 1 km detail tiles along the last 8 km, sampled at 0.5 m/px high and 1 m/px low, feather into the existing imagery; four textures stay resident. Distance-faded scanned colour, normal and roughness detail reconstructs fine surface grain in nearby fields and soil. | Underlying NAIP is generally 0.6 m; exports cannot supply finer survey detail. Coverage is a 2 km wide corridor. Five reviewed farm roofs fill prominent detection gaps. Twenty-two complete building placements across four sites have matching lawns, gravel yards, drives and lanes, including a dairy with three silos in place of two incorrect rectangular blocks. Interpreted land cover now spans 6.9 km and treats about 910 ha, including upper-valley woods visible from the normal early approach. Open fields retain photographed crop/soil variation at approach height. Photographed grass adds close turf/pasture cover on high only, without a visible change in the sampled forward cockpit views. Blur, missing buildings and photographic shadows remain beyond mapped areas; distant fields and site lawns remain simple. |
 | 5 | Sparse, three-lobed tree blobs | Nine authored forms from three broadleaf sources plus pine/fir, eight azimuths at three elevations each, baked from the delivered geometry. Leaf masks are preserved in all nearby GLBs. One quad faces the eye in yaw and pitch and blends neighboring views. High retains bounded 3D branches and leaves within 180 m. Small crowns now retain more filtered leaves; denser upper mapped planting uses the same total tree budgets and prioritizes existing close stands. | Distant/low trees remain impostors; view blending and repeated species are still visible. The wider palette is artistic, not a local botanical survey. Shared land-cover boundaries improve density and keep fields open along 6.9 km of final; density elsewhere and close-up silhouettes still expose the approximations. |
@@ -1390,3 +1390,51 @@ There are no added models, images, textures or render passes. The closer lens
 trades some peripheral view for larger detail; touch controls still occupy scarce
 space. Broader scenery coverage, unique cockpit wear, distant vegetation and finer
 weather remain open visual work.
+
+## Cockpit panel, padding and grip finishes — 2026-10-18
+
+Baseline `0b14a19`. The previous generic micrograin leaves broad painted surfaces nearly
+uniform from the captain's seat, and the glareshield has no material finish. Its source
+`Material.481` is shared with other fittings, so applying a global padding material would
+also change unrelated parts.
+
+- Added one non-repeating packed atlas per tier, fitted in model coordinates to the forward
+  panel, glareshield, yoke grips and window rails. The offline generator traces 1,033 actual
+  forward panel boundary segments; screen cutouts remain empty and lettering is untouched.
+- Colour and roughness vary gently around controls and contact areas. High quality adds a
+  shallow rolled paint rim, under 0.6 mm, and reuses existing CC0 leather grain on the
+  glareshield. Grip areas retain smoother rubber; their masks follow the animated yokes.
+- The glareshield mask selects 352 high / 282 low vertices, while 1,449 high / 1,109 low
+  vertices sharing its material remain outside the finish. All UVs/weights are finite and
+  bounded, and live screens have no wear attributes.
+- Model geometry, original base colours, eye point and lighting calibration are unchanged.
+  Low quality uses only the small colour/roughness atlas; the preceding low roughness
+  treatment stays in place. Failed atlas requests retain the previous materials.
+
+This is **a modest material refinement**, not a transformation of the flight deck. The normal
+forward view remains dominated by broad, simple source surfaces and the existing lighting.
+The edge treatment and grip response are easier to assess at full size and in angled/panel
+views. Side consoles, overhead, many small components and the added roof do not have unique
+wear maps. This does not complete the aircraft-specific material work or address shadow
+resolution and indirect illumination.
+
+Validation on Chromium / ANGLE Metal:
+
+- All 17 Node suites pass, including the delivered model's proportions and control bindings.
+- Ten matched high/low captain, left-looking, panel, night and storm captures pass the new
+  material checks. Ten phone/tablet/desktop layout views retain the prior framing and readout
+  clearances. Graphics browser group: **23/23**.
+- Cabin lighting checks pass both tiers across clear, night and overcast/storm transitions:
+  finite illuminated captures, bounded reuse/disposal, degenerate derivative guards,
+  missing scans/atlas, and rejected/throwing reflection-capture fallbacks.
+- Paired hardware runs retain the same draw calls and triangles. High fixed 1.5× samples
+  measure 36.95 → 37.56 FPS clear and 38.23 → 39.31 storm; low remains display-capped at 60.
+  These small changes are run variation, not evidence of a speedup. See the performance log.
+
+The local `output/cockpit-surfaces-review.html` presents clearly labeled before/after images
+and timings. Reproduce images with `VISUAL_GPU=metal npm run test:cockpit-surfaces`, using
+`REVIEW_ROOT=/path/to/0b14a19` and a separate label for the baseline. Raw final capture and
+benchmark records are under `benchmarks/2026-10-18-cockpit-surfaces-*`.
+The complete flight suite and software-renderer coverage were not rerun for this pass;
+SwiftShader cannot initialize WebGL on this host. Physical phone/GPU measurements remain open.
+Broader complete approach scenery is still a major remaining visual item.

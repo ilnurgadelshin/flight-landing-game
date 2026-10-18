@@ -1,0 +1,479 @@
+{
+  "date": "2026-10-18T19:52:47.733Z",
+  "results": [
+    {
+      "tier": "high",
+      "view": "captain",
+      "finishes": {
+        "materials": 96,
+        "maps": 6,
+        "wearSize": 1024,
+        "errors": []
+      },
+      "finishBytes": 323172,
+      "invalid": 0,
+      "paddingInside": 352,
+      "paddingOutside": 1449,
+      "screenFinishes": 0,
+      "eye": [
+        -0.408,
+        0.029499999999999346,
+        -0.08499999999999988
+      ],
+      "probes": [
+        {
+          "screen": [
+            505,
+            250
+          ],
+          "name": "Body020_Material008_0",
+          "material": "Material.008",
+          "finish": "frame",
+          "point": [
+            -0.5918812526371227,
+            0.027500185784191444,
+            -0.8000768176343627
+          ]
+        },
+        {
+          "screen": [
+            600,
+            490
+          ],
+          "name": "Cube1067_Material457_0",
+          "material": "Material.457",
+          "finish": "paint",
+          "point": [
+            -0.5413100428773651,
+            -0.2317979297712327,
+            -0.9493268235992218
+          ]
+        },
+        {
+          "screen": [
+            480,
+            448
+          ],
+          "name": "Cylinder822_Material479_0",
+          "material": "Material.481",
+          "finish": "padding",
+          "point": [
+            -0.6470317220581703,
+            -0.16417226796471596,
+            -0.8700108170278327
+          ]
+        },
+        {
+          "screen": [
+            1090,
+            363
+          ],
+          "name": "Cylinder822_Material479_0",
+          "material": "Material.481",
+          "finish": "padding",
+          "point": [
+            -0.02720039358386534,
+            -0.08575020043397785,
+            -0.9173601439574668
+          ]
+        },
+        {
+          "screen": [
+            290,
+            720
+          ],
+          "name": "Cube1061_Material424_0",
+          "material": "Material.424",
+          "finish": "occlusion",
+          "point": [
+            -0.8278920597259171,
+            -0.41810224036404975,
+            -0.790406952489775
+          ]
+        },
+        {
+          "screen": [
+            548,
+            795
+          ],
+          "name": "Sphere003_Material129_0",
+          "material": "Material.166",
+          "finish": "rubber",
+          "point": [
+            -0.526391715663384,
+            -0.33610285478258106,
+            -0.5697479057821511
+          ]
+        },
+        {
+          "screen": [
+            905,
+            485
+          ],
+          "name": "Switch_2007_Material034_0",
+          "material": "Material.166",
+          "finish": "occlusion",
+          "point": [
+            -0.2029613070585533,
+            -0.22580946360548637,
+            -0.9486447595054415
+          ]
+        },
+        {
+          "screen": [
+            700,
+            800
+          ],
+          "name": "Cube567_Material219_0",
+          "material": "Material.219",
+          "finish": "occlusion",
+          "point": [
+            -0.44605694830787906,
+            -0.9904279232463864,
+            -1.4227669220281314
+          ]
+        },
+        {
+          "screen": [
+            340,
+            570
+          ],
+          "name": "Cube1061_Material424_0",
+          "material": "Material.424",
+          "finish": "occlusion",
+          "point": [
+            -0.7978492976513559,
+            -0.2914412602368941,
+            -0.8633405805635448
+          ]
+        }
+      ],
+      "assets": []
+    },
+    {
+      "tier": "high",
+      "view": "panel",
+      "finishes": {
+        "materials": 96,
+        "maps": 6,
+        "wearSize": 1024,
+        "errors": []
+      },
+      "finishBytes": 323172,
+      "invalid": 0,
+      "paddingInside": 352,
+      "paddingOutside": 1449,
+      "screenFinishes": 0,
+      "eye": [
+        -0.408,
+        0.029499999999999346,
+        -0.08499999999999988
+      ],
+      "probes": [],
+      "assets": []
+    },
+    {
+      "tier": "high",
+      "view": "side",
+      "finishes": {
+        "materials": 96,
+        "maps": 6,
+        "wearSize": 1024,
+        "errors": []
+      },
+      "finishBytes": 323172,
+      "invalid": 0,
+      "paddingInside": 352,
+      "paddingOutside": 1449,
+      "screenFinishes": 0,
+      "eye": [
+        -0.408,
+        0.029499999999999346,
+        -0.08499999999999988
+      ],
+      "probes": [],
+      "assets": []
+    },
+    {
+      "tier": "high",
+      "view": "night",
+      "finishes": {
+        "materials": 96,
+        "maps": 6,
+        "wearSize": 1024,
+        "errors": []
+      },
+      "finishBytes": 323172,
+      "invalid": 0,
+      "paddingInside": 352,
+      "paddingOutside": 1449,
+      "screenFinishes": 0,
+      "eye": [
+        -0.408,
+        0.029499999999999346,
+        -0.08499999999999988
+      ],
+      "probes": [],
+      "assets": []
+    },
+    {
+      "tier": "high",
+      "view": "storm",
+      "finishes": {
+        "materials": 96,
+        "maps": 6,
+        "wearSize": 1024,
+        "errors": []
+      },
+      "finishBytes": 323172,
+      "invalid": 0,
+      "paddingInside": 352,
+      "paddingOutside": 1449,
+      "screenFinishes": 0,
+      "eye": [
+        -0.408,
+        0.029499999999999346,
+        -0.08499999999999988
+      ],
+      "probes": [],
+      "assets": []
+    },
+    {
+      "tier": "low",
+      "view": "captain",
+      "finishes": {
+        "materials": 95,
+        "maps": 0,
+        "wearSize": 512,
+        "errors": []
+      },
+      "finishBytes": 229596,
+      "invalid": 0,
+      "paddingInside": 282,
+      "paddingOutside": 1109,
+      "screenFinishes": 0,
+      "eye": [
+        -0.408,
+        0.029499999999999346,
+        -0.08499999999999988
+      ],
+      "probes": [
+        {
+          "screen": [
+            505,
+            250
+          ],
+          "name": "Body020_Material008_0",
+          "material": "Material.008",
+          "finish": "frame",
+          "point": [
+            -0.5918822081491931,
+            0.027500175392475512,
+            -0.800080533426808
+          ]
+        },
+        {
+          "screen": [
+            600,
+            490
+          ],
+          "name": "Cube1067_Material457_0",
+          "material": "Material.457",
+          "finish": "paint",
+          "point": [
+            -0.5413100428773651,
+            -0.2317979297712327,
+            -0.9493268235992218
+          ]
+        },
+        {
+          "screen": [
+            480,
+            448
+          ],
+          "name": "Cylinder822_Material479_0",
+          "material": "Material.481",
+          "finish": "padding",
+          "point": [
+            -0.6470293914535076,
+            -0.16417037962335712,
+            -0.8700031630232843
+          ]
+        },
+        {
+          "screen": [
+            1090,
+            363
+          ],
+          "name": "Cylinder822_Material479_0",
+          "material": "Material.481",
+          "finish": "padding",
+          "point": [
+            -0.027100093248445985,
+            -0.08578055664642648,
+            -0.9175793826339032
+          ]
+        },
+        {
+          "screen": [
+            290,
+            720
+          ],
+          "name": "Cube1061_Material424_0",
+          "material": "Material.424",
+          "finish": "occlusion",
+          "point": [
+            -0.8275353408086875,
+            -0.4177219802880643,
+            -0.7898076746550942
+          ]
+        },
+        {
+          "screen": [
+            548,
+            795
+          ],
+          "name": "Sphere003_Material129_0",
+          "material": "Material.166",
+          "finish": "rubber",
+          "point": [
+            -0.5263927975045513,
+            -0.3361061955924072,
+            -0.5697523353169345
+          ]
+        },
+        {
+          "screen": [
+            905,
+            485
+          ],
+          "name": "Switch_2007_Material034_0",
+          "material": "Material.166",
+          "finish": "occlusion",
+          "point": [
+            -0.20296130705855342,
+            -0.22580946360548637,
+            -0.9486447595054415
+          ]
+        },
+        {
+          "screen": [
+            700,
+            800
+          ],
+          "name": "Cube567_Material219_0",
+          "material": "Material.219",
+          "finish": "occlusion",
+          "point": [
+            -0.4460577256922657,
+            -0.9904487571828611,
+            -1.422794248421269
+          ]
+        },
+        {
+          "screen": [
+            340,
+            570
+          ],
+          "name": "Body018_Material014_0",
+          "material": "Material.014",
+          "finish": "trim",
+          "point": [
+            -0.7876170887639904,
+            -0.2830176513318463,
+            -0.8429118060253131
+          ]
+        }
+      ],
+      "assets": []
+    },
+    {
+      "tier": "low",
+      "view": "panel",
+      "finishes": {
+        "materials": 95,
+        "maps": 0,
+        "wearSize": 512,
+        "errors": []
+      },
+      "finishBytes": 229596,
+      "invalid": 0,
+      "paddingInside": 282,
+      "paddingOutside": 1109,
+      "screenFinishes": 0,
+      "eye": [
+        -0.408,
+        0.029499999999999346,
+        -0.08499999999999988
+      ],
+      "probes": [],
+      "assets": []
+    },
+    {
+      "tier": "low",
+      "view": "side",
+      "finishes": {
+        "materials": 95,
+        "maps": 0,
+        "wearSize": 512,
+        "errors": []
+      },
+      "finishBytes": 229596,
+      "invalid": 0,
+      "paddingInside": 282,
+      "paddingOutside": 1109,
+      "screenFinishes": 0,
+      "eye": [
+        -0.408,
+        0.029499999999999346,
+        -0.08499999999999988
+      ],
+      "probes": [],
+      "assets": []
+    },
+    {
+      "tier": "low",
+      "view": "night",
+      "finishes": {
+        "materials": 95,
+        "maps": 0,
+        "wearSize": 512,
+        "errors": []
+      },
+      "finishBytes": 229596,
+      "invalid": 0,
+      "paddingInside": 282,
+      "paddingOutside": 1109,
+      "screenFinishes": 0,
+      "eye": [
+        -0.408,
+        0.029499999999999346,
+        -0.08499999999999988
+      ],
+      "probes": [],
+      "assets": []
+    },
+    {
+      "tier": "low",
+      "view": "storm",
+      "finishes": {
+        "materials": 95,
+        "maps": 0,
+        "wearSize": 512,
+        "errors": []
+      },
+      "finishBytes": 229596,
+      "invalid": 0,
+      "paddingInside": 282,
+      "paddingOutside": 1109,
+      "screenFinishes": 0,
+      "eye": [
+        -0.408,
+        0.029499999999999346,
+        -0.08499999999999988
+      ],
+      "probes": [],
+      "assets": []
+    }
+  ]
+}

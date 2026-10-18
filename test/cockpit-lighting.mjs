@@ -111,7 +111,8 @@ try{
     const s=window.__sim;s.setDrawing(false);s.drawNow();
     return {loaded:s.cockpit.modelLoaded,...s.cockpit.authoredModel.userData.surfaceDetail};
   });
-  assert.equal(recovered.loaded,true);assert.equal(recovered.errors.length,2);assert.equal(recovered.maps,5);
+  assert.equal(recovered.loaded,true);assert.equal(recovered.errors.length,3);assert.equal(recovered.maps,5);
+  assert.equal(recovered.wearSize,0,'Missing wear atlas retains the original finishes');
   // Deliberately poison the driver's readback, then throw on capture. Neither
   // failure may reach the material environment or trigger a retry every frame.
   const guarded=await fallback.evaluate(()=>{

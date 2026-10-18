@@ -22,5 +22,19 @@
     ],
     "tileMetres": 0.27,
     "modifications": "512px linear height/roughness/neutral colour modulation; remapped roughness and colour range. Lossless WebP delivery encoding."
+  },
+  {
+    "file": "service-wear.webp",
+    "asset": "https://sketchfab.com/3d-models/boeing-737-800-cockpit-d463256f98654b36af019d2d88bd5bbe",
+    "license": "CC BY 4.0 \u2014 derived from cockpit geometry by hakai315; new finish interpretation by this project",
+    "modifications": "1024px non-repeating, packed linear colour/roughness/relief masks. Panel boundaries traced from the delivered model; service wear interpreted. Lossless WebP.",
+    "generator": "tools/prepare-cockpit-wear.mjs"
+  },
+  {
+    "file": "service-wear-low.webp",
+    "asset": "https://sketchfab.com/3d-models/boeing-737-800-cockpit-d463256f98654b36af019d2d88bd5bbe",
+    "license": "CC BY 4.0 \u2014 derived from cockpit geometry by hakai315; new finish interpretation by this project",
+    "modifications": "512px non-repeating, packed linear colour/roughness/relief masks. Panel boundaries traced from the delivered model; service wear interpreted. Lossless WebP.",
+    "generator": "tools/prepare-cockpit-wear.mjs"
   }
 ]

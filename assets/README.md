@@ -68,6 +68,26 @@ uses the original procedural finish. Exact source files and modifications are in
 The yoke's pure-black grip alone is given 2.2% neutral diffuse reflectance, so its shape remains
 visible; screens, lettering and other black parts keep their original colours.
 
+The 2026-10-18 finish pass adds `cockpit/service-wear.webp` (1024² high) and
+`service-wear-low.webp` (512² low). These are original, non-repeating material masks
+fitted to the source parts, with panel boundaries derived from the credited cockpit
+geometry above (CC BY 4.0). They are interpretations of light service wear, not
+photographs or a surveyed aircraft livery. R stores colour modulation / 2, G stores
+roughness modulation / 2, and B stores grain retention or the forward panel's shallow
+edge profile. All channels are linear and the WebP encoding is lossless.
+
+Panel rims follow 1,033 measured boundary segments, including display cutouts;
+coplanar tessellation edges, lettering and emissive screens are excluded. High quality
+adds a rolled paint edge under 0.6 mm through bump shading. Both tiers vary coating
+and roughness around measured controls, lower window rails and yoke grip locations.
+The forward glareshield reuses the CC0 leather grain on high, with the finish gated
+to its measured volume because its source material is shared with distant fittings.
+The UVs stay attached to animated controls. Low adds only the small colour/roughness
+mask, without grain or bump sampling. A failed mask request retains the prior finishes.
+Reproduce these two maps with `node tools/prepare-cockpit-wear.mjs`; the measured
+layout is in `js/cockpit/surface-layout.js`. No model geometry, lettering, base material
+colours, camera position or lighting calibration is changed by this pass.
+
 The material assignments were checked in Blender against these source meshes:
 
 | Source material | Verified parts | Runtime finish |
@@ -79,6 +99,7 @@ The material assignments were checked in Blender against these source meshes:
 | `Material.261`, `Material.354` | Overhead/MCP faces, subpanels and switch bodies | Coated panel |
 | `Material.194` | `Cube.488`, `Cube.489`, `Cube.1088` cushions | Woven upholstery |
 | Black material within the two animated yoke groups only | Yoke grips | Rubber |
+| `Material.481`, only x −0.73…0.70 m, y −0.265…−0.06 m, z −1.025…−0.85 m | Forward glareshield, verified by ray picking and component bounds | Matte padding; other shared fittings retain their source finish |
 
 The offline shading bake samples both close contacts and light access through the cabin,
 including the same added headliner used at runtime. The vertex values attenuate indirect

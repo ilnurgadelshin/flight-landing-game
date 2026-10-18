@@ -1809,3 +1809,48 @@ compares every one of the 3,501,750 pixels. Placement is therefore unchanged on 
 two million samples take 75 ms. The full-size canvas used to decode the mask is released as soon
 as it has been read, rather than at garbage collection. The GPU texture is unchanged (14.007 MB
 high, 4.940 MB low). Physical phones were not measured.
+
+## Cockpit surface finishes — 2026-10-18
+
+Baseline `0b14a19`, Apple M2 Pro / Chromium ANGLE Metal. Matched 1440×900 views use
+fixed 1.5× high / 1× low, four seconds warm-up and twelve seconds sampling. Physics
+is paused; scenery and windshield updates run. GPU tests were run sequentially.
+
+| Tier / scene | Before FPS | After FPS | After p95 frame | Draw calls, unchanged | Triangles, unchanged |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| High / captain | 36.95 | 37.56 | 33.4 ms | 917 | 2,105,296 |
+| High / storm | 38.23 | 39.31 | 33.4 ms | 917 | 2,121,599 |
+| Low / captain | 60.00 | 60.00 | 16.8 ms | 529 | 794,778 |
+| Low / storm | 60.00 | 60.00 | 16.8 ms | 513 | 807,719 |
+
+The small FPS differences do not establish a speedup. High at fixed 1.5× remains
+below 60 FPS; automatic resolution/tier adaptation is unchanged. These are desktop
+GPU measurements, not physical phone results.
+
+The added lossless WebP atlas is **309,360 bytes high / 133,132 bytes low** (302 / 130 KiB).
+Only the selected tier's file is requested. It costs approximately **5.33 / 1.33 MiB**
+of GPU texture storage including mipmaps. High reuses the existing liner texture
+for glareshield grain, so that does not add another scan download or texture allocation.
+New UV/weight attributes total 323,172 / 229,596 bytes; high also adds 21,612 bytes of
+metric grain coordinates for the shared glareshield mesh. No extra draw calls,
+triangles or render passes are introduced. Selected materials take one additional
+atlas sample; high incorporates the panel edge profile in the existing guarded bump
+calculation. Low only varies colour and roughness.
+
+Reproduce with the installed Playwright cache configured:
+
+```sh
+VISUAL_GPU=metal npm run test:cockpit-surfaces
+VISUAL_GPU=metal npm run test:lighting
+VISUAL_GPU=metal npm run test:phone-cockpit
+BENCHMARK_ROOT=/path/to/0b14a19 BENCHMARK_SCENES=captain,storm node test/render-benchmark.mjs cockpit-surfaces-before
+BENCHMARK_SCENES=captain,storm node test/render-benchmark.mjs cockpit-surfaces-final
+```
+
+Raw records: `benchmarks/2026-10-18-cockpit-surfaces-render-before.json`,
+`benchmarks/2026-10-18-cockpit-surfaces-render-final.json`,
+`benchmarks/2026-10-18-cockpit-surfaces-captures.json` and
+`benchmarks/2026-10-18-cockpit-surfaces-phone.json`. The local ignored
+`output/cockpit-surfaces-review.html` contains matched full-scene views.
+The unit, lighting, graphics and phone framing checks pass on this Mac. Other GPU
+drivers, physical phones and a complete aircraft-specific material set remain open.

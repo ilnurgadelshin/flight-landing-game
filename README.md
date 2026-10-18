@@ -646,7 +646,9 @@ The visual assets are bundled locally and need no map service, account or API ke
   the yokes and flight controls animate from the simulation. A fitted headliner closes
   the source model's open roof. Glazing follows the source window rails, with faint reflections,
   moving water in rain and synchronized wiper clearing. High quality refracts the exterior
-  through drops; low uses a cheaper water highlight. The old cockpit remains available if the model cannot load.
+  through drops; low uses a cheaper water highlight. Part-fitted surface masks give the
+  painted panels subtle edge wear, the glareshield a matte padded finish, and the yoke
+  grips smoother contact areas. The old cockpit remains available if the model cannot load.
 - Outside rain uses fresh, individually recycled drops with soft streaks aligned to wind and
   aircraft velocity. Looking sideways no longer rotates the rain toward the pilot. Pane drops
   also change position and shape on each arrival instead of replaying the same short pattern.
