@@ -433,7 +433,7 @@ to Poly Haven and does not distribute the intermediate Blender file or original 
 
 ## Woodland — CC0
 
-`scenery/tree-variety.webp`, its smaller `-low` variant and `tree-variety.json` are baked
+`scenery/tree-variety.webp`, `tree-light-response.webp`, their smaller `-low` variants and `tree-variety.json` are baked
 from these **CC0** Poly Haven assets (https://polyhaven.com/license):
 
 - **Tree Small 02**, Rico Cilliers: https://polyhaven.com/a/tree_small_02
@@ -452,15 +452,34 @@ coverage for crowns up to approximately 64 rendered pixels, blending back to the
 to preserve close geometry transitions. UV derivatives estimate size in the current render
 target, so this follows resolution changes automatically. Standard alpha-to-coverage
 smoothing remains on multisampled targets, with a hard cutoff on single-sample targets.
-No new texture sample, mip chain or alpha-blending pass is added. These remain impostors: azimuth transitions, repeated
+The coverage adjustment adds no texture sample or alpha-blending pass. These remain impostors: azimuth transitions, repeated
 species and extreme close-up silhouettes are less convincing than full 3D branches.
-The atlases are 1536×5184 (high, 1,845,660 bytes) and 768×2592 (low, 543,018 bytes).
+The colour atlases are 1536×5184 (high, 1,823,326 bytes) and 768×2592 (low, 537,056 bytes).
 High frames are 192 px and low frames 96 px. Eight directions reduce silhouette doubling
 between adjacent views; using the delivered geometry also avoids the fuller source model
 changing into a different simplified crown at close range. Texel count rises 12.5% over
 the previous four-direction layout. WebP alpha quality is 90.
 The three broadleaf sources are spatially grouped to break up repeated mature crowns.
 They are an artistic palette for fictional Westhaven, not an ecological reconstruction of Pennsylvania.
+
+The 2026-10-19 lighting pass removes the fixed sun from the colour bake. A hemisphere
+and four symmetric shadowed lights approximate diffuse sky access. Six opposing white
+lights then measure the delivered model's diffuse response, including branch/leaf
+occlusion. Their signed differences form a compact first-order directional response in
+the source tree's coordinates. This is an approximation to directional self-shadowing,
+not a full runtime light transport or a normal map. Runtime rotates the response with
+each tree, evaluates the current sunlight direction/colour, and fades it under overcast
+and at night. Alpha-weighted blending uses the same four atlas views as colour; empty
+samples stay finite. Missing or incorrectly sized response data falls back to diffuse sky.
+
+The linear-data response atlases are 768×2592 (630,314 bytes) and 384×1296 (205,730 bytes),
+96/48 pixels per view. They add four texture reads per surviving sunlit crown fragment, one sampler,
+and approximately 10.1/2.5 MiB including mipmaps. Net image transfer grows by 607,980/199,768
+bytes (high/low), including the smaller rebaked colour maps. Loading remains inside the
+existing scenery preparation. Tree counts, geometry, draw batches and near-tree budgets
+are unchanged. Empty pixels are discarded before reading the response; explicit gradients
+computed before discard keep mip selection defined. Fully obscured sunlight and night skip
+these reads. This improves crown shading, not woodland placement or species diversity.
 The full models stay in ignored `test/output/tree-source`, `tree-variety-source` and
 `authored-sources`; they are not shipped. These atlases replace the older single-species `tree-canopies.png`.
 To reproduce the atlas from the bundled GLBs (Node and Playwright Chromium required):

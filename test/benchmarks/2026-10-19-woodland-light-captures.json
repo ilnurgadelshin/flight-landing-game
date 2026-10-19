@@ -1,0 +1,397 @@
+{
+  "baseline": false,
+  "results": [
+    {
+      "tier": "high",
+      "view": "captain-5500",
+      "calls": 1243,
+      "triangles": 2428759,
+      "errors": [],
+      "normal": true,
+      "sun": 1
+    },
+    {
+      "tier": "high",
+      "view": "captain-3400",
+      "calls": 1077,
+      "triangles": 2170287,
+      "errors": [],
+      "normal": true,
+      "sun": 1
+    },
+    {
+      "tier": "high",
+      "view": "canopy",
+      "calls": 532,
+      "triangles": 772278,
+      "errors": [],
+      "normal": true,
+      "sun": 1
+    },
+    {
+      "tier": "high",
+      "view": "hillside",
+      "calls": 834,
+      "triangles": 1086203,
+      "errors": [],
+      "normal": true,
+      "sun": 1
+    },
+    {
+      "tier": "high",
+      "view": "dusk",
+      "calls": 843,
+      "triangles": 1138168,
+      "errors": [],
+      "normal": true,
+      "sun": 0.2934782608695652
+    },
+    {
+      "tier": "high",
+      "view": "overcast",
+      "calls": 856,
+      "triangles": 1086177,
+      "errors": [],
+      "normal": true,
+      "sun": 0
+    },
+    {
+      "tier": "high",
+      "view": "night",
+      "calls": 816,
+      "triangles": 1090419,
+      "errors": [],
+      "normal": true,
+      "sun": 0
+    },
+    {
+      "tier": "low",
+      "view": "captain-5500",
+      "calls": 611,
+      "triangles": 982126,
+      "errors": [],
+      "normal": true,
+      "sun": 1
+    },
+    {
+      "tier": "low",
+      "view": "captain-3400",
+      "calls": 532,
+      "triangles": 787884,
+      "errors": [],
+      "normal": true,
+      "sun": 1
+    },
+    {
+      "tier": "low",
+      "view": "canopy",
+      "calls": 245,
+      "triangles": 329821,
+      "errors": [],
+      "normal": true,
+      "sun": 1
+    },
+    {
+      "tier": "low",
+      "view": "hillside",
+      "calls": 441,
+      "triangles": 569615,
+      "errors": [],
+      "normal": true,
+      "sun": 1
+    },
+    {
+      "tier": "low",
+      "view": "dusk",
+      "calls": 441,
+      "triangles": 582168,
+      "errors": [],
+      "normal": true,
+      "sun": 0.2934782608695652
+    },
+    {
+      "tier": "low",
+      "view": "overcast",
+      "calls": 447,
+      "triangles": 569627,
+      "errors": [],
+      "normal": true,
+      "sun": 0
+    },
+    {
+      "tier": "low",
+      "view": "night",
+      "calls": 397,
+      "triangles": 534215,
+      "errors": [],
+      "normal": true,
+      "sun": 0
+    }
+  ],
+  "lighting": [
+    {
+      "tier": "high",
+      "checks": [
+        {
+          "row": 0,
+          "degrees": 0,
+          "count": 1916,
+          "meanDelta": 4.357167710508009,
+          "changedFraction": 0.5855949895615866,
+          "sideContrast": 1.8609951287404314,
+          "flatDifference": 0
+        },
+        {
+          "row": 0,
+          "degrees": 22.5,
+          "count": 2366,
+          "meanDelta": 4.78867286559594,
+          "changedFraction": 0.6403212172442941,
+          "sideContrast": 2.1346858269935205,
+          "flatDifference": 0
+        },
+        {
+          "row": 0,
+          "degrees": 337.5,
+          "count": 2409,
+          "meanDelta": 4.032655320326566,
+          "changedFraction": 0.5516811955168119,
+          "sideContrast": 2.0985194409851915,
+          "flatDifference": 0
+        },
+        {
+          "row": 4,
+          "degrees": 0,
+          "count": 524,
+          "meanDelta": 2.408396946564886,
+          "changedFraction": 0.4751908396946565,
+          "sideContrast": 0.7519083969465647,
+          "flatDifference": 0
+        },
+        {
+          "row": 4,
+          "degrees": 22.5,
+          "count": 511,
+          "meanDelta": 2.552511415525114,
+          "changedFraction": 0.5420743639921722,
+          "sideContrast": 0.5929549902152642,
+          "flatDifference": 0
+        },
+        {
+          "row": 4,
+          "degrees": 337.5,
+          "count": 514,
+          "meanDelta": 2.302204928664071,
+          "changedFraction": 0.45136186770428016,
+          "sideContrast": 1.0064850843060957,
+          "flatDifference": 0
+        },
+        {
+          "row": 7,
+          "degrees": 0,
+          "count": 1001,
+          "meanDelta": 4.365967365967364,
+          "changedFraction": 0.6533466533466533,
+          "sideContrast": 0.5724275724275733,
+          "flatDifference": 0
+        },
+        {
+          "row": 7,
+          "degrees": 22.5,
+          "count": 1265,
+          "meanDelta": 4.619499341238466,
+          "changedFraction": 0.6798418972332015,
+          "sideContrast": 2.5947299077733907,
+          "flatDifference": 0
+        },
+        {
+          "row": 7,
+          "degrees": 337.5,
+          "count": 1193,
+          "meanDelta": 3.475551830120148,
+          "changedFraction": 0.6160938809723386,
+          "sideContrast": 0.682034087734003,
+          "flatDifference": 0
+        },
+        {
+          "row": 8,
+          "degrees": 0,
+          "count": 2656,
+          "meanDelta": 6.085968875502,
+          "changedFraction": 0.6833584337349398,
+          "sideContrast": 3.537023092369476,
+          "flatDifference": 0
+        },
+        {
+          "row": 8,
+          "degrees": 22.5,
+          "count": 3388,
+          "meanDelta": 7.119244391971655,
+          "changedFraction": 0.7777449822904369,
+          "sideContrast": 3.447264856355762,
+          "flatDifference": 0
+        },
+        {
+          "row": 8,
+          "degrees": 337.5,
+          "count": 3422,
+          "meanDelta": 7.258133645041866,
+          "changedFraction": 0.7527761542957335,
+          "sideContrast": 5.181959867523874,
+          "flatDifference": 0
+        }
+      ]
+    },
+    {
+      "tier": "low",
+      "checks": [
+        {
+          "row": 0,
+          "degrees": 0,
+          "count": 2058,
+          "meanDelta": 4.01554907677357,
+          "changedFraction": 0.6117589893100097,
+          "sideContrast": 2.3109815354713303,
+          "flatDifference": 0
+        },
+        {
+          "row": 0,
+          "degrees": 22.5,
+          "count": 2479,
+          "meanDelta": 4.158800591636407,
+          "changedFraction": 0.63654699475595,
+          "sideContrast": 2.224418448299045,
+          "flatDifference": 0
+        },
+        {
+          "row": 0,
+          "degrees": 337.5,
+          "count": 2513,
+          "meanDelta": 3.779281071760177,
+          "changedFraction": 0.5467568643056109,
+          "sideContrast": 2.338506433213955,
+          "flatDifference": 0
+        },
+        {
+          "row": 4,
+          "degrees": 0,
+          "count": 581,
+          "meanDelta": 1.672977624784855,
+          "changedFraction": 0.30120481927710846,
+          "sideContrast": 0.6081468732071142,
+          "flatDifference": 0
+        },
+        {
+          "row": 4,
+          "degrees": 22.5,
+          "count": 536,
+          "meanDelta": 1.6119402985074625,
+          "changedFraction": 0.3003731343283582,
+          "sideContrast": 0.8917910447761195,
+          "flatDifference": 0
+        },
+        {
+          "row": 4,
+          "degrees": 337.5,
+          "count": 535,
+          "meanDelta": 1.5862928348909664,
+          "changedFraction": 0.2672897196261682,
+          "sideContrast": 0.517133956386293,
+          "flatDifference": 0
+        },
+        {
+          "row": 7,
+          "degrees": 0,
+          "count": 1175,
+          "meanDelta": 3.355460992907797,
+          "changedFraction": 0.5778723404255319,
+          "sideContrast": 0.20539007092198588,
+          "flatDifference": 0
+        },
+        {
+          "row": 7,
+          "degrees": 22.5,
+          "count": 1491,
+          "meanDelta": 3.2608987256874604,
+          "changedFraction": 0.5875251509054326,
+          "sideContrast": 2.0930024591996417,
+          "flatDifference": 0
+        },
+        {
+          "row": 7,
+          "degrees": 337.5,
+          "count": 1376,
+          "meanDelta": 2.4593023255813873,
+          "changedFraction": 0.4382267441860465,
+          "sideContrast": 0.3396317829457353,
+          "flatDifference": 0
+        },
+        {
+          "row": 8,
+          "degrees": 0,
+          "count": 3032,
+          "meanDelta": 4.946789797713277,
+          "changedFraction": 0.5725593667546174,
+          "sideContrast": 3.685136323658758,
+          "flatDifference": 0
+        },
+        {
+          "row": 8,
+          "degrees": 22.5,
+          "count": 3616,
+          "meanDelta": 6.034015486725652,
+          "changedFraction": 0.7486172566371682,
+          "sideContrast": 3.0434181415929196,
+          "flatDifference": 0
+        },
+        {
+          "row": 8,
+          "degrees": 337.5,
+          "count": 3657,
+          "meanDelta": 6.571233251298876,
+          "changedFraction": 0.7363959529669127,
+          "sideContrast": 5.207456020417473,
+          "flatDifference": 0
+        }
+      ]
+    }
+  ],
+  "fallbacks": [
+    {
+      "tier": "high",
+      "failure": "missing",
+      "normal": false,
+      "error": true,
+      "crowns": 52000,
+      "shader": false,
+      "errors": []
+    },
+    {
+      "tier": "high",
+      "failure": "wrong-size",
+      "normal": false,
+      "error": true,
+      "crowns": 52000,
+      "shader": false,
+      "errors": []
+    },
+    {
+      "tier": "low",
+      "failure": "missing",
+      "normal": false,
+      "error": true,
+      "crowns": 14000,
+      "shader": false,
+      "errors": []
+    },
+    {
+      "tier": "low",
+      "failure": "wrong-size",
+      "normal": false,
+      "error": true,
+      "crowns": 14000,
+      "shader": false,
+      "errors": []
+    }
+  ]
+}

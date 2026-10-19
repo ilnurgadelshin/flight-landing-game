@@ -1913,3 +1913,84 @@ Raw records: `benchmarks/2026-10-19-roadside-homes-render-before.json`,
 captain views, storm and night. All images, comparison labels, zoom controls,
 benchmark rows and the narrow-screen layout were checked. The full functional
 flight suite was not rerun for this scenery-only pass.
+
+
+## Directional woodland lighting — 2026-10-19
+
+Baseline `2dbf3a7`, Apple M2 Pro / Chromium 141 ANGLE Metal. Matched 1440×900
+views, fixed 1.5× high / 1× low, four seconds warm-up and twelve seconds sampling.
+Physics is paused; scenery and windshield updates run. The selected paired GPU
+runs were sequential, with no concurrent baking or rendering.
+
+| Tier / scene | Before FPS | After FPS | After p95 frame | Draw calls, unchanged | Triangles, unchanged |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| high / captain-upper | 36.27 | 36.03 | 33.4 ms | 1,088 | 2,367,669 |
+| high / roadside-homes | 50.18 | 50.18 | 33.4 ms | 679 | 1,025,113 |
+| high / nearby | 51.03 | 51.11 | 33.4 ms | 396 | 2,429,019 |
+| high / storm | 39.86 | 39.59 | 33.4 ms | 917 | 2,119,833 |
+| low / captain-upper | 60.00 | 60.00 | 16.7 ms | 611 | 982,126 |
+| low / roadside-homes | 60.00 | 60.00 | 16.8 ms | 441 | 569,615 |
+| low / nearby | 60.00 | 60.00 | 16.7 ms | 260 | 308,710 |
+| low / storm | 59.92 | 60.00 | 16.7 ms | 513 | 796,964 |
+
+Final high measurements stay within 0.7% of the baseline; all low scenes remain
+near the 60 FPS display limit. These samples do not establish a speedup or exclude
+cost on other GPUs. Forced 1.5× high still runs at 36–51 FPS here. Automatic quality
+adaptation is unchanged, and physical phones and software renderers were not measured.
+
+The first version sampled four directional-response texels for every tree-card
+fragment. It measured 34.87 / 47.02 / 50.76 / 38.20 FPS in these four high scenes,
+and the low storm case fell to 48.02 FPS. The final shader samples only after
+alpha and LOD-dither rejection, using explicit gradients calculated before discard
+so mip selection stays defined. It also skips response reads when sunlight is
+fully obscured or at night. The deck's residual 8% fill fades continuously to a
+zero directional contribution. The initial regression and the optimized result
+are both retained in the raw records.
+
+Nine delivered CC0 forms are rebaked with diffuse sky illumination instead of a
+fixed sun. A linear response atlas stores six opposing light measurements as three
+signed differences, including source self-occlusion. This is first-order directional
+response, not a normal map or complete dynamic self-shadowing. Its magnitude is
+preserved during four-view blending, then rotated into the world and evaluated
+against the sun. No geometry, tree placements, draw calls, render passes or runtime
+shadow maps are added. Nearby model rendering and its budgets are unchanged.
+
+Rebaked colour and added response images increase transfer by **607,980 bytes high /
+199,768 bytes low** (594 / 195 KiB). The response file itself is 630,314 / 205,730 bytes;
+colour files shrink slightly. Response textures add about **10.1 / 2.5 MiB** of GPU
+storage including mipmaps. Only the selected tier is loaded, through existing
+scenery preparation. A missing or incorrectly sized optional map retains the
+diffuse-sky colour atlas. The extra sampler performs four reads per surviving
+sunlit fragment and none in the fully diffuse lighting path.
+
+Validation: all 17 Node suites; 24 real-material directional-lighting cases;
+four missing/wrong-size response fallback cases; 108 leaf-coverage cases; and a
+420 m moving tree pass. All 16 source/card silhouette measurements and moving
+selection/fade records are identical to the main baseline. The 48-tree and
+2.4-million-triangle limits remain satisfied. The comparison page's 28 matched
+images, labels, zoom, full-width mode, both motion videos, eight benchmark rows
+and narrow layout pass browser checks without page errors. This pass changes
+crown shading; sparse unmapped woods, repeated forms and ground photo shadows
+remain. Full functional flight tests were not rerun for this isolated visual pass.
+
+Reproduce with the installed Playwright browser cache configured:
+
+```sh
+npm test
+REVIEW_ROOT=/path/to/2dbf3a7 VISUAL_GPU=metal node test/woodland-lighting.mjs woodland-light-before
+VISUAL_GPU=metal node test/woodland-lighting.mjs woodland-light-final
+VISUAL_GPU=metal node test/woodland-coverage.mjs woodland-light-coverage
+REVIEW_ROOT=/path/to/2dbf3a7 VISUAL_GPU=metal node test/tree-transitions.mjs woodland-light-motion-before
+VISUAL_GPU=metal node test/tree-transitions.mjs woodland-light-motion
+BENCHMARK_ROOT=/path/to/2dbf3a7 BENCHMARK_SCENES=captain-upper,roadside-homes,nearby,storm node test/render-benchmark.mjs woodland-light-baseline
+BENCHMARK_SCENES=captain-upper,roadside-homes,nearby,storm node test/render-benchmark.mjs woodland-light-final
+```
+
+Raw records: `benchmarks/2026-10-19-woodland-light-render-before.json`,
+`benchmarks/2026-10-19-woodland-light-render-first.json`,
+`benchmarks/2026-10-19-woodland-light-render-final.json`,
+`benchmarks/2026-10-19-woodland-light-captures.json`,
+`benchmarks/2026-10-19-woodland-light-coverage.json`,
+`benchmarks/2026-10-19-woodland-light-motion-before.json` and
+`benchmarks/2026-10-19-woodland-light-motion-final.json`. The ignored local
+`output/woodland-light-review.html` shows the scene and motion comparisons.

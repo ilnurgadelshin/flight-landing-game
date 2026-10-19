@@ -16,6 +16,7 @@
     "test:delivery": "node test/delivery.mjs",
     "test:all": "npm test && node test/e2e-parallel.mjs",
     "test:vegetation": "node test/vegetation-weather.mjs && node test/woodland-coverage.mjs",
+    "test:woodland-lighting": "node test/woodland-lighting.mjs",
     "test:windshield": "node test/windshield.mjs",
     "test:rain": "node test/rain-field.test.mjs && node test/rain-motion.mjs",
     "test:cumulus": "node test/weather-assets.test.mjs && node test/cumulus-lighting.mjs && node test/cumulus-review.mjs",

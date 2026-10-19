@@ -28,7 +28,7 @@ ignored `test/output/visual-audit-before/` folder; current captures are `test/ou
 | 2 | Muddy cockpit colours and flattened material separation | Restored source material values in the GLBs. Verified part assignments in Blender, then added distinct, subtle coated-panel, molded-trim, frame, seat-weave and yoke-rubber finishes at runtime. Modeled lettering is retained. The 2026-10-18 pass adds part-fitted panel edge/contact masks, glareshield padding and polished yoke grips. | The new wear is restrained in the ordinary forward view. It covers selected front panels, rails, padding and grips; a complete aircraft-specific texture set, including side consoles and overhead, remains absent. See the dated followups. |
 | 3 | A completely flat approach corridor | Registered USGS elevation follows the imagery; rendering, collision and navigation share it. The airport is locally graded and a rising terrain cap protects final. | Elevations are locally modified around the fictional airport. Distant mesh resolution and imagery shadows remain limitations. |
 | 4 | Blurry aerial imagery ahead of the airport | Sixteen local 1 km detail tiles along the last 8 km, sampled at 0.5 m/px high and 1 m/px low, feather into the existing imagery; four textures stay resident. Distance-faded scanned colour, normal and roughness detail reconstructs fine surface grain in nearby fields and soil. | Underlying NAIP is generally 0.6 m; exports cannot supply finer survey detail. Coverage is a 2 km wide corridor. Six reviewed roofs fill prominent detection gaps. Thirty-five complete building placements across five sites have matching lawns, gravel yards, drives and lanes, including a dairy with three silos in place of two incorrect rectangular blocks. Interpreted land cover now spans 6.9 km and treats about 910 ha, including upper-valley woods visible from the normal early approach. Open fields retain photographed crop/soil variation at approach height. Photographed grass adds close turf/pasture cover on high only, without a visible change in the sampled forward cockpit views. Blur, missing buildings and photographic shadows remain beyond mapped areas; distant fields and site lawns remain simple. |
-| 5 | Sparse, three-lobed tree blobs | Nine authored forms from three broadleaf sources plus pine/fir, eight azimuths at three elevations each, baked from the delivered geometry. Leaf masks are preserved in all nearby GLBs. One quad faces the eye in yaw and pitch and blends neighboring views. High retains bounded 3D branches and leaves within 180 m. Small crowns now retain more filtered leaves; denser upper mapped planting uses the same total tree budgets and prioritizes existing close stands. | Distant/low trees remain impostors; view blending and repeated species are still visible. The wider palette is artistic, not a local botanical survey. Shared land-cover boundaries improve density and keep fields open along 6.9 km of final; density elsewhere and close-up silhouettes still expose the approximations. |
+| 5 | Sparse, three-lobed tree blobs | Nine authored forms from three broadleaf sources plus pine/fir, eight azimuths at three elevations each, baked from the delivered geometry. Leaf masks are preserved in all nearby GLBs. One quad faces the eye in yaw and pitch and blends neighboring views. High retains bounded 3D branches and leaves within 180 m. A shadowed directional-response bake now follows the sun instead of keeping fixed highlights on camera-facing cards. Small crowns now retain more filtered leaves; denser upper mapped planting uses the same total tree budgets and prioritizes existing close stands. | Distant/low trees remain impostors; view blending and repeated species are still visible. The wider palette is artistic, not a local botanical survey. Shared land-cover boundaries improve density and keep fields open along 6.9 km of final; density elsewhere and close-up silhouettes still expose the approximations. |
 | 6 | Thin cloud rings and weak volume | Six distinct cached 3D forms, smaller connected billows, flatter bases, self-shadowing and directional scattering; fixed midpoint integration removes screen-locked sampling grain. Overcast integrates density near both boundaries at reduced resolution, with soft billows, self-shadowing and a fog interior. | Fair-weather volumes remain simplified and soft at close range. Low uses sprites; overcast uses a bounded boundary volume plus shared fog, not a fully volumetric weather system. |
 | 7 | Runway lights look like a luminous rectangle by day | Smaller daytime cores, lower daylight intensity, distinct PAPI/beacon sizing and fog attenuation without a minimum visibility floor. Night bloom retained. | Point-based lights approximate optical glare; no lens-scattering simulation. |
 | 8 | Flat, muddy illumination and weak foreground depth | Reduced warm daytime lamps in favour of neutral sky light. Sun shadows plus a rebake of close contact and cabin sky access, including the fitted roof. Baked occlusion now affects indirect light rather than darkening the paint and direct sunlight. | No real-time global illumination. The bake approximates sky access and bounced light; it cannot replace fully authored materials. |
@@ -1480,3 +1480,42 @@ no trees intruding into the reconstructed sites. Maximum site-ground error is
 below 0.04 mm. Tests use Chromium ANGLE Metal on this Mac; software-renderer and
 physical-phone performance were not measured. See the paired measurements in
 [the performance record](RENDER-PERFORMANCE.md#residential-approach-frontage--2026-10-19).
+
+
+## Directional woodland lighting — 2026-10-19
+
+The previous crown images included a fixed baked sun. Turning a camera-facing
+impostor could turn that highlight with it, and every stand retained similar
+illumination regardless of its orientation. The new colour bake averages diffuse
+sky access, while a compact response atlas records how the delivered branches
+and leaves respond to six opposing lights, including their self-occlusion.
+Signed directional differences are blended with the same four views as colour,
+rotated with each tree, and evaluated against the actual sun direction and colour.
+The response fades into diffuse lighting under cloud and at night.
+
+This improves light and shade across existing crowns. It does not add species,
+coverage, tree instances, geometry, draw batches, runtime shadow maps or new
+external sources. Near-tree models and their 48-tree / 2.4-million-triangle ceiling
+are unchanged. The wider daytime woodland views show clearer crown separation;
+the normal forward cockpit comparison is more restrained. Distant and low-tier
+trees remain image planes, and repeated forms, sparse unmapped hills, photographic
+shadows and view-blend imperfections remain visible. This is a first-order lighting
+approximation, not complete dynamic self-shadowing.
+
+The linear response texture is half the colour atlas resolution in each dimension.
+Net image transfer grows by 607,980 bytes high / 199,768 low, including the rebaked
+colour maps, with about 10.1 / 2.5 MiB additional mipmapped GPU storage. It loads
+with existing scenery preparation. Missing or incorrectly sized optional response
+data keeps the diffuse-sky colour atlas; branches do not disappear or become black.
+The bake writes opaque surviving MASK pixels before canvas readback, avoiding
+normal/response data corruption from fractional-alpha unpremultiplication.
+
+Validation completed on Chromium ANGLE Metal: all 17 Node suites; atlas data,
+framing and size budgets; rendered directional response and diffuse-light invariance
+on both tiers; missing and wrong-size response fallbacks; 108 leaf-coverage views;
+and a 420 m moving pass checking tree counts, triangle limits and fade continuity.
+The same 28 scene captures compare main `2dbf3a7` and this pass at 1×, including
+two captain positions, canopy, hillside, dusk, overcast and night. See the local
+[lighting comparison](output/woodland-light-review.html) and
+[performance record](RENDER-PERFORMANCE.md). Full functional flight tests,
+software-renderer checks and physical-phone benchmarks were not rerun.
