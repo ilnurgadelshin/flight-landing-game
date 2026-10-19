@@ -38,8 +38,8 @@ try{
     });
     if(!process.env.REVIEW_ROOT){
       // Complete models replace some of the limited facade-kit candidates.
-      assert.equal(status.authored.buildings,tier==='high'?25:9);assert.ok(status.authored.triangles<700000);
-      assert.equal(status.farm.buildings,22);assert.equal(status.farm.sites,4);assert.ok(status.farm.batches<=52);assert.ok(status.farm.triangles<75000);
+      assert.equal(status.authored.buildings,tier==='high'?24:8);assert.ok(status.authored.triangles<700000);
+      assert.equal(status.farm.buildings,35);assert.equal(status.farm.sites,5);assert.ok(status.farm.batches<=68);assert.ok(status.farm.triangles<95000);
     }
     assert.deepEqual(status.errors,[]);reports.push({tier,...status});console.log(tier,status);
     // Every fogged material compiled behind the menu must bind the atmosphere's uniforms (the
@@ -96,7 +96,7 @@ try{
       const s=window.__sim;s.setDrawing(false);await s.world.loadScenery();s.drawNow();
       return {count:s.world.approachBuildings.count,authored:s.world.approachBuildings.authored,errors:s.world.assetErrors};
     });
-    assert.equal(fallback.count,2165);assert.equal(fallback.authored,null);
+    assert.equal(fallback.count,2166);assert.equal(fallback.authored,null);
     assert.ok(fallback.errors.some(e=>e.includes('modular_urban_apartments_facade')));assert.deepEqual(errors,[]);
     await page.close();console.log('Missing authored kit retains complete procedural buildings');
     for(const unavailable of ['valley-farm.glb','farm-gravel-normal.webp','valley-site.json']){
@@ -108,7 +108,7 @@ try{
         const b=s.world.approachBuildings;
         return {count:b.count,farm:b.farm,authored:b.authored.buildings,errors:s.world.assetErrors,partial:!!b.group.getObjectByName('Authored valley farm')};
       });
-      assert.equal(fallback.count,2165);assert.equal(fallback.farm,null);assert.equal(fallback.authored,40);assert.equal(fallback.partial,false);
+      assert.equal(fallback.count,2166);assert.equal(fallback.farm,null);assert.equal(fallback.authored,40);assert.equal(fallback.partial,false);
       assert.equal(fallback.errors.length,1);assert.deepEqual(errors,[]);await page.close();
       console.log('Missing '+unavailable+' retains all original farm and roadside buildings');
     }

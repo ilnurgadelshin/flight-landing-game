@@ -133,6 +133,6 @@
     "file": "approach-infill.json",
     "source": "detail/manifest.json",
     "license": "Public domain \u2014 original roof traces from USDA NAIP / USGS imagery",
-    "modifications": "Five reviewed roof outlines; interpreted heights, roofs and facades. Exact source pixels are retained."
+    "modifications": "Six reviewed roof outlines; interpreted heights, roofs and facades. Exact source pixels are retained."
   }
 ]

@@ -1854,3 +1854,62 @@ Raw records: `benchmarks/2026-10-18-cockpit-surfaces-render-before.json`,
 `output/cockpit-surfaces-review.html` contains matched full-scene views.
 The unit, lighting, graphics and phone framing checks pass on this Mac. Other GPU
 drivers, physical phones and a complete aircraft-specific material set remain open.
+
+
+## Residential approach frontage — 2026-10-19
+
+Baseline `396c522`, Apple M2 Pro / Chromium ANGLE Metal. Matched 1440×900 views,
+fixed 1.5× high / 1× low, four seconds warm-up and twelve seconds sampling.
+Physics is paused; scenery and windshield updates run. GPU tests were sequential.
+
+| Tier / scene | Before FPS | After FPS | After p95 frame | Draw calls | Triangles |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| high / captain-upper | 35.11 | 36.65 | 33.4 ms | 1075 → 1088 | 2,293,547 → 2,367,669 |
+| high / roadside-homes | 49.60 | 50.60 | 33.4 ms | 666 → 679 | 954,729 → 1,025,113 |
+| high / storm | 37.65 | 40.11 | 33.4 ms | 917 → 917 | 2,121,599 → 2,119,833 |
+| low / captain-upper | 60.00 | 60.00 | 16.7 ms | 598 → 611 | 916,145 → 982,126 |
+| low / roadside-homes | 60.00 | 60.00 | 16.8 ms | 428 → 441 | 503,634 → 569,615 |
+| low / storm | 60.00 | 60.00 | 16.7 ms | 513 → 513 | 807,719 → 796,964 |
+
+This adds rendering work: the sampled upper captain view has 13 extra draw calls
+and 74,122 extra submitted triangles on high (65,981 on low). The new site's source
+geometry adds 21,298 building triangles and 55,966 grounds/fence triangles before
+subtracting replaced procedural facades. Complete-building batches grow from 52
+to 65 for all five sites, including their ground and boundary meshes. Existing
+spatial culling remains. No extra render pass or per-frame site-generation work
+is introduced.
+
+The frame measurements do not establish a speedup or a consistent slowdown. An
+intermediate run recorded 35.19 FPS in the high captain view and 48.37 FPS at the
+frontage; the baseline and final results span roughly 35–37 and 48–51 FPS. High
+at forced 1.5× is still well below 60 FPS. All sampled low scenes stayed display
+capped at 60 FPS. Automatic quality adaptation is unchanged; this is desktop
+Metal, not a physical-phone benchmark or evidence for other GPUs.
+
+Model, site data and yard maps add **423,260 bytes high / 421,900 bytes low**
+(413 / 412 KiB), excluding approximately 3 KiB of expanded source/placement JSON.
+Their new totals are **2,908,267 / 1,955,309 bytes**. The original 256 px shingle
+texture is embedded in the model and adds about 0.33 MiB of GPU texture storage
+with mipmaps. Existing clapboard, timber and gravel textures are reused. The
+larger model is prepared behind the menu using the existing pipeline; no new
+in-flight asset request path is added. The total site/tree budgets stay bounded.
+
+Reproduce with the installed Playwright cache configured:
+
+```sh
+npm test
+VISUAL_GPU=metal node test/approach-sites.mjs roadside-homes-final
+VISUAL_GPU=metal node test/authored-scenery.mjs roadside-homes-integration
+VISUAL_GPU=metal node test/approach-scenery.mjs
+BENCHMARK_ROOT=/path/to/396c522 BENCHMARK_SCENES=captain-upper,roadside-homes,storm node test/render-benchmark.mjs roadside-homes-before
+BENCHMARK_SCENES=captain-upper,roadside-homes,storm node test/render-benchmark.mjs roadside-homes-final
+```
+
+Raw records: `benchmarks/2026-10-19-roadside-homes-render-before.json`,
+`benchmarks/2026-10-19-roadside-homes-render-first.json`,
+`benchmarks/2026-10-19-roadside-homes-render-final.json` and
+`benchmarks/2026-10-19-roadside-homes-captures.json`. The ignored local
+`output/roadside-homes-review.html` offers 32 matched images, including normal
+captain views, storm and night. All images, comparison labels, zoom controls,
+benchmark rows and the narrow-screen layout were checked. The full functional
+flight suite was not rerun for this scenery-only pass.

@@ -72,5 +72,5 @@ with tempfile.TemporaryDirectory(prefix='flight-scenery-') as tmp:
                             modifications='Simplified trunks, branches and foliage, packed alpha textures, normalized scale and Meshopt compression. See tools/prepare-trees.mjs.'))
     sources.append(dict(file='approach-infill.json',source='detail/manifest.json',
                         license='Public domain — original roof traces from USDA NAIP / USGS imagery',
-                        modifications='Five reviewed roof outlines; interpreted heights, roofs and facades. Exact source pixels are retained.'))
+                        modifications='Six reviewed roof outlines; interpreted heights, roofs and facades. Exact source pixels are retained.'))
     (OUT / 'sources.json').write_text(json.dumps(sources, indent=2) + '\n')

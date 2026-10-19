@@ -2,7 +2,7 @@
 Run Blender --background --python tools/prepare-farm.py, then prepare-farm.mjs.
 Retains the registered farm and neighboring roadside footprints. Architecture is an interpretation.
 """
-import bpy, json, math
+import bpy, json, math, random
 from pathlib import Path
 from mathutils import Vector
 from mathutils.geometry import tessellate_polygon
@@ -32,6 +32,9 @@ M={
  'redroof':material('Oxide red standing seam',(.24,.085,.065),.85,.12),
  'door':material('Faded barn door',(.26,.085,.055),.9),
  'silo':material('Weathered galvanized silo',(.34,.38,.38),.68,.28),
+ 'sage':material('Muted sage house siding',(.25,.30,.25),.88),
+ 'sand':material('Warm grey house siding',(.37,.34,.28),.88),
+ 'shingle':material('Charcoal residential roof',(.14,.147,.154),.96),
 }
 # Small surface relief belongs in a filtered normal map. Centimetre-wide raised
 # strips become bright, broken lines at flight distances when built as geometry.
@@ -51,13 +54,33 @@ def relief(mat,name,axis,period,count,strength):
  mat.node_tree.links.new(n.outputs['Normal'],nodes.get('Principled BSDF').inputs['Normal'])
  return period*count
 paint_uv=relief(M['paint'],'clapboard-relief',1,.19,8,.40)
+# House colour variants share the filtered clapboard normal; no new image downloads.
+for key in ['sage','sand']:
+ t=M[key].node_tree.nodes.new('ShaderNodeTexImage');t.image=bpy.data.images['clapboard-relief']
+ n=M[key].node_tree.nodes.new('ShaderNodeNormalMap');M[key].node_tree.links.new(t.outputs['Color'],n.inputs['Color']);M[key].node_tree.links.new(n.outputs['Normal'],M[key].node_tree.nodes.get('Principled BSDF').inputs['Normal'])
 roof_uv=relief(M['roof'],'seam-relief',0,.72,2,.60)
+# Original filtered asphalt-shingle colour, subtle enough to avoid a bright grid
+# at approach distances. Grain and courses are baked once, not evaluated per frame.
+size=256;rng=random.Random(419);pixels=[]
+courses=[[rng.uniform(.78,.92) for _ in range(8)] for _ in range(16)]
+for y in range(size):
+ row=y//16
+ for x in range(size):
+  sx=(x+(row%2)*16)%size;value=courses[row][sx//32]+rng.uniform(-.035,.035)
+  value*=.91 if y%16<1 or sx%32<1 else 1
+  pixels.extend((value,value,value,1))
+image=bpy.data.images.new('shingle-grain',width=size,height=size,alpha=False);image.pixels.foreach_set(pixels)
+image.filepath_raw=str(OUT/'shingle-grain.png');image.file_format='PNG';image.save()
+t=M['shingle'].node_tree.nodes.new('ShaderNodeTexImage');t.image=image
+mix=M['shingle'].node_tree.nodes.new('ShaderNodeMixRGB');mix.blend_type='MULTIPLY';mix.inputs[0].default_value=1
+mix.inputs[2].default_value=(.14,.147,.154,1)
+M['shingle'].node_tree.links.new(t.outputs['Color'],mix.inputs[1]);M['shingle'].node_tree.links.new(mix.outputs[0],M['shingle'].node_tree.nodes.get('Principled BSDF').inputs['Base Color'])
 # Reuse the same seam texture for the red-painted garage roof.
 t=M['redroof'].node_tree.nodes.new('ShaderNodeTexImage');t.image=bpy.data.images['seam-relief']
 n=M['redroof'].node_tree.nodes.new('ShaderNodeNormalMap');M['redroof'].node_tree.links.new(t.outputs['Color'],n.inputs['Color']);M['redroof'].node_tree.links.new(n.outputs['Normal'],M['redroof'].node_tree.nodes.get('Principled BSDF').inputs['Normal'])
 class Builder:
- def __init__(self,name,style='barn'):
-  self.name=name;self.style=style;self.data={k:[[],[],[]] for k in M}
+ def __init__(self,name,style='barn',finish=None):
+  self.name=name;self.style=style;self.finish_material=finish;self.data={k:[[],[],[]] for k in M}
  def face(self,pts,mat,uv=None,up=False,outward=None):
   # Metric UVs on every orientation; reject coincident gable corners before export.
   pts=[Vector(v) for v in pts]
@@ -67,14 +90,16 @@ class Builder:
   if normal.length<1e-8:return
   if (up and normal.y<0) or (outward is not None and normal.dot(Vector(outward))<0):pts.reverse()
   if mat=='siding' and self.style=='house':mat='paint'
+  if self.finish_material and mat in ['siding','paint']:mat=self.finish_material
+  if self.finish_material and mat=='roof':mat='shingle'
   if mat=='roof' and self.style=='garage':mat='redroof'
   p,f,t=self.data[mat];i=len(p);p.extend((x,-z,y) for x,y,z in pts);f.append(tuple(range(i,i+len(pts))))
   if uv is None:
    if abs(normal.y)>max(abs(normal.x),abs(normal.z)):
-    scale=roof_uv if mat in ['roof','redroof'] else 1.8;uv=[(v.x/scale,v.z/scale) for v in pts]
+    scale=3.2 if mat=='shingle' else roof_uv if mat in ['roof','redroof'] else 1.8;uv=[(v.x/scale,v.z/scale) for v in pts]
    else:
     horizontal=Vector((normal.z,0,-normal.x)).normalized()
-    scale=paint_uv if mat=='paint' else 1.8;uv=[(v.dot(horizontal)/scale,v.y/scale) for v in pts]
+    scale=paint_uv if mat in ['paint','sage','sand'] else 1.8;uv=[(v.dot(horizontal)/scale,v.y/scale) for v in pts]
   t.append(uv)
  def box(self,c,size,mat='trim',basis=None):
   x,y,z=c;a,b,d=[s/2 for s in size]
@@ -188,6 +213,26 @@ for x,z,name,style,height in [
 ]:
  b=next(b for b in registered if b['x']==x and b['z']==z)
  bs.append(dict(b,id=name,style=style,height=height,sourceHeight=b['height'],cluster='contour-farm',sparseBattens=True))
+# The residential frontage on 4_0: houses, detached garages and utility sheds.
+# Keep the source footprints; the missing western garage is a reviewed roof trace.
+for x,z,name,style,finish in [
+ (4312.5,151.5,'garden-cottage','house','sand'),
+ (4529.3,167,'lane-house','house','paint'),
+ (4549.2,172.3,'lane-garage','garage','sand'),
+ (4564.6,77.8,'orchard-store','garage','sage'),
+ (4583.1,77.5,'orchard-house','house','sage'),
+ (4637.6,14.5,'upper-house-garage','garage','sand'),
+ (4653.7,22.5,'upper-house','house','paint'),
+ (4708.2,88.4,'east-workshop','garage','paint'),
+ (4716.4,153.1,'east-store','barn','sand'),
+ (4717.9,112.6,'east-house','house','sand'),
+ (4740.9,161,'east-cottage','house','sage'),
+ (4749,235.8,'wood-edge-house','house','paint'),
+]:
+ b=next(b for b in registered if b['x']==x and b['z']==z)
+ bs.append(dict(b,id=name,style=style,finish=finish,cluster='roadside-homes',sparseBattens=True))
+b=next(b for b in extras if b['id']=='garden-cottage-garage')
+bs.append(dict(b,style='garage',finish='sand',cluster='roadside-homes',sparseBattens=True))
 manifest=[]
 for b in bs:
  placement={**{k:b[k] for k in ['id','x','z','angle','w','d','height']},'style':b.get('style','barn'),'sourceHeight':b.get('sourceHeight',b['height']),'cluster':b.get('cluster','valley')}
@@ -216,7 +261,7 @@ for b in bs:
    B.box((x,2,19.03),(4.1,3.65,.09),'dark');B.box((x,2,19.10),(3.8,3.4,.06),'door');B.box((x,3.93,19.18),(4.4,.12,.3),'trim')
   placement['roofSamples']=[[x*math.cos(b['angle']),x*math.sin(b['angle'])] for x in [-10.5,5]]
   B.finish();manifest.append(placement);continue
- style=b.get('style','barn');B=Builder(b['id'],style);w,d=b['w'],b['d'];rise=min(d*.27,b['height']*.38,4)
+ style=b.get('style','barn');B=Builder(b['id'],style,b.get('finish'));w,d=b['w'],b['d'];rise=min(d*.27,b['height']*.38,4)
  if 'style' in b:rise=min(rise,max(.35,b['height']-2.65))
  eave=b['height']-rise
  c,s=math.cos(b['angle']),math.sin(b['angle']);points=[(x*c+z*s,-x*s+z*c) for x,z in b['outline']]

@@ -17,7 +17,7 @@ try{
   await page.goto(url+'/?quality='+tier);await page.waitForFunction(()=>window.__sim,null,{timeout:120000});await completeScenery(page);
   const stats=await page.evaluate(async baseline=>{
    const s=window.__sim,w=s.world,T=await import('/vendor/three.module.js');s.setDrawing(false);s.game.state='menu';
-   const result={...w.approachBuildings.farm,groundError:0,roofs:0,roofSamples:0,roadConnections:0,trees:0,unplanned:0,intrusions:0,errors:w.assetErrors};
+   const result={...w.approachBuildings.farm,groundError:0,roofs:0,roofSamples:0,roadConnections:0,mainRoadConnections:0,trees:0,unplanned:0,intrusions:0,errors:w.assetErrors};
    if(baseline)return result;
    const {sceneryGroundHeight}=await import('/js/world/scenery-ground.js'),data=await(await fetch('/assets/scenery/approach-sites.json')).json();
    const manifest=await(await fetch('/assets/scenery/farm-sources.json')).json(),farm=w.approachBuildings.group.getObjectByName('Authored valley farm');farm.updateMatrixWorld(true);
@@ -37,8 +37,13 @@ try{
      const [x,z]=path.points.at(-1),hit=new T.Raycaster(new T.Vector3(x,100,z),new T.Vector3(0,-1,0)).intersectObject(road)[0];
      if(!hit||hit.face.normal.y<.5)throw new Error('Disconnected access '+site.id);result.roadConnections++;
     }
+    if(site.id==='roadside-homes')for(const lane of site.streets){
+     const [x,z]=lane.points.at(-1),hit=new T.Raycaster(new T.Vector3(x,100,z),new T.Vector3(0,-1,0)).intersectObject(w.approachRoads.group,true).find(h=>h.face?.normal.y>.5);
+     if(!hit)throw new Error('Drive does not meet the main road');result.mainRoadConnections++;
+    }
    }
    const matrix=new T.Matrix4(),point=new T.Vector3();
+   if(!w.approachSiteExcludes(4308,134))throw new Error('Preserved swimming pool must still exclude planting');
    for(const m of w.woodland.children)if(m.material===w.woodlandMaterial)for(let i=0;i<m.count;i++){
     m.getMatrixAt(i,matrix);point.setFromMatrixPosition(matrix);const placed=w.approachSiteTrees.some(t=>Math.hypot(t.x-point.x,t.z-point.z)<.02);
     if(placed)result.trees++;
@@ -48,9 +53,9 @@ try{
    return result;
   },baseline);
   assert.deepEqual(stats.errors,[]);
-  if(!baseline){assert.equal(stats.buildings,22);assert.equal(stats.sites,4);assert.equal(stats.roofs,22);assert.equal(stats.roofSamples,24);assert.equal(stats.roadConnections,6);assert.ok(stats.groundError<.001);assert.equal(stats.intrusions,0);assert.equal(stats.unplanned,0);assert.ok(stats.trees>14);}
+  if(!baseline){assert.equal(stats.buildings,35);assert.equal(stats.sites,5);assert.equal(stats.roofs,35);assert.equal(stats.roofSamples,37);assert.equal(stats.roadConnections,13);assert.equal(stats.mainRoadConnections,5);assert.ok(stats.groundError<.001);assert.equal(stats.intrusions,0);assert.equal(stats.unplanned,0);assert.ok(stats.trees>25);}
   console.log(tier,stats);report.push({tier,...stats});
-  for(const view of process.env.REVIEW_VIEWS?.split(',')||['farm-wide','farm-close','hamlet-wide','hamlet-close','contour-wide','contour-close','contour-overcast','contour-night','overcast','night','captain-5500','captain-4300','captain-3500','captain-2900']){
+  for(const view of process.env.REVIEW_VIEWS?.split(',')||['homes-wide','homes-close','homes-garden','homes-overcast','homes-night','captain-5000','farm-wide','farm-close','hamlet-wide','hamlet-close','contour-wide','contour-close','contour-overcast','contour-night','overcast','night','captain-5500','captain-4300','captain-3500','captain-2900']){
    await page.evaluate(async view=>{
     const T=await import('/vendor/three.module.js'),s=window.__sim,w=s.world;
     s.start({startId:'short',scenarioId:view.endsWith('overcast')?'storm':'clear',night:view.endsWith('night'),seed:5});s.setDrawing(false);s.setTimeScale(0);s.game.state='menu';
@@ -60,6 +65,9 @@ try{
     if(view==='hamlet-wide'){c.position.set(3410,125,-490);c.lookAt(3180,0,-285);}
     if(['hamlet-close','night','overcast'].includes(view)){c.position.set(3150,14,-310);c.lookAt(3195,2,-277);}
     if(view==='contour-wide'){c.position.set(4585,160,-335);c.lookAt(4420,10,-490);}
+    if(view==='homes-wide'){c.position.set(4910,185,335);c.lookAt(4510,35,115);}
+    if(['homes-close','homes-overcast','homes-night'].includes(view)){c.position.set(4605,57,255);c.lookAt(4540,36,167);}
+    if(view==='homes-garden'){c.position.set(4400,44,220);c.lookAt(4330,27,140);}
     if(['contour-close','contour-overcast','contour-night'].includes(view)){c.position.set(4500,25,-406);c.lookAt(4415,8,-493);}
     c.updateMatrixWorld();w.camera=c;if(w.composer)w.composer.passes[0].camera=c;w.drawCockpit=false;
     if(view.startsWith('captain-')){

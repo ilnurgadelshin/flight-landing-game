@@ -19,6 +19,7 @@ export function siteCoverage(data,x,z,kind){
  const paths=kind==='gravel'?data.paths:kind==='roads'?data.streets:[];
  for(const path of paths)for(let i=1;i<path.points.length;i++)
   distance=Math.max(distance,path.width/2-segmentDistance(x,z,path.points[i-1],path.points[i]));
+ if(kind==='lawns')for(const polygon of data.preserve||[])distance=Math.min(distance,-siteDistance(x,z,polygon));
  return distance;
 }
 // A narrow road needs only a terrain-following ribbon, not a parcel-sized grid.
@@ -46,7 +47,7 @@ function roadGeometry(data,ground){
      const x=cx+nx*offset,z=cz+nz*offset,variation=1+.065*Math.sin(x*.17+Math.sin(z*.23))+.035*Math.cos(z*.45+x*.12);
      positions.push(x,ground(x,z)+.10,z);uv.push(x/2.3,z/2.3);
      const wear=gravel?1-.18*Math.exp(-Math.pow((Math.abs(offset)-.8)/.35,2)):1;
-     const tone=gravel?[.34,.35,.35]:[.105,.11,.108];colors.push(...tone.map(v=>v*variation*wear));
+     const g=data.gravelTone??.34,tone=gravel?[g,g*1.03,g*1.03]:[.105,.11,.108];colors.push(...tone.map(v=>v*variation*wear));
      alphas.push(protectedScenery(x,z,16)?0:alpha*fade);
     }
     if(previous!==undefined)for(let j=0;j<sections.length-1;j++)indices.push(previous+j,previous+j+1,base+j,previous+j+1,base+j+1,base+j);
@@ -77,7 +78,7 @@ function surfaceGeometry(data,kind,ground){
    // Wheel-worn access, darker foundation margins and broad mottling break up yards.
    let track=0;for(const path of data.paths)for(let k=1;k<path.points.length;k++){const d=segmentDistance(x,z,path.points[k-1],path.points[k]);track=Math.max(track,Math.exp(-Math.pow((d-.9)/.4,2)));}
    const patches=rural?.045*Math.sin(x*.24+Math.sin(z*.31))*Math.cos(z*.18)+.025*Math.sin(x*.83+z*.61):0;
-   const tone=(.34+patches+.025*Math.sin(x*.38+Math.sin(z*.19))-.035*track)*variation;
+   const tone=((data.gravelTone??.34)+patches+.025*Math.sin(x*.38+Math.sin(z*.19))-.035*track)*variation;
    colors.push(tone,tone*(rural?1.03:.97),tone*(rural?1.03:.91));
   }
  }
@@ -135,5 +136,5 @@ export function buildValleySite(world,data,gravelMaterial,woodMaterial){
  const bounds=[Math.min(...xs)-8,Math.max(...xs)+8,Math.min(...zs)-8,Math.max(...zs)+8];
  const within=(x,z)=>x>bounds[0]&&x<bounds[1]&&z>bounds[2]&&z<bounds[3];
  return {group,triangles,roadMaterial:roadMaterial===gravelMaterial?null:roadMaterial,trees:data.trees,roadExcludes:(x,z)=>within(x,z)&&siteCoverage(data,x,z,'roads')>-6,
-  excludes:(x,z)=>within(x,z)&&(siteCoverage(data,x,z,'lawns')>-3||siteCoverage(data,x,z,'gravel')>-4||siteCoverage(data,x,z,'roads')>-7)};
+  excludes:(x,z)=>within(x,z)&&(siteCoverage(data,x,z,'lawns')>-3||siteCoverage(data,x,z,'gravel')>-4||siteCoverage(data,x,z,'roads')>-7||(data.preserve||[]).some(p=>siteDistance(x,z,p)>-3))};
 }

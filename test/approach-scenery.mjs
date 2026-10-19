@@ -80,7 +80,7 @@ try{
         roadSections:w.approachRoads.roads.length,groundError:Math.max(...groundErrors),minimumRoadNormal:Math.min(...roadVertices),roadsFaceUp:roadVertices.every(y=>y>.8),assetErrors:w.assetErrors};
     });
     console.log(tier,stats);
-    assert.equal(stats.count,data.buildings.length+infill.buildings.length);assert.equal(stats.infillCount,5);assert.equal(stats.downwardRoofVertices,0);
+    assert.equal(stats.count,data.buildings.length+infill.buildings.length);assert.equal(stats.infillCount,6);assert.equal(stats.downwardRoofVertices,0);
     if(tier==='high'){
       assert.ok(stats.windowSurfaces>5);assert.equal(stats.nearForms,9);assert.ok(stats.nearCount>5&&stats.nearCount<=48);assert.ok(stats.nearTriangles>10000&&stats.nearTriangles<=2400000);assert.ok(stats.fadedCards>5);
       assert.equal(treeRequests.length,5);

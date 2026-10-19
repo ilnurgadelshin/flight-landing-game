@@ -248,11 +248,11 @@ trim, nearby window ledges along the flight corridor, and roadside markers; low 
 small details. Terrain-following surfaces use the rendered triangle height for each tier.
 Buildings and roadside fixtures are visual scenery, not new physics obstacles.
 
-`scenery/approach-infill.json` supplements the ML dataset with **five reviewed roof
+`scenery/approach-infill.json` supplements the ML dataset with **six reviewed roof
 traces** from the bundled public-domain NAIP detail imagery: two connected valley barns,
-a barn and annex north of final, and an eastern farm shed. Pixel coordinates and source
+a barn and annex north of final, an eastern farm shed and a detached residential garage. Pixel coordinates and source
 tile IDs are retained so the traces can be checked. They follow visible roofs, excluding
-photographic shadows; heights, pitch and agricultural facades are interpretations.
+photographic shadows; heights, pitch and facades are interpretations.
 This small supplement does not fill every missing building in the imagery. Its failure
 leaves the main footprint layer available. Regenerate with:
 
@@ -348,10 +348,10 @@ its distance calculation and feathering are unchanged.
 
 ## Complete approach sites — original geometry / CC0 materials
 
-`scenery/valley-farm.glb` and its `-low` variant contain twenty-two complete building placements, originally
+`scenery/valley-farm.glb` and its `-low` variant contain thirty-five complete building placements, originally
 authored by `tools/prepare-farm.py` in Blender under the project's MIT license. The original
-two valley barns and two opposite-side barns use the NAIP-traced infill outlines; the other
-eighteen placements retain their Microsoft footprints. The models include three clapboard homes,
+two valley barns, two opposite-side barns and the detached residential garage use NAIP-traced infill outlines; the other
+thirty placements retain their Microsoft footprints. The models include clapboard homes,
 red-roofed working buildings, workshops, timber barns and three domed silos in two groups.
 Recessed openings, thick roof edges/ridge caps, gutters, door
 canopies, foundations and home chimneys are geometry. Fine clapboard laps and standing seams
@@ -393,22 +393,33 @@ Source URLs, authors, checksums, placements and exact delivered byte counts are 
 `scenery/farm-sources.json`. Wood textures use 1024 px high / 512 px low WebP. The gravel
 colour map follows those sizes; gravel normal and roughness maps use 512 px high / 256 px low.
 Meshes are Meshopt-compressed. Building meshes merge by material within each site, retaining
-local culling bounds rather than one large bound spanning the approach. Thirty-five building
-material batches, the original yard, twelve ground surfaces and four timber-boundary batches
-total 52 draw batches before subtracting replaced facade geometry. Buildings use 71,077 triangles;
-grounds/fences use 119,900 triangles plus the original 2,924-triangle yard. Only referenced parcel-grid vertices are uploaded; the narrow lane uses a feathered ribbon. The assets
-load during scenery preparation behind the menu. A missing model, site data or yard texture
-retains the original procedural buildings and the underlying imagery. Missing or invalid
-extension data keeps the original nine complete valley buildings and falls back only for the
-thirteen additional placements. The latest dairy/silo pass adds 184,777 bytes high /
-184,757 bytes low, including placement/site JSON, relative to `ae16093`. It reuses all material
-images; no new texture download is introduced. Farm models, site data and gravel maps total
-2,485,007 bytes high / 1,533,409 bytes low, excluding the shared source manifest.
+local culling bounds. The five sites use 65 draw batches before subtracting replaced procedural
+facades: 44 building material batches, the original yard and four grounds/boundary batches per
+site. Buildings use 92,375 triangles; grounds/fences use 175,866 triangles, plus the original
+2,924-triangle yard. Only referenced parcel-grid vertices are uploaded; narrow drives use
+feathered ribbons. Preparation happens behind the menu. Missing models or yard materials
+retain procedural buildings and imagery. Missing or invalid extension data keeps the original
+nine complete valley buildings and falls back for the other 26 placements.
+
+The 2026-10-19 residential frontage adds 13 models, including one previously missing garage,
+to the existing four sites. Twelve retain Microsoft footprints; the garage roof is traced from
+bundled high-resolution `detail/4_0.webp`. Grounds follow its low-resolution counterpart:
+six lawn parcels, seven yards, five road-connected drives and seven local access joins. The
+pool is preserved in the underlying imagery and remains excluded from tree planting. Forty-two
+eligible placed trees serve all five sites, within the unchanged 52,000 high / 14,000 low budget.
+The new cream, sage and warm grey siding shares the existing clapboard normal. An original
+256 px baked shingle texture adds restrained roof variation; its charcoal multiplier is restored
+explicitly during delivery because Blender's exporter omits that MixRGB factor. Parcel gravel
+has a separate colour scale. These are visual interpretations, not surveyed buildings.
+
+
+Models, grounds and gravel maps total 2,908,267 bytes high / 1,955,309 bytes low, excluding the shared manifest. Relative to `396c522`, this adds 423,260 / 421,900 bytes.
 
 Reproduce (download cache and Blender source remain under ignored `test/output/farm-sources/`):
 
 ```sh
 python3 tools/fetch-farm-materials.py
+python3 tools/prepare-approach-infill.py
 blender --background --python tools/prepare-farm.py
 node tools/prepare-approach-sites.mjs
 node tools/prepare-farm.mjs

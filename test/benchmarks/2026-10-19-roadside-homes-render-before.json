@@ -1,0 +1,122 @@
+{
+  "date": "2026-10-19T06:48:14.063Z",
+  "browser": "141.0.7390.37",
+  "platform": "darwin",
+  "arch": "arm64",
+  "viewport": [
+    1440,
+    900
+  ],
+  "touch": false,
+  "pixelRatio": {
+    "high": 1.5,
+    "low": 1
+  },
+  "disabled": [],
+  "warmupSeconds": 4,
+  "sampleSeconds": 12,
+  "method": "Private Chromium ANGLE Metal; fixed-resolution renderer and scenery updates, paused physics. RAF pacing is display capped; no gl.finish. CPU times exclude asynchronous GPU work.",
+  "results": [
+    {
+      "tier": "high",
+      "scene": "captain-upper",
+      "frames": 423,
+      "fps": 35.105191086767086,
+      "p50FrameMs": 33.29999999999927,
+      "p95FrameMs": 33.400000000001455,
+      "p99FrameMs": 33.400000000001455,
+      "cpuP50Ms": 4.800000190734863,
+      "cpuP95Ms": 5.699999809265137,
+      "medianDrawCalls": 1075,
+      "medianTriangles": 2293547,
+      "nearTreesAtEnd": 13,
+      "pixelRatio": 1.5,
+      "assets": []
+    },
+    {
+      "tier": "high",
+      "scene": "roadside-homes",
+      "frames": 596,
+      "fps": 49.60011983921572,
+      "p50FrameMs": 16.700000000000728,
+      "p95FrameMs": 33.30000000000291,
+      "p99FrameMs": 33.400000000001455,
+      "cpuP50Ms": 3.0999999046325684,
+      "cpuP95Ms": 3.8000001907348633,
+      "medianDrawCalls": 666,
+      "medianTriangles": 954729,
+      "nearTreesAtEnd": 19,
+      "pixelRatio": 1.5,
+      "assets": []
+    },
+    {
+      "tier": "high",
+      "scene": "storm",
+      "frames": 453,
+      "fps": 37.64678506428211,
+      "p50FrameMs": 33.299999999995634,
+      "p95FrameMs": 33.400000000001455,
+      "p99FrameMs": 33.400000000001455,
+      "cpuP50Ms": 4.5,
+      "cpuP95Ms": 5.099999904632568,
+      "medianDrawCalls": 917,
+      "medianTriangles": 2121599,
+      "nearTreesAtEnd": 0,
+      "pixelRatio": 1.5,
+      "assets": []
+    },
+    {
+      "tier": "low",
+      "scene": "captain-upper",
+      "frames": 721,
+      "fps": 60.00233018758011,
+      "p50FrameMs": 16.69999999999891,
+      "p95FrameMs": 16.700000000000728,
+      "p99FrameMs": 16.800000000000182,
+      "cpuP50Ms": 2.799999713897705,
+      "cpuP95Ms": 3.200000286102295,
+      "medianDrawCalls": 598,
+      "medianTriangles": 916145,
+      "nearTreesAtEnd": 0,
+      "pixelRatio": 1,
+      "assets": []
+    },
+    {
+      "tier": "low",
+      "scene": "roadside-homes",
+      "frames": 721,
+      "fps": 60.0023301875801,
+      "p50FrameMs": 16.69999999999709,
+      "p95FrameMs": 16.700000000004366,
+      "p99FrameMs": 16.799999999999272,
+      "cpuP50Ms": 2.4000000953674316,
+      "cpuP95Ms": 2.8999996185302734,
+      "medianDrawCalls": 428,
+      "medianTriangles": 503634,
+      "nearTreesAtEnd": 0,
+      "pixelRatio": 1,
+      "assets": []
+    },
+    {
+      "tier": "low",
+      "scene": "storm",
+      "frames": 721,
+      "fps": 60.00233018758008,
+      "p50FrameMs": 16.69999999999709,
+      "p95FrameMs": 16.799999999995634,
+      "p99FrameMs": 16.80000000000291,
+      "cpuP50Ms": 2.8000001907348633,
+      "cpuP95Ms": 3.3000001907348633,
+      "medianDrawCalls": 513,
+      "medianTriangles": 807719,
+      "nearTreesAtEnd": 0,
+      "pixelRatio": 1,
+      "assets": []
+    }
+  ],
+  "startupBytes": {
+    "high": 14498655,
+    "low": 8786540
+  },
+  "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M2 Pro, Unspecified Version)"
+}
