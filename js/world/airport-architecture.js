@@ -1,59 +1,22 @@
-// Original architecture for the fictional airport. Metric geometry and small
-// generated atlases share the world's ordinary lighting, haze and shadow path.
+// Original architecture for the fictional airport. Metric geometry, window rooms
+// and signage share the world's ordinary lighting, haze and shadow path.
 import * as THREE from 'three';
-import {makeRng} from '../physics/atmosphere.js';
-
-function facadeMaps(low, aniso) {
-  const cell=low?64:128, canvas=document.createElement('canvas');
-  canvas.width=cell*4;canvas.height=cell*2;
-  const light=canvas.cloneNode();
-  const c=canvas.getContext('2d'),e=light.getContext('2d');
-  e.fillStyle='black';e.fillRect(0,0,canvas.width,canvas.height);
-  for(let id=0;id<8;id++){
-    const x=id%4*cell,y=Math.floor(id/4)*cell,rng=makeRng(612+id);
-    c.save();e.save();for(const g of [c,e]){g.translate(x,y);g.scale(cell/256,cell/256);}
-    const gradient=c.createLinearGradient(0,0,0,256);
-    gradient.addColorStop(0,'#253b43');gradient.addColorStop(.58,'#536366');gradient.addColorStop(1,'#2b3b3e');
-    c.fillStyle=gradient;c.fillRect(0,0,256,256);
-    // Muted interior/blind suggestions; glazing stays opaque and sorting-free.
-    c.fillStyle=id%3===0?'#66716f':'#465051';c.fillRect(7,31,242,83+id*5);
-    for(let j=0;j<7;j++){
-      c.fillStyle='rgba(17,29,32,.09)';c.fillRect(7,40+j*12,242,2);
-    }
-    for(let j=0;j<5;j++){
-      const sx=12+j*47,top=183+rng()*18;
-      c.fillStyle='#3b494c';c.fillRect(sx,top+7,32,10);c.fillRect(sx+5,top+17,2,8);c.fillRect(sx+25,top+17,2,8);
-    }
-    c.fillStyle='#374449';c.fillRect(0,238,256,18);
-    // Luminous ceilings have a room gradient, rather than uniformly lit panes.
-    if(id!==2&&id!==7){
-      const glow=e.createLinearGradient(0,0,0,256);
-      glow.addColorStop(0,'#5b6059');glow.addColorStop(.3,'#363c3c');glow.addColorStop(1,'#0d1519');
-      e.fillStyle=glow;e.fillRect(8,8,240,228);
-      e.fillStyle='#b5afa0';e.fillRect(23,22,210,4);
-      e.fillStyle='#090d10';for(let j=0;j<5;j++)e.fillRect(12+j*47,187,32,23);
-    }
-    for(const g of [c,e]){g.fillStyle='#1c292c';g.fillRect(0,0,4,256);g.fillRect(252,0,4,256);g.fillRect(0,0,256,4);g.fillRect(0,252,256,4);}
-    c.restore();e.restore();
-  }
-  const texture=(image,color)=>{const t=new THREE.CanvasTexture(image);if(color)t.colorSpace=THREE.SRGBColorSpace;t.anisotropy=aniso;return t;};
-  return {map:texture(canvas,true),emissiveMap:texture(light,true)};
-}
+import {applyAirportGlass,paneFrame} from './airport-glass.js';
 
 export function buildAirportArchitecture(scene,low=false,aniso=1){
   const root=new THREE.Group();root.name='Westhaven airport architecture';scene.add(root);
-  const maps=facadeMaps(low,aniso);
   const materials={
     solid:new THREE.MeshStandardMaterial({vertexColors:true,roughness:.9}),
     metal:new THREE.MeshStandardMaterial({vertexColors:true,roughness:.52,metalness:.42}),
-    glass:new THREE.MeshStandardMaterial({...maps,roughness:.29,metalness:.32,emissive:0xe9e2d2,emissiveIntensity:0}),
+    glass:new THREE.MeshStandardMaterial({roughness:.10,metalness:0,envMapIntensity:1.25,emissive:0xe9e2d2,emissiveIntensity:0}),
     roof:new THREE.MeshStandardMaterial({vertexColors:true,roughness:.67,metalness:.27,side:THREE.DoubleSide}),
   };
+  applyAirportGlass(materials.glass);
   const batches=new Map(),unit=new THREE.BoxGeometry(1,1,1).toNonIndexed();
   const color=new THREE.Color();let zone='terminal';
   const data=kind=>{
     const key=zone+':'+kind;
-    if(!batches.has(key))batches.set(key,{zone,kind,p:[],n:[],uv:[],color:[]});
+    if(!batches.has(key))batches.set(key,{zone,kind,p:[],n:[],uv:[],color:[],paneUV:[],paneSize:[],paneRight:[],paneUp:[],paneVariant:[]});
     return batches.get(key);
   };
   const box=(kind,x,y,z,w,h,d,tint=0xb1b6b1,yaw=0)=>{
@@ -64,13 +27,17 @@ export function buildAirportArchitecture(scene,low=false,aniso=1){
       b.n.push(nx*co+nz*si,n.getY(i),-nx*si+nz*co);b.uv.push(0,0);b.color.push(color.r,color.g,color.b);
     }
   };
-  const quad=(kind,a,b,c,d,tint=0xffffff,id=0)=>{
+  const quad=(kind,a,b,c,d,tint=0xffffff,id=0,span=1,offset=0,gap=0)=>{
     const batch=data(kind),normal=new THREE.Vector3().subVectors(new THREE.Vector3(...b),new THREE.Vector3(...a)).cross(new THREE.Vector3().subVectors(new THREE.Vector3(...c),new THREE.Vector3(...a))).normalize();
     color.set(tint);
-    // Inset each atlas cell so the mipmapped neighbouring room cannot leak in.
-    const u=(id%4+.02)/4,v=1-(Math.floor(id/4)+.98)/2,du=.96/4,dv=.96/2;
     const corners=[a,b,c,...(c.every((v,i)=>v===d[i])||a.every((v,i)=>v===d[i])?[]:[a,c,d])];
-    const uvs=b[1]>a[1]?[[u,v],[u,v+dv],[u+du,v+dv],[u,v],[u+du,v+dv],[u+du,v]]:[[u,v],[u+du,v],[u+du,v+dv],[u,v],[u+du,v+dv],[u,v+dv]];
+    const uvs=b[1]>a[1]?[[0,0],[0,1],[1,1],[0,0],[1,1],[1,0]]:[[0,0],[1,0],[1,1],[0,0],[1,1],[0,1]];
+    if(kind==='glass'){
+      const frame=paneFrame(a,b,c,d),stride=frame.size[0]+gap,width=stride*span;
+      // Include the mullion gaps in the room coordinates: neighboring panes
+      // look into one continuous hall, not slightly shifted copies of it.
+      for(const uv of uvs){batch.paneUV.push((uv[0]*frame.size[0]+offset*stride+gap/2)/width,uv[1]);batch.paneSize.push(width,frame.size[1]);batch.paneRight.push(...frame.right);batch.paneUp.push(...frame.up);batch.paneVariant.push(id);}
+    }
     corners.forEach((p,i)=>{batch.p.push(...p);batch.n.push(normal.x,normal.y,normal.z);batch.uv.push(...uvs[i]);batch.color.push(color.r,color.g,color.b);});
   };
   const beam=(a,b,width,tint=0xa7ada8)=>{
@@ -94,8 +61,8 @@ export function buildAirportArchitecture(scene,low=false,aniso=1){
       for(let j=0;j<16;j++){
         const x=center-width/2+j*7;
         for(const [bottom,top] of [[1.3,6.3],[7.3,base-1],[base-.8,roofY(z)-.5]]){
-          if(z===426)quad('glass',[x+.15,bottom,z],[x+.15,top,z],[x+6.85,top,z],[x+6.85,bottom,z],0xffffff,(j+gate*3)%8);
-          else quad('glass',[x+6.85,bottom,z],[x+6.85,top,z],[x+.15,top,z],[x+.15,bottom,z],0xffffff,(j+gate*3)%8);
+          if(z===426)quad('glass',[x+.15,bottom,z],[x+.15,top,z],[x+6.85,top,z],[x+6.85,bottom,z],0xffffff,(Math.floor(j/4)+gate*3)%8,4,j%4,.3);
+          else quad('glass',[x+6.85,bottom,z],[x+6.85,top,z],[x+.15,top,z],[x+.15,bottom,z],0xffffff,(Math.floor(j/4)+gate*3)%8,4,3-j%4,.3);
         }
         box('metal',x,base/2,z+(z===426?-.25:.25),.18,base,.4,0x9aa7a6);
       }
@@ -135,7 +102,7 @@ export function buildAirportArchitecture(scene,low=false,aniso=1){
     box('solid',x,6.6,489,48,11.4,.3,0xa7b0a9);
     for(let j=0;j<8;j++){
       const left=x-24+j*6;
-      quad('glass',[left,1.2,431],[left,11.8,431],[left+5.8,11.8,431],[left+5.8,1.2,431],0xffffff,j);
+      quad('glass',[left,1.2,431],[left,11.8,431],[left+5.8,11.8,431],[left+5.8,1.2,431],0xffffff,Math.floor(j/4),4,j%4,.2);
       box('metal',left,6.5,430.8,.18,11,.35,0x9ca8a6);
     }
     // Stair/service cores provide quiet solid areas between glass volumes.
@@ -215,12 +182,13 @@ export function buildAirportArchitecture(scene,low=false,aniso=1){
   for(const batch of batches.values()){
     const geometry=new THREE.BufferGeometry();
     for(const [name,array,size] of [['position',batch.p,3],['normal',batch.n,3],['uv',batch.uv,2],['color',batch.color,3]])geometry.setAttribute(name,new THREE.Float32BufferAttribute(array,size));
+    if(batch.kind==='glass')for(const [name,size] of [['paneUV',2],['paneSize',2],['paneRight',3],['paneUp',3],['paneVariant',1]])geometry.setAttribute(name,new THREE.Float32BufferAttribute(batch[name],size));
     geometry.computeBoundingSphere();const mesh=new THREE.Mesh(geometry,materials[batch.kind]);mesh.name=batch.zone+':'+batch.kind;
     mesh.castShadow=true;mesh.receiveShadow=true;root.add(mesh);
   }
   unit.dispose();
   const triangles=root.children.reduce((sum,m)=>sum+(m.geometry.index?.count??m.geometry.attributes.position.count)/3,0);
-  return {root,materials,triangles,textures:[...Object.values(maps),signMap],setTimeOfDay(tod){
+  return {root,materials,triangles,textures:[signMap],setTimeOfDay(tod){
     materials.glass.emissiveIntensity=tod==='night'?.65:tod==='dusk'?.22:0;
     signMat.emissiveIntensity=tod==='night'?.45:tod==='dusk'?.16:0;
   }};

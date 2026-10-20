@@ -626,7 +626,7 @@ and complete-site grounds excluded. They are interpreted scenery, not a local ve
 ## Airport architecture — original project geometry
 
 `js/world/airport-architecture.js` builds the fictional Westhaven terminal, three
-hangars and control tower. The original project geometry, facade paintings and signage
+hangars and control tower. The original project geometry, procedural interiors and signage
 are MIT-licensed; no downloaded building, image, font or network service is used.
 The gate locations and aircraft/jet-bridge placements are retained. Architecture
 remains visual scenery and does not change the runway, taxiways or flight physics.
@@ -637,23 +637,39 @@ have continuous shaded glazing. Hangars have pitched roofs, glazed sliding doors
 side ribs and service doors. The tower uses an eight-sided outward-sloping cab with a
 balcony, support transition, roof and aerials over a core and entrance annex.
 
-The opaque glass approximates reflected sky and interior/blind silhouettes. It has
-no true transparency, interior parallax or reflected airport geometry. Eight small
-original facade paintings share a colour/emission atlas, and lettering uses one local
-canvas. Night lighting changes emissive intensity without rebuilding textures. High
-uses two 512×256 facade maps and a 1024×128 sign; initial low quality uses half those dimensions.
-Estimated RGBA GPU storage including mipmaps is **2 MiB high / 0.5 MiB low**, replacing
-one previous 512×256 map (about 0.67 MiB). These are residency estimates, not downloads;
-the canvases also retain their uncompressed base images on the CPU.
+The 2026-10-20 glass pass replaces the painted interior atlas with bounded analytic
+rooms behind the panes (`js/world/airport-glass.js`). Floors, ceilings, doors, information
+boards and a seat/back volume move in perspective with the eye. The main hall and gallery
+fronts share rooms across four panes, including the mullion gaps in their coordinates.
+Side walls and the sloped tower cab retain individual bays. Surface reflections use the
+existing sky environment, with lower roughness and nonmetallic glazing; there is no
+reflection of airport geometry, actual transmission or walkable interior.
+
+Night lighting uses the existing time-of-day intensity, with ceiling strips and quieter
+unoccupied rooms. Derivative filtering softens thin floor joints and ceiling lights.
+All ray divisions are epsilon-guarded, including axis-aligned and grazing views. Rooms
+remain opaque and share the usual atmosphere and shadows, avoiding transparent sorting.
+
+No image downloads, render passes, triangles or draw calls are added. The two old generated
+facade maps are removed, saving about **1.33 MiB high / 0.33 MiB low** of mipmapped GPU texture
+storage, plus their CPU canvases. Static per-pane attributes add **182,424 bytes** on either
+tier. The remaining sign canvas uses about **0.67 MiB high / 0.17 MiB low** on the GPU. Room
+intersection and shading replace the two facade texture reads; measured frame costs are
+recorded in `test/RENDER-PERFORMANCE.md`. These are storage estimates, not download savings.
 
 Materials are shared across spatial batches for frustum culling. Low omits fine hall
 roof seams and reduces hangar side ribs, while retaining the complete silhouette.
-Automatic downgrade keeps this small static geometry and its existing maps.
+Automatic downgrade keeps this small static geometry, room shader and sign map.
 The resulting buildings remain simplified original architecture, not a detailed
 commercial airport asset. Surface weathering, richer apron equipment, transparent
 interiors and finer local shadows remain possible improvements.
 
 `VISUAL_GPU=metal npm run test:airport` records matched pilot/airport/terminal/tower/
-hangar/night/storm views on both tiers and checks finite geometry, clear operational
+hangar/night/storm views on both tiers, including close/oblique interiors, and checks finite geometry, clear operational
 areas, outward-facing glazing and bounded geometry/texture cost. Use `REVIEW_ROOT`
 to capture the same views against an archived baseline.
+
+`VISUAL_GPU=metal npm run test:airport-glass` checks the real material in floating-point
+render targets for finite lit pixels at axis-aligned and grazing angles, verifies rear-wall
+parallax, and records a 100 m moving inspection pass. These remain simple interpreted
+interiors; geometry shadows, furnishings and local reflections need further work.

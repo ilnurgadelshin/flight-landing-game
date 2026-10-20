@@ -1,0 +1,77 @@
+{
+  "baseline": false,
+  "rays": [
+    {
+      "eye": [
+        -5,
+        2.5,
+        18
+      ],
+      "finite": true,
+      "lit": 8576,
+      "board": 219,
+      "boardPosition": 0.45903582718651204
+    },
+    {
+      "eye": [
+        0,
+        2.5,
+        18
+      ],
+      "finite": true,
+      "lit": 9576,
+      "board": 243,
+      "boardPosition": 0.6283185840707964
+    },
+    {
+      "eye": [
+        5,
+        2.5,
+        18
+      ],
+      "finite": true,
+      "lit": 8576,
+      "board": 243,
+      "boardPosition": 0.8076923076923077
+    },
+    {
+      "eye": [
+        20,
+        2.5,
+        0.8
+      ],
+      "finite": true,
+      "lit": 304,
+      "board": 0,
+      "boardPosition": null
+    },
+    {
+      "eye": [
+        0,
+        25,
+        0.8
+      ],
+      "finite": true,
+      "lit": 180,
+      "board": 0,
+      "boardPosition": null
+    },
+    {
+      "eye": [
+        0,
+        0.01,
+        18
+      ],
+      "finite": true,
+      "lit": 9320,
+      "board": 243,
+      "boardPosition": 0.6283185840707964
+    }
+  ],
+  "motion": {
+    "frames": 180,
+    "distance": 100,
+    "video": true,
+    "errors": []
+  }
+}

@@ -45,11 +45,12 @@ try{
         s.game.sim.aircraft.place({x:scene==='rollout'?1000:approachX,y:scene==='rollout'?2.5:scene==='deck-captain'?w.cloudTop+220:scene.startsWith('captain-')?15+(approachX-1500)*Math.tan(Math.PI/60):115,z:0,headingDeg:270,iasKts:scene==='rollout'?85:147,flapIndex:4,gearDown:true,gammaDeg:-3,onGround:scene==='rollout'});
         s.view.setMode('cockpit');for(let i=0;i<40;i++)s.view.update(1/60);
         s.game.state='menu';w.setPixelRatio(pixelRatio);
-        if(['roadside-homes','airport','terminal','tower','nearby','site','corridor','extension','opposite','upper-opposite','contour-farm','shoulder','north-farm','hamlet','cloud-sky','cloud-close','deck-top','deck-base','deck-near-top','deck-inside-base','grass-meadow','grass-pasture'].includes(scene)){
+        if(['roadside-homes','airport','terminal','terminal-close','tower','nearby','site','corridor','extension','opposite','upper-opposite','contour-farm','shoulder','north-farm','hamlet','cloud-sky','cloud-close','deck-top','deck-base','deck-near-top','deck-inside-base','grass-meadow','grass-pasture'].includes(scene)){
           const c=new T.PerspectiveCamera(50,innerWidth/innerHeight,.1,60000);
           if(scene==='airport'){c.position.set(640,110,100);c.lookAt(0,14,440);}
           else if(scene==='roadside-homes'){c.position.set(4910,185,335);c.lookAt(4510,35,115);}
           else if(scene==='terminal'){c.position.set(130,14,325);c.lookAt(0,12,452);}
+          else if(scene==='terminal-close'){c.position.set(35,5,390);c.lookAt(5,6,427);}
           else if(scene==='tower'){c.position.set(-155,33,210);c.lookAt(-250,35,330);}
           else if(scene==='cloud-sky'){c.position.set(3300,115,0);c.lookAt(-5000,2000,-5500);}
           else if(scene==='cloud-close'){c.position.set(-2300,2100,-4500);c.lookAt(-5000,2250,-5500);}
@@ -77,7 +78,7 @@ try{
         if(disabled.includes('cumulus')&&w.cumulus)w.cumulus.group.visible=false;
         if(disabled.includes('bloom')&&w.bloom)w.bloom.enabled=false;
         if(disabled.includes('shadows'))w.renderer.shadowMap.enabled=false;
-        const base=w.camera.position.clone(),state={...s.state(),alt:scene.startsWith('cloud-')||scene.startsWith('captain-')||scene.startsWith('deck-')||scene.startsWith('grass-')||['airport','terminal','tower','upper-opposite','contour-farm'].includes(scene)?eye.y:scene==='north-farm'?15:scene==='hamlet'?14:scene==='shoulder'?3.7:scene==='rollout'?5:scene==='site'?24:scene==='nearby'?18:scene==='opposite'?250:['corridor','extension'].includes(scene)?240:115};
+        const base=w.camera.position.clone(),state={...s.state(),alt:scene.startsWith('cloud-')||scene.startsWith('captain-')||scene.startsWith('deck-')||scene.startsWith('grass-')||['airport','terminal','terminal-close','tower','upper-opposite','contour-farm'].includes(scene)?eye.y:scene==='north-farm'?15:scene==='hamlet'?14:scene==='shoulder'?3.7:scene==='rollout'?5:scene==='site'?24:scene==='nearby'?18:scene==='opposite'?250:['corridor','extension'].includes(scene)?240:115};
         const intervals=[],cpu=[],calls=[],triangles=[];let start,last;
         w.renderer.info.autoReset=false;
         await new Promise(resolve=>{

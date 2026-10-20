@@ -1994,3 +1994,89 @@ Raw records: `benchmarks/2026-10-19-woodland-light-render-before.json`,
 `benchmarks/2026-10-19-woodland-light-motion-before.json` and
 `benchmarks/2026-10-19-woodland-light-motion-final.json`. The ignored local
 `output/woodland-light-review.html` shows the scene and motion comparisons.
+
+
+## Airport glazing and interior depth — 2026-10-20
+
+Baseline `a4e2bad`, Apple M2 Pro / Chromium 141 ANGLE Metal. Matched 1440×900
+views, fixed 1.5× high / 1× low, four seconds warm-up and twelve seconds sampling.
+Physics is paused; visual updates run. GPU captures, videos and benchmarks were
+sequential. The close-terminal pair was measured separately with the same settings.
+
+| Tier / scene | Before FPS | After FPS | After p95 frame | Draw calls, unchanged | Triangles, unchanged |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| high / captain | 39.45 | 38.78 | 33.4 ms | 917 | 2,103,530 |
+| high / rollout | 41.28 | 40.97 | 33.4 ms | 700 | 1,889,727 |
+| high / terminal | 55.09 | 53.26 | 33.4 ms | 264 | 333,121 |
+| high / terminal-close | 53.93 | 52.76 | 33.3 ms | 239 | 333,613 |
+| high / storm | 40.31 | 40.31 | 33.4 ms | 917 | 2,119,833 |
+| low / captain | 60.00 | 60.00 | 16.8 ms | 529 | 784,023 |
+| low / rollout | 60.00 | 60.00 | 16.7 ms | 397 | 562,457 |
+| low / terminal | 60.00 | 60.00 | 16.8 ms | 173 | 128,997 |
+| low / terminal-close | 60.00 | 60.00 | 16.7 ms | 153 | 121,841 |
+| low / storm | 60.00 | 60.00 | 16.7 ms | 513 | 796,964 |
+
+High is 3.3% slower in the apron terminal view, 2.2% slower close to the windows,
+1.7% slower in the captain view and 0.7% slower during rollout; storm is effectively
+unchanged. These short measurements include normal run variation; they establish
+neither zero cost nor a performance improvement. All sampled low views remain at
+the approximately 60 FPS display limit. Forced 1.5× high still falls below 60 FPS.
+Automatic quality adaptation is unchanged. Physical phones and other GPU/driver
+combinations were not benchmarked.
+
+The shader replaces two painted-interior texture reads with a bounded room
+intersection and two simple seat/back box intersections. It adds no textures,
+transparency passes, geometry or draws. Main hall and gallery fronts share rooms
+across four panes; gaps are included so the room does not jump at a mullion.
+Derivatives soften floor joints and ceiling strips, and signed epsilon guards
+keep axis-aligned and grazing rays finite. Existing environment reflections and
+shared atmospheric shading remain active. Interior lighting follows the existing
+day/dusk/night intensities.
+
+Removing the two generated colour/emission maps saves **1,398,101 bytes high /
+349,525 bytes low** of estimated mipmapped GPU texture storage. Their CPU canvases
+are removed too. Added per-pane attributes take **182,424 bytes** on either tier,
+so net GPU storage falls by approximately **1.16 MiB high / 0.16 MiB low**, excluding
+shader program storage. Sign-map storage is unchanged. No new model/image downloads
+are required; the implementation adds a small JavaScript module. Architecture stays
+at **33 draws**, **13,672 triangles high / 8,980 low** before frustum/shadow culling.
+
+Validation: all 17 Node suites; matched airport captures on both tiers; finite,
+nondegenerate geometry and valid room bases; all 120 front/rear hall rooms shared
+by four adjoining panes; and operational clearances. The new real-material test
+reads floating-point colour from six camera positions, including near-grazing
+horizontal/vertical views with nonzero rendered pixels. Every value is finite and
+bounded. The rear-wall board moves from 0.459 to 0.808 across normalized pane width
+as the eye moves from one side to the other, establishing depth rather than only
+an exposure change. A matched 180-frame / 100 m moving view has no page, shader or
+asset errors. Captures include normal pilot views, close and oblique glazing,
+overcast, night and storm. The full functional-flight suite was not rerun for this
+isolated scenery-material change.
+
+The effect is clearer near the terminal than through the forward windshield.
+Rooms remain simplified opaque approximations, with sky-only reflections, simple
+furnishings and existing coarse shadows. They are not walkable interiors or physical
+transmission. The local `output/airport-glass-review.html` offers 56 before/after
+images and the two motion videos, with measurements and these limitations.
+
+Reproduce with the installed Playwright browser cache configured:
+
+```sh
+npm test
+REVIEW_ROOT=/path/to/a4e2bad VISUAL_GPU=metal node test/airport-architecture.mjs airport-glass-before
+VISUAL_GPU=metal node test/airport-architecture.mjs airport-glass-final
+REVIEW_ROOT=/path/to/a4e2bad VISUAL_GPU=metal node test/airport-glass.mjs airport-glass-motion-before
+VISUAL_GPU=metal node test/airport-glass.mjs airport-glass-motion-final
+BENCHMARK_ROOT=/path/to/a4e2bad BENCHMARK_SCENES=captain,rollout,terminal,storm node test/render-benchmark.mjs airport-glass-before
+BENCHMARK_SCENES=captain,rollout,terminal,storm node test/render-benchmark.mjs airport-glass-final
+BENCHMARK_ROOT=/path/to/a4e2bad BENCHMARK_SCENES=terminal-close node test/render-benchmark.mjs airport-glass-close-before
+BENCHMARK_SCENES=terminal-close node test/render-benchmark.mjs airport-glass-close-final
+```
+
+Raw records: `benchmarks/2026-10-20-airport-glass-render-before.json`,
+`benchmarks/2026-10-20-airport-glass-render-final.json`,
+`benchmarks/2026-10-20-airport-glass-close-render-before.json`,
+`benchmarks/2026-10-20-airport-glass-close-render-final.json`,
+`benchmarks/2026-10-20-airport-glass-captures.json`,
+`benchmarks/2026-10-20-airport-glass-motion-before.json` and
+`benchmarks/2026-10-20-airport-glass-motion-final.json`.

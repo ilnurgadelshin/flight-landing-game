@@ -21,6 +21,7 @@
     "test:rain": "node test/rain-field.test.mjs && node test/rain-motion.mjs",
     "test:cumulus": "node test/weather-assets.test.mjs && node test/cumulus-lighting.mjs && node test/cumulus-review.mjs",
     "test:airport": "node test/airport-architecture.mjs",
+    "test:airport-glass": "node test/airport-glass.mjs",
     "test:phone-cockpit": "node test/phone-cockpit.mjs",
     "test:cockpit-surfaces": "node test/cockpit-surfaces.mjs",
     "test:scenery": "node test/authored-scenery.mjs",

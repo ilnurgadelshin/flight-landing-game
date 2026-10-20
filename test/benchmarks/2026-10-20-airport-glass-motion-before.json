@@ -1,0 +1,9 @@
+{
+  "baseline": true,
+  "motion": {
+    "frames": 180,
+    "distance": 100,
+    "video": true,
+    "errors": []
+  }
+}
