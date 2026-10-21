@@ -58,8 +58,9 @@ try{
   const done=record&&new Promise(resolve=>recorder.onstop=resolve);if(record){recorder.ondataavailable=e=>chunks.push(e.data);recorder.start();}
   const frames=[];
   for(let i=0;i<180;i++){
-   await new Promise(requestAnimationFrame);camera.position.x=75-i*100/179;camera.lookAt(0,7,426);camera.updateMatrixWorld();
-   w.update(1/60,{...s.state(),alt:6},camera.position);w.render();
+   // Without a recording only the sampled frames are drawn (software rendering is slow).
+   if(record)await new Promise(requestAnimationFrame);camera.position.x=75-i*100/179;camera.lookAt(0,7,426);camera.updateMatrixWorld();
+   w.update(1/60,{...s.state(),alt:6},camera.position);if(record||[0,90,179].includes(i))w.render();
    if([0,90,179].includes(i))frames.push({frame:i,png:w.renderer.domElement.toDataURL().split(',')[1]});
   }
   let video=null;

@@ -20,6 +20,7 @@ try{
     const menuAt=await page.evaluate(()=>window.__menuAt),startup=(await resources()).filter(r=>r.start<menuAt);
     assert.ok(!startup.some(r=>/-near\.glb|\/detail\/|\/approach-buildings\.json|\/approach-corridor\.(png|json)|\/grass-patches/.test(r.name)),'No optional scenery before the menu');
     assert.ok(sum(startup)<(tier==='high'?15e6:9e6),`${tier} startup budget: ${sum(startup)}`);
+    assert.ok(!startup.some(r=>/\/service-wear/.test(r.name)),'The cockpit wear mask loads behind the menu');
     // behind the menu: the scenery, the near trees on high, and the warm-up
     await page.waitForFunction(()=>window.__sim.world.sceneryPrepared,null,{timeout:30000});
     await page.evaluate(async()=>{await window.__sim.world.sceneryPrepared;});

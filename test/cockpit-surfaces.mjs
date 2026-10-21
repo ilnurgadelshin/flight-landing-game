@@ -24,7 +24,9 @@ try {
     for(let i=0;i<120;i++){s.presentation.frame(1/60,0);s.view.update(1/60);}
     w.setPixelRatio(tier==='high'?1.5:1);
     const eye=w.camera.getWorldPosition(new T.Vector3());await w.groundDetail.settle(eye);w.nearWoodland?.settle(eye);w.groundCover?.settle(eye);
-    s.view.draw();w.renderer.getContext().finish();
+    // A one-pixel readback waits for the queued draw; the page screenshot then
+    // stays within its time limit with software rendering.
+    s.view.draw();const gl=w.renderer.getContext();gl.readPixels(0,0,1,1,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array(4));
     const ray=new T.Raycaster(),probes=[];
     if(view==='captain')for(const [x,y] of [[505,250],[600,490],[480,448],[1090,363],[290,720],[548,795],[905,485],[700,800],[340,570]]) {
      ray.setFromCamera(new T.Vector2(x/720-1,1-y/450),w.camera);

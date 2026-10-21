@@ -120,7 +120,7 @@ function finishMaterial(material, kind, texture, wear, wearKind) {
     let uniforms='',attributes='',varyings='',vertex='',roughness='',bump='';
     const scope=kind==='padding'?'vDeckFinish.z':'1.0';
     if(wear){
-      shader.uniforms.deckWear={value:wear};uniforms+='uniform sampler2D deckWear;\n';
+      shader.uniforms.deckWear=wear;uniforms+='uniform sampler2D deckWear;\n';
       attributes+='attribute vec3 deckFinish;\n';varyings+='varying vec3 vDeckFinish;\n';vertex+='vDeckFinish=deckFinish;\n';
       roughness+=`vec3 deckWearTexel=texture2D(deckWear,vDeckFinish.xy).rgb;
         diffuseColor.rgb*=mix(1.0,deckWearTexel.r*2.0,vDeckFinish.z);
@@ -152,12 +152,12 @@ function finishMaterial(material, kind, texture, wear, wearKind) {
 
 export async function applyCockpitSurfaces(model,{lowDetail=false}={}) {
   const maps=new Map(),materials=new Map(),geometries=new Set();
-  const errors=[];let wear;
-  await Promise.all([
-    new THREE.TextureLoader().loadAsync(new URL(`../../assets/cockpit/service-wear${lowDetail?'-low':''}.webp`,import.meta.url).href)
-      .then(texture=>{wear=texture;wear.name='Part-fitted cockpit colour / roughness / relief';wear.anisotropy=4;})
-      .catch(error=>errors.push(`service wear: ${error}`)),
-    ...(lowDetail?[]:Object.entries(FINISHES).filter(([,f])=>f.scan).map(async([kind,f])=>{
+  // The part-fitted atlas loads behind the menu (loadSurfaceWear). Until then, or if it
+  // fails, all its materials share one exactly neutral texel: colour, roughness and relief ×1.
+  const neutral=new THREE.DataTexture(new Float32Array([.5,.5,1,1]),1,1,THREE.RGBAFormat,THREE.FloatType);
+  neutral.needsUpdate=true;
+  const errors=[],wear={value:neutral};
+  await Promise.all(lowDetail?[]:Object.entries(FINISHES).filter(([,f])=>f.scan).map(async([kind,f])=>{
     try{
       const texture=await new THREE.TextureLoader().loadAsync(new URL(`../../assets/cockpit/${f.scan}.webp`,import.meta.url).href);
       texture.name=`Scanned cockpit ${kind}: height / roughness / colour modulation`;
@@ -165,7 +165,7 @@ export async function applyCockpitSurfaces(model,{lowDetail=false}={}) {
       // Packed linear channels, not an sRGB colour photograph.
       maps.set(kind,texture);
     }catch(error){errors.push(`${kind}: ${error}`);} // original finish is a load-failure fallback
-  }))]);
+  }));
   model.updateMatrixWorld(true);
   model.traverse(mesh=>{
     if(!mesh.isMesh)return;
@@ -178,7 +178,7 @@ export async function applyCockpitSurfaces(model,{lowDetail=false}={}) {
     // Ray-picked on the delivered deck and checked against source bounds. This
     // shared material also covers distant fittings: only the measured forward
     // glareshield volume receives padding (deckFinish.z gates every channel).
-    if(source.name==='Material.481'&&wear)kind='padding';
+    if(source.name==='Material.481')kind='padding';
     const wearKind=kind==='rubber'||kind==='frame'||kind==='padding'?kind:
       ['Material.457','Material.103','Material.261'].includes(source.name)?'panel':null;
     const partWear=wearKind?wear:null;
@@ -209,5 +209,14 @@ export async function applyCockpitSurfaces(model,{lowDetail=false}={}) {
     }
     mesh.material=materials.get(key);
   });
-  model.userData.surfaceDetail={materials:materials.size,maps:maps.size,wearSize:wear?.image.width||0,errors};
+  const detail=model.userData.surfaceDetail={materials:materials.size,maps:maps.size,wearSize:0,errors};
+  // A scenery job: requested after the menu appears, so it is outside the startup budget.
+  // Replacing the shared uniform's texture needs no shader recompilation.
+  let wearLoad;
+  model.userData.loadSurfaceWear=()=>wearLoad??=new THREE.TextureLoader()
+    .loadAsync(new URL(`../../assets/cockpit/service-wear${lowDetail?'-low':''}.webp`,import.meta.url).href)
+    .then(texture=>{
+      texture.name='Part-fitted cockpit colour / roughness / relief';texture.anisotropy=4;
+      wear.value=texture;neutral.dispose();detail.wearSize=texture.image.width;
+    },error=>{errors.push(`service wear: ${error}`);});
 }

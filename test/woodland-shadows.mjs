@@ -15,6 +15,7 @@ try{
   const page=await browser.newPage({viewport:{width:1440,height:900}}),errors=[];
   page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
   await page.goto(url+'/?quality='+tier);await page.waitForFunction(()=>window.__sim,null,{timeout:120000});await completeScenery(page);
+  let duskBuilds;
   for(const view of ['edge','slope','dusk','overcast','night']){
    const stats=await page.evaluate(async view=>{
     const T=await import('/vendor/three.module.js'),{sceneryGroundHeight:ground}=await import('/js/world/scenery-ground.js');
@@ -39,9 +40,11 @@ try{
    if(!baseline){
     assert.equal(stats.shadows.sharedAtlas,true,'No duplicate atlas');
     assert.equal(stats.shadows.trees,stats.trees,'Same fixed tree budget');
-    assert.equal(stats.shadows.visible,view!=='night');
+    const sunless=view==='night'||view==='overcast';
+    assert.equal(stats.shadows.visible,!sunless);
     assert.ok(stats.shadows.triangles<stats.trees*12,'Bound terrain subdivision cost');
-    if(view==='overcast')assert.ok(stats.shadows.opacity<.08,'Clouded ground loses strong directional shade');
+    if(view==='dusk')duskBuilds=stats.shadows.builds;
+    if(sunless)assert.equal(stats.shadows.builds,duskBuilds,'Weather changes keep the sunlit shade rather than rebuilding it');
     await page.evaluate(()=>{const w=window.__sim.world;w.woodlandShadows.group.visible=false;w.render();w.renderer.getContext().finish();});
     const off=await page.screenshot();
     const a=await sharp(on).removeAlpha().raw().toBuffer(),b=await sharp(off).removeAlpha().raw().toBuffer();
@@ -49,7 +52,7 @@ try{
     for(let i=0;i<a.length;i+=3){const d=(b[i]+b[i+1]+b[i+2]-a[i]-a[i+1]-a[i+2])/3;delta+=Math.abs(d);if(d>2)changed++;if(d<-2)brightened++;}
     stats.contribution={meanDelta:delta/(a.length/3),darkenedPixels:changed,brightenedPixels:brightened};
     if(['edge','slope'].includes(view))assert.ok(changed>100,'Canopy shade must actually appear in the rendered landscape');
-    if(view==='night')assert.equal(delta,0,'No daylight ground decals at night');
+    if(sunless)assert.equal(delta,0,'No sun shade at night or below an overcast deck');
     assert.ok(brightened<100,`Shading must not brighten the ground (${tier}/${view}: ${brightened})`);
    }
    report.results.push({tier,view,...stats});

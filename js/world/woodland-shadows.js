@@ -18,15 +18,15 @@ function clip(polygon,distance){
   return result;
 }
 
-export function canopyFootprint(tree,form,sun,covered=false){
+export function canopyFootprint(tree,form,sun){
   // Bound low-sun stretch; an enormous grazing projection would add overdraw
   // and imply precision that these discrete, ground-only silhouettes cannot offer.
   const horizontal=Math.hypot(sun.x,sun.z),sy=Math.max(.25,sun.y);
   const sx=horizontal>.00001?sun.x/horizontal:0,sz=horizontal>.00001?sun.z/horizontal:1;
   // Match one of the three baked elevations. Light direction changes on scenario
   // selection, not every frame; UVs never turn with the viewer.
-  const elevation=covered?2:Math.round(Math.atan2(sy,horizontal)/(Math.PI/4));
-  const pitch=elevation*Math.PI/4,ratio=covered?0:horizontal/sy;
+  const elevation=Math.round(Math.atan2(sy,horizontal)/(Math.PI/4));
+  const pitch=elevation*Math.PI/4,ratio=horizontal/sy;
   const width=tree.w/form.aspect*form.frameScale;
   const depth=(tree.h*(1-Math.sin(pitch)**2)+tree.w/form.aspect*Math.sin(pitch)**2)*form.frameScale;
   const projection=Math.sin(pitch)+Math.cos(pitch)*ratio;
@@ -65,10 +65,10 @@ export function drapeCanopy(quad,low,emit){
   }
 }
 
-function shadowGeometry(trees,atlas,sun,covered,low){
+function shadowGeometry(trees,atlas,sun,low){
   const positions=[],uvs=[],indices=[];
   for(const tree of trees){
-    const {quad,view,elevation}=canopyFootprint(tree,atlas.species[tree.row],sun,covered);
+    const {quad,view,elevation}=canopyFootprint(tree,atlas.species[tree.row],sun);
     const vertices=new Map();
     drapeCanopy(quad,low,(...triangle)=>{
       for(const p of triangle){
@@ -97,18 +97,19 @@ export function addWoodlandShadows(world,patches,atlas,texture){
     `);
   };
   let key='';
-  const stats={trees:[...patches.values()].reduce((n,p)=>n+p.length,0),triangles:0,bytes:0,buildMs:0};
+  const stats={trees:[...patches.values()].reduce((n,p)=>n+p.length,0),triangles:0,bytes:0,buildMs:0,builds:0};
   function update(){
-    group.visible=!world.night;if(!group.visible)return;
-    // Ground stays below an overcast deck even when the aircraft is above it.
-    const covered=world.hasDeck||world.baseOvercast>.5;
-    material.opacity=covered?.065:world.scenario?.timeOfDay==='dusk'?.14:.18;
-    const sun=world.lightDir,newKey=covered?'covered':sun.toArray().map(v=>v.toFixed(3)).join(',');
+    // Sun shade only: none at night, nor on ground below an overcast deck (even with
+    // the aircraft above it). Hiding keeps the sunlit geometry, so a change of weather
+    // never rebuilds it at Start; a rebuild is a synchronous 0.1–0.8 s.
+    group.visible=!world.night&&!world.hasDeck&&world.baseOvercast<=.5;if(!group.visible)return;
+    material.opacity=world.scenario?.timeOfDay==='dusk'?.14:.18;
+    const sun=world.lightDir,newKey=sun.toArray().map(v=>v.toFixed(3)).join(',');
     if(newKey===key)return;key=newKey;
-    const start=performance.now();stats.triangles=stats.bytes=0;
+    const start=performance.now();stats.triangles=stats.bytes=0;stats.builds++;
     for(const child of [...group.children]){child.geometry.dispose();group.remove(child);}
     for(const trees of patches.values()){
-      const g=shadowGeometry(trees,atlas,sun,covered,world.groundLowDetail),mesh=new THREE.Mesh(g,material);
+      const g=shadowGeometry(trees,atlas,sun,world.groundLowDetail),mesh=new THREE.Mesh(g,material);
       mesh.name='Projected tree silhouettes';mesh.renderOrder=1;group.add(mesh);
       stats.triangles+=g.index.count/3;
       stats.bytes+=g.attributes.position.array.byteLength+g.attributes.uv.array.byteLength+g.index.array.byteLength;

@@ -83,7 +83,9 @@ and roughness around measured controls, lower window rails and yoke grip locatio
 The forward glareshield reuses the CC0 leather grain on high, with the finish gated
 to its measured volume because its source material is shared with distant fittings.
 The UVs stay attached to animated controls. Low adds only the small colour/roughness
-mask, without grain or bump sampling. A failed mask request retains the prior finishes.
+mask, without grain or bump sampling. The mask is requested with the scenery, behind the
+menu, so it is not part of the startup download; until it arrives, or if it fails, the
+masked parts sample a neutral value (colour, roughness and relief unchanged).
 Reproduce these two maps with `node tools/prepare-cockpit-wear.mjs`; the measured
 layout is in `js/cockpit/surface-layout.js`. No model geometry, lettering, base material
 colours, camera position or lighting calibration is changed by this pass.

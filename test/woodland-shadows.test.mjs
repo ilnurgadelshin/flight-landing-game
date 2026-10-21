@@ -8,8 +8,8 @@ let triangles=0,worstOld=0,worstNew=0;
 for(const low of [false,true])for(let i=0;i<200;i++){
   const t={x:2200+i*31.713,z:-950+(i*53.619)%2100,h:18,w:21,yaw:i*2.399,type:i%4,row:i%9};
   const form=atlas.species[t.row];
-  for(const light of [sun,{x:-.85,y:.12,z:.5},{x:0,y:1,z:0}])for(const covered of [false,true]){
-    const {quad}=canopyFootprint(t,form,light,covered);
+  for(const light of [sun,{x:-.85,y:.12,z:.5},{x:0,y:1,z:0}]){
+    const {quad}=canopyFootprint(t,form,light);
     assert.ok(quad.flat().every(Number.isFinite));
     let area=0;
     drapeCanopy(quad,low,(a,b,c)=>{
@@ -36,8 +36,4 @@ const tree={x:4500,z:300,h:20,w:22,yaw:.7,type:2,row:7},form=atlas.species[7];
 const center=q=>[0,1].map(i=>q.reduce((n,p)=>n+p[i],0)/4);
 const a=center(canopyFootprint(tree,form,sun).quad),b=center(canopyFootprint(tree,form,{...sun,x:-sun.x,z:-sun.z}).quad);
 assert.ok(a[0]>tree.x&&a[1]>tree.z&&b[0]<tree.x&&b[1]<tree.z,'Shade projects away from sunlight');
-for(const light of [sun,{x:1,y:.1,z:.4}]){
-  const c=center(canopyFootprint(tree,form,light,true).quad);
-  assert.ok(Math.hypot(c[0]-tree.x,c[1]-tree.z)<1e-8,'Overcast shade stays beneath the canopy');
-}
 console.log(`Canopy ground fit passed: ${triangles} triangles, old maximum error ${worstOld.toFixed(2)} m, new ${worstNew.toExponential(2)} m.`);

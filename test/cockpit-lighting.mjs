@@ -111,8 +111,9 @@ try{
     const s=window.__sim;s.setDrawing(false);s.drawNow();
     return {loaded:s.cockpit.modelLoaded,...s.cockpit.authoredModel.userData.surfaceDetail};
   });
-  assert.equal(recovered.loaded,true);assert.equal(recovered.errors.length,3);assert.equal(recovered.maps,5);
-  assert.equal(recovered.wearSize,0,'Missing wear atlas retains the original finishes');
+  // The glareshield keeps its measured padding finish (generated grain) under the neutral wear value.
+  assert.equal(recovered.loaded,true);assert.equal(recovered.errors.length,3);assert.equal(recovered.maps,6);
+  assert.equal(recovered.wearSize,0,'A missing wear atlas leaves the neutral wear value');
   // Deliberately poison the driver's readback, then throw on capture. Neither
   // failure may reach the material environment or trigger a retry every frame.
   const guarded=await fallback.evaluate(()=>{

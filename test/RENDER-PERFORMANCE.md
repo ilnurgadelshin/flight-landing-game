@@ -2228,3 +2228,44 @@ Reports: `benchmarks/2026-10-21-woodland-shadows-{render-before,render-after,clo
 Local full-frame comparison: [canopy shade](output/woodland-shadow-review.html).
 This does not remove baked photographic shadows, improve tree silhouettes, or cast
 shadows on other trees, buildings or raised site surfaces.
+
+## Start without canopy rebuilds; cockpit wear behind the menu — 2026-10-21
+
+Review follow-up to the four entries above. Measured in a 4-vCPU cloud container with
+Chromium and SwiftShader, not on the M2 Pro: compare the before/after columns, not
+their absolute values with the tables above.
+
+Canopy shade is now sunlight only. It is hidden at night, as before, and also on ground
+below an overcast deck, where it previously switched to a weaker top-view variant. The
+sunlit geometry is kept while hidden, so a change of weather no longer rebuilds it when a
+flight starts. No current scenario has sunlight from another direction (storm, the only
+dusk scenario, is below a deck), so the shade is built once, behind the menu. The
+13.9 / 2.2 MiB overcast geometry is no longer created. Matched overcast captures change by
+0.05 high / 0.02 low mean grey levels; sunlit captures are unchanged.
+
+| Synchronous Start, by scenario sequence | Before | After | `0b14a19` |
+| --- | ---: | ---: | ---: |
+| High: crosswind, clear, tailwind (weather class changes) | 492–740 ms | 4–19 ms | 2–11 ms |
+| High: storm / the clear flight after it | 941 / 787 ms | 319 / 150 ms | 286 / 117 ms |
+| Low: crosswind, clear, tailwind | 82–101 ms | 3–8 ms | 4–10 ms |
+| Low: storm / the clear flight after it | 282 / 238 ms | 249 / 147 ms | 209 / 116 ms |
+
+The cockpit's part-fitted wear mask is now a scenery job, requested after the menu
+appears. Until it arrives, or if it fails, the masked materials share a 1×1 float texel
+that leaves colour, roughness and relief unchanged; the real mask then replaces the
+shared uniform's texture without recompiling shaders. Startup downloads fall from
+14,518,534 to 14,210,032 bytes high and from 8,806,419 to 8,674,145 bytes low (790 KB /
+326 KB below the 15 / 9 MB limits). A flight still downloads nothing, and cockpit captures
+after preparation match the earlier ones (≤ 0.06 mean grey levels, animated lights/rain).
+
+Test changes: `airport-glass.mjs` draws only its three sampled motion frames unless it is
+recording, as `ground-material-motion.mjs` does (2 min instead of over 25 min with
+SwiftShader); `cockpit-surfaces.mjs` reads back one pixel before each screenshot, which
+otherwise timed out with SwiftShader on unmodified main too. `delivery.mjs` asserts that the
+wear mask is not requested before the menu; `woodland-shadows.mjs` asserts no shade and no
+rebuild under overcast. The CPU terrain-fit test now covers sunlit footprints only (8,819
+clipped triangles instead of 16,043).
+
+Validation: all Node suites; delivery; cockpit surfaces, cockpit lighting (including the
+missing-file fallback), phone cockpit, canopy shade and airport glass in SwiftShader; and
+the full browser functional suite.

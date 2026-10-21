@@ -66,6 +66,10 @@ Canopy ground-shade follow-up, 2026-10-21:
 - Local [full-frame before/after review](output/woodland-shadow-review.html), baseline
   main `12bceb3`. Broader scenery coverage, distant tree forms, complete cockpit texturing
   and temporal shimmer remain open items; this does not close the vegetation category.
+- Review follow-up, same day: the shade is now hidden below an overcast deck, as at night,
+  instead of switching to a faint top-view variant. Overcast captures change by only
+  0.05 (high) / 0.02 (low) mean grey levels, and a change of weather no longer rebuilds the
+  geometry when a flight starts (it took 0.5–0.9 s high here). See `RENDER-PERFORMANCE.md`.
 
 Close-ground follow-up, 2026-10-21:
 
