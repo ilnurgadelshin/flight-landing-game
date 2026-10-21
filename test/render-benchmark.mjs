@@ -45,7 +45,7 @@ try{
         s.game.sim.aircraft.place({x:scene==='rollout'?1000:approachX,y:scene==='rollout'?2.5:scene==='deck-captain'?w.cloudTop+220:scene.startsWith('captain-')?15+(approachX-1500)*Math.tan(Math.PI/60):115,z:0,headingDeg:270,iasKts:scene==='rollout'?85:147,flapIndex:4,gearDown:true,gammaDeg:-3,onGround:scene==='rollout'});
         s.view.setMode('cockpit');for(let i=0;i<40;i++)s.view.update(1/60);
         s.game.state='menu';w.setPixelRatio(pixelRatio);
-        if(['roadside-homes','airport','terminal','terminal-close','tower','nearby','site','corridor','extension','opposite','upper-opposite','contour-farm','shoulder','north-farm','hamlet','cloud-sky','cloud-close','deck-top','deck-base','deck-near-top','deck-inside-base','grass-meadow','grass-pasture'].includes(scene)){
+        if(['roadside-homes','airport','terminal','terminal-close','tower','nearby','site','corridor','extension','opposite','upper-opposite','contour-farm','shoulder','north-farm','hamlet','cloud-sky','cloud-close','deck-top','deck-base','deck-near-top','deck-inside-base','grass-meadow','grass-pasture','grass-soil'].includes(scene)){
           const c=new T.PerspectiveCamera(50,innerWidth/innerHeight,.1,60000);
           if(scene==='airport'){c.position.set(640,110,100);c.lookAt(0,14,440);}
           else if(scene==='roadside-homes'){c.position.set(4910,185,335);c.lookAt(4510,35,115);}
@@ -55,6 +55,7 @@ try{
           else if(scene==='cloud-sky'){c.position.set(3300,115,0);c.lookAt(-5000,2000,-5500);}
           else if(scene==='cloud-close'){c.position.set(-2300,2100,-4500);c.lookAt(-5000,2250,-5500);}
           else if(scene==='grass-meadow'){c.position.set(2350,3.45,330);c.lookAt(2470,3,415);}
+          else if(scene==='grass-soil'){const {sceneryGroundHeight}=await import('/js/world/scenery-ground.js');c.position.set(3350,sceneryGroundHeight(3350,580,w.groundLowDetail)+3.5,580);c.lookAt(3395,sceneryGroundHeight(3395,592,w.groundLowDetail),592);}
           else if(scene==='grass-pasture'){const {sceneryGroundHeight}=await import('/js/world/scenery-ground.js');c.position.set(3370,sceneryGroundHeight(3370,-650,w.groundLowDetail)+2.5,-650);c.lookAt(3550,4,-740);}
           else if(scene==='deck-top'){c.position.set(3300,w.cloudTop+320,0);c.lookAt(-5000,w.cloudTop-500,-2000);}
           else if(scene==='deck-base'){c.position.set(3300,w.cloudBase-120,0);c.lookAt(-5000,w.cloudBase+200,-2000);}

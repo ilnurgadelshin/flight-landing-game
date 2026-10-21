@@ -1,0 +1,16 @@
+[
+  {
+    "view": "soil",
+    "frames": 180,
+    "distance": 30,
+    "recorded": true,
+    "errors": []
+  },
+  {
+    "view": "meadow",
+    "frames": 180,
+    "distance": 30,
+    "recorded": true,
+    "errors": []
+  }
+]

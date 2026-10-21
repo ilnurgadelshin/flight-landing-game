@@ -2080,3 +2080,91 @@ Raw records: `benchmarks/2026-10-20-airport-glass-render-before.json`,
 `benchmarks/2026-10-20-airport-glass-captures.json`,
 `benchmarks/2026-10-20-airport-glass-motion-before.json` and
 `benchmarks/2026-10-20-airport-glass-motion-final.json`.
+
+
+## Close grass, soil and leaf-litter surfaces — 2026-10-21
+
+Baseline `ff17260`, Apple M2 Pro / Chromium 141 ANGLE Metal. The table compares
+fresh runs of committed main and the final shader on October 21. Both use matched
+1440×900 views, fixed 1.5× high / 1× low, four seconds of warm-up and twelve seconds
+of sampling. Physics is paused; rendering and scenery updates run. GPU tests and
+benchmarks ran sequentially. Earlier October 20 development measurements are not
+the final comparison below.
+
+| Tier / scene | Before FPS | After FPS | After p95 frame | Draw calls, unchanged | Triangles, unchanged |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| high / captain | 38.48 | 38.56 | 33.4 ms | 917 | 2,103,530 |
+| high / grass-meadow | 42.47 | 40.45 | 33.4 ms | 305 | 923,542 |
+| high / grass-soil | 45.38 | 43.69 | 33.4 ms | 311 | 2,235,268 |
+| high / storm | 40.08 | 40.03 | 33.4 ms | 917 | 2,119,833 |
+| low / captain | 60.00 | 60.00 | 16.7 ms | 529 | 784,023 |
+| low / grass-meadow | 60.00 | 60.00 | 16.7 ms | 175 | 291,480 |
+| low / grass-soil | 60.00 | 60.00 | 16.7 ms | 165 | 211,848 |
+| low / storm | 51.76 | 46.77 | 33.4 ms | 513 | 796,964 |
+
+High-tier FPS falls by 4.8% in the meadow and 3.7% over soil. The high captain
+and storm measurements differ by less than 0.3%, within ordinary run variation.
+Low clear scenes remain at the approximately 60 FPS display limit. The full-run
+low storm result fell from 51.76 to 46.77 FPS; a targeted repeat reached 60.00 FPS
+on both versions. Both records are retained: low storm pacing is variable, and this
+comparison does not establish either a stable regression or zero cost there.
+Forced 1.5× high remains below 60 FPS; automatic quality adaptation is unchanged.
+These short, display-capped measurements are not uncapped GPU throughput or a
+physical-phone benchmark.
+
+Three CC0 scans supply grass, dry soil and leaf litter at physical scale. Their
+colour, tangent normals and roughness share three blended, offset samples on a
+triangular lattice. Quarter-turn rotations reduce aligned repetition without
+per-sample trigonometry; normals rotate back into the terrain frame. Explicit
+texture gradients preserve mip filtering across random offsets. Direct weighted
+colour blending avoids amplifying mip-average differences into a lattice pattern.
+The effect fades from 35 to 260 m and is limited to reviewed cover and airfield turf.
+It adds no geometry, draw calls, render passes or physics work. It is primarily a
+close-ground improvement: ordinary captain and forward rollout captures barely
+change. Farther photographic blur, repeated tree forms, grass-card dither and
+incomplete building coverage remain.
+
+Three colour layers and four packed normal-X/normal-Y/roughness layers share two
+texture arrays. The fourth surface layer replaces the old grass normal/roughness
+maps, keeping the real shader at 15 fragment samplers high / 14 low on a 16-unit
+renderer. All layers have independent mip chains. Downloads are 770,418 bytes high /
+182,632 low instead of 504,796 bytes: net +265,622 / −322,164 bytes. Estimated RGBA8
+mipmapped GPU storage falls from 10.67 MiB to 9.33 / 2.33 MiB. These are texture costs;
+JavaScript, shader storage, temporary CPU decoding and other scenery are excluded.
+Neither new texture is requested before the menu. A failed map leaves the existing
+photographic ground visible with plain normals and records one asset error.
+
+Validation: all 17 Node suites during this pass; nine matched views per tier;
+nearby material contribution and distant fade; rain/night rendering; texture-unit
+and download limits; and missing-map fallback. Six Float32 readbacks using the real
+ground material, including near-grazing views, are finite, bounded and lit. Selected
+corridor views retain clear field/building/road masks and their missing-mask fallback.
+Two 180-update high-tier motion recordings cross 30 m of soil and meadow without
+page, shader or asset errors. The local comparison page verifies 36 images, four
+playable before/after videos, zoom, full-width after mode and a 390 px layout without
+horizontal overflow. The full functional-flight suite was not rerun. Physical phones
+and non-Metal renderers were not tested; SwiftShader cannot initialize here.
+
+Reproduce with the installed Playwright browser cache configured:
+
+```sh
+npm test
+REVIEW_ROOT=/path/to/ff17260 VISUAL_GPU=metal node test/ground-materials.mjs ground-material-before
+VISUAL_GPU=metal node test/ground-materials.mjs ground-material-final
+REVIEW_ROOT=/path/to/ff17260 VISUAL_GPU=metal node test/ground-material-motion.mjs ground-motion-before
+VISUAL_GPU=metal node test/ground-material-motion.mjs ground-motion-final
+REVIEW_VIEWS=field,opposite-field,captain-3400 VISUAL_GPU=metal node test/corridor-scenery.mjs ground-material-corridor
+BENCHMARK_ROOT=/path/to/ff17260 BENCHMARK_SCENES=captain,grass-meadow,grass-soil,storm node test/render-benchmark.mjs ground-material-base
+BENCHMARK_SCENES=captain,grass-meadow,grass-soil,storm node test/render-benchmark.mjs ground-material-final
+```
+
+Raw records: `benchmarks/2026-10-21-ground-material-render-before.json`,
+`benchmarks/2026-10-21-ground-material-render-final.json`,
+`benchmarks/2026-10-21-ground-material-storm-repeat-before.json`,
+`benchmarks/2026-10-21-ground-material-storm-repeat-after.json`,
+`benchmarks/2026-10-21-ground-material-captures.json`,
+`benchmarks/2026-10-21-ground-material-corridor.json`,
+`benchmarks/2026-10-21-ground-material-motion-before.json` and
+`benchmarks/2026-10-21-ground-material-motion-final.json`. The ignored local
+`output/ground-material-review.html` contains the complete before/after views,
+recordings, measurements and limitations.

@@ -211,6 +211,47 @@ Normal and roughness detail fades with the same distance mask; bright roofs and 
 roads are suppressed by the colour mask. This is an interpreted surface layer, not newly
 recovered survey detail. Baked shadows and missing photographic features remain.
 
+### Close ground materials — 2026-10-21
+
+Reviewed meadow, soil/stubble and woodland cover now selects distinct **CC0** scans:
+
+- [Grass Ground](https://polyhaven.com/a/grass_ground), Charlotte Baglioni.
+- [Brown Mud](https://polyhaven.com/a/brown_mud), Rob Tuytel.
+- [Dry Decay Leaves](https://polyhaven.com/a/dry_decay_leaves), Amal Kumar.
+
+All are from Poly Haven. Source file URLs/checksums, authors, physical spans and colour
+means are retained in `scenery/ground-materials.json`. These are artistic surface details
+on the existing interpreted cover, not a local soil or vegetation survey. The soil scan
+does not model standing crop stems. Complete-site lawn meshes retain their existing material.
+
+The scans use their 2.51 m / 1.30 m / 2 m physical widths, with three rotated/offset samples
+blended across a shared triangular lattice at the scan scale to reduce repeated rows.
+Quarter-turn rotations keep the shader arithmetic bounded. Colour is normalized around
+each scan's linear mean so the aerial imagery still controls large-scale colour.
+Normal/roughness detail follows the same samples, with normals rotated back into the
+terrain frame. Strength fades between 35 and 260 m;
+the older broad ground grain remains outside that range. Boundaries come from the existing
+land-cover map; roads/building clearances are preserved. Maintained airport turf uses grass.
+
+Three colour layers and four normal-X/normal-Y/roughness layers (the last reuses the existing
+Aerial Grass Rock scan) share two mipmapped texture arrays. High uses 512² per layer; low
+uses 256². This replaces the old separate 1024² grass normal and roughness downloads, keeping
+the shader within WebGL2's 16-fragment-texture-unit minimum. All maps load with optional
+scenery after the menu. A missing map retains the photographic ground with plain normals.
+
+The two files total **770,418 bytes high / 182,632 low**, replacing 504,796 bytes in either
+tier: net **+265,622 / −322,164 bytes**. Estimated RGBA8 texture storage including mipmaps is
+9.33 MiB high / 2.33 MiB low, versus 10.67 MiB for the two replaced textures. The original
+JPGs remain as preparation sources; they are no longer requested by the terrain.
+No terrain vertices, draw calls or render passes are added.
+
+Reproduce with:
+
+```sh
+python3 tools/fetch-ground-materials.py
+node tools/prepare-ground-materials.mjs
+```
+
 ## Approach buildings and roads
 
 `scenery/approach-buildings.json` contains 2,160 footprints adapted from

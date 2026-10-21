@@ -27,7 +27,7 @@ ignored `test/output/visual-audit-before/` folder; current captures are `test/ou
 | 1 | Distorted cockpit/window proportions and poorly placed camera | Removed the upper-shell stretch; fitted the eye to the original cabin; retained desktop 58° FOV and narrow-screen coverage. Checked PFD and ND visibility. | Some surfaces remain simple, but this comparison does not justify replacing the source geometry. |
 | 2 | Muddy cockpit colours and flattened material separation | Restored source material values in the GLBs. Verified part assignments in Blender, then added distinct, subtle coated-panel, molded-trim, frame, seat-weave and yoke-rubber finishes at runtime. Modeled lettering is retained. The 2026-10-18 pass adds part-fitted panel edge/contact masks, glareshield padding and polished yoke grips. | The new wear is restrained in the ordinary forward view. It covers selected front panels, rails, padding and grips; a complete aircraft-specific texture set, including side consoles and overhead, remains absent. See the dated followups. |
 | 3 | A completely flat approach corridor | Registered USGS elevation follows the imagery; rendering, collision and navigation share it. The airport is locally graded and a rising terrain cap protects final. | Elevations are locally modified around the fictional airport. Distant mesh resolution and imagery shadows remain limitations. |
-| 4 | Blurry aerial imagery ahead of the airport | Sixteen local 1 km detail tiles along the last 8 km, sampled at 0.5 m/px high and 1 m/px low, feather into the existing imagery; four textures stay resident. Distance-faded scanned colour, normal and roughness detail reconstructs fine surface grain in nearby fields and soil. | Underlying NAIP is generally 0.6 m; exports cannot supply finer survey detail. Coverage is a 2 km wide corridor. Six reviewed roofs fill prominent detection gaps. Thirty-five complete building placements across five sites have matching lawns, gravel yards, drives and lanes, including a dairy with three silos in place of two incorrect rectangular blocks. Interpreted land cover now spans 6.9 km and treats about 910 ha, including upper-valley woods visible from the normal early approach. Open fields retain photographed crop/soil variation at approach height. Photographed grass adds close turf/pasture cover on high only, without a visible change in the sampled forward cockpit views. Blur, missing buildings and photographic shadows remain beyond mapped areas; distant fields and site lawns remain simple. |
+| 4 | Blurry aerial imagery ahead of the airport | Sixteen local 1 km detail tiles along the last 8 km, sampled at 0.5 m/px high and 1 m/px low, feather into the existing imagery; four textures stay resident. Distance-faded scanned colour, normal and roughness detail reconstructs fine surface grain; the 2026-10-21 pass separates nearby grass, soil and leaf litter. | Underlying NAIP is generally 0.6 m; exports cannot supply finer survey detail. Coverage is a 2 km wide corridor. Six reviewed roofs fill prominent detection gaps. Thirty-five complete building placements across five sites have matching lawns, gravel yards, drives and lanes, including a dairy with three silos in place of two incorrect rectangular blocks. Interpreted land cover now spans 6.9 km and treats about 910 ha, including upper-valley woods visible from the normal early approach. Open fields retain photographed crop/soil variation at approach height. Photographed grass adds close turf/pasture cover on high only, without a visible change in the sampled forward cockpit views. Blur, missing buildings and photographic shadows remain beyond mapped areas; distant fields and site lawns remain simple. |
 | 5 | Sparse, three-lobed tree blobs | Nine authored forms from three broadleaf sources plus pine/fir, eight azimuths at three elevations each, baked from the delivered geometry. Leaf masks are preserved in all nearby GLBs. One quad faces the eye in yaw and pitch and blends neighboring views. High retains bounded 3D branches and leaves within 180 m. A shadowed directional-response bake now follows the sun instead of keeping fixed highlights on camera-facing cards. Small crowns now retain more filtered leaves; denser upper mapped planting uses the same total tree budgets and prioritizes existing close stands. | Distant/low trees remain impostors; view blending and repeated species are still visible. The wider palette is artistic, not a local botanical survey. Shared land-cover boundaries improve density and keep fields open along 6.9 km of final; density elsewhere and close-up silhouettes still expose the approximations. |
 | 6 | Thin cloud rings and weak volume | Six distinct cached 3D forms, smaller connected billows, flatter bases, self-shadowing and directional scattering; fixed midpoint integration removes screen-locked sampling grain. Overcast integrates density near both boundaries at reduced resolution, with soft billows, self-shadowing and a fog interior. | Fair-weather volumes remain simplified and soft at close range. Low uses sprites; overcast uses a bounded boundary volume plus shared fog, not a fully volumetric weather system. |
 | 7 | Runway lights look like a luminous rectangle by day | Smaller daytime cores, lower daylight intensity, distinct PAPI/beacon sizing and fog attenuation without a minimum visibility floor. Night bloom retained. | Point-based lights approximate optical glare; no lens-scattering simulation. |
@@ -45,6 +45,35 @@ model. The approach now has matching building footprints and two valley roads. T
 scenery gaps are broader coverage of complete buildings with matching ground detail, missing building detections and more convincing crown density;
 weather still needs finer cloud structure and richer water films beyond the fitted pane droplets. An engine migration alone would not
 provide those assets or effects.
+
+Close-ground follow-up, 2026-10-21:
+
+- Mapped meadows, soil/stubble, forest floors and maintained airport turf now use separate
+  grass, soil and leaf-litter scans at physical scale. Three shared-seed texture rotations and offsets
+  reduce repeated rows; normal and roughness samples follow the same placement.
+- The effect is strongest a few metres above the ground. The matched captain and forward
+  rollout captures show little difference. It fades out by 260 m, retaining distant imagery;
+  this does **not** close the broader ground/scenery item. Complete-site lawns, missing
+  buildings, photographic shadows, distant blur and tree silhouettes remain limitations.
+- Both quality tiers passed nine matched views (grass, soil, forest, turf, captain, rollout,
+  distant, rain and night), nearby material-contribution checks and the distance-fade check.
+  Six actual-material Float32 readbacks across overhead/grazing views were finite and lit.
+  The shader used 15 fragment samplers high / 14 low, within the tested 16-unit limit.
+- Missing one new map retains photographic terrain and reports one asset error. Existing
+  corridor tests still pass with zero tree intrusions into fields/buildings/roads, and the
+  missing-land-cover fallback works. All 17 existing Node suites pass.
+- Matched high-tier recordings cross 30 m of meadow and soil in 180 updates each.
+  The new detail remains attached to the terrain; existing grass-card dither, tree transitions
+  and distant field patterns are still visible. This is not temporal antialiasing.
+- Downloads and memory are bounded: net +265,622 bytes high / −322,164 low relative to
+  the replaced grass normal/roughness files. Estimated mipmapped RGBA storage falls from
+  10.67 MiB to 9.33 / 2.33 MiB. No geometry, draw calls or render passes were added.
+- The Apple M2 Pro comparison shows 4–5% lower FPS in close high-tier views and
+  nearly unchanged captain/storm high views. Low clear scenes reach 60 FPS; low storm
+  varied (51.8 → 46.8 FPS in the full run, 60 → 60 in a targeted repeat). See the dated measurements in
+  `RENDER-PERFORMANCE.md`. No physical phone or software renderer was measured.
+- Local review: [ground materials](output/ground-material-review.html), with labelled full
+  before/after views and motion recordings. Baseline is committed main `ff17260`.
 
 All imported assets remain free and openly licensed. The foliage atlases use
 [Tree Small 02](https://polyhaven.com/a/tree_small_02), [Pine Sapling Small](https://polyhaven.com/a/pine_sapling_small),

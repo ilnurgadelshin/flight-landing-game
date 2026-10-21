@@ -1,0 +1,74 @@
+[
+  {
+    "tier": "high",
+    "trees": 52000,
+    "inside": 5205,
+    "extended": 8378,
+    "opposite": 5665,
+    "upperOpposite": 3734,
+    "upperValley": 18145,
+    "intrusions": 0,
+    "fieldTrees": 0,
+    "corridor": {
+      "count": 39860,
+      "total": 52000,
+      "limit": 52000,
+      "spacing": [
+        9.5,
+        12
+      ],
+      "zones": [
+        13000,
+        5500,
+        3318,
+        18000
+      ]
+    },
+    "maskSize": [
+      3450,
+      1015
+    ],
+    "ready": 1,
+    "errors": [],
+    "groundPixelDelta": {
+      "field": 11.969646464646464,
+      "opposite-field": 7.1150656565656565
+    }
+  },
+  {
+    "tier": "low",
+    "trees": 14000,
+    "inside": 2239,
+    "extended": 3653,
+    "opposite": 2636,
+    "upperOpposite": 1442,
+    "upperValley": 2627,
+    "intrusions": 0,
+    "fieldTrees": 0,
+    "corridor": {
+      "count": 12442,
+      "total": 14000,
+      "limit": 14000,
+      "spacing": [
+        14,
+        18
+      ],
+      "zones": [
+        5800,
+        2600,
+        1400,
+        2600
+      ]
+    },
+    "maskSize": [
+      2048,
+      603
+    ],
+    "ready": 1,
+    "errors": [],
+    "groundPixelDelta": {
+      "field": 11.775373737373737,
+      "opposite-field": 7.407974747474747
+    }
+  }
+]
