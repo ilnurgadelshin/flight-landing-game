@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { makeRng } from '../physics/atmosphere.js';
 import { sceneryGroundHeight,protectedScenery } from './scenery-ground.js';
 import { addNearTrees, treeFadeShader } from './near-trees.js';
+import { addWoodlandShadows } from './woodland-shadows.js';
 
 function groveNoise(x,z) {
   const ix=Math.floor(x),iz=Math.floor(z),fx=x-ix,fz=z-iz;
@@ -32,15 +33,32 @@ export async function addWoodland(world,photo,approachPhoto) {
   const columns=atlas.columns,azimuthStep=2*Math.PI/columns;
   const texture=await new THREE.TextureLoader().loadAsync(new URL(`../../assets/scenery/tree-variety${low?'-low':''}.webp`,import.meta.url).href);
   texture.colorSpace=THREE.SRGBColorSpace;texture.anisotropy=world.maxAniso;
+  // A small, linear-data atlas records shadowed directional response in source
+  // coordinates. Missing optional response data retains the diffuse-sky atlas.
+  const lighting={responseMap:null,error:null,uniforms:{treeSunDirection:{value:new THREE.Vector3(0,1,0)},
+    treeSunColor:{value:new THREE.Color(1,1,1)},treeSunAmount:{value:0}}};
+  try{
+    lighting.responseMap=await new THREE.TextureLoader().loadAsync(new URL(`../../assets/scenery/tree-light-response${low?'-low':''}.webp`,import.meta.url).href);
+    const tile=low?atlas.lowResponseTileSize:atlas.responseTileSize;
+    if(lighting.responseMap.image.width!==columns*tile||lighting.responseMap.image.height!==atlas.rows*3*tile){
+      lighting.responseMap.dispose();lighting.responseMap=null;throw new Error('Tree lighting atlas dimensions do not match its views');
+    }
+    lighting.responseMap.anisotropy=world.maxAniso;
+  }catch(error){lighting.error=String(error);console.warn('Tree directional lighting unavailable; using diffuse sky.',error);}
+  world.woodlandLighting=lighting;
   // Four-view blending and mip filtering already reduce thin-leaf coverage.
   // Small crowns need a lower cutoff; large crowns keep the near model's outline.
   const material=new THREE.MeshBasicMaterial({map:texture,alphaTest:.15,alphaToCoverage:true,side:THREE.DoubleSide});
+  if(lighting.responseMap)material.defines={TREE_DIRECTIONAL:1};
+  material.addEventListener('dispose',()=>lighting.responseMap?.dispose());
   material.onBeforeCompile=shader=>{
     THREE.Material.prototype.onBeforeCompile.call(material,shader);
+    Object.assign(shader.uniforms,lighting.uniforms,{treeLightResponse:{value:lighting.responseMap}});
     shader.vertexShader=shader.vertexShader.replace('#include <common>',`#include <common>
       attribute vec2 treeUvOffset; attribute float treeYaw; attribute vec2 treeFrame;
       varying vec2 vTreeViews; varying float vTreeBlend; varying vec2 vTreeUV;
-      varying float vTreeElevation; varying float vTreeRow; varying float vTreeScale;`)
+      varying float vTreeElevation; varying float vTreeRow; varying float vTreeScale;
+      varying vec2 vTreeRotation;`)
       .replace('#include <project_vertex>',`
         vec3 treeCenter=(modelMatrix*instanceMatrix*vec4(0.0,0.0,0.0,1.0)).xyz;
         float treeHeight=length(instanceMatrix[1].xyz);
@@ -58,22 +76,39 @@ export async function addWoodland(world,photo,approachPhoto) {
         float treeView=mod((treeYaw-atan(treeFacing.x,treeFacing.y))/${azimuthStep}+treeUvOffset.x*${columns/4}.0+${columns*2}.0,${columns}.0);
         vTreeViews=vec2(floor(treeView),mod(floor(treeView)+1.0,${columns}.0));vTreeBlend=fract(treeView);
         vTreeUV=uv;vTreeRow=treeUvOffset.y;vTreeElevation=treePitch/0.785398163397;vTreeScale=treeFrame.x;
+        float treeRotation=treeYaw+treeUvOffset.x*1.57079632679;
+        vTreeRotation=vec2(cos(treeRotation),sin(treeRotation));
       `);
     shader.fragmentShader=shader.fragmentShader.replace('#include <common>',`#include <common>
       varying vec2 vTreeViews; varying float vTreeBlend; varying vec2 vTreeUV;
-      varying float vTreeElevation; varying float vTreeRow; varying float vTreeScale;`)
+      varying float vTreeElevation; varying float vTreeRow; varying float vTreeScale;
+      varying vec2 vTreeRotation;
+      uniform sampler2D treeLightResponse; uniform vec3 treeSunDirection; uniform vec3 treeSunColor; uniform float treeSunAmount;`)
       .replace('#include <map_pars_fragment>',`#include <map_pars_fragment>
-      vec4 treeTexel(float view,float elevation){
+      vec2 treeUV(float view,float elevation){
         vec2 tileUV=mix(vec2(.004),vec2(.996),vTreeUV);
-        return texture2D(map,vec2((view+tileUV.x)/${columns}.0,(${atlas.rows*3-1}.0-vTreeRow*3.0-elevation+tileUV.y)/${atlas.rows*3}.0));
+        return vec2((view+tileUV.x)/${columns}.0,(${atlas.rows*3-1}.0-vTreeRow*3.0-elevation+tileUV.y)/${atlas.rows*3}.0);
       }
-      vec4 treePremultiplied(vec4 c){return vec4(c.rgb*c.a,c.a);}`)
+      vec4 treeTexel(float view,float elevation){return texture2D(map,treeUV(view,elevation));}
+      vec4 treePremultiplied(vec4 c){return vec4(c.rgb*c.a,c.a);}
+      #ifdef TREE_DIRECTIONAL
+      vec4 treeResponse(float view,float elevation,vec2 dx,vec2 dy){
+        vec4 n=textureGrad(treeLightResponse,treeUV(view,elevation),dx,dy);
+        return vec4((n.rgb*2.0-1.0)*n.a,n.a);
+      }
+      #endif`)
       .replace('#include <map_fragment>',`
         float treeLower=floor(vTreeElevation),treeUpper=min(2.0,treeLower+1.0);
         vec4 treeA=mix(treePremultiplied(treeTexel(vTreeViews.x,treeLower)),treePremultiplied(treeTexel(vTreeViews.y,treeLower)),vTreeBlend);
         vec4 treeB=mix(treePremultiplied(treeTexel(vTreeViews.x,treeUpper)),treePremultiplied(treeTexel(vTreeViews.y,treeUpper)),vTreeBlend);
         vec4 treeColor=mix(treeA,treeB,fract(vTreeElevation));
         diffuseColor*=vec4(treeColor.rgb/max(.001,treeColor.a),treeColor.a);
+        #ifdef TREE_DIRECTIONAL
+        // Compute derivatives before any discard. Lighting samples can then run
+        // only on surviving leaves without undefined implicit-LOD derivatives.
+        vec2 treeResponseDx=dFdx(vTreeUV)*vec2(.992/${columns}.0,.992/${atlas.rows*3}.0);
+        vec2 treeResponseDy=dFdy(vTreeUV)*vec2(.992/${columns}.0,.992/${atlas.rows*3}.0);
+        #endif
       `)
       .replace('#include <alphatest_fragment>',`
         float treePixels=1.0/max(.00001,max(length(dFdx(vTreeUV)),length(dFdy(vTreeUV))))/vTreeScale;
@@ -81,6 +116,18 @@ export async function addWoodland(world,photo,approachPhoto) {
         #define alphaTest treeAlphaTest
         #include <alphatest_fragment>
         #undef alphaTest
+        #ifdef TREE_DIRECTIONAL
+        if(treeSunAmount>0.0){
+        vec4 response=mix(mix(treeResponse(vTreeViews.x,treeLower,treeResponseDx,treeResponseDy),treeResponse(vTreeViews.y,treeLower,treeResponseDx,treeResponseDy),vTreeBlend),
+                   mix(treeResponse(vTreeViews.x,treeUpper,treeResponseDx,treeResponseDy),treeResponse(vTreeViews.y,treeUpper,treeResponseDx,treeResponseDy),vTreeBlend),fract(vTreeElevation));
+        // Keep the magnitude: occluded branches should respond less, not turn
+        // into fully sunlit normals. Empty/mip-cancelled samples stay finite.
+        vec3 n=response.rgb/max(.001,response.a);
+        n=vec3(vTreeRotation.x*n.x+vTreeRotation.y*n.z,n.y,-vTreeRotation.y*n.x+vTreeRotation.x*n.z);
+        float treeLambert=max(0.0,dot(n,treeSunDirection));
+        diffuseColor.rgb*=mix(vec3(1.0),vec3(.78)+treeSunColor*min(1.6,3.5*treeLambert),treeSunAmount);
+        }
+        #endif
       `);
   };
   treeFadeShader(material,false);
@@ -171,19 +218,12 @@ export async function addWoodland(world,photo,approachPhoto) {
   if(corridor)corridor.trees={count:localTrees.length,total:count,limit,spacing:low?[14,18]:[9.5,12],zones:corridor.zoneCounts};
   const group=new THREE.Group();group.name='Photographed woodland stands';
   const geometry=crownGeometry(),matrix=new THREE.Matrix4(),q=new THREE.Quaternion(),up=new THREE.Vector3(0,1,0);
-  const contact=document.createElement('canvas');contact.width=contact.height=64;
-  const g=contact.getContext('2d'),fade=g.createRadialGradient(32,32,3,32,32,32);
-  fade.addColorStop(0,'rgba(0,0,0,.24)');fade.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=fade;g.fillRect(0,0,64,64);
-  const contactMat=new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(contact),transparent:true,depthWrite:false,
-    polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1});
-  const contactGeo=new THREE.PlaneGeometry(1,1).rotateX(-Math.PI/2);
   const records=[];
   for(const trees of patches.values()){
     const crown=geometry.clone(),offsets=new Float32Array(trees.length*2),yaws=new Float32Array(trees.length),frames=new Float32Array(trees.length*2);
     const fades=new THREE.InstancedBufferAttribute(new Float32Array(trees.length),1).setUsage(THREE.DynamicDrawUsage);
     crown.setAttribute('treeDetailFade',fades);
     const mesh=new THREE.InstancedMesh(crown,material,trees.length);
-    const shadows=new THREE.InstancedMesh(contactGeo,contactMat,trees.length);
     trees.forEach((t,i)=>{
       offsets[i*2]=t.type;offsets[i*2+1]=t.row;yaws[i]=t.yaw;
       frames[i*2]=atlas.species[t.row].frameScale;frames[i*2+1]=atlas.species[t.row].aspect;
@@ -191,17 +231,17 @@ export async function addWoodland(world,photo,approachPhoto) {
       const y=sceneryGroundHeight(t.x,t.z,world.groundLowDetail);
       matrix.compose(new THREE.Vector3(t.x,y-.08,t.z),q,new THREE.Vector3(t.w,t.h,t.w));
       mesh.setMatrixAt(i,matrix);
-      matrix.compose(new THREE.Vector3(t.x,y+.04,t.z),q,new THREE.Vector3(t.w*.75,1,t.w*.75));shadows.setMatrixAt(i,matrix);
       const tint=.83+rng()*.17,warm=rng(),color=new THREE.Color().setRGB(tint*(.94+warm*.1),tint,tint*(.88+warm*.1));mesh.setColorAt(i,color);
       if(!low)records.push({...t,id:records.length,y:y-.08,color,fade:fades,index:i});
     });
     crown.setAttribute('treeUvOffset',new THREE.InstancedBufferAttribute(offsets,2));
     crown.setAttribute('treeYaw',new THREE.InstancedBufferAttribute(yaws,1));
     crown.setAttribute('treeFrame',new THREE.InstancedBufferAttribute(frames,2));
-    mesh.computeBoundingSphere();shadows.computeBoundingSphere();group.add(mesh,shadows);
+    mesh.computeBoundingSphere();group.add(mesh);
   }
   geometry.dispose();
   world.scene.add(group);world.woodland=group;world.woodlandMaterial=material;world.woodlandForms=forms;
+  addWoodlandShadows(world,patches,atlas,texture);
   if(!low){
     let pending;
     world.loadNearTrees=()=>pending??=addNearTrees(world,records,atlas).catch(error=>world.assetErrors.push(String(error)));

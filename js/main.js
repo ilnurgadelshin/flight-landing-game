@@ -44,6 +44,8 @@ async function boot() {
   const cockpit = new Cockpit(world.camera, { lowDetail: world.lowDetail || world.quality === 'low' });
   await Promise.all([world.assetsReady, cockpit.assetsReady]);
   world.setupCockpit(cockpit.root,cockpit.eyeLocal,cockpit.windshield);
+  // the cockpit's part-fitted finish arrives with the scenery, behind the menu
+  world.sceneryJobs.push(() => cockpit.authoredModel?.userData.loadSurfaceWear?.());
   const input = new InputManager(canvas);
   const audio = new AudioSystem({ ios: isIOS });
   const gpws = new GPWS(audio);

@@ -557,6 +557,7 @@ export class World {
     // building windows glow at night
     for(const m of this.approachBuildings?.materials||[])m.emissiveIntensity=tod==='night'?.55:tod==='dusk'?.2:0;
     this.approachBuildings?.updateShadows();
+    this.woodlandShadows?.update();
     this.airportArchitecture.setTimeOfDay(tod);
     // Day and night share surface albedo; illumination supplies the time of day.
     this.groundMat.map = this.groundTex;
@@ -621,9 +622,16 @@ export class World {
     au.skyOvercast.value = Math.max(this.baseOvercast, under * this.deckOvercast, murk);
     // the sun is hidden by the deck: its light and shadows fade on the way down through it
     const sunF = 1 - 0.92 * Math.max(under, inCloudF);
-    // Tree cards contain the source model's soft baked lighting. Only the broad
-    // weather/time exposure is applied here, avoiding a second set of card-shaped shadows.
+    // Diffuse-sky occlusion and directional response are baked from the branches;
+    // sunlight follows the world direction, not the camera-facing plane.
     if(this.woodlandMaterial)this.woodlandMaterial.color.setScalar(.025+this.daylight*(.3+.7*sunF));
+    if(this.woodlandLighting){
+      const u=this.woodlandLighting.uniforms;
+      u.treeSunDirection.value.copy(this.lightDir);u.treeSunColor.value.copy(this.sunColor);
+      // The deck's residual 8% fill carries no useful directional detail. Fade
+      // continuously to zero there so overcast/night skip the response reads.
+      u.treeSunAmount.value=Math.max(0,(this.daylight*sunF-.08)/.92);
+    }
     this.sun.intensity = this.sunI * sunF;
     this.cockpitSun.intensity = this.sunI * sunF * (this.cockpitSunScale || 0.6);
     if (this.sun.castShadow) { this.sun.shadow.intensity = sunF; this.cockpitSun.shadow.intensity = sunF; }

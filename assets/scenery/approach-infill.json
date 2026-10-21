@@ -5,7 +5,7 @@
     -77.615,
     40.828
   ],
-  "modifications": "Five visually checked missing roofs. Heights, pitch and materials interpreted; roof traces are approximate, not surveyed footprints.",
+  "modifications": "Six visually checked missing roofs. Heights, pitch and materials interpreted; roof traces are approximate, not surveyed footprints.",
   "buildings": [
     {
       "id": "valley-barn-north",
@@ -20,9 +20,9 @@
       "roofKind": "metal",
       "use": "farm",
       "roof": [
-        164,
-        173,
-        172
+        162,
+        172,
+        171
       ],
       "outline": [
         [
@@ -75,9 +75,9 @@
       "roofKind": "metal",
       "use": "farm",
       "roof": [
-        203,
-        208,
-        202
+        201,
+        206,
+        200
       ],
       "outline": [
         [
@@ -146,8 +146,8 @@
       "roofKind": "metal",
       "use": "farm",
       "roof": [
-        136,
-        128,
+        140,
+        135,
         125
       ],
       "outline": [
@@ -201,9 +201,9 @@
       "roofKind": "metal",
       "use": "farm",
       "roof": [
-        105,
-        101,
-        92
+        112,
+        106,
+        99
       ],
       "outline": [
         [
@@ -256,8 +256,8 @@
       "roofKind": "metal",
       "use": "farm",
       "roof": [
-        188,
-        192,
+        189,
+        191,
         177
       ],
       "outline": [
@@ -295,6 +295,61 @@
         [
           1543,
           604
+        ]
+      ]
+    },
+    {
+      "id": "garden-cottage-garage",
+      "x": 4358.8,
+      "z": 124.8,
+      "w": 14.6,
+      "d": 8.1,
+      "angle": -2.78689,
+      "height": 4.0,
+      "estimatedHeight": false,
+      "pitched": true,
+      "roofKind": "metal",
+      "use": "farm",
+      "roof": [
+        131,
+        124,
+        120
+      ],
+      "outline": [
+        [
+          -4.8,
+          -5.8
+        ],
+        [
+          8.2,
+          -1.3
+        ],
+        [
+          5.2,
+          6.2
+        ],
+        [
+          -8.2,
+          1.2
+        ]
+      ],
+      "sourceTile": "4_0",
+      "sourcePixels": [
+        [
+          740,
+          270
+        ],
+        [
+          766,
+          279
+        ],
+        [
+          760,
+          294
+        ],
+        [
+          733,
+          284
         ]
       ]
     }

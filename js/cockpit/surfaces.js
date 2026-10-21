@@ -1,6 +1,7 @@
 // Surface finishes for verified parts of hakai315's cockpit. The source geometry
 // and lettering remain intact. See assets/README.md for the finish/colour changes.
 import * as THREE from 'three';
+import {finishCoordinates} from './surface-layout.js';
 
 // These identities were checked against the original meshes in Blender. Do not
 // infer other part identities from the numeric material names (many are shared).
@@ -20,6 +21,7 @@ const FINISHES = {
   trim:   {tile: .30, relief: .00032, roughness: .88, variation: .06, scan:'liner'},
   fabric: {tile: .27, relief: .00065, roughness: .98, variation: .02, scan:'upholstery'},
   rubber: {tile: .08, relief: .000065, roughness: .53, variation: .12},
+  padding:{tile: .16, relief: .00032, roughness: .90, variation: .08},
 };
 
 // Periodic, deterministic value noise. These small linear-data maps are original
@@ -90,7 +92,7 @@ export const COCKPIT_SURFACE_GLSL=/* glsl */`
   }
 `;
 
-function finishMaterial(material, kind, texture) {
+function finishMaterial(material, kind, texture, wear, wearKind) {
   const before=material.onBeforeCompile;
   material.onBeforeCompile=function(shader,renderer){
     before.call(this,shader,renderer); // Retain the shared atmosphere uniforms.
@@ -114,35 +116,48 @@ function finishMaterial(material, kind, texture) {
           #endif
         #endif
       `);
-    if(!texture)return;
-    shader.uniforms.deckSurface={value:texture};
-    shader.uniforms.deckTile={value:FINISHES[kind].tile};
-    shader.uniforms.deckRelief={value:FINISHES[kind].relief};
+    if(!texture&&!wear)return;
+    let uniforms='',attributes='',varyings='',vertex='',roughness='',bump='';
+    const scope=kind==='padding'?'vDeckFinish.z':'1.0';
+    if(wear){
+      shader.uniforms.deckWear=wear;uniforms+='uniform sampler2D deckWear;\n';
+      attributes+='attribute vec3 deckFinish;\n';varyings+='varying vec3 vDeckFinish;\n';vertex+='vDeckFinish=deckFinish;\n';
+      roughness+=`vec3 deckWearTexel=texture2D(deckWear,vDeckFinish.xy).rgb;
+        diffuseColor.rgb*=mix(1.0,deckWearTexel.r*2.0,vDeckFinish.z);
+        roughnessFactor*=mix(1.0,deckWearTexel.g*2.0,vDeckFinish.z);\n`;
+    }
+    if(texture){
+      shader.uniforms.deckSurface={value:texture};
+      shader.uniforms.deckTile={value:FINISHES[kind].tile};
+      shader.uniforms.deckRelief={value:FINISHES[kind].relief};
+      attributes+='attribute vec3 deckPosition;\n';vertex+='vDeckPosition=deckPosition;\n';
+      roughness+=`vec3 deckTexel=deckSample(vDeckPosition);
+        roughnessFactor*=mix(1.0,deckTexel.g,${scope});
+        diffuseColor.rgb*=mix(1.0,deckTexel.b,${scope});\n`;
+      const rim=wear&&wearKind==='panel'?'+(deckWearTexel.b-1.0)*.00065*vDeckFinish.z':'';
+      bump=`normal=deckBump(normal,deckTexel.r*deckRelief*${scope}${wear?'*mix(1.0,deckWearTexel.b,vDeckFinish.z)':''}${rim},faceDirection);`;
+    }else if(kind==='padding')roughness+=`roughnessFactor*=mix(1.0,${FINISHES.padding.roughness},${scope});`;
     shader.vertexShader=shader.vertexShader
-      .replace('#include <common>','#include <common>\nattribute vec3 deckPosition;\nvarying vec3 vDeckPosition;')
-      .replace('#include <begin_vertex>','#include <begin_vertex>\nvDeckPosition=deckPosition;');
+      .replace('#include <common>','#include <common>\n'+attributes+varyings+(texture?'varying vec3 vDeckPosition;\n':''))
+      .replace('#include <begin_vertex>','#include <begin_vertex>\n'+vertex);
     shader.fragmentShader=shader.fragmentShader
-      .replace('void main() {',COCKPIT_SURFACE_GLSL+'\nvoid main() {')
-      .replace('#include <roughnessmap_fragment>',/* glsl */`
-        #include <roughnessmap_fragment>
-        vec3 deckTexel=deckSample(vDeckPosition);
-        roughnessFactor*=deckTexel.g;
-        diffuseColor.rgb*=deckTexel.b;
-      `)
-      .replace('#include <normal_fragment_maps>',/* glsl */`
-        #include <normal_fragment_maps>
-        normal=deckBump(normal,deckTexel.r*deckRelief,faceDirection);
-      `);
+      .replace('void main() {',uniforms+varyings+(texture?COCKPIT_SURFACE_GLSL:'')+'\nvoid main() {')
+      .replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\n'+roughness)
+      .replace('#include <normal_fragment_maps>','#include <normal_fragment_maps>\n'+bump);
   };
-  material.customProgramCacheKey=()=>`cockpit-surface-v3:${texture?kind:'occlusion'}`;
+  material.customProgramCacheKey=()=>`cockpit-surface-v4:${texture?kind:'occlusion'}:${wear?wearKind:'plain'}`;
   material.userData.cockpitFinish=kind||'occlusion';
   material.needsUpdate=true;
 }
 
 export async function applyCockpitSurfaces(model,{lowDetail=false}={}) {
   const maps=new Map(),materials=new Map(),geometries=new Set();
-  const errors=[];
-  if(!lowDetail)await Promise.all(Object.entries(FINISHES).filter(([,f])=>f.scan).map(async([kind,f])=>{
+  // The part-fitted atlas loads behind the menu (loadSurfaceWear). Until then, or if it
+  // fails, all its materials share one exactly neutral texel: colour, roughness and relief ×1.
+  const neutral=new THREE.DataTexture(new Float32Array([.5,.5,1,1]),1,1,THREE.RGBAFormat,THREE.FloatType);
+  neutral.needsUpdate=true;
+  const errors=[],wear={value:neutral};
+  await Promise.all(lowDetail?[]:Object.entries(FINISHES).filter(([,f])=>f.scan).map(async([kind,f])=>{
     try{
       const texture=await new THREE.TextureLoader().loadAsync(new URL(`../../assets/cockpit/${f.scan}.webp`,import.meta.url).href);
       texture.name=`Scanned cockpit ${kind}: height / roughness / colour modulation`;
@@ -155,31 +170,53 @@ export async function applyCockpitSurfaces(model,{lowDetail=false}={}) {
   model.traverse(mesh=>{
     if(!mesh.isMesh)return;
     const source=mesh.material;
-    let kind=FINISH[source.name],yoke=false;
-    for(let node=mesh;node&&node!==model;node=node.parent)if(node.userData.controlPivot)yoke=true;
+    let kind=FINISH[source.name],yoke=false,yokeCentre=0;
+    for(let node=mesh;node&&node!==model;node=node.parent)if(node.userData.controlPivot){yoke=true;yokeCentre=node.userData.controlPivot[0];}
     // Black is shared with screens and lettering. Scope rubber to the animated
     // yoke assemblies; never brighten every black material in the source.
     if(yoke&&Math.max(source.color.r,source.color.g,source.color.b)<.005)kind='rubber';
+    // Ray-picked on the delivered deck and checked against source bounds. This
+    // shared material also covers distant fittings: only the measured forward
+    // glareshield volume receives padding (deckFinish.z gates every channel).
+    if(source.name==='Material.481')kind='padding';
+    const wearKind=kind==='rubber'||kind==='frame'||kind==='padding'?kind:
+      ['Material.457','Material.103','Material.261'].includes(source.name)?'panel':null;
+    const partWear=wearKind?wear:null;
     const key=source.uuid+':'+(kind||'occlusion');
-    if(kind&&!lowDetail){
-      if(!maps.has(kind))maps.set(kind,makeSurfaceMap(kind));
+    if(kind&&!lowDetail&&!maps.has(kind))maps.set(kind,kind==='padding'&&maps.has('trim')?maps.get('trim'):makeSurfaceMap(kind));
+    if((kind&&!lowDetail)||partWear){
       if(geometries.has(mesh.geometry))mesh.geometry=mesh.geometry.clone();
       geometries.add(mesh.geometry);
       // Store coordinates before the model is attached to the moving aircraft.
       // The pattern then follows the object, including animated controls.
-      const position=mesh.geometry.attributes.position,coords=new Float32Array(position.count*3),p=new THREE.Vector3();
-      for(let i=0;i<position.count;i++)p.fromBufferAttribute(position,i).applyMatrix4(mesh.matrixWorld).toArray(coords,i*3);
-      mesh.geometry.setAttribute('deckPosition',new THREE.BufferAttribute(coords,3));
+      const position=mesh.geometry.attributes.position,coords=kind&&!lowDetail?new Float32Array(position.count*3):null;
+      const finish=partWear?new Float32Array(position.count*3):null,p=new THREE.Vector3();
+      for(let i=0;i<position.count;i++){
+        p.fromBufferAttribute(position,i).applyMatrix4(mesh.matrixWorld);
+        if(coords)p.toArray(coords,i*3);
+        if(finish)finish.set(finishCoordinates(wearKind,p.x,p.y,p.z,yokeCentre),i*3);
+      }
+      if(coords)mesh.geometry.setAttribute('deckPosition',new THREE.BufferAttribute(coords,3));
+      if(finish)mesh.geometry.setAttribute('deckFinish',new THREE.BufferAttribute(finish,3));
     }
     if(!materials.has(key)){
       const material=source.clone();
       // Perfect black absorbs all diffuse light and loses the molded handle's
       // shape. Rubber has a small, neutral reflectance, even in unlit areas.
       if(kind==='rubber')material.color.setRGB(.022,.022,.022);
-      if(kind&&lowDetail)material.roughness*=FINISHES[kind].roughness;
-      finishMaterial(material,kind,maps.get(kind));materials.set(key,material);
+      if(kind&&kind!=='padding'&&lowDetail)material.roughness*=FINISHES[kind].roughness;
+      finishMaterial(material,kind,maps.get(kind),partWear,wearKind);materials.set(key,material);
     }
     mesh.material=materials.get(key);
   });
-  model.userData.surfaceDetail={materials:materials.size,maps:maps.size,errors};
+  const detail=model.userData.surfaceDetail={materials:materials.size,maps:maps.size,wearSize:0,errors};
+  // A scenery job: requested after the menu appears, so it is outside the startup budget.
+  // Replacing the shared uniform's texture needs no shader recompilation.
+  let wearLoad;
+  model.userData.loadSurfaceWear=()=>wearLoad??=new THREE.TextureLoader()
+    .loadAsync(new URL(`../../assets/cockpit/service-wear${lowDetail?'-low':''}.webp`,import.meta.url).href)
+    .then(texture=>{
+      texture.name='Part-fitted cockpit colour / roughness / relief';texture.anisotropy=4;
+      wear.value=texture;neutral.dispose();detail.wearSize=texture.image.width;
+    },error=>{errors.push(`service wear: ${error}`);});
 }

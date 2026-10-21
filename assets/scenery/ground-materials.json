@@ -1,0 +1,101 @@
+{
+  "layers": [
+    {
+      "id": "grass_ground",
+      "name": "Grass Ground",
+      "authors": {
+        "Charlotte Baglioni": "All"
+      },
+      "url": "https://polyhaven.com/a/grass_ground",
+      "license": "CC0-1.0",
+      "meters": 2.509999990463257,
+      "files": {
+        "Diffuse": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/grass_ground/grass_ground_diff_1k.jpg",
+          "md5": "299047258586c762735b7284d3c662c3",
+          "size": 876584
+        },
+        "nor_gl": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/grass_ground/grass_ground_nor_gl_1k.jpg",
+          "md5": "d518c5b2af6f2c0297bc807b351f511f",
+          "size": 1310516
+        },
+        "Rough": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/grass_ground/grass_ground_rough_1k.jpg",
+          "md5": "2e6afca246cf6b80bdb53f46fe7e5ce5",
+          "size": 328190
+        }
+      },
+      "meanLinear": [
+        0.1575616111583531,
+        0.11855577155203836,
+        0.0487658994216317
+      ]
+    },
+    {
+      "id": "brown_mud",
+      "name": "Brown Mud",
+      "authors": {
+        "Rob Tuytel": "All"
+      },
+      "url": "https://polyhaven.com/a/brown_mud",
+      "license": "CC0-1.0",
+      "meters": 1.299996018409729,
+      "files": {
+        "Diffuse": {
+          "size": 501955,
+          "md5": "b141af27b413db140818d0a4998c394c",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brown_mud/brown_mud_diff_1k.jpg"
+        },
+        "nor_gl": {
+          "size": 1011780,
+          "md5": "62df05266fa5a0adc7733a7184a15dea",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brown_mud/brown_mud_nor_gl_1k.jpg"
+        },
+        "Rough": {
+          "size": 340815,
+          "md5": "fb4d5d8ef98ebee6a402955b99103a3a",
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brown_mud/brown_mud_rough_1k.jpg"
+        }
+      },
+      "meanLinear": [
+        0.11467871449914493,
+        0.09580334732499021,
+        0.07337627052519255
+      ]
+    },
+    {
+      "id": "dry_decay_leaves",
+      "name": "Dry Decay Leaves",
+      "authors": {
+        "Amal Kumar": "All"
+      },
+      "url": "https://polyhaven.com/a/dry_decay_leaves",
+      "license": "CC0-1.0",
+      "meters": 2,
+      "files": {
+        "Diffuse": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/dry_decay_leaves/dry_decay_leaves_diff_1k.jpg",
+          "md5": "195514abaeb19e6766df1c8ba181f29c",
+          "size": 756437
+        },
+        "nor_gl": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/dry_decay_leaves/dry_decay_leaves_nor_gl_1k.jpg",
+          "md5": "7fe6c1aee86a022636323b017968a8ec",
+          "size": 1072874
+        },
+        "Rough": {
+          "url": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/dry_decay_leaves/dry_decay_leaves_rough_1k.jpg",
+          "md5": "bd818090b76c5a4b084325b314b50e5c",
+          "size": 545422
+        }
+      },
+      "meanLinear": [
+        0.17304030166643228,
+        0.076361798086314,
+        0.03536390291492408
+      ]
+    }
+  ],
+  "format": "Vertically stacked square layers, bottom-up rows within each layer. Color: three sRGB layers. Surface: four layers of normal X/Y and linear roughness; last is the existing CC0 Aerial Grass Rock."
+}

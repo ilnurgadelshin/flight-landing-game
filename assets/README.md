@@ -68,6 +68,28 @@ uses the original procedural finish. Exact source files and modifications are in
 The yoke's pure-black grip alone is given 2.2% neutral diffuse reflectance, so its shape remains
 visible; screens, lettering and other black parts keep their original colours.
 
+The 2026-10-18 finish pass adds `cockpit/service-wear.webp` (1024² high) and
+`service-wear-low.webp` (512² low). These are original, non-repeating material masks
+fitted to the source parts, with panel boundaries derived from the credited cockpit
+geometry above (CC BY 4.0). They are interpretations of light service wear, not
+photographs or a surveyed aircraft livery. R stores colour modulation / 2, G stores
+roughness modulation / 2, and B stores grain retention or the forward panel's shallow
+edge profile. All channels are linear and the WebP encoding is lossless.
+
+Panel rims follow 1,033 measured boundary segments, including display cutouts;
+coplanar tessellation edges, lettering and emissive screens are excluded. High quality
+adds a rolled paint edge under 0.6 mm through bump shading. Both tiers vary coating
+and roughness around measured controls, lower window rails and yoke grip locations.
+The forward glareshield reuses the CC0 leather grain on high, with the finish gated
+to its measured volume because its source material is shared with distant fittings.
+The UVs stay attached to animated controls. Low adds only the small colour/roughness
+mask, without grain or bump sampling. The mask is requested with the scenery, behind the
+menu, so it is not part of the startup download; until it arrives, or if it fails, the
+masked parts sample a neutral value (colour, roughness and relief unchanged).
+Reproduce these two maps with `node tools/prepare-cockpit-wear.mjs`; the measured
+layout is in `js/cockpit/surface-layout.js`. No model geometry, lettering, base material
+colours, camera position or lighting calibration is changed by this pass.
+
 The material assignments were checked in Blender against these source meshes:
 
 | Source material | Verified parts | Runtime finish |
@@ -79,6 +101,7 @@ The material assignments were checked in Blender against these source meshes:
 | `Material.261`, `Material.354` | Overhead/MCP faces, subpanels and switch bodies | Coated panel |
 | `Material.194` | `Cube.488`, `Cube.489`, `Cube.1088` cushions | Woven upholstery |
 | Black material within the two animated yoke groups only | Yoke grips | Rubber |
+| `Material.481`, only x −0.73…0.70 m, y −0.265…−0.06 m, z −1.025…−0.85 m | Forward glareshield, verified by ray picking and component bounds | Matte padding; other shared fittings retain their source finish |
 
 The offline shading bake samples both close contacts and light access through the cabin,
 including the same added headliner used at runtime. The vertex values attenuate indirect
@@ -190,6 +213,47 @@ Normal and roughness detail fades with the same distance mask; bright roofs and 
 roads are suppressed by the colour mask. This is an interpreted surface layer, not newly
 recovered survey detail. Baked shadows and missing photographic features remain.
 
+### Close ground materials — 2026-10-21
+
+Reviewed meadow, soil/stubble and woodland cover now selects distinct **CC0** scans:
+
+- [Grass Ground](https://polyhaven.com/a/grass_ground), Charlotte Baglioni.
+- [Brown Mud](https://polyhaven.com/a/brown_mud), Rob Tuytel.
+- [Dry Decay Leaves](https://polyhaven.com/a/dry_decay_leaves), Amal Kumar.
+
+All are from Poly Haven. Source file URLs/checksums, authors, physical spans and colour
+means are retained in `scenery/ground-materials.json`. These are artistic surface details
+on the existing interpreted cover, not a local soil or vegetation survey. The soil scan
+does not model standing crop stems. Complete-site lawn meshes retain their existing material.
+
+The scans use their 2.51 m / 1.30 m / 2 m physical widths, with three rotated/offset samples
+blended across a shared triangular lattice at the scan scale to reduce repeated rows.
+Quarter-turn rotations keep the shader arithmetic bounded. Colour is normalized around
+each scan's linear mean so the aerial imagery still controls large-scale colour.
+Normal/roughness detail follows the same samples, with normals rotated back into the
+terrain frame. Strength fades between 35 and 260 m;
+the older broad ground grain remains outside that range. Boundaries come from the existing
+land-cover map; roads/building clearances are preserved. Maintained airport turf uses grass.
+
+Three colour layers and four normal-X/normal-Y/roughness layers (the last reuses the existing
+Aerial Grass Rock scan) share two mipmapped texture arrays. High uses 512² per layer; low
+uses 256². This replaces the old separate 1024² grass normal and roughness downloads, keeping
+the shader within WebGL2's 16-fragment-texture-unit minimum. All maps load with optional
+scenery after the menu. A missing map retains the photographic ground with plain normals.
+
+The two files total **770,418 bytes high / 182,632 low**, replacing 504,796 bytes in either
+tier: net **+265,622 / −322,164 bytes**. Estimated RGBA8 texture storage including mipmaps is
+9.33 MiB high / 2.33 MiB low, versus 10.67 MiB for the two replaced textures. The original
+JPGs remain as preparation sources; they are no longer requested by the terrain.
+No terrain vertices, draw calls or render passes are added.
+
+Reproduce with:
+
+```sh
+python3 tools/fetch-ground-materials.py
+node tools/prepare-ground-materials.mjs
+```
+
 ## Approach buildings and roads
 
 `scenery/approach-buildings.json` contains 2,160 footprints adapted from
@@ -227,11 +291,11 @@ trim, nearby window ledges along the flight corridor, and roadside markers; low 
 small details. Terrain-following surfaces use the rendered triangle height for each tier.
 Buildings and roadside fixtures are visual scenery, not new physics obstacles.
 
-`scenery/approach-infill.json` supplements the ML dataset with **five reviewed roof
+`scenery/approach-infill.json` supplements the ML dataset with **six reviewed roof
 traces** from the bundled public-domain NAIP detail imagery: two connected valley barns,
-a barn and annex north of final, and an eastern farm shed. Pixel coordinates and source
+a barn and annex north of final, an eastern farm shed and a detached residential garage. Pixel coordinates and source
 tile IDs are retained so the traces can be checked. They follow visible roofs, excluding
-photographic shadows; heights, pitch and agricultural facades are interpretations.
+photographic shadows; heights, pitch and facades are interpretations.
 This small supplement does not fill every missing building in the imagery. Its failure
 leaves the main footprint layer available. Regenerate with:
 
@@ -327,10 +391,10 @@ its distance calculation and feathering are unchanged.
 
 ## Complete approach sites — original geometry / CC0 materials
 
-`scenery/valley-farm.glb` and its `-low` variant contain twenty-two complete building placements, originally
+`scenery/valley-farm.glb` and its `-low` variant contain thirty-five complete building placements, originally
 authored by `tools/prepare-farm.py` in Blender under the project's MIT license. The original
-two valley barns and two opposite-side barns use the NAIP-traced infill outlines; the other
-eighteen placements retain their Microsoft footprints. The models include three clapboard homes,
+two valley barns, two opposite-side barns and the detached residential garage use NAIP-traced infill outlines; the other
+thirty placements retain their Microsoft footprints. The models include clapboard homes,
 red-roofed working buildings, workshops, timber barns and three domed silos in two groups.
 Recessed openings, thick roof edges/ridge caps, gutters, door
 canopies, foundations and home chimneys are geometry. Fine clapboard laps and standing seams
@@ -372,22 +436,33 @@ Source URLs, authors, checksums, placements and exact delivered byte counts are 
 `scenery/farm-sources.json`. Wood textures use 1024 px high / 512 px low WebP. The gravel
 colour map follows those sizes; gravel normal and roughness maps use 512 px high / 256 px low.
 Meshes are Meshopt-compressed. Building meshes merge by material within each site, retaining
-local culling bounds rather than one large bound spanning the approach. Thirty-five building
-material batches, the original yard, twelve ground surfaces and four timber-boundary batches
-total 52 draw batches before subtracting replaced facade geometry. Buildings use 71,077 triangles;
-grounds/fences use 119,900 triangles plus the original 2,924-triangle yard. Only referenced parcel-grid vertices are uploaded; the narrow lane uses a feathered ribbon. The assets
-load during scenery preparation behind the menu. A missing model, site data or yard texture
-retains the original procedural buildings and the underlying imagery. Missing or invalid
-extension data keeps the original nine complete valley buildings and falls back only for the
-thirteen additional placements. The latest dairy/silo pass adds 184,777 bytes high /
-184,757 bytes low, including placement/site JSON, relative to `ae16093`. It reuses all material
-images; no new texture download is introduced. Farm models, site data and gravel maps total
-2,485,007 bytes high / 1,533,409 bytes low, excluding the shared source manifest.
+local culling bounds. The five sites use 65 draw batches before subtracting replaced procedural
+facades: 44 building material batches, the original yard and four grounds/boundary batches per
+site. Buildings use 92,375 triangles; grounds/fences use 175,866 triangles, plus the original
+2,924-triangle yard. Only referenced parcel-grid vertices are uploaded; narrow drives use
+feathered ribbons. Preparation happens behind the menu. Missing models or yard materials
+retain procedural buildings and imagery. Missing or invalid extension data keeps the original
+nine complete valley buildings and falls back for the other 26 placements.
+
+The 2026-10-19 residential frontage adds 13 models, including one previously missing garage,
+to the existing four sites. Twelve retain Microsoft footprints; the garage roof is traced from
+bundled high-resolution `detail/4_0.webp`. Grounds follow its low-resolution counterpart:
+six lawn parcels, seven yards, five road-connected drives and seven local access joins. The
+pool is preserved in the underlying imagery and remains excluded from tree planting. Forty-two
+eligible placed trees serve all five sites, within the unchanged 52,000 high / 14,000 low budget.
+The new cream, sage and warm grey siding shares the existing clapboard normal. An original
+256 px baked shingle texture adds restrained roof variation; its charcoal multiplier is restored
+explicitly during delivery because Blender's exporter omits that MixRGB factor. Parcel gravel
+has a separate colour scale. These are visual interpretations, not surveyed buildings.
+
+
+Models, grounds and gravel maps total 2,908,267 bytes high / 1,955,309 bytes low, excluding the shared manifest. Relative to `396c522`, this adds 423,260 / 421,900 bytes.
 
 Reproduce (download cache and Blender source remain under ignored `test/output/farm-sources/`):
 
 ```sh
 python3 tools/fetch-farm-materials.py
+python3 tools/prepare-approach-infill.py
 blender --background --python tools/prepare-farm.py
 node tools/prepare-approach-sites.mjs
 node tools/prepare-farm.mjs
@@ -401,7 +476,7 @@ to Poly Haven and does not distribute the intermediate Blender file or original 
 
 ## Woodland — CC0
 
-`scenery/tree-variety.webp`, its smaller `-low` variant and `tree-variety.json` are baked
+`scenery/tree-variety.webp`, `tree-light-response.webp`, their smaller `-low` variants and `tree-variety.json` are baked
 from these **CC0** Poly Haven assets (https://polyhaven.com/license):
 
 - **Tree Small 02**, Rico Cilliers: https://polyhaven.com/a/tree_small_02
@@ -420,15 +495,50 @@ coverage for crowns up to approximately 64 rendered pixels, blending back to the
 to preserve close geometry transitions. UV derivatives estimate size in the current render
 target, so this follows resolution changes automatically. Standard alpha-to-coverage
 smoothing remains on multisampled targets, with a hard cutoff on single-sample targets.
-No new texture sample, mip chain or alpha-blending pass is added. These remain impostors: azimuth transitions, repeated
+The coverage adjustment adds no texture sample or alpha-blending pass. These remain impostors: azimuth transitions, repeated
 species and extreme close-up silhouettes are less convincing than full 3D branches.
-The atlases are 1536×5184 (high, 1,845,660 bytes) and 768×2592 (low, 543,018 bytes).
+The colour atlases are 1536×5184 (high, 1,823,326 bytes) and 768×2592 (low, 537,056 bytes).
 High frames are 192 px and low frames 96 px. Eight directions reduce silhouette doubling
 between adjacent views; using the delivered geometry also avoids the fuller source model
 changing into a different simplified crown at close range. Texel count rises 12.5% over
 the previous four-direction layout. WebP alpha quality is 90.
 The three broadleaf sources are spatially grouped to break up repeated mature crowns.
 They are an artistic palette for fictional Westhaven, not an ecological reconstruction of Pennsylvania.
+
+The 2026-10-19 lighting pass removes the fixed sun from the colour bake. A hemisphere
+and four symmetric shadowed lights approximate diffuse sky access. Six opposing white
+lights then measure the delivered model's diffuse response, including branch/leaf
+occlusion. Their signed differences form a compact first-order directional response in
+the source tree's coordinates. This is an approximation to directional self-shadowing,
+not a full runtime light transport or a normal map. Runtime rotates the response with
+each tree, evaluates the current sunlight direction/colour, and fades it under overcast
+and at night. Alpha-weighted blending uses the same four atlas views as colour; empty
+samples stay finite. Missing or incorrectly sized response data falls back to diffuse sky.
+
+The linear-data response atlases are 768×2592 (630,314 bytes) and 384×1296 (205,730 bytes),
+96/48 pixels per view. They add four texture reads per surviving sunlit crown fragment, one sampler,
+and approximately 10.1/2.5 MiB including mipmaps. Net image transfer grows by 607,980/199,768
+bytes (high/low), including the smaller rebaked colour maps. Loading remains inside the
+existing scenery preparation. Tree counts, geometry, draw batches and near-tree budgets
+are unchanged. Empty pixels are discarded before reading the response; explicit gradients
+computed before discard keep mip selection defined. Fully obscured sunlight and night skip
+these reads. This improves crown shading, not woodland placement or species diversity.
+The 2026-10-21 ground-shade pass reuses the **alpha of this same colour atlas**.
+It replaces the old flat radial patches with projected silhouettes clipped to the rendered
+terrain triangles. Each tree keeps its current form, yaw and position. Clear light uses
+the nearest baked sun-facing azimuth/elevation; overcast uses a weaker top-view footprint
+beneath the crown, even when the aircraft is above the deck. Night hides these patches.
+A one-level mip bias softens leaf edges. No new image, texture allocation, shadow-map pass,
+model or collision body is added. Ground-material sampler counts are unchanged.
+
+These are inexpensive **ground-only approximations**: they do not shade other trees,
+buildings or raised road/site surfaces, reconstruct terrain-aware light rays, or remove
+shadows already present in the aerial photography. Low-sun stretch is bounded. The tree
+billboards, repeated silhouettes and distant photographic shadows remain visible limitations.
+Geometry is batched in the existing 1 km / 2 km planting patches and rebuilt only when the
+scenario changes its lighting. Terrain clipping costs additional triangles and buffer memory;
+measurements and setup times are recorded in `test/RENDER-PERFORMANCE.md`.
+
 The full models stay in ignored `test/output/tree-source`, `tree-variety-source` and
 `authored-sources`; they are not shipped. These atlases replace the older single-species `tree-canopies.png`.
 To reproduce the atlas from the bundled GLBs (Node and Playwright Chromium required):
@@ -575,7 +685,7 @@ and complete-site grounds excluded. They are interpreted scenery, not a local ve
 ## Airport architecture — original project geometry
 
 `js/world/airport-architecture.js` builds the fictional Westhaven terminal, three
-hangars and control tower. The original project geometry, facade paintings and signage
+hangars and control tower. The original project geometry, procedural interiors and signage
 are MIT-licensed; no downloaded building, image, font or network service is used.
 The gate locations and aircraft/jet-bridge placements are retained. Architecture
 remains visual scenery and does not change the runway, taxiways or flight physics.
@@ -586,23 +696,39 @@ have continuous shaded glazing. Hangars have pitched roofs, glazed sliding doors
 side ribs and service doors. The tower uses an eight-sided outward-sloping cab with a
 balcony, support transition, roof and aerials over a core and entrance annex.
 
-The opaque glass approximates reflected sky and interior/blind silhouettes. It has
-no true transparency, interior parallax or reflected airport geometry. Eight small
-original facade paintings share a colour/emission atlas, and lettering uses one local
-canvas. Night lighting changes emissive intensity without rebuilding textures. High
-uses two 512×256 facade maps and a 1024×128 sign; initial low quality uses half those dimensions.
-Estimated RGBA GPU storage including mipmaps is **2 MiB high / 0.5 MiB low**, replacing
-one previous 512×256 map (about 0.67 MiB). These are residency estimates, not downloads;
-the canvases also retain their uncompressed base images on the CPU.
+The 2026-10-20 glass pass replaces the painted interior atlas with bounded analytic
+rooms behind the panes (`js/world/airport-glass.js`). Floors, ceilings, doors, information
+boards and a seat/back volume move in perspective with the eye. The main hall and gallery
+fronts share rooms across four panes, including the mullion gaps in their coordinates.
+Side walls and the sloped tower cab retain individual bays. Surface reflections use the
+existing sky environment, with lower roughness and nonmetallic glazing; there is no
+reflection of airport geometry, actual transmission or walkable interior.
+
+Night lighting uses the existing time-of-day intensity, with ceiling strips and quieter
+unoccupied rooms. Derivative filtering softens thin floor joints and ceiling lights.
+All ray divisions are epsilon-guarded, including axis-aligned and grazing views. Rooms
+remain opaque and share the usual atmosphere and shadows, avoiding transparent sorting.
+
+No image downloads, render passes, triangles or draw calls are added. The two old generated
+facade maps are removed, saving about **1.33 MiB high / 0.33 MiB low** of mipmapped GPU texture
+storage, plus their CPU canvases. Static per-pane attributes add **182,424 bytes** on either
+tier. The remaining sign canvas uses about **0.67 MiB high / 0.17 MiB low** on the GPU. Room
+intersection and shading replace the two facade texture reads; measured frame costs are
+recorded in `test/RENDER-PERFORMANCE.md`. These are storage estimates, not download savings.
 
 Materials are shared across spatial batches for frustum culling. Low omits fine hall
 roof seams and reduces hangar side ribs, while retaining the complete silhouette.
-Automatic downgrade keeps this small static geometry and its existing maps.
+Automatic downgrade keeps this small static geometry, room shader and sign map.
 The resulting buildings remain simplified original architecture, not a detailed
 commercial airport asset. Surface weathering, richer apron equipment, transparent
 interiors and finer local shadows remain possible improvements.
 
 `VISUAL_GPU=metal npm run test:airport` records matched pilot/airport/terminal/tower/
-hangar/night/storm views on both tiers and checks finite geometry, clear operational
+hangar/night/storm views on both tiers, including close/oblique interiors, and checks finite geometry, clear operational
 areas, outward-facing glazing and bounded geometry/texture cost. Use `REVIEW_ROOT`
 to capture the same views against an archived baseline.
+
+`VISUAL_GPU=metal npm run test:airport-glass` checks the real material in floating-point
+render targets for finite lit pixels at axis-aligned and grazing angles, verifies rear-wall
+parallax, and records a 100 m moving inspection pass. These remain simple interpreted
+interiors; geometry shadows, furnishings and local reflections need further work.

@@ -9,6 +9,9 @@
   ],
   "tileSize": 192,
   "lowTileSize": 96,
+  "responseTileSize": 96,
+  "lowResponseTileSize": 48,
+  "lighting": "diffuse sky with source-space shadowed directional response",
   "geometrySource": "bundled near-tree GLBs",
   "species": [
     {

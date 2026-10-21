@@ -10,6 +10,7 @@ import { addApproachRoads } from './approach-roads.js';
 import { GROUND_DETAIL_GLSL, groundDetailUniforms, loadGroundDetail } from './ground-detail.js';
 import {addGroundCover} from './ground-cover.js';
 import {CORRIDOR_GLSL,corridorUniforms,loadApproachCorridor} from './approach-corridor.js';
+import {GROUND_MATERIAL_GLSL,groundMaterialUniforms,loadGroundMaterials} from './ground-materials.js';
 
 const source = (name) => new URL(`../../assets/scenery/${name}.${/^(region|approach|airport|final-approach)(-low|-preview)?$/.test(name)?'webp':'jpg'}`, import.meta.url).href;
 
@@ -19,10 +20,11 @@ export function buildLandscape(world) {
   const fallback = makeGroundTexture(world.maxAniso);
   const uniforms = world.groundUniforms = {
     uRegion: { value: fallback }, uApproach: { value: fallback }, uAirport: { value: fallback }, uFinal: {value:fallback},
-    uGrass: { value: fallback }, uGrassRough: {value:fallback}, uSurfaceDetail:{value:1},
+    uGrass: { value: fallback }, uSurfaceDetail:{value:1},
     uReady: { value: 0 }, uWet: { value: 0 }, uAlbedo: { value: 0.82 },
     ...groundDetailUniforms(fallback),
     ...corridorUniforms(fallback),
+    ...groundMaterialUniforms(),
   };
   world.groundTex = fallback;
   const material = world.groundMat = new THREE.MeshStandardMaterial({ map: fallback, roughness: 1 });
@@ -34,10 +36,11 @@ export function buildLandscape(world) {
       .replace('#include <begin_vertex>', '#include <begin_vertex>\nvGroundXZ = position.xz;');
     shader.fragmentShader = shader.fragmentShader.replace('#include <common>', `#include <common>
       varying vec2 vGroundXZ;
-      uniform sampler2D uRegion, uApproach, uAirport, uFinal, uGrass, uGrassRough;
+      uniform sampler2D uRegion, uApproach, uAirport, uFinal, uGrass;
       uniform float uReady, uWet, uAlbedo, uSurfaceDetail;
       ${GROUND_DETAIL_GLSL}
       ${CORRIDOR_GLSL}
+      ${GROUND_MATERIAL_GLSL}
       vec2 aerialUV(vec2 center, float span) { return (vGroundXZ-center)*vec2(1.0,-1.0)/span+0.5; }
       float coverage(vec2 uv) { return 1.0-smoothstep(0.43,0.49,max(abs(uv.x-0.5),abs(uv.y-0.5))); }
     `).replace('#include <map_fragment>', `
@@ -99,15 +102,37 @@ export function buildLandscape(world) {
       vec3 turf = mix(vec3(0.13,0.155,0.065),grass*vec3(0.75,0.9,0.65),nearGround*0.72);
       turf *= 0.97+0.03*sin(vGroundXZ.y*0.21);
       land = mix(land,turf,airfield*uReady);
+      // Only reviewed land cover and maintained turf receive classified scans.
+      // Missing/failed scans retain the original photographic surface intact.
+      float groundLayer=cover.b>max(cover.r,cover.g)?2.0:cover.g>cover.r?1.0:0.0;
+      float groundWeight=max(airfield*uReady,max(cover.r,max(cover.g,cover.b)));
+      if(airfield>.5)groundLayer=0.0;
+      float materialReach=(1.0-smoothstep(35.0,260.0,length(vViewPosition)))*groundWeight*uGroundMaterialsReady*uGroundMaterialsInfluence*uSurfaceDetail;
+      vec3 groundSurface=vec3(0.,0.,1.);
+      vec2 groundDx=dFdx(vGroundXZ),groundDy=dFdy(vGroundXZ);
+      vec3 legacySurface=textureGrad(uGroundSurface,vec3(vGroundXZ/6.,3.),groundDx/6.,groundDy/6.).rgb;
+      if(materialReach>.001){
+        vec3 scan;
+        groundMaterial(vGroundXZ,groundDx,groundDy,groundLayer,scan,groundSurface);
+        // Leaf litter should not inherit the green carpet under the old crowns.
+        land=mix(land,land*vec3(1.22,.9,.88),step(1.5,groundLayer)*materialReach*.6);
+        land*=mix(vec3(1.),scan,materialReach*.85);
+      }
       diffuseColor.rgb *= land * uAlbedo * mix(1.0,0.65,uWet);
-    `).replace('#include <normal_fragment_begin>', '#define vNormalMapUv (vGroundXZ/6.0)\n#include <normal_fragment_begin>')
-      .replace('#include <normal_fragment_maps>',`vec3 groundBaseNormal=normal;
-        #include <normal_fragment_maps>
-        #undef vNormalMapUv
-        normal=normalize(mix(groundBaseNormal,normal,max(surfaceMask,airfield)*closeSurface));`)
+    `).replace('#include <normal_fragment_maps>',`vec3 groundBaseNormal=normal;
+        // Project world X / -Z onto the smooth terrain frame. A zero-length
+        // tangent can occur at skirts; it must not poison the whole frame.
+        vec3 groundX=(viewMatrix*vec4(1.,0.,0.,0.)).xyz;
+        groundX-=groundBaseNormal*dot(groundX,groundBaseNormal);
+        groundX*=inversesqrt(max(dot(groundX,groundX),1e-6));
+        vec3 groundZ=cross(groundBaseNormal,groundX);
+        vec2 legacyNormal=legacySurface.rg*2.-1.;
+        normal=normalize(normal+(groundX*legacyNormal.x-groundZ*legacyNormal.y)*.48*max(surfaceMask,airfield)*closeSurface*(1.0-materialReach)*uGroundMaterialsReady);
+        normal=normalize(normal+(groundX*groundSurface.x+groundZ*groundSurface.y)*materialReach*.65);`)
       .replace('#include <roughnessmap_fragment>',`#include <roughnessmap_fragment>
-        roughnessFactor=mix(roughnessFactor,.72+.28*texture2D(uGrassRough,vGroundXZ/6.0).g,
-          max(surfaceMask,airfield)*closeSurface);`);
+        roughnessFactor=mix(roughnessFactor,.72+.28*legacySurface.b,
+          max(surfaceMask,airfield)*closeSurface*uGroundMaterialsReady);
+        roughnessFactor=mix(roughnessFactor,.72+.28*groundSurface.z,materialReach);`);
   };
   // A 62.5 m grid near the airport and 250 m grid farther away follow the SAME
   // height query as the wheels. Patches allow countryside behind the aircraft to be culled.
@@ -180,9 +205,7 @@ export function buildLandscape(world) {
       await addWoodland(world,airport.image,final.image);
     });
     const grass=load('grass-color',true,true).then(t=>uniforms.uGrass.value=t);
-    const jobs=[buildings,roads,ready,detail,corridor,grass,load('grass-rough',false,true).then(tex=>uniforms.uGrassRough.value=tex),load('grass-normal',false,true).then(tex=>{
-      material.normalMap=tex;material.normalScale.set(.48,.48);material.needsUpdate=true;
-    })];
+    const jobs=[buildings,roads,ready,detail,corridor,grass,loadGroundMaterials(world)];
     // One surface set is shared by all pavement. World-space mapping keeps the size of
     // aggregate constant on a runway, a connector, and the apron.
     jobs.push(Promise.all([load('asphalt-color',true,true),load('asphalt-normal',false,true),load('asphalt-rough',false,true)])
