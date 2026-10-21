@@ -1,0 +1,95 @@
+{
+  "baseline": true,
+  "results": [
+    {
+      "tier": "high",
+      "view": "edge",
+      "calls": 856,
+      "triangles": 2796027,
+      "errors": [],
+      "trees": 52000,
+      "shadows": null
+    },
+    {
+      "tier": "high",
+      "view": "slope",
+      "calls": 832,
+      "triangles": 1267431,
+      "errors": [],
+      "trees": 52000,
+      "shadows": null
+    },
+    {
+      "tier": "high",
+      "view": "dusk",
+      "calls": 865,
+      "triangles": 2847485,
+      "errors": [],
+      "trees": 52000,
+      "shadows": null
+    },
+    {
+      "tier": "high",
+      "view": "overcast",
+      "calls": 878,
+      "triangles": 2796011,
+      "errors": [],
+      "trees": 52000,
+      "shadows": null
+    },
+    {
+      "tier": "high",
+      "view": "night",
+      "calls": 835,
+      "triangles": 2801084,
+      "errors": [],
+      "trees": 52000,
+      "shadows": null
+    },
+    {
+      "tier": "low",
+      "view": "edge",
+      "calls": 426,
+      "triangles": 531034,
+      "errors": [],
+      "trees": 14000,
+      "shadows": null
+    },
+    {
+      "tier": "low",
+      "view": "slope",
+      "calls": 433,
+      "triangles": 567134,
+      "errors": [],
+      "trees": 14000,
+      "shadows": null
+    },
+    {
+      "tier": "low",
+      "view": "dusk",
+      "calls": 422,
+      "triangles": 542891,
+      "errors": [],
+      "trees": 14000,
+      "shadows": null
+    },
+    {
+      "tier": "low",
+      "view": "overcast",
+      "calls": 445,
+      "triangles": 531072,
+      "errors": [],
+      "trees": 14000,
+      "shadows": null
+    },
+    {
+      "tier": "low",
+      "view": "night",
+      "calls": 379,
+      "triangles": 496977,
+      "errors": [],
+      "trees": 14000,
+      "shadows": null
+    }
+  ]
+}

@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { makeRng } from '../physics/atmosphere.js';
 import { sceneryGroundHeight,protectedScenery } from './scenery-ground.js';
 import { addNearTrees, treeFadeShader } from './near-trees.js';
+import { addWoodlandShadows } from './woodland-shadows.js';
 
 function groveNoise(x,z) {
   const ix=Math.floor(x),iz=Math.floor(z),fx=x-ix,fz=z-iz;
@@ -217,19 +218,12 @@ export async function addWoodland(world,photo,approachPhoto) {
   if(corridor)corridor.trees={count:localTrees.length,total:count,limit,spacing:low?[14,18]:[9.5,12],zones:corridor.zoneCounts};
   const group=new THREE.Group();group.name='Photographed woodland stands';
   const geometry=crownGeometry(),matrix=new THREE.Matrix4(),q=new THREE.Quaternion(),up=new THREE.Vector3(0,1,0);
-  const contact=document.createElement('canvas');contact.width=contact.height=64;
-  const g=contact.getContext('2d'),fade=g.createRadialGradient(32,32,3,32,32,32);
-  fade.addColorStop(0,'rgba(0,0,0,.24)');fade.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=fade;g.fillRect(0,0,64,64);
-  const contactMat=new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(contact),transparent:true,depthWrite:false,
-    polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1});
-  const contactGeo=new THREE.PlaneGeometry(1,1).rotateX(-Math.PI/2);
   const records=[];
   for(const trees of patches.values()){
     const crown=geometry.clone(),offsets=new Float32Array(trees.length*2),yaws=new Float32Array(trees.length),frames=new Float32Array(trees.length*2);
     const fades=new THREE.InstancedBufferAttribute(new Float32Array(trees.length),1).setUsage(THREE.DynamicDrawUsage);
     crown.setAttribute('treeDetailFade',fades);
     const mesh=new THREE.InstancedMesh(crown,material,trees.length);
-    const shadows=new THREE.InstancedMesh(contactGeo,contactMat,trees.length);
     trees.forEach((t,i)=>{
       offsets[i*2]=t.type;offsets[i*2+1]=t.row;yaws[i]=t.yaw;
       frames[i*2]=atlas.species[t.row].frameScale;frames[i*2+1]=atlas.species[t.row].aspect;
@@ -237,17 +231,17 @@ export async function addWoodland(world,photo,approachPhoto) {
       const y=sceneryGroundHeight(t.x,t.z,world.groundLowDetail);
       matrix.compose(new THREE.Vector3(t.x,y-.08,t.z),q,new THREE.Vector3(t.w,t.h,t.w));
       mesh.setMatrixAt(i,matrix);
-      matrix.compose(new THREE.Vector3(t.x,y+.04,t.z),q,new THREE.Vector3(t.w*.75,1,t.w*.75));shadows.setMatrixAt(i,matrix);
       const tint=.83+rng()*.17,warm=rng(),color=new THREE.Color().setRGB(tint*(.94+warm*.1),tint,tint*(.88+warm*.1));mesh.setColorAt(i,color);
       if(!low)records.push({...t,id:records.length,y:y-.08,color,fade:fades,index:i});
     });
     crown.setAttribute('treeUvOffset',new THREE.InstancedBufferAttribute(offsets,2));
     crown.setAttribute('treeYaw',new THREE.InstancedBufferAttribute(yaws,1));
     crown.setAttribute('treeFrame',new THREE.InstancedBufferAttribute(frames,2));
-    mesh.computeBoundingSphere();shadows.computeBoundingSphere();group.add(mesh,shadows);
+    mesh.computeBoundingSphere();group.add(mesh);
   }
   geometry.dispose();
   world.scene.add(group);world.woodland=group;world.woodlandMaterial=material;world.woodlandForms=forms;
+  addWoodlandShadows(world,patches,atlas,texture);
   if(!low){
     let pending;
     world.loadNearTrees=()=>pending??=addNearTrees(world,records,atlas).catch(error=>world.assetErrors.push(String(error)));

@@ -557,6 +557,7 @@ export class World {
     // building windows glow at night
     for(const m of this.approachBuildings?.materials||[])m.emissiveIntensity=tod==='night'?.55:tod==='dusk'?.2:0;
     this.approachBuildings?.updateShadows();
+    this.woodlandShadows?.update();
     this.airportArchitecture.setTimeOfDay(tod);
     // Day and night share surface albedo; illumination supplies the time of day.
     this.groundMat.map = this.groundTex;

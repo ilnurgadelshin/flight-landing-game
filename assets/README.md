@@ -521,6 +521,22 @@ existing scenery preparation. Tree counts, geometry, draw batches and near-tree 
 are unchanged. Empty pixels are discarded before reading the response; explicit gradients
 computed before discard keep mip selection defined. Fully obscured sunlight and night skip
 these reads. This improves crown shading, not woodland placement or species diversity.
+The 2026-10-21 ground-shade pass reuses the **alpha of this same colour atlas**.
+It replaces the old flat radial patches with projected silhouettes clipped to the rendered
+terrain triangles. Each tree keeps its current form, yaw and position. Clear light uses
+the nearest baked sun-facing azimuth/elevation; overcast uses a weaker top-view footprint
+beneath the crown, even when the aircraft is above the deck. Night hides these patches.
+A one-level mip bias softens leaf edges. No new image, texture allocation, shadow-map pass,
+model or collision body is added. Ground-material sampler counts are unchanged.
+
+These are inexpensive **ground-only approximations**: they do not shade other trees,
+buildings or raised road/site surfaces, reconstruct terrain-aware light rays, or remove
+shadows already present in the aerial photography. Low-sun stretch is bounded. The tree
+billboards, repeated silhouettes and distant photographic shadows remain visible limitations.
+Geometry is batched in the existing 1 km / 2 km planting patches and rebuilt only when the
+scenario changes its lighting. Terrain clipping costs additional triangles and buffer memory;
+measurements and setup times are recorded in `test/RENDER-PERFORMANCE.md`.
+
 The full models stay in ignored `test/output/tree-source`, `tree-variety-source` and
 `authored-sources`; they are not shipped. These atlases replace the older single-species `tree-canopies.png`.
 To reproduce the atlas from the bundled GLBs (Node and Playwright Chromium required):

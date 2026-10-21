@@ -2168,3 +2168,63 @@ Raw records: `benchmarks/2026-10-21-ground-material-render-before.json`,
 `benchmarks/2026-10-21-ground-material-motion-final.json`. The ignored local
 `output/ground-material-review.html` contains the complete before/after views,
 recordings, measurements and limitations.
+
+## Terrain-following canopy shade — 2026-10-21
+
+Baseline: main `12bceb3`. The old horizontal radial contact planes are replaced with
+alpha silhouettes from the already-loaded tree atlas, clipped to the actual terrain
+triangles. Fixed tree and nearby-model budgets are unchanged; no asset download,
+texture allocation, shadow-map pass or per-frame CPU projection is added.
+
+Same M2 Pro / Chromium 141 / ANGLE Metal, sequential runs at 1440 × 900,
+high 1.5× / low 1×, 4 s warmup and 12 s sampling. Physics is paused; rendering and
+scenery updates are active. This measures steady-state pacing, not complete flight FPS.
+
+| Tier / scene | Before FPS | After FPS | After p95 ms | Draw calls before → after | Extra rendered triangles |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| high / captain | 38.7 | 37.9 | 33.4 | 917 → 918 | +62,119 |
+| high / captain-upper | 36.7 | 35.6 | 33.4 | 1088 → 1088 | +144,747 |
+| high / roadside-homes | 49.9 | 48.5 | 33.4 | 679 → 679 | +122,758 |
+| high / storm | 40.1 | 39.9 | 33.4 | 917 → 918 | +46,192 |
+| low / captain | 60.0 | 60.0 | 16.7 | 529 → 529 | +9,906 |
+| low / captain-upper | 53.9 | 60.0 | 16.7 | 611 → 611 | +20,939 |
+| low / roadside-homes | 60.0 | 60.0 | 16.7 | 441 → 441 | +20,809 |
+| low / storm | 47.6 | 60.0 | 16.7 | 513 → 513 | +7,316 |
+
+High clear views lost about 2–3% FPS in this short comparison; storm changed by less
+than 1%. High p95 remained around 33.4 ms. Low was display-capped at 60 FPS in the
+after run; baseline upper approach/storm varied at 53.9/47.6 FPS. That variation does
+not demonstrate a code speedup. No physical phone or software renderer was measured.
+
+The cost is additional terrain-fitting geometry, not free shading:
+
+| Shade configuration | High triangles / buffer MiB | Low triangles / buffer MiB |
+| --- | ---: | ---: |
+| Before, all lighting | 104,000 / 3.17 | 28,000 / 0.85 |
+| Clear | 378,821 / 17.54 | 56,380 / 2.50 |
+| Dusk | 585,357 / 29.39 | 76,474 / 3.42 |
+| Overcast | 307,349 / 13.94 | 49,241 / 2.18 |
+
+These are total shadow geometry buffers (positions/UVs/indices after, instance matrices
+before), not total process memory or just the currently visible triangles. GPU buffers
+also retain CPU arrays. The high/low shade batches remain 109/28; frustum bounds can
+change the visible draw count by one. At night they are hidden. Geometry is replaced
+and old buffers disposed when the lighting configuration changes; it is not accumulated.
+
+Measured CPU rebuilds were about 400 ms high / 59 ms low for clear, 601 / 70 ms for
+dusk and 276 / 41 ms for overcast. Initial preparation happens behind the menu; a
+lighting/scenario change rebuilds synchronously and can pause briefly. GPU upload time
+is additional and is not isolated by this measurement. This remains a setup cost to
+improve; the steady-state FPS table must not be read as a loading-stall measurement.
+
+The CPU test exercises 16,043 clipped triangles on both terrain tiers and three sun
+angles: interior heights match the rendered terrain to floating-point precision, and
+clipping neither duplicates nor loses area. The old flat-patch fixtures differed by up
+to 7.81 m on slopes. Real-scene browser checks show visible darkening on both tiers,
+weaker overcast shade, zero brightened pixels in the sampled views and no contribution
+at night. Separate crown-direction lighting checks continue to pass.
+
+Reports: `benchmarks/2026-10-21-woodland-shadows-{render-before,render-after,close-before,close-after}.json`.
+Local full-frame comparison: [canopy shade](output/woodland-shadow-review.html).
+This does not remove baked photographic shadows, improve tree silhouettes, or cast
+shadows on other trees, buildings or raised site surfaces.

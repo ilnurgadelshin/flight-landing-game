@@ -1,0 +1,114 @@
+{
+  "baseline": true,
+  "results": [
+    {
+      "tier": "high",
+      "view": "canopy",
+      "calls": 532,
+      "triangles": 772278,
+      "errors": [],
+      "normal": true,
+      "sun": 1
+    },
+    {
+      "tier": "high",
+      "view": "hillside",
+      "calls": 834,
+      "triangles": 1086203,
+      "errors": [],
+      "normal": true,
+      "sun": 1
+    },
+    {
+      "tier": "high",
+      "view": "captain-5500",
+      "calls": 1244,
+      "triangles": 2429567,
+      "errors": [],
+      "normal": true,
+      "sun": 1
+    },
+    {
+      "tier": "high",
+      "view": "dusk",
+      "calls": 843,
+      "triangles": 1138168,
+      "errors": [],
+      "normal": true,
+      "sun": 0.2934782608695652
+    },
+    {
+      "tier": "high",
+      "view": "overcast",
+      "calls": 856,
+      "triangles": 1086177,
+      "errors": [],
+      "normal": true,
+      "sun": 0
+    },
+    {
+      "tier": "high",
+      "view": "night",
+      "calls": 816,
+      "triangles": 1090419,
+      "errors": [],
+      "normal": true,
+      "sun": 0
+    },
+    {
+      "tier": "low",
+      "view": "canopy",
+      "calls": 246,
+      "triangles": 329823,
+      "errors": [],
+      "normal": true,
+      "sun": 1
+    },
+    {
+      "tier": "low",
+      "view": "hillside",
+      "calls": 441,
+      "triangles": 569615,
+      "errors": [],
+      "normal": true,
+      "sun": 1
+    },
+    {
+      "tier": "low",
+      "view": "captain-5500",
+      "calls": 611,
+      "triangles": 982126,
+      "errors": [],
+      "normal": true,
+      "sun": 1
+    },
+    {
+      "tier": "low",
+      "view": "dusk",
+      "calls": 441,
+      "triangles": 582168,
+      "errors": [],
+      "normal": true,
+      "sun": 0.2934782608695652
+    },
+    {
+      "tier": "low",
+      "view": "overcast",
+      "calls": 447,
+      "triangles": 569627,
+      "errors": [],
+      "normal": true,
+      "sun": 0
+    },
+    {
+      "tier": "low",
+      "view": "night",
+      "calls": 397,
+      "triangles": 534215,
+      "errors": [],
+      "normal": true,
+      "sun": 0
+    }
+  ],
+  "lighting": []
+}
