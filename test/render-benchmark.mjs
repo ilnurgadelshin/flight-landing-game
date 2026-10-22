@@ -45,9 +45,10 @@ try{
         s.game.sim.aircraft.place({x:scene==='rollout'?1000:approachX,y:scene==='rollout'?2.5:scene==='deck-captain'?w.cloudTop+220:scene.startsWith('captain-')?15+(approachX-1500)*Math.tan(Math.PI/60):115,z:0,headingDeg:270,iasKts:scene==='rollout'?85:147,flapIndex:4,gearDown:true,gammaDeg:-3,onGround:scene==='rollout'});
         s.view.setMode('cockpit');for(let i=0;i<40;i++)s.view.update(1/60);
         s.game.state='menu';w.setPixelRatio(pixelRatio);
-        if(['roadside-homes','airport','terminal','terminal-close','tower','nearby','site','corridor','extension','opposite','upper-opposite','contour-farm','shoulder','north-farm','hamlet','cloud-sky','cloud-close','deck-top','deck-base','deck-near-top','deck-inside-base','grass-meadow','grass-pasture','grass-soil'].includes(scene)){
+        if(['crossing','roadside-homes','airport','terminal','terminal-close','tower','nearby','site','corridor','extension','opposite','upper-opposite','contour-farm','shoulder','north-farm','hamlet','cloud-sky','cloud-close','deck-top','deck-base','deck-near-top','deck-inside-base','grass-meadow','grass-pasture','grass-soil'].includes(scene)){
           const c=new T.PerspectiveCamera(50,innerWidth/innerHeight,.1,60000);
           if(scene==='airport'){c.position.set(640,110,100);c.lookAt(0,14,440);}
+          else if(scene==='crossing'){c.position.set(5410,220,165);c.lookAt(4860,3,-110);}
           else if(scene==='roadside-homes'){c.position.set(4910,185,335);c.lookAt(4510,35,115);}
           else if(scene==='terminal'){c.position.set(130,14,325);c.lookAt(0,12,452);}
           else if(scene==='terminal-close'){c.position.set(35,5,390);c.lookAt(5,6,427);}

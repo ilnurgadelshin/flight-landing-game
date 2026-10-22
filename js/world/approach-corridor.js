@@ -33,7 +33,7 @@ export async function loadApproachCorridor(world){
    manifest.width<1||manifest.height<1||manifest.width>4096||manifest.height>2048||manifest.width*manifest.height>4096*1024)throw new Error('Invalid approach land-cover dimensions');
  if(manifest.plantingZones){
   const zones=manifest.plantingZones;
-  if(!Array.isArray(zones)||zones.length<1||zones.length>4||zones.some(zone=>
+  if(!Array.isArray(zones)||zones.length<1||zones.length>5||zones.some(zone=>
    !zone||!Array.isArray(zone.bounds)||zone.bounds.length!==4||!zone.bounds.every(Number.isFinite)||
    zone.bounds[2]<=0||zone.bounds[3]<=0||!Number.isInteger(zone.seed)||
    zone.bounds[0]<manifest.bounds[0]||zone.bounds[1]<manifest.bounds[1]||
@@ -41,7 +41,7 @@ export async function loadApproachCorridor(world){
    zone.bounds[1]+zone.bounds[3]>manifest.bounds[1]+manifest.bounds[3]||
    !Number.isInteger(zone.highLimit)||zone.highLimit<1||!Number.isInteger(zone.lowLimit)||zone.lowLimit<1||
    [zone.highSpacing,zone.lowSpacing].some(s=>s!==undefined&&(!Number.isFinite(s)||s<9||s>40)))||
-   zones.reduce((n,z)=>n+z.highLimit,0)>40000||zones.reduce((n,z)=>n+z.lowLimit,0)>12400)throw new Error('Invalid approach planting allocation');
+   zones.reduce((n,z)=>n+z.highLimit,0)>40700||zones.reduce((n,z)=>n+z.lowLimit,0)>12700)throw new Error('Invalid approach planting allocation');
  }
  const texture=await new THREE.TextureLoader().loadAsync(url('png'));
  if(texture.image.width!==manifest.width||texture.image.height!==manifest.height){texture.dispose();throw new Error('Approach land-cover image does not match its manifest');}

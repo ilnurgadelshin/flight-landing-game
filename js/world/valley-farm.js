@@ -82,8 +82,11 @@ export async function loadValleyFarm(world,buildings){
   for(const placement of manifest.placements){
    const cluster=placement.cluster||'valley';
    if(cluster!=='valley'&&!extension.sites.some(site=>site.id===cluster))continue;
-   if(!batches.has(cluster))batches.set(cluster,new Map());
-   const clusterBatches=batches.get(cluster);
+   // Adjacent sites share material draws while keeping their independent data
+   // and fallback checks. Older, spatially separate sites retain their batches.
+   const batchKey=placement.batchGroup||cluster;
+   if(!batches.has(batchKey))batches.set(batchKey,new Map());
+   const clusterBatches=batches.get(batchKey);
    const b=buildings.find(b=>Math.abs(b.x-placement.x)<.1&&Math.abs(b.z-placement.z)<.1);
    const source=model.getObjectByName(placement.id);
    if(!b||!source)throw new Error(`Valley farm placement missing: ${placement.id}`);

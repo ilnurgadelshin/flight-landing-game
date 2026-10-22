@@ -360,22 +360,26 @@ Linear RGB stores meadow/stubble/woodland coverage. The 3450 × 1015 mask preser
 2048 × 603 for ground colour, retaining the full CPU sample buffer. Upload dimensions
 also respect the renderer's maximum texture size. The existing ground shader still
 uses one land-cover lookup and adds no draw call. The larger mask requires about
-14.01 MB each for its high-tier RGBA8 texture and retained CPU pixels (previously
-8.12 MB each); low's GPU copy is about 4.94 MB, below the previous 8.12 MB.
+14.01 MB for its high-tier RGBA8 texture; the exact packed CPU placement copy uses
+about 7 MB plus a small mixed-pixel table. Low's GPU copy is about 4.94 MB.
 
-Coverage is approximately 73.80 ha meadow, 46.24 ha stubble and 790.23 ha woodland:
-910.27 ha total, versus 383.14 ha previously. Clearing holes preserve the large
+Coverage is approximately 75.57 ha meadow, 46.24 ha stubble and 808.93 ha woodland:
+930.74 ha total. The 2026-10-22 crossing pass adds 20.47 ha to the previous 910.27 ha.
+Clearing holes preserve the large
 harvested field and lawns inside the upper woods. Airport, building, road and complete
 site exclusions remain. The outer extension tapers over 160–180 m where woods continue
 outside the interpreted area, avoiding a sharp rectangular treeline. The old mask is
-unchanged west of x=5980; the added tile overlaps its former upper edge beyond that.
+upper-valley extension retained the old mask west of x=5980. The crossing pass now
+fills a separate central gap around x=4400–5300, with three wooded parcels and a meadow.
 
 The three existing planting allocations remain 13,000 / 5,800, 5,500 / 2,600 and
 3,500 / 1,400 (high / low). The extension receives up to 18,000 / 2,600 at 16 / 30 m
 candidate spacing, uniformly thinned to its cap. These allocations replace wider
 photo-selected planting within the unchanged **52,000 / 14,000 total tree budgets**.
-The close spacing remains 9.5 / 14 m and the older upper stands 12 / 18 m. Thirty
-existing site trees remain individually placed. Background positions/tints and some
+A fifth, non-overlapping central strip receives up to 700 / 300 at 12 / 18 m spacing;
+the existing four zones retain their bounds, seeds and allocations. The close spacing
+remains 9.5 / 14 m and the older upper stands 12 / 18 m. Sixty-six eligible
+site trees remain individually placed. Background positions/tints and some
 near-tree selections change when the fixed budget is redistributed.
 
 Open fields retain surveyed crop and soil variation. Nearby forest floors retain the
@@ -383,18 +387,20 @@ existing scanned detail; distant floors now retain photographic light/shade betw
 crowns instead of becoming uniform green surfaces. Tree cards, sparse low-tier canopy,
 photographic shadows and unmapped hills remain approximations.
 
-The PNG/JSON pair is 435,319 bytes, below a 450 KB budget, versus 322,507 before this
-extension: **112,812 extra bytes**. It still loads with optional scenery. Reproduce with
-`node tools/bake-corridor.mjs` (upper traces are in `tools/upper-valley-cover.mjs`);
+The PNG/JSON pair is 303,681 bytes, below a 450 KB budget, versus 435,319 before the
+crossing pass. Lossless PNG compression reduces transfer without changing mask precision
+or GPU dimensions. It still loads behind the menu. Reproduce with
+`node tools/bake-corridor.mjs` (upper traces are in `tools/upper-valley-cover.mjs`, crossing
+traces in `tools/crossing-sites.mjs`);
 validate with `npm run test:corridor`. The bake indexes road/building clearance bounds;
 its distance calculation and feathering are unchanged.
 
 ## Complete approach sites — original geometry / CC0 materials
 
-`scenery/valley-farm.glb` and its `-low` variant contain thirty-five complete building placements, originally
+`scenery/valley-farm.glb` and its `-low` variant contain sixty-two complete building placements, originally
 authored by `tools/prepare-farm.py` in Blender under the project's MIT license. The original
 two valley barns, two opposite-side barns and the detached residential garage use NAIP-traced infill outlines; the other
-thirty placements retain their Microsoft footprints. The models include clapboard homes,
+fifty-seven placements retain their Microsoft footprints. The models include clapboard homes,
 red-roofed working buildings, workshops, timber barns and three domed silos in two groups.
 Recessed openings, thick roof edges/ridge caps, gutters, door
 canopies, foundations and home chimneys are geometry. Fine clapboard laps and standing seams
@@ -422,7 +428,7 @@ add broad variation and paired wheel wear. The dairy has two parallel pitched ro
 crosswing, recessed doors and side ventilation windows. Three 48-sided silos with domes,
 hoops and ladders replace two incorrect rectangular blocks; their projected shadows use
 rounded plan outlines. The dairy's interpreted 8.4 m ridge replaces the 3.4 m source estimate.
-Thirty eligible garden/boundary trees now serve all four sites, within the same total
+That earlier four-site pass placed thirty eligible garden/boundary trees within the same total
 planting budget. Heights, lane widths, planting and architecture are artistic interpretations.
 
 The siding and gravel yard use these **CC0** scans:
@@ -435,36 +441,52 @@ The siding and gravel yard use these **CC0** scans:
 Source URLs, authors, checksums, placements and exact delivered byte counts are retained in
 `scenery/farm-sources.json`. Wood textures use 1024 px high / 512 px low WebP. The gravel
 colour map follows those sizes; gravel normal and roughness maps use 512 px high / 256 px low.
-Meshes are Meshopt-compressed. Building meshes merge by material within each site, retaining
-local culling bounds. The five sites use 65 draw batches before subtracting replaced procedural
-facades: 44 building material batches, the original yard and four grounds/boundary batches per
-site. Buildings use 92,375 triangles; grounds/fences use 175,866 triangles, plus the original
+Meshes are Meshopt-compressed. Building meshes merge by material within each site; the three
+adjacent crossing sites share one bounded building group to save 20 material batches.
+The eight sites use 88 draw batches before subtracting replaced procedural
+facades: 55 building material batches, the original yard and four grounds/boundary batches per
+site. Buildings use 133,587 triangles; grounds/fences use 273,132 triangles, plus the original
 2,924-triangle yard. Only referenced parcel-grid vertices are uploaded; narrow drives use
 feathered ribbons. Preparation happens behind the menu. Missing models or yard materials
 retain procedural buildings and imagery. Missing or invalid extension data keeps the original
-nine complete valley buildings and falls back for the other 26 placements.
+nine complete valley buildings and falls back for the other 53 placements.
 
 The 2026-10-19 residential frontage adds 13 models, including one previously missing garage,
 to the existing four sites. Twelve retain Microsoft footprints; the garage roof is traced from
 bundled high-resolution `detail/4_0.webp`. Grounds follow its low-resolution counterpart:
 six lawn parcels, seven yards, five road-connected drives and seven local access joins. The
 pool is preserved in the underlying imagery and remains excluded from tree planting. Forty-two
-eligible placed trees serve all five sites, within the unchanged 52,000 high / 14,000 low budget.
+eligible placed trees served those five sites, within the unchanged 52,000 high / 14,000 low budget.
 The new cream, sage and warm grey siding shares the existing clapboard normal. An original
 256 px baked shingle texture adds restrained roof variation; its charcoal multiplier is restored
 explicitly during delivery because Blender's exporter omits that MixRGB factor. Parcel gravel
 has a separate colour scale. These are visual interpretations, not surveyed buildings.
 
 
-Models, grounds and gravel maps total 2,908,267 bytes high / 1,955,309 bytes low, excluding the shared manifest. Relative to `396c522`, this adds 423,260 / 421,900 bytes.
+The 2026-10-22 approach crossing adds 27 registered buildings across three connected
+groups of grounds: a local lane, residential/workshop frontage and the next road bend.
+Fourteen lawns, fifteen gravel areas, fourteen street/drive ribbons, twenty-two access
+paths and thirteen timber boundaries join the existing road network. Thirty-four candidate
+garden trees are checked against building/road clearances; 66 eligible placed trees serve
+all eight sites. `tools/crossing-sites.mjs` records world-metre interpretations of the bundled
+`4_-1`, `5_-1`, `4_0` and `5_0` imagery. Drive endpoints snap to the registered road line;
+unreviewed joins over 8 m are rejected. No footprint detections, external assets or textures
+are added. Existing wall finishes and shingle/metal roofs are reused. Missing optional site
+data still selects fallback buildings before any shared material batching occurs.
+
+Models, grounds and gravel maps total 3,656,096 bytes high / 2,703,194 bytes low,
+excluding the shared manifest. Relative to `9c30fd6`, the whole crossing pass including
+land-cover changes adds **624,047 / 624,103 bytes** per tier. GLB delivery omits unused
+Blender child/mesh/accessor labels; building IDs, material names, geometry and texture
+precision remain. Both tiers retain the same complete-building geometry; low has smaller maps.
 
 Reproduce (download cache and Blender source remain under ignored `test/output/farm-sources/`):
 
 ```sh
 python3 tools/fetch-farm-materials.py
 python3 tools/prepare-approach-infill.py
-blender --background --python tools/prepare-farm.py
 node tools/prepare-approach-sites.mjs
+blender --background --python tools/prepare-farm.py
 node tools/prepare-farm.mjs
 ```
 
@@ -526,8 +548,9 @@ these reads. This improves crown shading, not woodland placement or species dive
 The 2026-10-21 ground-shade pass reuses the **alpha of this same colour atlas**.
 It replaces the old flat radial patches with projected silhouettes clipped to the rendered
 terrain triangles. Each tree keeps its current form, yaw and position. Clear light uses
-the nearest baked sun-facing azimuth/elevation; overcast uses a weaker top-view footprint
-beneath the crown, even when the aircraft is above the deck. Night hides these patches.
+the nearest baked sun-facing azimuth/elevation. Overcast and night hide these patches,
+even when the aircraft is above the deck. The sunlit geometry stays in memory while
+hidden and is reused when clear weather returns with the same sun direction.
 A one-level mip bias softens leaf edges. No new image, texture allocation, shadow-map pass,
 model or collision body is added. Ground-material sampler counts are unchanged.
 
@@ -535,8 +558,8 @@ These are inexpensive **ground-only approximations**: they do not shade other tr
 buildings or raised road/site surfaces, reconstruct terrain-aware light rays, or remove
 shadows already present in the aerial photography. Low-sun stretch is bounded. The tree
 billboards, repeated silhouettes and distant photographic shadows remain visible limitations.
-Geometry is batched in the existing 1 km / 2 km planting patches and rebuilt only when the
-scenario changes its lighting. Terrain clipping costs additional triangles and buffer memory;
+Geometry is batched in the existing 1 km / 2 km planting patches and rebuilt only when
+visible shade needs a different sun direction. Terrain clipping costs additional triangles and buffer memory;
 measurements and setup times are recorded in `test/RENDER-PERFORMANCE.md`.
 
 The full models stay in ignored `test/output/tree-source`, `tree-variety-source` and

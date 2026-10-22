@@ -31,16 +31,20 @@ assert.ok(sample(4560,-891)[0]>.8&&sample(5650,-666)[0]>.8,'Upper approach pastu
 assert.ok(sample(4314,-626)[1]>.8,'The upper harvested field keeps its own cover');
 assert.ok(sample(4100,-756)[0]>.8&&sample(4100,-711)[1]>.8,'Curved crop strips remain distinct across the planting-zone boundary');
 assert.ok(sample(5774,-216)[2]>.8,'The upper woodland replaces flat photographic trees');
+assert.ok(sample(4740,-80)[2]>.8&&sample(4990,90)[2]>.8,'Wooded parcels continue across the approach crossing');
+assert.ok(sample(4510,-70)[0]>.8,'The pasture beside the crossing lane remains open');
 for(const site of JSON.parse(await fs.readFile('assets/scenery/approach-sites.json')).sites)for(const tree of site.trees){
  const cover=sample(tree.x,tree.z);assert.ok(cover[0]+cover[1]<=.6,'Placed garden trees keep mapped fields open');
 }
 for(const [x,z] of [[6500,600],[7500,600],[8500,600],[6500,-400],[7800,-800],[8500,-600]])assert.ok(sample(x,z)[2]>.8,'Upper valley woodland follows both sides of final');
 assert.ok(sample(7550,-400)[1]>.8,'The large upper harvested clearing stays open');
 assert.ok(sample(8660,-760)[0]>.8&&sample(8200,-445)[0]>.8,'Clearings inside woodland polygons remain meadows');
-assert.equal(manifest.plantingZones.length,4);
+assert.equal(manifest.plantingZones.length,5);
 assert.deepEqual(manifest.plantingZones[0],{bounds:[2100,180,4000,850],seed:94051,highLimit:13000,lowLimit:5800},'Denser upper woodland has a bounded share of the existing total tree budget');
 assert.deepEqual(manifest.plantingZones[1],{bounds:[2100,-1000,2000,820],seed:77021,highLimit:5500,lowLimit:2600},'Close opposite canopy retains its planting allocation');
-assert.ok(manifest.plantingZones.reduce((sum,z)=>sum+z.highLimit,0)<=40000&&manifest.plantingZones.reduce((sum,z)=>sum+z.lowLimit,0)<=12400);
+assert.deepEqual(manifest.plantingZones[2],{bounds:[4100,-1000,2000,820],seed:62039,highLimit:3500,lowLimit:1400},'New central planting must not thin the existing upper-opposite stand');
+assert.deepEqual(manifest.plantingZones[4],{bounds:[4400,-180,900,360],seed:261022,highLimit:700,lowLimit:300,highSpacing:12,lowSpacing:18});
+assert.ok(manifest.plantingZones.reduce((sum,z)=>sum+z.highLimit,0)<=40700&&manifest.plantingZones.reduce((sum,z)=>sum+z.lowLimit,0)<=12700);
 assert.deepEqual(manifest.plantingZones[3].bounds,[6100,-1000,2900,2030]);
 assert.ok(manifest.plantingZones[3].highSpacing>=16&&manifest.plantingZones[3].lowSpacing>=30,'The extension uses wider spacing without increasing the whole-world tree budget');
 // The packed placement copy returns exactly what the decoded RGBA pixels give, every pixel.

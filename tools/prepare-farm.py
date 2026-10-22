@@ -79,8 +79,8 @@ M['shingle'].node_tree.links.new(t.outputs['Color'],mix.inputs[1]);M['shingle'].
 t=M['redroof'].node_tree.nodes.new('ShaderNodeTexImage');t.image=bpy.data.images['seam-relief']
 n=M['redroof'].node_tree.nodes.new('ShaderNodeNormalMap');M['redroof'].node_tree.links.new(t.outputs['Color'],n.inputs['Color']);M['redroof'].node_tree.links.new(n.outputs['Normal'],M['redroof'].node_tree.nodes.get('Principled BSDF').inputs['Normal'])
 class Builder:
- def __init__(self,name,style='barn',finish=None):
-  self.name=name;self.style=style;self.finish_material=finish;self.data={k:[[],[],[]] for k in M}
+ def __init__(self,name,style='barn',finish=None,roof_finish=None):
+  self.name=name;self.style=style;self.finish_material=finish;self.roof_finish=roof_finish;self.data={k:[[],[],[]] for k in M}
  def face(self,pts,mat,uv=None,up=False,outward=None):
   # Metric UVs on every orientation; reject coincident gable corners before export.
   pts=[Vector(v) for v in pts]
@@ -91,8 +91,9 @@ class Builder:
   if (up and normal.y<0) or (outward is not None and normal.dot(Vector(outward))<0):pts.reverse()
   if mat=='siding' and self.style=='house':mat='paint'
   if self.finish_material and mat in ['siding','paint']:mat=self.finish_material
-  if self.finish_material and mat=='roof':mat='shingle'
-  if mat=='roof' and self.style=='garage':mat='redroof'
+  if mat=='roof' and self.roof_finish:mat=self.roof_finish
+  elif self.finish_material and mat=='roof':mat='shingle'
+  if mat=='roof' and self.style=='garage' and not self.roof_finish:mat='redroof'
   p,f,t=self.data[mat];i=len(p);p.extend((x,-z,y) for x,y,z in pts);f.append(tuple(range(i,i+len(pts))))
   if uv is None:
    if abs(normal.y)>max(abs(normal.x),abs(normal.z)):
@@ -233,9 +234,17 @@ for x,z,name,style,finish in [
  bs.append(dict(b,id=name,style=style,finish=finish,cluster='roadside-homes',sparseBattens=True))
 b=next(b for b in extras if b['id']=='garden-cottage-garage')
 bs.append(dict(b,style='garage',finish='sand',cluster='roadside-homes',sparseBattens=True))
+# Complete the connected crossing neighborhood. Placements and original use/finish
+# interpretations are shared with the reviewed parcel/access source, not duplicated.
+for site in json.loads((ROOT/'assets/scenery/approach-sites.json').read_text())['sites']:
+ for spec in site.get('buildings',[]):
+  b=next(b for b in registered if b['x']==spec['x'] and b['z']==spec['z'])
+  roof='redroof' if spec['id']=='bend-red-roof-house' else 'shingle' if spec['style']=='house' else 'roof'
+  bs.append(dict(b,**{k:v for k,v in spec.items() if k not in ['x','z']},roofFinish=roof,sourceHeight=b['height'],cluster=site['id'],sparseBattens=True))
 manifest=[]
 for b in bs:
  placement={**{k:b[k] for k in ['id','x','z','angle','w','d','height']},'style':b.get('style','barn'),'sourceHeight':b.get('sourceHeight',b['height']),'cluster':b.get('cluster','valley')}
+ if placement['cluster'].startswith('crossing-'):placement['batchGroup']='approach-crossing'
  if b.get('style') in ['silo','silos']:
   B=Builder(b['id'],b['style']);w,d=b['w'],b['d'];centres=[(0,0,min(w,d)*.46)] if b['style']=='silo' else [(-w*.25,0,min(w*.225,d*.43)),(w*.25,0,min(w*.225,d*.43))]
   for x,z,r in centres:silo(B,x,z,r,b['height'])
@@ -261,7 +270,7 @@ for b in bs:
    B.box((x,2,19.03),(4.1,3.65,.09),'dark');B.box((x,2,19.10),(3.8,3.4,.06),'door');B.box((x,3.93,19.18),(4.4,.12,.3),'trim')
   placement['roofSamples']=[[x*math.cos(b['angle']),x*math.sin(b['angle'])] for x in [-10.5,5]]
   B.finish();manifest.append(placement);continue
- style=b.get('style','barn');B=Builder(b['id'],style,b.get('finish'));w,d=b['w'],b['d'];rise=min(d*.27,b['height']*.38,4)
+ style=b.get('style','barn');B=Builder(b['id'],style,b.get('finish'),b.get('roofFinish'));w,d=b['w'],b['d'];rise=min(d*.27,b['height']*.38,4)
  if 'style' in b:rise=min(rise,max(.35,b['height']-2.65))
  eave=b['height']-rise
  c,s=math.cos(b['angle']),math.sin(b['angle']);points=[(x*c+z*s,-x*s+z*c) for x,z in b['outline']]

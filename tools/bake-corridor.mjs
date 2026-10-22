@@ -5,6 +5,7 @@ import fs from 'node:fs/promises';
 import sharp from 'sharp';
 import {protectedScenery} from '../js/world/scenery-ground.js';
 import {upperValleyTraces} from './upper-valley-cover.mjs';
+import {crossingCover} from './crossing-sites.mjs';
 const traces=[
  ['2_0','meadow',[[104,0],[195,0],[619,580],[695,734],[642,847],[549,927],[424,698]]],
  ['2_0','stubble',[[206,0],[336,0],[522,279],[610,492],[678,664],[698,732],[623,637]]],
@@ -93,15 +94,19 @@ const upperTraces=[
 ];
 traces.push(...upperTraces.map(([tile,type,points])=>[tile,type,points,1032]));
 traces.push(...upperValleyTraces);
+traces.push(...crossingCover);
 const bounds=[2100,-1000,6900,2030],width=3450,height=1015;
 // Preserve the original region's grid, feather and planting seed while adding the
 // opposite side. Separate planting allocations avoid thinning the reviewed stands.
 const plantingZones=[{bounds:[2100,180,4000,850],seed:94051,highLimit:13000,lowLimit:5800},
  {bounds:[2100,-1000,2000,820],seed:77021,highLimit:5500,lowLimit:2600},
  {bounds:[4100,-1000,2000,820],seed:62039,highLimit:3500,lowLimit:1400},
- {bounds:[6100,-1000,2900,2030],seed:251015,highLimit:18000,lowLimit:2600,highSpacing:16,lowSpacing:30}];
+ {bounds:[6100,-1000,2900,2030],seed:251015,highLimit:18000,lowLimit:2600,highSpacing:16,lowSpacing:30},
+ // Preserve existing stands: this central strip takes its allocation from the
+ // wider photo-selected planting, within the unchanged whole-world tree budget.
+ {bounds:[4400,-180,900,360],seed:261022,highLimit:700,lowLimit:300,highSpacing:12,lowSpacing:18}];
 // Feather the outside of the coverage, not the internal planting-budget boundary.
-const coverRegions=[[2100,180,6900,850],[2100,-1000,6900,820],[6100,-230,2900,460]];
+const coverRegions=[[2100,180,6900,850],[2100,-1000,6900,820],[6100,-230,2900,460],[4400,-230,900,460]];
 const areas=traces.map(([tile,type,points,size=1600,holes=[]])=>{
  const project=ps=>ps.map(([x,z])=>[Number((Number(tile.split('_')[0])*1000-16+x*1032/size).toFixed(2)),Number((Number(tile.split('_')[1])*1000-16+z*1032/size).toFixed(2))]);
  return {tile,type,points:project(points),...(holes.length?{holes:holes.map(project)}:{})};
@@ -160,6 +165,6 @@ for(let j=0;j<height;j++)for(let i=0;i<width;i++){
  weights[1]*=(1-weights[2])*(1-weights[0]);weights[0]*=1-weights[2];
  for(let c=0;c<3;c++){pixels[(j*width+i)*3+c]=Math.round(weights[c]*clearance*boundary*255);counts[c]+=pixels[(j*width+i)*3+c]/255;}
 }
-await sharp(pixels,{raw:{width,height,channels:3}}).png().toFile('assets/scenery/approach-corridor.png');
+await sharp(pixels,{raw:{width,height,channels:3}}).png({compressionLevel:9,adaptiveFiltering:true}).toFile('assets/scenery/approach-corridor.png');
 await fs.writeFile('assets/scenery/approach-corridor.json',JSON.stringify({bounds,width,height,plantingZones,licence:'Interpreted boundaries derived from public-domain USDA NAIP / USGS imagery already bundled in detail/2_0.webp through detail/8_0.webp and detail/2_-1.webp through detail/8_-1.webp. Not a land-use survey.',areas,hectares:counts.map(c=>Number((c*bounds[2]/width*bounds[3]/height/10000).toFixed(2)))},null,2)+'\n');
 console.log('Corridor meadow/stubble/woodland hectares',counts.map(c=>c*4/10000),'mask bytes',(await fs.stat('assets/scenery/approach-corridor.png')).size);
