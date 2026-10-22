@@ -102,7 +102,7 @@ console.log('\n[4] Idle thrust + full back stick -> decelerates and stalls; nose
 {
   const sim = new Simulation({ scenarioId: 'clear', startId: 'standard' });
   sim.input.throttle = 0; sim.input.flapIndex = 4; sim.input.gearDown = true;
-  let stallT = -1, warnT = -1, maxAlpha = 0, minIas = 999, pitchAtStall = 0, pitchLater = 0;
+  let stallT = -1, warnT = -1, maxAlpha = 0, minIas = 999, iasAtStall = 0, pitchAtStall = 0, pitchLater = 0;
   let t = 0;
   const pitch0 = sim.state.pitch;
   let gAtStall = 0;
@@ -116,12 +116,14 @@ console.log('\n[4] Idle thrust + full back stick -> decelerates and stalls; nose
     maxAlpha = Math.max(maxAlpha, st.alpha / DEG);
     minIas = Math.min(minIas, st.ias);
     if (st.stallWarning && warnT < 0) warnT = t;
-    if (st.stalled && stallT < 0) { stallT = t; pitchAtStall = st.pitch; gAtStall = st.gLoad; }
+    if (st.stalled && stallT < 0) { stallT = t; iasAtStall = st.ias; pitchAtStall = st.pitch; gAtStall = st.gLoad; }
     if (stallT > 0 && t > stallT + 6) { pitchLater = st.pitch; break; }
   }
   check('stick shaker fires before the stall', warnT > 0 && warnT < stallT, `warning at ${fmt(warnT)} s, stall at ${fmt(stallT)} s`);
   check('the aircraft stalls', stallT > 0, `alpha max ${fmt(maxAlpha)}°, min IAS ${fmt(minIas, 0)} kts`);
-  check('stall speed is realistic for flaps 30 (105–125 kts at ~1 g)', minIas > 100 && minIas < 126, `min IAS ${fmt(minIas, 0)} kts, ${fmt(gAtStall, 2)} g at the stall`);
+  // the stall speed is where the stall is identified: held in the stall, the separated flow's drag
+  // slows the aircraft further before the nose drops (min IAS)
+  check('stall speed is realistic for flaps 30 (105–125 kts at ~1 g)', iasAtStall > 100 && iasAtStall < 126, `${fmt(iasAtStall, 0)} kts and ${fmt(gAtStall, 2)} g at the stall, min IAS ${fmt(minIas, 0)} kts`);
   check('nose drops / sink rate develops after the stall', sim.state.vs < -8 || pitchLater < pitchAtStall - 3 * DEG, `vs ${fmt(sim.state.vs / 0.00508, 0)} fpm, pitch ${fmt(pitchLater / DEG)}° vs ${fmt(pitchAtStall / DEG)}°`);
 }
 

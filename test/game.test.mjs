@@ -279,7 +279,10 @@ console.log('\n[R9] The autoland goes around when an approach or a landing goes 
     const f = Q.of('finish')[0], g = Q.game.events.filter((e) => e.type === 'goaround');
     return { f, g, gaT: g.length ? g[0].t : null };
   };
-  const b = storm('standard', 21);
+  // (a seed whose turbulence balloons the flare: a change to the flight model moves every gust,
+  // so this is re-chosen with it; seed 85 balloons and then lands at about 200 fpm in both the
+  // table-based model and the one before it, and their storm landings are alike over 200 seeds)
+  const b = storm('standard', 85);
   check('storm: a balloon in the flare — it goes around, and lands from the next approach', b.g.length && /balloon/.test(b.g[0].text) && b.f && b.f.result.success && b.f.result.touchdown.sink < 3.05, b.f ? `${b.g.map((e) => e.text).join('; ')} → ${(b.f.result.touchdown.sink / 0.00508).toFixed(0)} fpm` : 'no result');
   const l = storm('short', 8);
   check('storm: floating past the touchdown zone — it goes around; the touch-and-go is not the landing graded', l.g.some((e) => /long landing/.test(e.text)) && l.g.some((e) => /touch-and-go/.test(e.text)) && l.f && l.f.result.success && l.f.result.touchdown.alongRunway < 1000 && l.f.result.touchdown.flapDeg === 30, l.f ? `graded touchdown ${l.f.result.touchdown.alongRunway.toFixed(0)} m past the threshold, flaps ${l.f.result.touchdown.flapDeg}` : 'no result');

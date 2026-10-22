@@ -332,11 +332,20 @@ and the buttons, which helps in a crosswind flare.
 ## What is simulated
 
 **Flight dynamics** (`js/physics/aircraft.js`): a 6-DOF rigid body in
-cannon-es with realistic 737-800 mass and inertia, driven by a
-coefficient-based aerodynamic model — lift curve with a smooth stall per flap
-setting, induced and parasite drag (flaps, gear, spoilers), ground effect,
-pitch/roll/yaw stability and control derivatives, a yaw damper, engine spool
-dynamics with reverse thrust (from reverse idle to max reverse, about 88 % N1), a progressive oleo landing gear with tyre
+cannon-es with realistic 737-800 mass and inertia. Its lift, profile drag and
+pitching moment come from tables by angle of attack and flap angle
+(`js/physics/aero-tables.js`, written by `tools/prepare-aero-tables.mjs`): each flap
+setting's maximum lift puts VREF at 1.23 times its 1-g stall speed (CS 25.125), the lift
+curve rounds into a gentle stall, the stick shaker comes 7 % above it, and past the
+stall the lift falls, the separated flow's drag rises and the nose drops. Added to them:
+induced drag, gear and spoilers, ground effect, pitch/roll/yaw stability and control
+derivatives and a yaw damper. Two CFM56-7B26s (ICAO data: 116.99 kN, bypass ratio 5.1) spool
+up and down, and their thrust lapses with Mach number and altitude as Bartel & Young's
+(2008) model gives it (`js/physics/engines.js`): about 80 % of the static thrust at
+approach speed. Each engine pushes on its own thrust line, 4.9 m from the centreline, so
+one failed engine (`aircraft.setEngineFailed(i)`, which leaves its fan windmilling) yaws
+the aircraft towards it until the rudder holds it. Reverse thrust runs from reverse idle
+to max reverse (about 88 % N1). A progressive oleo landing gear with tyre
 cornering and braking friction (dry / wet / grass), nose-wheel steering from
 the rudder pedals (±7° at any speed, as on a 737: at speed the rudder does most
 of the work),
@@ -971,7 +980,7 @@ draws every scenario by day and night on both graphics tiers.
 
 | Command | What it checks | Time |
 | --- | --- | --- |
-| `npm test` | Node, no browser: physics (71 checks in 13 groups), phone features (59 checks in 7 groups), game controllers (40 checks in 6 groups), the sky model (12 checks in 3 groups), the head-up display (23 checks in 5 groups), navigation (57 checks in 4 groups) and the game's rules (99 checks in 10 groups), below | ~10 s |
+| `npm test` | Node, no browser: physics (71 checks in 13 groups), the flight model against published data (22 checks in 7 groups), phone features (59 checks in 7 groups), game controllers (40 checks in 6 groups), the sky model (12 checks in 3 groups), the head-up display (23 checks in 5 groups), navigation (57 checks in 4 groups) and the game's rules (99 checks in 10 groups), below | ~10 s |
 | `npm run test:e2e` | The real page in Chromium: 270 checks in 17 groups (below), run in 3 parallel processes (`test/e2e-parallel.mjs`) | ~13–17 min |
 | `npm run test:e2e:quick` | The same without the four landings flown in real time (E9, E11, E13, E15) | ~6 min |
 | `node test/e2e.mjs only=<groups>` | E1 plus the groups listed, in one process, comma-separated: `menu`, `keys`, `school`, `land`, `fail`, `ga`, `maps`, `fps`, `keyboard`, `mobile`, `touchland`, `tilt`, `tiltland`, `gamepad`, `padland`, `graphics` (e.g. `only=tilt,tiltland`) | 10 s – 3 min each |
@@ -1012,7 +1021,8 @@ queued when a flight starts can hold frames back for up to a second some time la
 1. trimmed hands-off flight is stable;
 2. the physics gives the same result at 30 and 144 frames per second;
 3. pitch, roll and rudder inputs move the aircraft the right way;
-4. idle thrust with full back stick stalls it and the nose drops;
+4. idle thrust with full back stick stalls it (at 100–126 kts where the stall is
+   identified, with flaps 30) and the nose drops;
 5. an uncorrected crosswind drifts it off the centreline;
 6. an autoland succeeds in every scenario;
 7. the short-final and full-approach starts are flyable;
@@ -1041,6 +1051,22 @@ queued when a flight starts can hold frames back for up to a second some time la
     shorter. It checks that the storm's peak 3-second gusts at a 20 ft
     anemometer come within 5 kt of its reported 14, and that clear weather is
     smooth.
+
+`test/flight-model.test.mjs` checks the aerodynamic tables and the engines against what is
+published about the 737-800 and what certification (CS-25, as FAR 25) requires of it:
+
+1. 1.23 times each flap setting's 1-g stall speed is its VREF (CS 25.125), and the stick
+   shaker comes at least 5 kt and 5 % before the stall (CS 25.207);
+2. at every flap setting the lift rises steadily to the stall and falls past it, the
+   separated flow's drag rises and the pitching moment breaks nose-down;
+3. on a 3° glidepath at VREF + 5 flaps 30 flies 0.5–3.5° nose up and flaps 40 lower;
+4. the thrust lapses with Mach number and altitude, about 80 % of the static thrust at
+   145 kts, and the N1 for a thrust inverts the thrust at an N1;
+5. the landing climb with all engines (at least 3.2 %, CS 25.119), the approach climb with
+   one engine out (at least 2.1 %, CS 25.121(d)) and a go-around's climb rate;
+6. one failed engine yaws the aircraft towards it, and at VREF with flaps 30 the rudder holds
+   the heading within 3° with at most 5° of bank and rudder to spare (VMCL ≤ VREF);
+7. the starts are trimmed: hands off on the glidepath the airspeed holds within 1 kt.
 
 The autolands are flown by a test pilot (`js/autopilot.js`) that uses only the
 controls a player has. It flies as a pilot does:
