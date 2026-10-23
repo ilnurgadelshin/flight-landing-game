@@ -62,4 +62,15 @@ const hillTotal=[0,0,0];for(let i=0;i<hill.length;i+=3){assert.ok(hill[i]+hill[i
 for(let c=0;c<3;c++)assert.ok(Math.abs(hillTotal[c]*h.bounds[2]*h.bounds[3]/h.width/h.height/10000-h.hectares[c])<.01);
 assert.ok(manifest.width*manifest.textureHeight<=4500000,'Bounded combined GPU atlas');
 assert.ok(h.plantingZones.reduce((n,z)=>n+z.highLimit,0)<=8000&&h.plantingZones.reduce((n,z)=>n+z.lowLimit,0)<=1000);
+assert.equal(h.plantingZones[0].lowLimit,0,'The hillside is high quality only: phones keep their background trees');
+// A gutter of repeated edge rows separates the two maps, so filtering never blends them.
+const full=await sharp(root+'.png').raw().toBuffer(),rowAt=r=>full.subarray(r*manifest.width*3,(r+1)*manifest.width*3);
+assert.ok(h.atlas[1]>manifest.height&&manifest.textureHeight===h.atlas[1]+h.height);
+for(let r=manifest.height;r<h.atlas[1];r++)assert.ok(rowAt(r).equals(rowAt(r-manifest.height<(h.atlas[1]-manifest.height)/2?manifest.height-1:h.atlas[1])),'Gutter rows repeat the adjacent map edge');
+// Where both maps have woods, the cover runs on across their join (z=1030) without a gap:
+// above 0.6 everywhere, so trees are planted right across it.
+const close=(x,z)=>data[(Math.floor((z-manifest.bounds[1])/manifest.bounds[3]*manifest.height)*manifest.width+Math.floor((x-manifest.bounds[0])/manifest.bounds[2]*manifest.width))*3+2]/255;
+for(const x of [4300,4600,4900])for(let z=990;z<=1070;z+=4){
+ const woods=z<1030?close(x,z):hillside(x,z);assert.ok(woods>.6,`Continuous woods across the join at ${x}, ${z}: ${woods.toFixed(2)}`);
+}
 console.log('Corridor coverage, airport clearance, registration, transfer budget and exact packed cover passed');

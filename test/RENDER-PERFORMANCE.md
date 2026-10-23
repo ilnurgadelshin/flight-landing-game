@@ -2440,3 +2440,38 @@ Reports: `benchmarks/2026-10-23-approach-hills-*.json`, including both raw rende
 repeated low-tier samples, scenery/corridor/authored/site/delivery checks and motion metadata.
 Local [pilot and hillside comparison](output/approach-hills-review.html) includes both tiers,
 nine matched views, overcast/night and the moving pilot-camera pair.
+
+### Review follow-up: hillside join, low tier and portable checks — 2026-10-23
+
+The review found a straight treeless band where the close map met the hill tile (both
+faded there; cover stayed below 0.15 over z≈1012–1041), a density step at that line, a
+low tier that spent 1000 of its 14,000 trees on the hillside, and two checks fixed to Metal.
+
+- The bake now carries the hill tile's cover into the close map's last 30 m and drops
+  both fades at the shared edge. Only the close map's last 15 rows change, within the hill
+  tile's x range. A 6-row gutter of repeated edge rows separates the two maps in the atlas,
+  so bilinear filtering and the low tier's downscale never blend them. Weighted cover is
+  936.40 + 411.36 = **1347.76 ha** (was 1337.06). The PNG/JSON pair grows 321,536 →
+  **323,856 bytes** (+2,320).
+- High quality: the atlas is 3450 × 1277 (17,622,600 RGBA8 bytes, +82,800 for the gutter).
+  The hillside's 8000 trees thin over 200 m from the join down to 30 % of the close woods'
+  density, from 13 m candidates, and systematic sampling fills exactly the allocation. In
+  40 m strips either side of the join (x=4200–5000) there are 201 close / 164 hill trees;
+  the hills-scenery check requires at least 70 %. The tile holds 7932 tree cards and the
+  airport side 559 (8023 / 557 in the first version).
+- Low quality uses no hill tile: no hill trees, tint, upload or CPU samples. The texture
+  returns to the close map alone, 2048 × 603 (4,939,776 bytes, down from 6,176,768), and
+  the airport side keeps 152 trees instead of 29 (189 before the hillside pass). In the
+  same oblique view, the low tier's woods end at z=1030 against the leaf-off photograph
+  as they did before the hillside pass.
+- `hills-scenery` and `hills-motion` default to SwiftShader with the standard flags
+  (`VISUAL_GPU=metal` for hardware). Under software rendering the motion check draws only
+  its three sampled frames and records no video (121 s here); hardware still records.
+
+SwiftShader results: hills-scenery (458 s), corridor-scenery, hills-motion, woodland
+coverage/shadows, approach-scenery, approach-sites and delivery pass, as do all Node suites.
+Delivery measures 14,236,167 / 8,700,280 bytes to the menu and 65,714,672 / 19,059,555
+after preparation; this branch also carries the flight-model tables, so the increase over
+the hillside pass is not this change alone. No frame-rate measurements were repeated:
+tree instance counts are unchanged, texture memory falls on low and grows by the gutter
+rows on high, and the M2 Pro figures above still describe the first version.

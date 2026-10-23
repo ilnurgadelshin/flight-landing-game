@@ -48,15 +48,18 @@ export async function loadApproachCorridor(world){
  if(!Number.isInteger(textureHeight)||textureHeight<manifest.height||textureHeight>1536||manifest.width*textureHeight>4500000)
   throw new Error('Invalid approach land-cover atlas dimensions');
  if(hills){
+  // The hill tile sits below the close map, after a short gutter of repeated edge rows.
   const b=hills.bounds,zones=hills.plantingZones;
   if(!Array.isArray(b)||b.length!==4||!b.every(Number.isFinite)||b[2]<=0||b[3]<=0||
    !Number.isInteger(hills.width)||hills.width<1||hills.width>1024||hills.width>manifest.width||
-   !Number.isInteger(hills.height)||hills.height<1||hills.height>256||textureHeight!==manifest.height+hills.height||
-   !Array.isArray(hills.atlas)||hills.atlas[0]!==0||hills.atlas[1]!==manifest.height||hills.atlas.length!==2||
+   !Number.isInteger(hills.height)||hills.height<1||hills.height>256||
+   !Array.isArray(hills.atlas)||hills.atlas.length!==2||hills.atlas[0]!==0||!Number.isInteger(hills.atlas[1])||
+   hills.atlas[1]<manifest.height||hills.atlas[1]>manifest.height+16||textureHeight!==hills.atlas[1]+hills.height||
    b[1]<manifest.bounds[1]+manifest.bounds[3]||!Array.isArray(zones)||zones.length!==1||zones.some(z=>
     !Array.isArray(z.bounds)||z.bounds.length!==4||!z.bounds.every((v,i)=>v===b[i])||!Number.isInteger(z.seed)||
-    !Number.isInteger(z.highLimit)||z.highLimit<1||z.highLimit>8000||!Number.isInteger(z.lowLimit)||z.lowLimit<1||z.lowLimit>1000||
-    !Number.isFinite(z.highSpacing)||z.highSpacing<16||!Number.isFinite(z.lowSpacing)||z.lowSpacing<32||z.uniform!==true))
+    !Number.isInteger(z.highLimit)||z.highLimit<1||z.highLimit>8000||!Number.isInteger(z.lowLimit)||z.lowLimit<0||z.lowLimit>1000||
+    !Number.isFinite(z.highSpacing)||z.highSpacing<12||!Number.isFinite(z.lowSpacing)||z.lowSpacing<32||z.uniform!==true||
+    (z.taper!==undefined&&(!Number.isFinite(z.taper)||z.taper<=0||z.taper>1000||!Number.isFinite(z.taperFloor)||z.taperFloor<=0||z.taperFloor>1))))
    throw new Error('Invalid hillside land-cover allocation');
  }else if(textureHeight!==manifest.height)throw new Error('Missing hillside atlas data');
  const texture=await new THREE.TextureLoader().loadAsync(url('png'));
@@ -67,18 +70,22 @@ export async function loadApproachCorridor(world){
  // Keep the full 2 m mask for placement clearances (packed: 7 MB, not 14). The low tier
  // only needs a smaller, filtered ground-colour mask; never exceed the device texture limit.
  const cover=packCover(context.getImageData(0,0,manifest.width,manifest.height).data,manifest.width*manifest.height);
+ // The hillside is used only by a tier with trees allotted to it (high): a tier without keeps
+ // the photograph, its background trees, and a texture of just the close map.
+ const low=world.lowDetail||world.quality==='low';
+ const activeHills=hills&&hills.plantingZones.some(z=>(low?z.lowLimit:z.highLimit)>0)?hills:null;
+ const rows=activeHills?textureHeight:manifest.height;
  let hillCover;
- if(hills){
+ if(activeHills){
   const rgba=context.getImageData(...hills.atlas,hills.width,hills.height).data;
   hillCover=packCover(rgba,hills.width*hills.height);
  }
- const low=world.lowDetail||world.quality==='low';
  const maxSize=Math.min(world.renderer.capabilities.maxTextureSize,low?2048:4096);
- if(Math.max(manifest.width,textureHeight)>maxSize){
-  const scale=Math.min(1,maxSize/Math.max(manifest.width,textureHeight));
+ if(Math.max(manifest.width,rows)>maxSize||rows!==textureHeight){
+  const scale=Math.min(1,maxSize/Math.max(manifest.width,rows));
   const reduced=document.createElement('canvas');
-  reduced.width=Math.round(manifest.width*scale);reduced.height=Math.round(textureHeight*scale);
-  reduced.getContext('2d').drawImage(canvas,0,0,reduced.width,reduced.height);
+  reduced.width=Math.round(manifest.width*scale);reduced.height=Math.round(rows*scale);
+  reduced.getContext('2d').drawImage(canvas,0,0,manifest.width,rows,0,0,reduced.width,reduced.height);
   texture.image=reduced;texture.needsUpdate=true;
  }
  // Release the full-size canvas now rather than at collection (iOS budgets canvas memory).
@@ -87,7 +94,7 @@ export async function loadApproachCorridor(world){
  const sample=(x,z)=>{
   const i=Math.floor((x-x0)/width*manifest.width),j=Math.floor((z-z0)/depth*manifest.height);
   if(i>=0&&j>=0&&i<manifest.width&&j<manifest.height)return cover(j*manifest.width+i);
-  if(hills){
+  if(activeHills){
    const [hx,hz,hw,hd]=hills.bounds,hi=Math.floor((x-hx)/hw*hills.width),hj=Math.floor((z-hz)/hd*hills.height);
    if(hi>=0&&hj>=0&&hi<hills.width&&hj<hills.height)return hillCover(hj*hills.width+hi);
   }
@@ -95,14 +102,14 @@ export async function loadApproachCorridor(world){
  };
  world.groundUniforms.uCorridor.value=texture;
  world.groundUniforms.uCorridorRect.value.fromArray(manifest.bounds);
- world.groundUniforms.uCorridorMainHeight.value=manifest.height/textureHeight;
- world.groundUniforms.uHillsReady.value=hills?1:0;
- if(hills){
+ world.groundUniforms.uCorridorMainHeight.value=manifest.height/rows;
+ world.groundUniforms.uHillsReady.value=activeHills?1:0;
+ if(activeHills){
   world.groundUniforms.uHillsRect.value.fromArray(hills.bounds);
   world.groundUniforms.uHillsAtlas.value.set(hills.width/manifest.width,hills.height/textureHeight);
  }
  world.groundUniforms.uCorridorReady.value=1;
- return world.approachCorridor={manifest,texture,sample};
+ return world.approachCorridor={manifest,texture,sample,hills:activeHills};
 }
 
 export const CORRIDOR_GLSL=`

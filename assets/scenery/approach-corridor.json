@@ -7,7 +7,7 @@
   ],
   "width": 3450,
   "height": 1015,
-  "textureHeight": 1271,
+  "textureHeight": 1277,
   "plantingZones": [
     {
       "bounds": [
@@ -91,11 +91,11 @@
         "points": [
           [
             2100,
-            1030
+            990
           ],
           [
             5300,
-            1030
+            990
           ],
           [
             5300,
@@ -110,7 +110,11 @@
           [
             [
               2100,
-              1030
+              990
+            ],
+            [
+              2747,
+              990
             ],
             [
               2747,
@@ -312,20 +316,22 @@
         ],
         "seed": 261023,
         "highLimit": 8000,
-        "lowLimit": 1000,
-        "highSpacing": 16,
+        "lowLimit": 0,
+        "highSpacing": 13,
         "lowSpacing": 32,
-        "uniform": true
+        "uniform": true,
+        "taper": 200,
+        "taperFloor": 0.3
       }
     ],
     "atlas": [
       0,
-      1015
+      1021
     ],
     "hectares": [
-      25.26,
+      25.73,
       0,
-      381.06
+      385.63
     ]
   },
   "licence": "Interpreted boundaries derived from public-domain USDA NAIP / USGS imagery already bundled in detail/2_0.webp through detail/8_0.webp, detail/2_-1.webp through detail/8_-1.webp and final-approach.webp. Not a land-use survey.",
@@ -6564,8 +6570,8 @@
     }
   ],
   "hectares": [
-    75.57,
+    76.27,
     46.24,
-    808.93
+    813.89
   ]
 }

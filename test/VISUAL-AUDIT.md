@@ -8,11 +8,12 @@ the remaining-work list. Update this section after each reviewed visual pass, in
 what changed, visible impact, measured cost, evidence and limitations.
 
 The latest pass extends woodland onto the hillside visible through the pilot's left
-windshield during early and middle final. **381.06 ha of wooded cover and 25.26 ha of
-open clearings** bring combined interpreted cover to about 1337 ha. The original close
-mask, five planting allocations and 62 complete buildings across eight sites remain.
-A separate hill allocation uses the existing total tree budget, reducing wider random
-planting. Distant buildings now omit tiny trim while retaining walls, roofs and glass.
+windshield during early and middle final. **385.63 ha of wooded cover and 25.73 ha of
+open clearings** bring combined interpreted cover to about 1348 ha. The close mask (apart
+from its last 30 m beside the hill tile), five planting allocations and 62 complete
+buildings across eight sites remain. On high quality a separate hill allocation uses the
+existing total tree budget, reducing wider random planting; low quality keeps the
+photographed hillside and its background trees. Distant buildings now omit tiny trim while retaining walls, roofs and glass.
 This improves a visible gap in the normal pilot view; it does **not** close the broader
 scenery category or improve the underlying distant tree forms.
 
@@ -77,6 +78,26 @@ leaf-off woods use the existing leafy palette; this is not a seasonal or botanic
   sustained load is not established. The log retains all initial and repeat measurements.
 - A matched 480-frame descent uses the normal pilot camera at high 1×. The clips are
   visual comparisons, not frame-rate measurements; recording adds encoding overhead.
+
+Review follow-up (same day): the first version left a straight treeless band where the
+close map met the hill tile (cover below 0.15 over z≈1012–1041, both maps fading there), a
+density step at that line, a phone tier that spent 1000 of its 14,000 trees on the hillside
+(leaving 29 instead of 189 trees on the airport side), and motion/scenery checks that only
+ran on Metal. Corrections:
+
+- The bake brings the hill tile's cover into the close map's last 30 m and drops both
+  fades at the shared edge; a 6-row gutter of repeated edge rows keeps filtering from
+  mixing the two maps. Cover across the join (x=4200–5000) now stays at or above 187/255
+  from z=1000 to 1070. Weighted cover becomes 936.40 + 411.36 = 1347.76 ha.
+- Hillside trees thin over 200 m from the join down to 30 % of the close woods' density,
+  and systematic sampling fills exactly the 8000 allocation. Trees in 40 m strips either
+  side of the join: 201 / 164 (the check requires at least 70 %). Other high-tier counts
+  barely move: 7932 tree cards inside the hill tile (8023) and 559 on the airport side (557).
+- Low quality has no hillside allocation, hill tint or hill upload: GPU storage returns to
+  4.94 MB and the airport side keeps 152 trees. The close woods there end at z=1030 against
+  the leaf-off photograph, as they did before the hillside pass (compared in the same view).
+- `hills-scenery` and `hills-motion` default to SwiftShader (`VISUAL_GPU=metal` for hardware);
+  software rendering draws only the three sampled descent frames and records no video.
 
 The improvement is coverage visible during the approach. The runway, cockpit, weather,
 tree source geometry and complete-building count do not change. Low-tier woods remain

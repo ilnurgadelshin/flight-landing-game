@@ -143,7 +143,8 @@ export async function addWoodland(world,photo,approachPhoto) {
   // boundaries used by the ground. Jittered spacing avoids clumps and bare gaps.
   // Reserve part of the EXISTING instance budget, rather than adding a new layer.
   if(corridor){
-    const zones=[...(corridor.manifest.plantingZones||[{bounds:corridor.manifest.bounds,seed:94051,highLimit:10000,lowLimit:4800}]),...(corridor.manifest.hills?.plantingZones||[])];
+    // (the hillside's zone only where the corridor uses its tile: see loadApproachCorridor)
+    const zones=[...(corridor.manifest.plantingZones||[{bounds:corridor.manifest.bounds,seed:94051,highLimit:10000,lowLimit:4800}]),...(corridor.hills?.plantingZones||[])];
     const zoneCounts=[];
     for(const zone of zones){
       const [x0,z0,width,depth]=zone.bounds,localRng=makeRng(zone.seed),zoneTrees=[],upperTrees=[];
@@ -170,6 +171,18 @@ export async function addWoodland(world,photo,approachPhoto) {
       // Uniformly thin only the remaining upper allocation, not both together.
       const cap=low?zone.lowLimit:zone.highLimit;
       for(const list of [zoneTrees,upperTrees])for(let i=list.length-1;i>0;i--){const j=Math.floor(localRng()*(i+1));[list[i],list[j]]=[list[j],list[i]];}
+      if(zone.taper){
+        // Density tapers from the zone's north edge, where it continues the close map's
+        // woods, down to taperFloor of it: each tree is kept with a probability scaled so the
+        // kept trees fill the allocation. Systematic sampling over the shuffled candidates
+        // keeps those probabilities and gives exactly the allocation, not just on average.
+        const weight=t=>zone.taperFloor+(1-zone.taperFloor)*Math.max(0,Math.min(1,1-(t.z-z0)/zone.taper));
+        let lo=0,hi=1/zone.taperFloor;
+        for(let k=0;k<30;k++){const mid=(lo+hi)/2;if(upperTrees.reduce((n,t)=>n+Math.min(1,mid*weight(t)),0)<cap)lo=mid;else hi=mid;}
+        let sum=localRng();const kept=[];
+        for(const t of upperTrees){sum+=Math.min(1,hi*weight(t));if(sum>=1){kept.push(t);sum-=1;}}
+        upperTrees.length=0;upperTrees.push(...kept);
+      }
       zoneTrees.length=Math.min(zoneTrees.length,cap);upperTrees.length=Math.min(upperTrees.length,cap-zoneTrees.length);
       localTrees.push(...zoneTrees,...upperTrees);zoneCounts.push(zoneTrees.length+upperTrees.length);
     }

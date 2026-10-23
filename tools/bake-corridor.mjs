@@ -106,8 +106,10 @@ const plantingZones=[{bounds:[2100,180,4000,850],seed:94051,highLimit:13000,lowL
  // Preserve existing stands: this central strip takes its allocation from the
  // wider photo-selected planting, within the unchanged whole-world tree budget.
  {bounds:[4400,-180,900,360],seed:261022,highLimit:700,lowLimit:300,highSpacing:12,lowSpacing:18}];
-// Feather the outside of the coverage, not the internal planting-budget boundary.
-const coverRegions=[[2100,180,6900,850],[2100,-1000,6900,820],[6100,-230,2900,460],[4400,-230,900,460]];
+// Feather the outside of the coverage, not the internal planting-budget boundary. The
+// last region keeps the close map's south edge unfeathered where the hill tile continues it.
+const coverRegions=[[2100,180,6900,850],[2100,-1000,6900,820],[6100,-230,2900,460],[4400,-230,900,460],
+ [approachHills.bounds[0],180,approachHills.bounds[2],approachHills.bounds[1]-180+50]];
 const areas=traces.map(([tile,type,points,size=1600,holes=[]])=>{
  const project=ps=>ps.map(([x,z])=>[Number((Number(tile.split('_')[0])*1000-16+x*1032/size).toFixed(2)),Number((Number(tile.split('_')[1])*1000-16+z*1032/size).toFixed(2))]);
  return {tile,type,points:project(points),...(holes.length?{holes:holes.map(project)}:{})};
@@ -141,6 +143,16 @@ function roadDistance(x,z,segments){let d=Infinity;for(const [a,b] of segments){
  const dx=b[0]-a[0],dz=b[1]-a[1],t=Math.max(0,Math.min(1,((x-a[0])*dx+(z-a[1])*dz)/(dx*dx+dz*dz)));
  d=Math.min(d,Math.hypot(x-a[0]-dx*t,z-a[1]-dz*t));
 }return d;}
+// The hill tile's interpretation: woods and open pasture weights, with its outer fades. The
+// north edge is shared with the close map, so it has no fade.
+function hillCover(x,z){
+ const [x0,z0,w,d]=approachHills.bounds,area=approachHills.areas[0];
+ const edge=Math.min(signedDistance(x,z,area.points),...area.holes.map(h=>-signedDistance(x,z,h)));
+ const boundary=Math.max(0,Math.min(1,(x-x0)/150,(x0+w-x)/180,(z0+d-z)/180));
+ const woods=Math.max(0,Math.min(1,edge/18));
+ const meadow=Math.max(0,...area.holes.map(h=>Math.min(1,signedDistance(x,z,h)/12)))*(1-woods);
+ return {woods:woods*boundary,meadow:meadow*boundary};
+}
 const pixels=new Uint8Array(width*height*3),counts=[0,0,0];
 for(let j=0;j<height;j++)for(let i=0;i<width;i++){
  const x=bounds[0]+(i+.5)*bounds[2]/width,z=bounds[1]+(j+.5)*bounds[3]/height;
@@ -162,22 +174,27 @@ for(let j=0;j<height;j++)for(let i=0;i<width;i++){
  for(const a of boundedAreas){if(x<a.rect[0]||z<a.rect[1]||x>a.rect[2]||z>a.rect[3])continue;const d=Math.min(signedDistance(x,z,a.points),...(a.holes||[]).map(h=>-signedDistance(x,z,h))),channel=['meadow','stubble','woodland'].indexOf(a.type);
   weights[channel]=Math.max(weights[channel],Math.max(0,Math.min(1,d/(channel===2?12:6))));
  }
+ // The close map's traced woods end just short of its south edge. Where the hill tile
+ // continues them, bring in its cover over the last 30 m so the two maps meet without a gap.
+ const [hx,hz,hw]=approachHills.bounds,bridge=Math.max(0,Math.min(1,(z-(hz-30))/15));
+ if(bridge>0&&x>hx&&x<hx+hw){
+  const hill=hillCover(x,hz+5);
+  weights[2]=Math.max(weights[2],hill.woods*bridge);weights[0]=Math.max(weights[0],hill.meadow*bridge);
+ }
  // Woods take precedence at shared field margins; keep total coverage <= 1.
  weights[1]*=(1-weights[2])*(1-weights[0]);weights[0]*=1-weights[2];
  for(let c=0;c<3;c++){pixels[(j*width+i)*3+c]=Math.round(weights[c]*clearance*boundary*255);counts[c]+=pixels[(j*width+i)*3+c]/255;}
 }
-// A coarser, separately registered hill tile is packed below the original map.
-// The existing 2 m RGB pixels are retained exactly; no new ground sampler.
-const hills={...approachHills,atlas:[0,height]},textureHeight=height+hills.height;
+// A coarser, separately registered hill tile is packed below the original map, after a
+// gutter of rows repeating each map's edge: filtering (and the low tier's downscale) then
+// never blends one map's edge with the other's unrelated texels. No new ground sampler.
+const gutter=6,hills={...approachHills,atlas:[0,height+gutter]},textureHeight=height+gutter+hills.height;
 const atlas=new Uint8Array(width*textureHeight*3);atlas.set(pixels);const hillCounts=[0,0,0];
 for(let j=0;j<hills.height;j++)for(let i=0;i<hills.width;i++){
  const [x0,z0,w,d]=hills.bounds,x=x0+(i+.5)*w/hills.width,z=z0+(j+.5)*d/hills.height;
  if(protectedScenery(x,z,16))continue;
- const area=hills.areas[0],edge=Math.min(signedDistance(x,z,area.points),...area.holes.map(h=>-signedDistance(x,z,h)));
- // The forest continues beyond this crop. Broad outer fades avoid a cut edge.
- const boundary=Math.max(0,Math.min(1,(x-x0)/150,(x0+w-x)/180,(z-z0)/35,(z0+d-z)/180));
- const woods=Math.max(0,Math.min(1,edge/18));
- const meadow=Math.max(0,...area.holes.map(h=>Math.min(1,signedDistance(x,z,h)/12)))*(1-woods);
+ // The forest continues beyond this crop: broad outer fades avoid a cut edge.
+ const {woods,meadow}=hillCover(x,z);
  let clearance=1;
  const cell=`${Math.floor(x/cellSize)}:${Math.floor(z/cellSize)}`;
  clearance*=Math.max(0,Math.min(1,(roadDistance(x,z,roadCells.get(cell)||[])-7)/7));
@@ -186,8 +203,12 @@ for(let j=0;j<hills.height;j++)for(let i=0;i<hills.width;i++){
   clearance=Math.min(clearance,Math.max(0,Math.min(1,(distance-12)/12)));
  }
  for(const [c,weight] of [[0,meadow],[2,woods]]){
-  const value=Math.round(weight*boundary*clearance*255);atlas[((height+j)*width+i)*3+c]=value;hillCounts[c]+=value/255;
+  const value=Math.round(weight*clearance*255);atlas[((hills.atlas[1]+j)*width+i)*3+c]=value;hillCounts[c]+=value/255;
  }
+}
+for(let g=0;g<gutter;g++){
+ const from=g<gutter/2?height-1:hills.atlas[1];
+ atlas.copyWithin((height+g)*width*3,from*width*3,(from+1)*width*3);
 }
 hills.hectares=hillCounts.map(n=>Number((n*hills.bounds[2]*hills.bounds[3]/hills.width/hills.height/10000).toFixed(2)));
 await sharp(atlas,{raw:{width,height:textureHeight,channels:3}}).png({compressionLevel:9,adaptiveFiltering:true}).toFile('assets/scenery/approach-corridor.png');

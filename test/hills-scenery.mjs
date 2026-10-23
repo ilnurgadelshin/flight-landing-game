@@ -12,7 +12,8 @@ async function imageDifference(a,b){
 }
 const label=process.argv[2]||'hills-current',baseline=!!process.env.REVIEW_ROOT;
 const {server,url}=await startServer(process.env.REVIEW_ROOT||process.cwd());
-const browser=await chromium.launch({headless:true,args:['--use-angle='+ (process.env.VISUAL_GPU||'metal')]});
+const angle=process.env.VISUAL_GPU||'swiftshader';   // VISUAL_GPU=metal on macOS hardware
+const browser=await chromium.launch({headless:true,args:[`--use-angle=${angle}`,...(angle==='swiftshader'?['--enable-unsafe-swiftshader','--ignore-gpu-blocklist']:[])]});
 const reports=[];
 try{
  for(const tier of (process.env.REVIEW_TIERS||'high,low').split(',')){
@@ -21,9 +22,13 @@ try{
   await page.goto(url+'/?quality='+tier);await page.waitForFunction(()=>window.__sim,null,{timeout:120000});await completeScenery(page);
   const stats=await page.evaluate(async()=>{
    const T=await import('/vendor/three.module.js'),s=window.__sim,w=s.world;s.setDrawing(false);s.game.state='menu';
-   const matrix=new T.Matrix4(),p=new T.Vector3();let trees=0,hills=0,intrusions=0,clearingTrees=0;
+   const matrix=new T.Matrix4(),p=new T.Vector3();let trees=0,hills=0,intrusions=0,clearingTrees=0,airportSide=0;
+   const join={close:0,hill:0};
    for(const mesh of w.woodland.children)if(mesh.material===w.woodlandMaterial)for(let i=0;i<mesh.count;i++){
     mesh.getMatrixAt(i,matrix);p.setFromMatrixPosition(matrix);trees++;
+    if(p.x<2100)airportSide++;
+    // either side of the join with the close map, where both are wooded
+    if(p.x>4200&&p.x<5000){if(p.z>=990&&p.z<1030)join.close++;else if(p.z>=1030&&p.z<1070)join.hill++;}
     if(p.x>2100&&p.x<5300&&p.z>=1030&&p.z<2500){
      hills++;if(w.approachBuildingExcludes(p.x,p.z)||w.approachRoadExcludes(p.x,p.z))intrusions++;
      if(p.x>2350&&p.x<2520&&p.z>1100&&p.z<1310)clearingTrees++;
@@ -41,12 +46,19 @@ try{
     check(detail.distance*.5,0);check(detail.distance*1.2,1);check(detail.distance*.95,1);check(detail.distance*.5,0);
     lods.push({...detail,name:o.name,structuralSurfacesRetained:true,hysteresis:true});
    });
-   return {trees,hills,intrusions,clearingTrees,lods,farm:w.approachBuildings.farm,errors:w.assetErrors};
+   return {trees,hills,intrusions,clearingTrees,airportSide,join,hillsActive:w.groundUniforms.uHillsReady.value===1,
+    lods,farm:w.approachBuildings.farm,errors:w.assetErrors};
   });
   console.log(tier,stats);
   if(!baseline){
-   assert.equal(stats.trees,tier==='high'?52000:14000);assert.ok(stats.hills>=(tier==='high'?7900:980));
-   assert.equal(stats.intrusions,0);assert.equal(stats.clearingTrees,0);
+   assert.equal(stats.trees,tier==='high'?52000:14000);
+   if(tier==='high'){
+    assert.ok(stats.hills>=7900&&stats.hillsActive);
+    // no gap or density step where the hillside continues the close map's woods
+    assert.ok(stats.join.hill>=.7*stats.join.close,`Hill woods continue the close woods: ${JSON.stringify(stats.join)}`);
+    assert.equal(stats.clearingTrees,0);
+   }else assert.ok(!stats.hillsActive&&stats.airportSide>=120,'Low keeps the photographed hillside and its background trees');
+   assert.equal(stats.intrusions,0);
    assert.ok(stats.lods.length>=5&&stats.farm.farTriangles<stats.farm.triangles*.85,'Distant detail removes meaningful geometry');
   }
   assert.deepEqual(stats.errors,[]);const report={tier,...stats};reports.push(report);
@@ -67,7 +79,7 @@ try{
     const eye=w.camera.getWorldPosition(new T.Vector3());w.update(0,{...s.state(),alt:eye.y},eye);await w.groundDetail.settle(eye);w.nearWoodland?.settle(eye);w.groundCover?.settle(eye);w.render();w.renderer.getContext().finish();
    },view);
    await page.screenshot({path:`test/output/${label}-${tier}-${view}.png`});
-   if(!baseline&&view==='hills-wide'){
+   if(!baseline&&tier==='high'&&view==='hills-wide'){
     const enabled=await page.screenshot();
     await page.evaluate(()=>{const w=window.__sim.world;w.groundUniforms.uHillsReady.value=0;w.render();w.renderer.getContext().finish()});
     report.groundContribution=await imageDifference(enabled,await page.screenshot());

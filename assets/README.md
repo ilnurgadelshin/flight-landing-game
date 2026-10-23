@@ -362,18 +362,23 @@ These holes carry explicit meadow coverage so the older photographic planting ca
 fill them back in. Buildings and roads retain their clearance masks.
 
 Linear RGB stores meadow/stubble/woodland coverage. The original 3450 × 1015 pixels
-are byte-identical and retain 2 m/px CPU planting precision. A separately registered
-1024 × 256 hill tile is packed below them, with unused space left black. High uploads
-the combined 3450 × 1271 atlas; low filters it to 2048 × 754 for ground colour while
-retaining exact CPU samples. Upload dimensions also respect the renderer's maximum
+retain 2 m/px CPU planting precision and are unchanged except their last 15 rows
+(z=1000–1030) alongside the hill tile: there the close map takes up the hill tile's
+woods and meadows, so neither map fades at their shared edge. A separately registered
+1024 × 256 hill tile is packed below them after a 6-row gutter that repeats each map's
+edge row, so bilinear filtering and downscaling cannot mix the two maps; unused space
+is left black. High uploads the combined 3450 × 1277 atlas. Low quality does not use
+the hill tile: it uploads only the close map, filtered to 2048 × 603 for ground colour,
+and keeps exact CPU samples of it. Upload dimensions also respect the renderer's maximum
 texture size. Each ground pixel selects one region and uses one land-cover lookup;
-there is no additional sampler or draw call. The RGBA8 texture uses 17.54 MB high /
-6.18 MB low, up from 14.01 / 4.94 MB. The hill tile adds 0.52 MB of packed CPU samples;
-the original 7 MB buffer and small mixed-pixel table remain.
+there is no additional sampler or draw call. The RGBA8 texture uses 17.62 MB high /
+4.94 MB low, against 14.01 / 4.94 MB without the hillside. On high the hill tile adds
+0.52 MB of packed CPU samples; the original 7 MB buffer and small mixed-pixel table remain.
 
-Coverage is approximately 75.57 ha meadow, 46.24 ha stubble and 808.93 ha woodland:
-930.74 ha in the original corridor. The hillside adds 25.26 ha meadow and 381.06 ha
-woodland, for **1337.06 ha combined weighted coverage**. These totals account for
+Coverage is approximately 76.27 ha meadow, 46.24 ha stubble and 813.89 ha woodland:
+936.40 ha in the original corridor, 5.66 ha of it from the rows continuing the hill
+tile. The hillside adds 25.73 ha meadow and 385.63 ha woodland, for **1347.76 ha
+combined weighted coverage**. These totals account for
 feathered boundaries and clearances, rather than counting whole bounding rectangles.
 The 2026-10-22 crossing pass added 20.47 ha to the previous 910.27 ha.
 Clearing holes preserve the large
@@ -390,10 +395,14 @@ photo-selected planting within the unchanged **52,000 / 14,000 total tree budget
 A fifth, non-overlapping central strip receives up to 700 / 300 at 12 / 18 m spacing;
 the existing four zones retain their bounds, seeds and allocations. The close spacing
 remains 9.5 / 14 m and the older upper stands 12 / 18 m. Sixty-six eligible
-site trees remain individually placed. The separate hillside allocation receives
-up to 8000 / 1000 trees at 16 / 32 m candidate spacing, uniformly thinned to its cap.
-The previous five zones retain their bounds, seeds and caps. This consumes more of
-the same total budget, leaving fewer trees in the wider photo-selected background.
+site trees remain individually placed. On high quality the separate hillside
+allocation receives 8000 trees from 13 m candidate spacing. Its density thins over
+200 m from the close map's woods at its north edge down to 30 % of that, so the two
+allocations read as one forest rather than a step at the join; systematic sampling
+keeps exactly the allocation. Low quality has no hillside allocation, so the hillside
+keeps its photograph and the wider background keeps its low-tier trees.
+The previous five zones retain their bounds, seeds and caps. On high this consumes more
+of the same total budget, leaving fewer trees in the wider photo-selected background.
 Background positions/tints and some
 near-tree selections change when the fixed budget is redistributed.
 
@@ -402,8 +411,8 @@ existing scanned detail; distant floors now retain photographic light/shade betw
 crowns instead of becoming uniform green surfaces. Tree cards, sparse low-tier canopy,
 photographic shadows and unmapped hills remain approximations.
 
-The PNG/JSON pair is 321,536 bytes, below a 450 KB budget, versus 303,681 before the
-hillside extension (+17,855 bytes). Lossless PNG compression limits transfer while the
+The PNG/JSON pair is 323,856 bytes, below a 450 KB budget, versus 303,681 before the
+hillside extension (+20,175 bytes). Lossless PNG compression limits transfer while the
 larger decoded atlas still carries the memory cost above. It loads behind the menu. Reproduce with
 `node tools/bake-corridor.mjs` (upper traces are in `tools/upper-valley-cover.mjs`, crossing
 traces in `tools/crossing-sites.mjs`, hill traces in `tools/approach-hills.mjs`);
