@@ -1,0 +1,21 @@
+{
+  "images": 36,
+  "views": 9,
+  "tiers": 2,
+  "sliderDirection": true,
+  "metrics": 10,
+  "videos": [
+    {
+      "width": 1440,
+      "height": 900,
+      "duration": 8.086315
+    },
+    {
+      "width": 1440,
+      "height": 900,
+      "duration": 8.1539
+    }
+  ],
+  "mobileOverflow": false,
+  "errors": []
+}

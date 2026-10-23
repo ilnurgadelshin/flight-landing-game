@@ -37,7 +37,7 @@ try{
   if(!baseline){assert.equal(stats.ready,1);assert.equal(stats.fieldTrees,0);assert.ok(stats.extended>(tier==='high'?6500:3000));assert.ok(stats.corridor.count>(tier==='high'?20000:9000));assert.ok(stats.opposite>(tier==='high'?3000:1500));assert.ok(stats.upperOpposite>(tier==='high'?3000:1200));assert.equal(stats.trees,stats.corridor.limit);}
   if(!baseline){assert.ok(stats.upperValley>(tier==='high'?17500:2500),'Upper stands receive their bounded allocation');assert.equal(stats.trees,tier==='high'?52000:14000);}
   if(!baseline)assert.ok(stats.crossing>(tier==='high'?650:250),'Central wooded parcels receive planting without thinning established stands');
-  if(!baseline)assert.deepEqual(stats.maskSize,tier==='high'?[3450,1015]:[2048,603],'Low quality bounds the GPU data mask while retaining full CPU placement precision');
+  if(!baseline)assert.deepEqual(stats.maskSize,tier==='high'?[3450,1271]:[2048,754],'Low quality bounds the GPU atlas while retaining full CPU placement precision');
   const report={tier,...stats};reports.push(report);console.log(report);
   for(const view of views){
    await page.evaluate(async view=>{

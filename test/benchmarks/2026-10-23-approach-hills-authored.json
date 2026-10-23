@@ -1,0 +1,84 @@
+[
+  {
+    "tier": "high",
+    "authored": {
+      "bays": 193,
+      "triangles": 145874,
+      "batches": 24,
+      "buildings": 24
+    },
+    "farm": {
+      "buildings": 62,
+      "triangles": 133587,
+      "farTriangles": 98250,
+      "yardTriangles": 2924,
+      "batches": 88,
+      "sites": 8,
+      "siteTriangles": 273132,
+      "low": false
+    },
+    "roofHeights": [
+      7.800119939917579,
+      6.599929718684521,
+      3.9000785075052846
+    ],
+    "forms": [
+      18368,
+      1011,
+      1016,
+      976,
+      1335,
+      1363,
+      1334,
+      14674,
+      11923
+    ],
+    "errors": [],
+    "bytes": 65691205,
+    "atmosphere": {
+      "compiled": 187,
+      "missing": []
+    }
+  },
+  {
+    "tier": "low",
+    "authored": {
+      "bays": 70,
+      "triangles": 48570,
+      "batches": 12,
+      "buildings": 8
+    },
+    "farm": {
+      "buildings": 62,
+      "triangles": 133587,
+      "farTriangles": 98250,
+      "yardTriangles": 2924,
+      "batches": 88,
+      "sites": 8,
+      "siteTriangles": 273132,
+      "low": true
+    },
+    "roofHeights": [
+      7.800119939917579,
+      6.599929718684521,
+      3.9000785075052846
+    ],
+    "forms": [
+      5063,
+      215,
+      247,
+      227,
+      331,
+      330,
+      350,
+      4062,
+      3175
+    ],
+    "errors": [],
+    "bytes": 19036088,
+    "atmosphere": {
+      "compiled": 168,
+      "missing": []
+    }
+  }
+]

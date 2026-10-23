@@ -355,21 +355,32 @@ a land-use survey. The photographs show leaf-off woodland; the scenery interpret
 those stands with the existing leafy tree palette. No new imagery or models are used.
 The mask and code are original MIT project work; the source imagery is public domain.
 
-Linear RGB stores meadow/stubble/woodland coverage. The 3450 × 1015 mask preserves
-2 m/px for CPU planting clearances. High uploads that full mask; low filters it to
-2048 × 603 for ground colour, retaining the full CPU sample buffer. Upload dimensions
-also respect the renderer's maximum texture size. The existing ground shader still
-uses one land-cover lookup and adds no draw call. The larger mask requires about
-14.01 MB for its high-tier RGBA8 texture; the exact packed CPU placement copy uses
-about 7 MB plus a small mixed-pixel table. Low's GPU copy is about 4.94 MB.
+The 2026-10-23 extension covers the hillside visible to the pilot's left during early
+and middle final: x=2100–5300, z=1030–2500 m. It interprets the existing 2 m/px
+`scenery/final-approach.webp`, preserving six pasture/clearing holes inside the woods.
+These holes carry explicit meadow coverage so the older photographic planting cannot
+fill them back in. Buildings and roads retain their clearance masks.
+
+Linear RGB stores meadow/stubble/woodland coverage. The original 3450 × 1015 pixels
+are byte-identical and retain 2 m/px CPU planting precision. A separately registered
+1024 × 256 hill tile is packed below them, with unused space left black. High uploads
+the combined 3450 × 1271 atlas; low filters it to 2048 × 754 for ground colour while
+retaining exact CPU samples. Upload dimensions also respect the renderer's maximum
+texture size. Each ground pixel selects one region and uses one land-cover lookup;
+there is no additional sampler or draw call. The RGBA8 texture uses 17.54 MB high /
+6.18 MB low, up from 14.01 / 4.94 MB. The hill tile adds 0.52 MB of packed CPU samples;
+the original 7 MB buffer and small mixed-pixel table remain.
 
 Coverage is approximately 75.57 ha meadow, 46.24 ha stubble and 808.93 ha woodland:
-930.74 ha total. The 2026-10-22 crossing pass adds 20.47 ha to the previous 910.27 ha.
+930.74 ha in the original corridor. The hillside adds 25.26 ha meadow and 381.06 ha
+woodland, for **1337.06 ha combined weighted coverage**. These totals account for
+feathered boundaries and clearances, rather than counting whole bounding rectangles.
+The 2026-10-22 crossing pass added 20.47 ha to the previous 910.27 ha.
 Clearing holes preserve the large
 harvested field and lawns inside the upper woods. Airport, building, road and complete
 site exclusions remain. The outer extension tapers over 160–180 m where woods continue
-outside the interpreted area, avoiding a sharp rectangular treeline. The old mask is
-upper-valley extension retained the old mask west of x=5980. The crossing pass now
+outside the interpreted area, avoiding a sharp rectangular treeline. The
+upper-valley extension retained the old mask west of x=5980. The crossing pass
 fills a separate central gap around x=4400–5300, with three wooded parcels and a meadow.
 
 The three existing planting allocations remain 13,000 / 5,800, 5,500 / 2,600 and
@@ -379,7 +390,11 @@ photo-selected planting within the unchanged **52,000 / 14,000 total tree budget
 A fifth, non-overlapping central strip receives up to 700 / 300 at 12 / 18 m spacing;
 the existing four zones retain their bounds, seeds and allocations. The close spacing
 remains 9.5 / 14 m and the older upper stands 12 / 18 m. Sixty-six eligible
-site trees remain individually placed. Background positions/tints and some
+site trees remain individually placed. The separate hillside allocation receives
+up to 8000 / 1000 trees at 16 / 32 m candidate spacing, uniformly thinned to its cap.
+The previous five zones retain their bounds, seeds and caps. This consumes more of
+the same total budget, leaving fewer trees in the wider photo-selected background.
+Background positions/tints and some
 near-tree selections change when the fixed budget is redistributed.
 
 Open fields retain surveyed crop and soil variation. Nearby forest floors retain the
@@ -387,12 +402,12 @@ existing scanned detail; distant floors now retain photographic light/shade betw
 crowns instead of becoming uniform green surfaces. Tree cards, sparse low-tier canopy,
 photographic shadows and unmapped hills remain approximations.
 
-The PNG/JSON pair is 303,681 bytes, below a 450 KB budget, versus 435,319 before the
-crossing pass. Lossless PNG compression reduces transfer without changing mask precision
-or GPU dimensions. It still loads behind the menu. Reproduce with
+The PNG/JSON pair is 321,536 bytes, below a 450 KB budget, versus 303,681 before the
+hillside extension (+17,855 bytes). Lossless PNG compression limits transfer while the
+larger decoded atlas still carries the memory cost above. It loads behind the menu. Reproduce with
 `node tools/bake-corridor.mjs` (upper traces are in `tools/upper-valley-cover.mjs`, crossing
-traces in `tools/crossing-sites.mjs`);
-validate with `npm run test:corridor`. The bake indexes road/building clearance bounds;
+traces in `tools/crossing-sites.mjs`, hill traces in `tools/approach-hills.mjs`);
+validate with `npm run test:corridor` and `node test/hills-scenery.mjs`. The bake indexes road/building clearance bounds;
 its distance calculation and feathering are unchanged.
 
 ## Complete approach sites — original geometry / CC0 materials
@@ -446,7 +461,12 @@ adjacent crossing sites share one bounded building group to save 20 material bat
 The eight sites use 88 draw batches before subtracting replaced procedural
 facades: 55 building material batches, the original yard and four grounds/boundary batches per
 site. Buildings use 133,587 triangles; grounds/fences use 273,132 triangles, plus the original
-2,924-triangle yard. Only referenced parcel-grid vertices are uploaded; narrow drives use
+2,924-triangle yard. A distance detail level removes only painted/ironwork triangles smaller
+than 0.08 m² once the whole building group is more than 550 m away. Walls, roofs, glass
+and substantial trim retain their geometry and materials. At the far level, complete
+buildings total 98,250 triangles (26.5% fewer); 12% hysteresis prevents rapid switching.
+Both levels share vertex attributes and materials; the far level adds index buffers only.
+The original models and downloads are unchanged. Only referenced parcel-grid vertices are uploaded; narrow drives use
 feathered ribbons. Preparation happens behind the menu. Missing models or yard materials
 retain procedural buildings and imagery. Missing or invalid extension data keeps the original
 nine complete valley buildings and falls back for the other 53 placements.

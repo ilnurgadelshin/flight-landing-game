@@ -3,7 +3,8 @@
 import * as THREE from 'three';
 
 export function corridorUniforms(fallback){
- return {uCorridor:{value:fallback},uCorridorRect:{value:new THREE.Vector4(2100,180,2000,850)},uCorridorReady:{value:0},uCorridorInfluence:{value:1}};
+ return {uCorridor:{value:fallback},uCorridorRect:{value:new THREE.Vector4(2100,180,2000,850)},uCorridorReady:{value:0},uCorridorInfluence:{value:1},
+  uCorridorMainHeight:{value:1},uHillsRect:{value:new THREE.Vector4(0,0,1,1)},uHillsAtlas:{value:new THREE.Vector2()},uHillsReady:{value:0}};
 }
 
 /**
@@ -43,20 +44,40 @@ export async function loadApproachCorridor(world){
    [zone.highSpacing,zone.lowSpacing].some(s=>s!==undefined&&(!Number.isFinite(s)||s<9||s>40)))||
    zones.reduce((n,z)=>n+z.highLimit,0)>40700||zones.reduce((n,z)=>n+z.lowLimit,0)>12700)throw new Error('Invalid approach planting allocation');
  }
+ const hills=manifest.hills,textureHeight=manifest.textureHeight??manifest.height;
+ if(!Number.isInteger(textureHeight)||textureHeight<manifest.height||textureHeight>1536||manifest.width*textureHeight>4500000)
+  throw new Error('Invalid approach land-cover atlas dimensions');
+ if(hills){
+  const b=hills.bounds,zones=hills.plantingZones;
+  if(!Array.isArray(b)||b.length!==4||!b.every(Number.isFinite)||b[2]<=0||b[3]<=0||
+   !Number.isInteger(hills.width)||hills.width<1||hills.width>1024||hills.width>manifest.width||
+   !Number.isInteger(hills.height)||hills.height<1||hills.height>256||textureHeight!==manifest.height+hills.height||
+   !Array.isArray(hills.atlas)||hills.atlas[0]!==0||hills.atlas[1]!==manifest.height||hills.atlas.length!==2||
+   b[1]<manifest.bounds[1]+manifest.bounds[3]||!Array.isArray(zones)||zones.length!==1||zones.some(z=>
+    !Array.isArray(z.bounds)||z.bounds.length!==4||!z.bounds.every((v,i)=>v===b[i])||!Number.isInteger(z.seed)||
+    !Number.isInteger(z.highLimit)||z.highLimit<1||z.highLimit>8000||!Number.isInteger(z.lowLimit)||z.lowLimit<1||z.lowLimit>1000||
+    !Number.isFinite(z.highSpacing)||z.highSpacing<16||!Number.isFinite(z.lowSpacing)||z.lowSpacing<32||z.uniform!==true))
+   throw new Error('Invalid hillside land-cover allocation');
+ }else if(textureHeight!==manifest.height)throw new Error('Missing hillside atlas data');
  const texture=await new THREE.TextureLoader().loadAsync(url('png'));
- if(texture.image.width!==manifest.width||texture.image.height!==manifest.height){texture.dispose();throw new Error('Approach land-cover image does not match its manifest');}
+ if(texture.image.width!==manifest.width||texture.image.height!==textureHeight){texture.dispose();throw new Error('Approach land-cover image does not match its manifest');}
  texture.colorSpace=THREE.NoColorSpace;texture.generateMipmaps=false;texture.minFilter=THREE.LinearFilter;
- const canvas=document.createElement('canvas');canvas.width=manifest.width;canvas.height=manifest.height;
+ const canvas=document.createElement('canvas');canvas.width=manifest.width;canvas.height=textureHeight;
  const context=canvas.getContext('2d',{willReadFrequently:true});context.drawImage(texture.image,0,0);
  // Keep the full 2 m mask for placement clearances (packed: 7 MB, not 14). The low tier
  // only needs a smaller, filtered ground-colour mask; never exceed the device texture limit.
  const cover=packCover(context.getImageData(0,0,manifest.width,manifest.height).data,manifest.width*manifest.height);
+ let hillCover;
+ if(hills){
+  const rgba=context.getImageData(...hills.atlas,hills.width,hills.height).data;
+  hillCover=packCover(rgba,hills.width*hills.height);
+ }
  const low=world.lowDetail||world.quality==='low';
  const maxSize=Math.min(world.renderer.capabilities.maxTextureSize,low?2048:4096);
- if(Math.max(manifest.width,manifest.height)>maxSize){
-  const scale=Math.min(1,maxSize/Math.max(manifest.width,manifest.height));
+ if(Math.max(manifest.width,textureHeight)>maxSize){
+  const scale=Math.min(1,maxSize/Math.max(manifest.width,textureHeight));
   const reduced=document.createElement('canvas');
-  reduced.width=Math.round(manifest.width*scale);reduced.height=Math.round(manifest.height*scale);
+  reduced.width=Math.round(manifest.width*scale);reduced.height=Math.round(textureHeight*scale);
   reduced.getContext('2d').drawImage(canvas,0,0,reduced.width,reduced.height);
   texture.image=reduced;texture.needsUpdate=true;
  }
@@ -65,11 +86,21 @@ export async function loadApproachCorridor(world){
  const [x0,z0,width,depth]=manifest.bounds;
  const sample=(x,z)=>{
   const i=Math.floor((x-x0)/width*manifest.width),j=Math.floor((z-z0)/depth*manifest.height);
-  if(i<0||j<0||i>=manifest.width||j>=manifest.height)return [0,0,0];
-  return cover(j*manifest.width+i);
+  if(i>=0&&j>=0&&i<manifest.width&&j<manifest.height)return cover(j*manifest.width+i);
+  if(hills){
+   const [hx,hz,hw,hd]=hills.bounds,hi=Math.floor((x-hx)/hw*hills.width),hj=Math.floor((z-hz)/hd*hills.height);
+   if(hi>=0&&hj>=0&&hi<hills.width&&hj<hills.height)return hillCover(hj*hills.width+hi);
+  }
+  return [0,0,0];
  };
  world.groundUniforms.uCorridor.value=texture;
  world.groundUniforms.uCorridorRect.value.fromArray(manifest.bounds);
+ world.groundUniforms.uCorridorMainHeight.value=manifest.height/textureHeight;
+ world.groundUniforms.uHillsReady.value=hills?1:0;
+ if(hills){
+  world.groundUniforms.uHillsRect.value.fromArray(hills.bounds);
+  world.groundUniforms.uHillsAtlas.value.set(hills.width/manifest.width,hills.height/textureHeight);
+ }
  world.groundUniforms.uCorridorReady.value=1;
  return world.approachCorridor={manifest,texture,sample};
 }
@@ -77,9 +108,15 @@ export async function loadApproachCorridor(world){
 export const CORRIDOR_GLSL=`
 uniform sampler2D uCorridor;
 uniform vec4 uCorridorRect;
-uniform float uCorridorReady,uCorridorInfluence;
+uniform float uCorridorReady,uCorridorInfluence,uCorridorMainHeight,uHillsReady;
+uniform vec4 uHillsRect;
+uniform vec2 uHillsAtlas;
 vec3 corridorCover(vec2 position){
+ if(uCorridorReady<.5)return vec3(0.0);
  vec2 uv=(position-uCorridorRect.xy)/uCorridorRect.zw;
- if(uCorridorReady<.5||min(uv.x,uv.y)<0.0||max(uv.x,uv.y)>1.0)return vec3(0.0);
- return texture2D(uCorridor,vec2(uv.x,1.0-uv.y)).rgb*uCorridorInfluence;
+ if(min(uv.x,uv.y)>=0.0&&max(uv.x,uv.y)<1.0)
+  return texture2D(uCorridor,vec2(uv.x,1.0-uv.y*uCorridorMainHeight)).rgb*uCorridorInfluence;
+ vec2 hills=(position-uHillsRect.xy)/uHillsRect.zw;
+ if(uHillsReady<.5||min(hills.x,hills.y)<0.0||max(hills.x,hills.y)>=1.0)return vec3(0.0);
+ return texture2D(uCorridor,vec2(hills.x,1.0-hills.y)*uHillsAtlas).rgb*uCorridorInfluence;
 }`;

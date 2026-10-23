@@ -1,19 +1,20 @@
 # Visual improvement audit
 
-## Current status — 2026-10-22
+## Current status — 2026-10-23
 
 This section is the current checklist. The original September audit and dated work log
 below record how the scene evolved; their older counts, captures and priorities are not
 the remaining-work list. Update this section after each reviewed visual pass, including
 what changed, visible impact, measured cost, evidence and limitations.
 
-The latest pass completes a continuous neighborhood around the approach road crossing:
-**27 additional complete buildings, three connected groups of grounds and 20.47 ha of
-additional interpreted cover**. The scene now has 62 complete building placements across
-eight sites and about 931 ha of mapped meadow, stubble and woodland. Wider and oblique views
-gain connected houses, yards, access and wooded parcels. The normal forward cockpit view
-gains woodland in the side window, but most nearby buildings sit below the glareshield.
-This is a local coverage improvement; it does **not** close the broader scenery category.
+The latest pass extends woodland onto the hillside visible through the pilot's left
+windshield during early and middle final. **381.06 ha of wooded cover and 25.26 ha of
+open clearings** bring combined interpreted cover to about 1337 ha. The original close
+mask, five planting allocations and 62 complete buildings across eight sites remain.
+A separate hill allocation uses the existing total tree budget, reducing wider random
+planting. Distant buildings now omit tiny trim while retaining walls, roofs and glass.
+This improves a visible gap in the normal pilot view; it does **not** close the broader
+scenery category or improve the underlying distant tree forms.
 
 Specific defects already addressed include the distorted source cockpit shell, black cabin
 reflection failure and degenerate panel normal calculation, the narrow phone windshield/MCP
@@ -26,8 +27,8 @@ should not be presented again as untouched tasks. Their broader quality limitati
 
 | Rank | Remaining work | Importance | Current limit / next acceptance evidence |
 | --- | --- | --- | --- |
-| 1 | Broader, coherent approach scenery | Very high | Eight complete sites cover selected stretches; most buildings remain procedural and other areas are flat photography. Continue connected grounds, missing-footprint checks and landscape coverage where visible on approach. Review normal pilot views as well as close-ups, with transfer and frame-time comparisons. |
-| 2 | Mid-distance and distant vegetation | High | Distant and low-tier trees still expose image planes, repeated species and sparse hill coverage. The crossing pass fills a coverage gap but does not improve those forms. Compare moving views and transitions before accepting extra geometry or sampling cost. |
+| 1 | Broader, coherent approach scenery | Very high | Eight complete sites and the newly wooded left hillside cover selected stretches; most buildings remain procedural and other hills remain photographic. Continue connected grounds and missing-footprint checks in pilot-visible areas. Evaluate wider coverage against the remaining background tree budget, with normal flight views and measured cost. |
+| 2 | Mid-distance and distant vegetation | High | The hillside gap is denser, but distant/low-tier crowns still expose image planes, repeated species and thin silhouettes. The new coverage makes those form limits more apparent. Improve them within the existing instance budget and compare moving views before accepting additional geometry or sampling cost. |
 | 3 | Complete cockpit material and lighting detail | High | Selected front panels, padding and grips have fitted wear; side consoles/overhead still lack a complete aircraft-specific texture set. Indirect light and local shadows remain approximations. Begin with source/game comparison and protect instrument readability on both tiers. |
 | 4 | Temporal stability of fine detail | Medium–high | Thin labels, branches, roof details and shadow edges can shimmer in motion. Evaluate actual flight motion and GPU cost, not only static screenshots. |
 | 5 | Finer cloud and wet-weather rendering | Medium overall; high in weather scenarios | Fair-weather clouds retain repeated forms; overcast uses bounded resolution/steps and a simplified deep interior. Water films and blade contact remain approximate. Preserve the corrected rain timing and cloud-entry visibility. |
@@ -39,7 +40,50 @@ the M2 Pro; retain adaptive quality and report costs. Physical phones, ordinary 
 and multiple GPU drivers need wider validation. Existing SwiftShader evidence in the log
 does not certify the latest pass on those devices.
 
-### Approach crossing: implementation and evidence
+### Pilot-visible hillside: implementation and evidence
+
+Baseline: published main `9c135d2`. Source: the existing public-domain
+`final-approach.webp`, interpreted in `tools/approach-hills.mjs`. The photographed
+leaf-off woods use the existing leafy palette; this is not a seasonal or botanical survey.
+
+- A 3.2 × 1.47 km hillside tile retains six open pasture/clearing holes, building and road
+  clearances, and soft outer coverage fades. Its weighted coverage is 406.32 ha. The
+  original 3450 × 1015 mask pixels are byte-identical to the baseline.
+- A coarser 1024 × 256 tile shares the existing mask texture and sampler. Combined upload:
+  3450 × 1271 high / 2048 × 754 low. Cover data increases **17,855 bytes**, GPU texture
+  storage **3.53 MB high / 1.24 MB low**, and packed CPU samples **0.52 MB**. No new
+  imagery, models or materials are downloaded.
+- The hill allocation is 8000 / 1000 high/low, within the unchanged **52,000 / 14,000**
+  total instances. Earlier mapped zones keep their seeds, bounds and caps. This leaves
+  fewer photo-selected background trees; it is a redistribution, not free extra coverage.
+- Complete-building detail levels remove painted/ironwork triangles smaller than 0.08 m²
+  beyond the group's bounding radius plus 550 m, with 12% return hysteresis. Far geometry
+  totals **98,250 instead of 133,587 triangles**. Wall, roof and glass geometry/materials
+  remain shared and unchanged; far levels add index buffers, not duplicate vertex data.
+- Both tiers pass rendered ground contribution and clearance checks; the large pasture
+  contains no planted trees. The elevated crossing view exposes the actual trim switch:
+  fewer than 0.012% of image pixels differ by over 12 grey levels. Level selection and
+  hysteresis checks pass for all six groups. This sample is not proof that every thin
+  detail is temporally stable.
+- All 18 Node suites pass. Both-tier corridor, authored-material/atmosphere, roof/contact,
+  road connection, missing/invalid asset and delivery checks pass. Startup remains below
+  15 MB high / 9 MB low; the new cover loads behind the menu. Shader checks used Chromium
+  Metal; physical phones, other GPUs and the full functional flight suite were not repeated.
+- Local [matched pilot and hillside review](output/approach-hills-review.html), plus
+  [render measurements](RENDER-PERFORMANCE.md), records the visual gain and cost.
+- High-tier frame rates on M2 Pro stay within −0.4% to +3.0% of baseline in the sampled
+  views. Low-tier results vary: the repeated middle approach reaches 60 FPS on both
+  builds, but storm samples span roughly 48–60 FPS. Stable low-tier performance under
+  sustained load is not established. The log retains all initial and repeat measurements.
+- A matched 480-frame descent uses the normal pilot camera at high 1×. The clips are
+  visual comparisons, not frame-rate measurements; recording adds encoding overhead.
+
+The improvement is coverage visible during the approach. The runway, cockpit, weather,
+tree source geometry and complete-building count do not change. Low-tier woods remain
+sparse, card transitions and fine-detail shimmer persist, and unmapped hills retain flat
+photographic detail. More complete scenery and better distant crowns remain the priorities.
+
+### Approach crossing: previous pass — 2026-10-22
 
 Baseline: published main `9c30fd6`. Sources: existing registered building/road data and
 bundled public-domain NAIP, interpreted in `tools/crossing-sites.mjs`. Architecture, heights,

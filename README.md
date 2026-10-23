@@ -670,13 +670,15 @@ The visual assets are bundled locally and need no map service, account or API ke
   The distant views are baked from the delivered geometry, and selection hysteresis plus a
   common fade rate reduce visible detail changes.
   Reviewed ground extends along 6.9 km of final, including the upper-valley woods.
-  Ninety interpreted field/woodland boundaries guide both ground materials and tree
+  Ninety close field/woodland boundaries and a coarser hillside tile guide both ground materials and tree
   placement. Meadow, stubble and woodland-floor surfaces reduce photographic blur and baked
-  shadows across about 931 hectares; mapped fields remain open and woodland gains a denser
+  shadows across about 1337 hectares, including a coarser hill tile visible to the pilot's
+  left; mapped fields and six hillside clearings remain open and woodland gains a denser
   canopy. The older upper stands use 12 m / 18 m high/low candidate spacing; the farther
   extension uses 16 m / 30 m before thinning. All draw from the existing 52,000 / 14,000
   tree budget, retaining the close mapped allocations. A separate allocation fills the wooded
-  parcels around the approach crossing. Land-cover data totals about 304 KB after lossless
+  parcels around the approach crossing. The hillside receives up to 8000 / 1000 trees
+  from the same total budget, preserving the earlier mapped allocations. Land-cover data totals about 322 KB after lossless
   PNG compression; roads,
   buildings and the protected airport area remain clear. These are interpretations of bundled
   imagery, not surveyed land-use data. Open fields retain photographed soil and crop variation
