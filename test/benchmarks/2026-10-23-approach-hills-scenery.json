@@ -1,0 +1,163 @@
+[
+  {
+    "tier": "high",
+    "trees": 52000,
+    "hills": 8023,
+    "intrusions": 0,
+    "clearingTrees": 0,
+    "lods": [
+      {
+        "distance": 715.5427358001143,
+        "nearTriangles": 47473,
+        "farTriangles": 42415,
+        "name": "Complete buildings valley detail levels",
+        "structuralSurfacesRetained": true,
+        "hysteresis": true
+      },
+      {
+        "distance": 608.6474223526662,
+        "nearTriangles": 5462,
+        "farTriangles": 3558,
+        "name": "Complete buildings north-farm detail levels",
+        "structuralSurfacesRetained": true,
+        "hysteresis": true
+      },
+      {
+        "distance": 593.5364865847566,
+        "nearTriangles": 5920,
+        "farTriangles": 3670,
+        "name": "Complete buildings ridge-hamlet detail levels",
+        "structuralSurfacesRetained": true,
+        "hysteresis": true
+      },
+      {
+        "distance": 619.5098511665171,
+        "nearTriangles": 12222,
+        "farTriangles": 9811,
+        "name": "Complete buildings contour-farm detail levels",
+        "structuralSurfacesRetained": true,
+        "hysteresis": true
+      },
+      {
+        "distance": 808.7367034646857,
+        "nearTriangles": 21298,
+        "farTriangles": 13212,
+        "name": "Complete buildings roadside-homes detail levels",
+        "structuralSurfacesRetained": true,
+        "hysteresis": true
+      },
+      {
+        "distance": 964.3229148831681,
+        "nearTriangles": 41212,
+        "farTriangles": 25584,
+        "name": "Complete buildings approach-crossing detail levels",
+        "structuralSurfacesRetained": true,
+        "hysteresis": true
+      }
+    ],
+    "farm": {
+      "buildings": 62,
+      "triangles": 133587,
+      "farTriangles": 98250,
+      "yardTriangles": 2924,
+      "batches": 88,
+      "sites": 8,
+      "siteTriangles": 273132,
+      "low": false
+    },
+    "errors": [],
+    "groundContribution": {
+      "mean": 2.232673611111057,
+      "changedPercent": 9.005246913580248
+    },
+    "detailTransition": {
+      "mean": 0.005913065843621403,
+      "changedPercent": 0.011882716049382716
+    }
+  },
+  {
+    "tier": "low",
+    "trees": 14000,
+    "hills": 1002,
+    "intrusions": 0,
+    "clearingTrees": 0,
+    "lods": [
+      {
+        "distance": 715.5427358001143,
+        "nearTriangles": 47473,
+        "farTriangles": 42415,
+        "name": "Complete buildings valley detail levels",
+        "structuralSurfacesRetained": true,
+        "hysteresis": true
+      },
+      {
+        "distance": 608.6478394869856,
+        "nearTriangles": 5462,
+        "farTriangles": 3558,
+        "name": "Complete buildings north-farm detail levels",
+        "structuralSurfacesRetained": true,
+        "hysteresis": true
+      },
+      {
+        "distance": 593.5344455936533,
+        "nearTriangles": 5920,
+        "farTriangles": 3670,
+        "name": "Complete buildings ridge-hamlet detail levels",
+        "structuralSurfacesRetained": true,
+        "hysteresis": true
+      },
+      {
+        "distance": 619.5670599294947,
+        "nearTriangles": 12222,
+        "farTriangles": 9811,
+        "name": "Complete buildings contour-farm detail levels",
+        "structuralSurfacesRetained": true,
+        "hysteresis": true
+      },
+      {
+        "distance": 808.992655961127,
+        "nearTriangles": 21298,
+        "farTriangles": 13212,
+        "name": "Complete buildings roadside-homes detail levels",
+        "structuralSurfacesRetained": true,
+        "hysteresis": true
+      },
+      {
+        "distance": 964.3020266531976,
+        "nearTriangles": 41212,
+        "farTriangles": 25584,
+        "name": "Complete buildings approach-crossing detail levels",
+        "structuralSurfacesRetained": true,
+        "hysteresis": true
+      }
+    ],
+    "farm": {
+      "buildings": 62,
+      "triangles": 133587,
+      "farTriangles": 98250,
+      "yardTriangles": 2924,
+      "batches": 88,
+      "sites": 8,
+      "siteTriangles": 273132,
+      "low": true
+    },
+    "errors": [],
+    "groundContribution": {
+      "mean": 3.9748106995881893,
+      "changedPercent": 17.23009259259259
+    },
+    "detailTransition": {
+      "mean": 0.001922325102880659,
+      "changedPercent": 0.006558641975308642
+    }
+  },
+  {
+    "invalidAtlas": {
+      "ready": 0,
+      "hills": 0,
+      "errors": [
+        "Error: Invalid hillside land-cover allocation"
+      ]
+    }
+  }
+]

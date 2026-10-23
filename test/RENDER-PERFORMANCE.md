@@ -2269,3 +2269,174 @@ clipped triangles instead of 16,043).
 Validation: all Node suites; delivery; cockpit surfaces, cockpit lighting (including the
 missing-file fallback), phone cockpit, canopy shade and airport glass in SwiftShader; and
 the full browser functional suite.
+
+## Connected approach crossing — 2026-10-22
+
+Compared published main `9c30fd6` with the completed crossing neighborhood. Apple M2 Pro,
+private Chromium ANGLE Metal, 1440 × 900 viewport, high at fixed 1.5× / low at 1×.
+Four-second warm-up and twelve-second samples per view, run sequentially. This measures
+RAF pacing with renderer/scenery updates and paused physics; it is not a complete flight
+benchmark. Assets are settled before sampling. The crossing camera is a wide exterior view;
+`captain-upper` is the unchanged cockpit at x=5500 m on the three-degree approach.
+
+| Tier / scene | Before FPS | After FPS | After p95 ms | Draw calls before → after | Extra rendered triangles |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| high / captain | 38.2 | 38.9 | 33.4 | 918 → 918 | −1,310 |
+| high / captain-upper | 36.2 | 34.3 | 33.4 | 1088 → 1104 | +127,062 |
+| high / crossing | 50.5 | 45.8 | 33.4 | 695 → 711 | +128,598 |
+| high / storm | 40.6 | 40.7 | 33.4 | 873 → 873 | −298 |
+| low / captain | 60.0 | 60.0 | 16.8 | 529 → 529 | −608 |
+| low / captain-upper | 59.9 | 60.0 | 16.7 | 611 → 634 | +138,762 |
+| low / crossing | 60.0 | 60.0 | 16.7 | 451 → 474 | +138,834 |
+| low / storm | 56.4 | 60.0 | 16.7 | 499 → 499 | −206 |
+
+The added neighborhood costs about **5% FPS in the upper cockpit view and 9% in the wide
+crossing view on high**. The shorter captain/storm views change little. Low remains at
+the 60 FPS display cap; the faster storm result is run-to-run variation, not evidence of
+a code speedup. These results do not establish performance on a physical phone, an ordinary
+laptop or another GPU driver. Adaptive quality remains necessary for slower hardware.
+
+There are 27 additional complete building placements, bringing the total to 62 across eight
+sites. Building triangles rise 92,375 → 133,587; site grounds/fences 175,866 → 273,132, plus
+the unchanged 2,924-triangle original yard. The three adjacent crossing groups share building
+material batches, removing 20 draws versus separate groups without changing geometry.
+Total site batches are 65 → 88, before subtracting replaced procedural facade draws.
+The transfer increase is geometry and site data; texture counts/resolutions are unchanged.
+
+Four additional interpreted cover polygons add 20.47 ha, bringing total mapped cover to
+930.74 ha. A fifth central planting zone has a 700 / 300 high/low allocation; older zone
+bounds/seeds/caps are preserved. This allocation replaces wider photo-selected trees within
+the unchanged **52,000 / 14,000** instance budgets. Redistribution slightly changes visible
+trees and shadow geometry outside the new neighborhood too. The exact CPU mask and GPU
+dimensions are unchanged; the PNG uses stronger lossless compression.
+
+| Delivered asset | Before bytes | After bytes |
+| --- | ---: | ---: |
+| Complete buildings, high | 2,179,844 | 2,893,360 |
+| Complete buildings, low | 1,733,232 | 2,446,804 |
+| Approach site data | 50,036 | 84,349 |
+| Building manifest | 15,604 | 23,460 |
+| Cover PNG + JSON | 435,319 | 303,681 |
+
+Net added transfer is **624,047 bytes high / 624,103 low**, loaded during preparation behind
+the menu. Unused Blender child/mesh/accessor labels are omitted from the GLBs; runtime
+building IDs, material names and geometry/texture precision are retained. Low retains the
+same complete-building geometry as high, with smaller textures.
+
+The delivery browser check measured **14,210,244 / 8,674,357 bytes** to the menu and
+**65,668,574 / 19,013,457 bytes** after full preparation, high / low. Startup remains below
+the 15 / 9 MB limits; compared with the previous delivery report, it rises by only 212 bytes
+of loader code. Starting a flight requests no additional assets. Hidden-tab calibration,
+slow-device automatic low selection and low-tier terrain registration still pass.
+
+Validation: all 18 Node suites; both-tier approach-site roof/contact/road/tree checks and
+missing/invalid extension fallbacks; both-tier corridor ground contribution, allocation,
+field/road/building clearance and missing-mask fallback; authored-scenery material/atmosphere
+checks and missing model/material/site-data fallbacks; delivery and automatic quality checks.
+The local comparison page also passes image-loading, slider-direction and small-layout checks.
+The full functional flight suite,
+SwiftShader and physical phones were not repeated for this scenery-only pass.
+
+Reports: `benchmarks/2026-10-22-approach-crossing-{render-before,render-after,sites,corridor,authored,delivery}.json`.
+Local [matched full-frame review](output/approach-crossing-review.html) includes three ordinary
+pilot positions as well as the wide/close views, overcast and night. The strongest gain is
+the continuous wooded/inhabited stretch; the straight-ahead cockpit change is modest because
+the glareshield hides most nearby buildings. Other approach areas, distant tree forms and
+photographic shadows remain incomplete.
+
+
+## Pilot-visible hillside and distant building trim — 2026-10-23
+
+Compared published main `9c135d2` with the hillside extension. Apple M2 Pro, private
+Chromium ANGLE Metal, 1440 × 900, high fixed at 1.5× and low at 1×. Four-second warm-up,
+twelve-second samples, all GPU jobs sequential. Renderer/scenery updates with paused
+physics and settled assets; RAF pacing is display-capped. This is not a full-flight or
+physical-phone benchmark. `captain-valley` and `captain-upper` use the unchanged pilot
+camera at x=7500 and 5500 m. `hills` is the wider inspection camera at (5200,380,600).
+
+First matched run, retained in full, including variable low-tier results:
+
+| Tier / scene | Before FPS | After FPS | After p95 ms | Draw calls before → after | Rendered triangle change |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| high / captain-valley | 32.78 | 33.37 | 33.4 | 1249 → 1241 | -5,640 |
+| high / captain-upper | 32.99 | 33.99 | 33.4 | 1104 → 1098 | +5,375 |
+| high / captain | 37.73 | 38.73 | 33.4 | 918 → 912 | -8,816 |
+| high / storm | 39.53 | 40.64 | 33.4 | 873 → 870 | -7,706 |
+| high / hills | 50.21 | 50.03 | 33.4 | 474 → 470 | +42,890 |
+| low / captain-valley | 60.00 | 60.00 | 16.8 | 690 → 686 | -33,662 |
+| low / captain-upper | 56.92 | 51.26 | 33.4 | 634 → 630 | -17,950 |
+| low / captain | 49.93 | 49.60 | 33.4 | 529 → 521 | -6,791 |
+| low / storm | 60.00 | 48.27 | 33.4 | 499 → 495 | -6,942 |
+| low / hills | 59.67 | 60.00 | 16.8 | 310 → 307 | -1,771 |
+
+High-tier FPS is within −0.4% to +3.0% of baseline. That is broadly similar pacing,
+not evidence of a general speedup. The wider hillside adds 42,890 rendered triangles
+on high, while distant trim removes geometry elsewhere. Total draw calls fall modestly.
+
+Low-tier timings vary enough that the first apparent regressions need qualification.
+Repeating the two cockpit scenes in reverse build order gave:
+
+| Low scene | Before FPS | After FPS | Before / after p95 ms |
+| --- | ---: | ---: | ---: |
+| Middle approach (`captain-upper`) | 60.00 | 60.00 | 16.7 / 16.7 |
+| Short final (`captain`) | 55.67 | 55.43 | 33.3 / 33.3 |
+
+Three additional consecutive storm samples, after build first and baseline second,
+measured **60.00 / 56.01 / 48.37 FPS after** and **60.00 / 54.43 / 58.59 before**.
+Both builds fluctuate, and the third after sample is slower. These measurements do not
+establish a stable low-tier regression or stable equivalence under sustained load. The
+raw results remain available; do not replace them with a claim of “60 FPS on low”.
+Wider hardware and longer sustained-flight measurements remain outstanding. Adaptive
+quality is unchanged.
+
+### Geometry, memory and delivery
+
+- The hillside reuses the bundled final-approach imagery and tree palette. Its weighted
+  cover is 381.06 ha woodland plus 25.26 ha meadow: combined interpreted cover 1337.06 ha.
+  Six clearings stay open; road and building clearances remain. The original 3450 × 1015
+  close-mask pixels are byte-identical. Previous mapped planting allocations are unchanged.
+- A sixth allocation receives 8000 / 1000 high/low trees, uniformly thinned from 16 / 32 m
+  candidate spacing. Total instances remain 52,000 / 14,000. Mapped and placed trees use
+  48,706 / 13,766 of that budget, leaving 3294 / 234 wider photo-selected trees. This shifts
+  background density and some near-tree selections rather than adding unlimited coverage.
+- The separate 1024 × 256 hill tile is packed below the close mask. One sampler and one
+  selected-region texture lookup remain. The combined atlas is 3450 × 1271 high and
+  2048 × 754 low. RGBA8 GPU bytes increase 14,007,000 → 17,539,800 high and
+  4,939,776 → 6,176,768 low. CPU placement adds 524,288 packed bytes; the old buffer remains.
+- The PNG/JSON pair increases 303,681 → 321,536 bytes (**+17,855**). Runtime code adds
+  4776 bytes. Total delivered increase is **22,631 bytes** per tier; no new imagery,
+  models or material textures. Delivery measures 14,215,020 / 8,679,133 bytes to the menu
+  and 65,691,205 / 19,036,088 after preparation. Startup remains below 15 / 9 MB; no new
+  resources are requested when the flight starts.
+- Complete buildings retain 133,587 near triangles and use 98,250 far triangles, 26.5%
+  fewer. Only painted/ironwork triangles smaller than 0.08 m² are removed. Walls, roofs,
+  glass and substantial trim retain geometry and materials. Far levels share vertex
+  attributes and add indices. The switch occurs beyond bounding radius + 550 m, with
+  12% hysteresis on return. Building models, 62 placements, eight sites and ground geometry
+  are unchanged. This is not a 26.5% reduction in whole-scene rendering cost.
+
+### Validation and remaining limits
+
+All 18 Node suites pass. Hardware browser checks pass for both land-cover tiers, field/
+road/building clearances, visible ground contribution and missing/invalid atlas fallback.
+All six building groups retain structural surfaces and pass level/hysteresis checks.
+At the visible crossing transition, pixels changing by more than 12 grey levels comprise
+0.0119% high / 0.0066% low of the full frame. The near/far mean RGB difference is
+0.0059 / 0.0019 on the 0–255 scale. Other distances and thin silhouettes can still shimmer.
+
+The existing authored material/atmosphere checks, 64 roof samples, terrain contact,
+35 local and 16 main-road connections, asset fallbacks and delivery/automatic quality
+checks also pass. A matched 480-frame normal-pilot descent was recorded from x=6800 to
+6201 m at high 1×, with no renderer errors. Encoding alters pacing, so those clips are
+visual evidence, not benchmark results. The full functional flight suite, SwiftShader
+and physical phones were not repeated for this pass.
+
+The gain is wooded coverage in the left windshield; the runway and cockpit are unchanged.
+Low-tier woods remain sparse, distant crowns retain image planes and repeated forms, and
+unmapped hills remain photographic. The fixed tree budget means less random planting
+outside the mapped areas. This does not complete the scenery or vegetation categories.
+
+Reports: `benchmarks/2026-10-23-approach-hills-*.json`, including both raw render comparisons,
+repeated low-tier samples, scenery/corridor/authored/site/delivery checks and motion metadata.
+Local [pilot and hillside comparison](output/approach-hills-review.html) includes both tiers,
+nine matched views, overcast/night and the moving pilot-camera pair.

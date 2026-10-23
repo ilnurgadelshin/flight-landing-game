@@ -1,0 +1,9 @@
+{
+  "tier": "high",
+  "pixelRatio": 1,
+  "frames": 480,
+  "fromX": 6800,
+  "toX": 6201.25,
+  "metresPerSimulatedSecond": 75,
+  "errors": []
+}

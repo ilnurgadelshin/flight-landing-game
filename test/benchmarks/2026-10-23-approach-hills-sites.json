@@ -1,0 +1,78 @@
+[
+  {
+    "tier": "high",
+    "buildings": 62,
+    "triangles": 133587,
+    "farTriangles": 98250,
+    "yardTriangles": 2924,
+    "batches": 88,
+    "sites": 8,
+    "siteTriangles": 273132,
+    "low": false,
+    "groundError": 0.00003306579584752556,
+    "roofs": 62,
+    "roofSamples": 64,
+    "roadConnections": 35,
+    "mainRoadConnections": 16,
+    "trees": 66,
+    "unplanned": 0,
+    "intrusions": 0,
+    "errors": []
+  },
+  {
+    "tier": "low",
+    "buildings": 62,
+    "triangles": 133587,
+    "farTriangles": 98250,
+    "yardTriangles": 2924,
+    "batches": 88,
+    "sites": 8,
+    "siteTriangles": 273132,
+    "low": true,
+    "groundError": 0.00003299329727254885,
+    "roofs": 62,
+    "roofSamples": 64,
+    "roadConnections": 35,
+    "mainRoadConnections": 16,
+    "trees": 66,
+    "unplanned": 0,
+    "intrusions": 0,
+    "errors": []
+  },
+  {
+    "failure": "unavailable",
+    "fallback": {
+      "farm": {
+        "buildings": 9,
+        "triangles": 47473,
+        "farTriangles": 42415,
+        "yardTriangles": 2924,
+        "batches": 14,
+        "sites": 1,
+        "siteTriangles": 39844,
+        "low": true
+      },
+      "errors": [
+        "Error: Approach sites: HTTP 503"
+      ]
+    }
+  },
+  {
+    "failure": "invalid",
+    "fallback": {
+      "farm": {
+        "buildings": 9,
+        "triangles": 47473,
+        "farTriangles": 42415,
+        "yardTriangles": 2924,
+        "batches": 14,
+        "sites": 1,
+        "siteTriangles": 39844,
+        "low": true
+      },
+      "errors": [
+        "Error: Approach sites: invalid site data"
+      ]
+    }
+  }
+]

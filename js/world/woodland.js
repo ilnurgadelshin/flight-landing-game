@@ -143,7 +143,7 @@ export async function addWoodland(world,photo,approachPhoto) {
   // boundaries used by the ground. Jittered spacing avoids clumps and bare gaps.
   // Reserve part of the EXISTING instance budget, rather than adding a new layer.
   if(corridor){
-    const zones=corridor.manifest.plantingZones||[{bounds:corridor.manifest.bounds,seed:94051,highLimit:10000,lowLimit:4800}];
+    const zones=[...(corridor.manifest.plantingZones||[{bounds:corridor.manifest.bounds,seed:94051,highLimit:10000,lowLimit:4800}]),...(corridor.manifest.hills?.plantingZones||[])];
     const zoneCounts=[];
     for(const zone of zones){
       const [x0,z0,width,depth]=zone.bounds,localRng=makeRng(zone.seed),zoneTrees=[],upperTrees=[];
@@ -162,7 +162,7 @@ export async function addWoodland(world,photo,approachPhoto) {
           const edge=.76+.24*weight;
           const h=(row===0?14+localRng()*7:row===7?16+localRng()*7:row===8?12+localRng()*6:row<4?3+localRng()*3:10+localRng()*5)*edge;
           const w=Math.min(24,h*atlas.species[row].aspect*(.94+localRng()*.14));
-          (xx<4100?zoneTrees:upperTrees).push({x,z,type:Math.floor(localRng()*4),row,h,w,yaw:localRng()*Math.PI});
+          (xx<4100&&!zone.uniform?zoneTrees:upperTrees).push({x,z,type:Math.floor(localRng()*4),row,h,w,yaw:localRng()*Math.PI});
         }
         xx+=spacing;
       }

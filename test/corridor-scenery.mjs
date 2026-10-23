@@ -18,7 +18,7 @@ try{
   const stats=await page.evaluate(async()=>{
    const T=await import('/vendor/three.module.js'),s=window.__sim,w=s.world;
    s.setDrawing(false);s.game.state='menu';
-   const matrix=new T.Matrix4(),p=new T.Vector3();let trees=0,inside=0,extended=0,opposite=0,upperOpposite=0,upperValley=0,intrusions=0,fieldTrees=0;
+   const matrix=new T.Matrix4(),p=new T.Vector3();let trees=0,inside=0,extended=0,opposite=0,upperOpposite=0,upperValley=0,crossing=0,intrusions=0,fieldTrees=0;
    for(const m of w.woodland.children)if(m.material===w.woodlandMaterial)for(let i=0;i<m.count;i++){
     m.getMatrixAt(i,matrix);p.setFromMatrixPosition(matrix);trees++;
     if(p.x>2100&&p.x<4100&&p.z>180&&p.z<1030)inside++;
@@ -26,16 +26,18 @@ try{
     if(p.x>2100&&p.x<4100&&p.z>-1000&&p.z< -180)opposite++;
     if(p.x>=4100&&p.x<6100&&p.z>-1000&&p.z< -180)upperOpposite++;
     if(p.x>=6100&&p.x<9000&&p.z>-1000&&p.z<1030)upperValley++;
+    if(p.x>=4400&&p.x<5300&&p.z>=-180&&p.z<180)crossing++;
     if(w.approachBuildingExcludes(p.x,p.z)||w.approachRoadExcludes(p.x,p.z))intrusions++;
     const cover=w.approachCorridor?.sample(p.x,p.z);if(cover&&cover[0]+cover[1]>.6)fieldTrees++;
    }
    const mask=w.approachCorridor?.texture.image;
-   return {trees,inside,extended,opposite,upperOpposite,upperValley,intrusions,fieldTrees,corridor:w.approachCorridor?.trees,maskSize:mask?[mask.width,mask.height]:null,ready:w.groundUniforms.uCorridorReady?.value,errors:w.assetErrors};
+   return {trees,inside,extended,opposite,upperOpposite,upperValley,crossing,intrusions,fieldTrees,corridor:w.approachCorridor?.trees,maskSize:mask?[mask.width,mask.height]:null,ready:w.groundUniforms.uCorridorReady?.value,errors:w.assetErrors};
   });
   assert.equal(stats.intrusions,0);assert.deepEqual(stats.errors,[]);
   if(!baseline){assert.equal(stats.ready,1);assert.equal(stats.fieldTrees,0);assert.ok(stats.extended>(tier==='high'?6500:3000));assert.ok(stats.corridor.count>(tier==='high'?20000:9000));assert.ok(stats.opposite>(tier==='high'?3000:1500));assert.ok(stats.upperOpposite>(tier==='high'?3000:1200));assert.equal(stats.trees,stats.corridor.limit);}
   if(!baseline){assert.ok(stats.upperValley>(tier==='high'?17500:2500),'Upper stands receive their bounded allocation');assert.equal(stats.trees,tier==='high'?52000:14000);}
-  if(!baseline)assert.deepEqual(stats.maskSize,tier==='high'?[3450,1015]:[2048,603],'Low quality bounds the GPU data mask while retaining full CPU placement precision');
+  if(!baseline)assert.ok(stats.crossing>(tier==='high'?650:250),'Central wooded parcels receive planting without thinning established stands');
+  if(!baseline)assert.deepEqual(stats.maskSize,tier==='high'?[3450,1271]:[2048,754],'Low quality bounds the GPU atlas while retaining full CPU placement precision');
   const report={tier,...stats};reports.push(report);console.log(report);
   for(const view of views){
    await page.evaluate(async view=>{

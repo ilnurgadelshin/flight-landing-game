@@ -679,12 +679,16 @@ The visual assets are bundled locally and need no map service, account or API ke
   The distant views are baked from the delivered geometry, and selection hysteresis plus a
   common fade rate reduce visible detail changes.
   Reviewed ground extends along 6.9 km of final, including the upper-valley woods.
-  Eighty-six interpreted field/woodland boundaries guide both ground materials and tree
+  Ninety close field/woodland boundaries and a coarser hillside tile guide both ground materials and tree
   placement. Meadow, stubble and woodland-floor surfaces reduce photographic blur and baked
-  shadows across about 910 hectares; mapped fields remain open and woodland gains a denser
+  shadows across about 1337 hectares, including a coarser hill tile visible to the pilot's
+  left; mapped fields and six hillside clearings remain open and woodland gains a denser
   canopy. The older upper stands use 12 m / 18 m high/low candidate spacing; the farther
   extension uses 16 m / 30 m before thinning. All draw from the existing 52,000 / 14,000
-  tree budget, retaining the close mapped allocations. Land-cover data totals 435 KB; roads,
+  tree budget, retaining the close mapped allocations. A separate allocation fills the wooded
+  parcels around the approach crossing. The hillside receives up to 8000 / 1000 trees
+  from the same total budget, preserving the earlier mapped allocations. Land-cover data totals about 322 KB after lossless
+  PNG compression; roads,
   buildings and the protected airport area remain clear. These are interpretations of bundled
   imagery, not surveyed land-use data. Open fields retain photographed soil and crop variation
   at approach height, including the upper valley's curved crop strips. Unmapped areas retain
@@ -694,17 +698,19 @@ The visual assets are bundled locally and need no map service, account or API ke
   Houses have a principal entrance bay; nearby high-quality windows have beveled frames,
   smoother panes and matching ledges. Wall roughness and siding relief separate the
   materials. Roof gables remain solid, and projected ground shadows have feathered edges.
-  Selected close-approach buildings (25 high / 9 low) use CC0 Poly Haven wall modules
+  Selected close-approach buildings (24 high / 8 low) use CC0 Poly Haven wall modules
   with authored textures, recessed windows and doors, merged into spatial batches. Roofs
   and unselected buildings retain their procedural forms.
-  Five additional farm roofs traced from the public-domain imagery fill prominent gaps
+  Six additional roofs traced from the public-domain imagery fill prominent gaps
   in the source footprints, with interpreted corrugated roofs and agricultural facades.
-  Twenty-two building placements across four sites use complete original models: timber
+  Sixty-two building placements across eight sites use complete original models: timber
   barns, clapboard homes, working sheds and three domed silos. The upper-valley dairy has
   separate pitched wings; silo groups replace two incorrectly inferred windowed blocks.
   Recessed openings, roof details, gutters and foundations add depth. Matching lawns,
-  gravel yards, connected drives, four local lanes, fences and 30 placed trees replace the
-  photographic ground at these sites. Projected silo shadows follow their rounded outlines.
+  gravel yards, connected drives, local lanes, fences and 66 eligible placed trees replace the
+  photographic ground at these sites. The approach crossing connects 27 of those buildings
+  through three adjacent groups of grounds, with wooded parcels and open pasture following
+  the same land-cover map. Projected silo shadows follow their rounded outlines.
   Fine clapboard and roof seams use filtered normal maps to avoid bright subpixel strips.
   Timber and gravel use CC0 scans. Footprints are retained; architecture, grounds and some
   estimated heights are interpreted. The previous buildings remain as a fallback if the

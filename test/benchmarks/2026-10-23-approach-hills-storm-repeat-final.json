@@ -1,0 +1,73 @@
+{
+  "date": "2026-10-23T07:07:32.876Z",
+  "browser": "141.0.7390.37",
+  "platform": "darwin",
+  "arch": "arm64",
+  "viewport": [
+    1440,
+    900
+  ],
+  "touch": false,
+  "pixelRatio": {
+    "high": 1.5,
+    "low": 1
+  },
+  "disabled": [],
+  "warmupSeconds": 4,
+  "sampleSeconds": 12,
+  "method": "Private Chromium ANGLE Metal; fixed-resolution renderer and scenery updates, paused physics. RAF pacing is display capped; no gl.finish. CPU times exclude asynchronous GPU work.",
+  "results": [
+    {
+      "tier": "low",
+      "scene": "storm",
+      "frames": 721,
+      "fps": 60.00282953703781,
+      "p50FrameMs": 16.69999999999891,
+      "p95FrameMs": 16.700000000000728,
+      "p99FrameMs": 16.80000000000109,
+      "cpuP50Ms": 2.8999996185302734,
+      "cpuP95Ms": 3.5,
+      "medianDrawCalls": 495,
+      "medianTriangles": 780026,
+      "nearTreesAtEnd": 0,
+      "pixelRatio": 1,
+      "assets": []
+    },
+    {
+      "tier": "low",
+      "scene": "storm",
+      "frames": 673,
+      "fps": 56.00818901307413,
+      "p50FrameMs": 16.700000000000728,
+      "p95FrameMs": 33.29999999999927,
+      "p99FrameMs": 33.400000000001455,
+      "cpuP50Ms": 2.8000001907348633,
+      "cpuP95Ms": 4.599999904632568,
+      "medianDrawCalls": 495,
+      "medianTriangles": 780026,
+      "nearTreesAtEnd": 0,
+      "pixelRatio": 1,
+      "assets": []
+    },
+    {
+      "tier": "low",
+      "scene": "storm",
+      "frames": 582,
+      "fps": 48.36779469450171,
+      "p50FrameMs": 16.69999999999709,
+      "p95FrameMs": 33.400000000001455,
+      "p99FrameMs": 33.400000000001455,
+      "cpuP50Ms": 3.1000003814697266,
+      "cpuP95Ms": 5.299999713897705,
+      "medianDrawCalls": 495,
+      "medianTriangles": 780026,
+      "nearTreesAtEnd": 0,
+      "pixelRatio": 1,
+      "assets": []
+    }
+  ],
+  "startupBytes": {
+    "low": 8679133
+  },
+  "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M2 Pro, Unspecified Version)"
+}
