@@ -369,13 +369,18 @@ woods and meadows, so neither map fades at their shared edge. A separately regis
 edge row, so bilinear filtering and downscaling cannot mix the two maps; unused space
 is left black. High uploads the combined 3450 × 1277 atlas. Low quality does not use
 the hill tile: it uploads only the close map, filtered to 2048 × 603 for ground colour,
-and keeps exact CPU samples of it. Upload dimensions also respect the renderer's maximum
+and keeps exact CPU samples of it. Before packing those samples or filtering the texture,
+the loader feathers the last 160 m beside the absent hill tile back to the photograph;
+the ends blend into neighbouring boundaries too. Ground colour and tree placement use
+the same edited pixels, avoiding an abrupt forest edge. This is a one-time low-tier
+decode operation; the baked PNG and high-tier join remain unchanged.
+Upload dimensions also respect the renderer's maximum
 texture size. Each ground pixel selects one region and uses one land-cover lookup;
 there is no additional sampler or draw call. The RGBA8 texture uses 17.62 MB high /
 4.94 MB low, against 14.01 / 4.94 MB without the hillside. On high the hill tile adds
 0.52 MB of packed CPU samples; the original 7 MB buffer and small mixed-pixel table remain.
 
-Coverage is approximately 76.27 ha meadow, 46.24 ha stubble and 813.89 ha woodland:
+Baked high-tier coverage is approximately 76.27 ha meadow, 46.24 ha stubble and 813.89 ha woodland:
 936.40 ha in the original corridor, 5.66 ha of it from the rows continuing the hill
 tile. The hillside adds 25.73 ha meadow and 385.63 ha woodland, for **1347.76 ha
 combined weighted coverage**. These totals account for

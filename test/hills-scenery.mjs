@@ -23,12 +23,13 @@ try{
   const stats=await page.evaluate(async()=>{
    const T=await import('/vendor/three.module.js'),s=window.__sim,w=s.world;s.setDrawing(false);s.game.state='menu';
    const matrix=new T.Matrix4(),p=new T.Vector3();let trees=0,hills=0,intrusions=0,clearingTrees=0,airportSide=0;
-   const join={close:0,hill:0};
+   const join={close:0,hill:0},edgeTrees=[0,0,0,0];
    for(const mesh of w.woodland.children)if(mesh.material===w.woodlandMaterial)for(let i=0;i<mesh.count;i++){
     mesh.getMatrixAt(i,matrix);p.setFromMatrixPosition(matrix);trees++;
     if(p.x<2100)airportSide++;
     // either side of the join with the close map, where both are wooded
     if(p.x>4200&&p.x<5000){if(p.z>=990&&p.z<1030)join.close++;else if(p.z>=1030&&p.z<1070)join.hill++;}
+    if(p.x>4300&&p.x<5000&&p.z>=870&&p.z<1030)edgeTrees[Math.floor((p.z-870)/40)]++;
     if(p.x>2100&&p.x<5300&&p.z>=1030&&p.z<2500){
      hills++;if(w.approachBuildingExcludes(p.x,p.z)||w.approachRoadExcludes(p.x,p.z))intrusions++;
      if(p.x>2350&&p.x<2520&&p.z>1100&&p.z<1310)clearingTrees++;
@@ -46,7 +47,16 @@ try{
     check(detail.distance*.5,0);check(detail.distance*1.2,1);check(detail.distance*.95,1);check(detail.distance*.5,0);
     lods.push({...detail,name:o.name,structuralSurfacesRetained:true,hysteresis:true});
    });
-   return {trees,hills,intrusions,clearingTrees,airportSide,join,hillsActive:w.groundUniforms.uHillsReady.value===1,
+   // Check the CPU planting samples against the actual uploaded image. A shader-
+   // only or placement-only fade would leave the terrain and trees disagreeing.
+   const corridor=w.approachCorridor,mask=corridor.texture.image,m=corridor.manifest;
+   const canvas=document.createElement('canvas');canvas.width=mask.width;canvas.height=mask.height;
+   const context=canvas.getContext('2d',{willReadFrequently:true});context.drawImage(mask,0,0);
+   const closeHeight=mask.height*w.groundUniforms.uCorridorMainHeight.value;
+   const edgeProfile=[870,910,950,990,1004,1016,1028].map(z=>({z,cpu:corridor.sample(4500,z)[2],
+    gpu:context.getImageData(Math.floor((4500-m.bounds[0])/m.bounds[2]*mask.width),Math.floor((z-m.bounds[1])/m.bounds[3]*closeHeight),1,1).data[2]/255}));
+   canvas.width=canvas.height=0;
+   return {trees,hills,intrusions,clearingTrees,airportSide,join,edgeTrees,edgeProfile,hillsActive:w.groundUniforms.uHillsReady.value===1,
     lods,farm:w.approachBuildings.farm,errors:w.assetErrors};
   });
   console.log(tier,stats);
@@ -57,7 +67,14 @@ try{
     // no gap or density step where the hillside continues the close map's woods
     assert.ok(stats.join.hill>=.7*stats.join.close,`Hill woods continue the close woods: ${JSON.stringify(stats.join)}`);
     assert.equal(stats.clearingTrees,0);
-   }else assert.ok(!stats.hillsActive&&stats.airportSide>=120,'Low keeps the photographed hillside and its background trees');
+    assert.ok(stats.edgeProfile.at(-1).cpu>.6&&stats.edgeProfile.at(-1).gpu>.6,'High retains its opaque terrain join');
+   }else{
+    assert.ok(!stats.hillsActive&&stats.airportSide>=120,'Low keeps the photographed hillside and its background trees');
+    assert.ok(stats.edgeProfile.at(-1).cpu<.01&&stats.edgeProfile.at(-1).gpu<.01,'Low terrain fades out before the missing hill tile');
+    assert.ok(stats.edgeProfile.find(p=>p.z===950).cpu>.2&&stats.edgeProfile.find(p=>p.z===950).cpu<.7,'The transition spans multiple tree crowns');
+    assert.ok(stats.edgeTrees[3]<stats.edgeTrees[1]*.4,'Tree density thins with the terrain near its outer edge');
+   }
+   assert.ok(stats.edgeProfile.every(p=>Math.abs(p.cpu-p.gpu)<.035),'Uploaded ground mask and planting samples agree');
    assert.equal(stats.intrusions,0);
    assert.ok(stats.lods.length>=5&&stats.farm.farTriangles<stats.farm.triangles*.85,'Distant detail removes meaningful geometry');
   }

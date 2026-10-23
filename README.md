@@ -689,7 +689,8 @@ The visual assets are bundled locally and need no map service, account or API ke
   parcels around the approach crossing. On high quality the hillside receives 8000 trees
   from the same total budget, preserving the earlier mapped allocations; they thin over
   200 m from the close map's woods, which continue into the hill tile without a seam. Low
-  quality keeps the hillside photograph and its background trees. Land-cover data totals about 324 KB after lossless
+  quality keeps the hillside photograph and its background trees, with a 160 m fade in
+  the close map's ground treatment and planting where its coverage ends. Land-cover data totals about 324 KB after lossless
   PNG compression; roads,
   buildings and the protected airport area remain clear. These are interpretations of bundled
   imagery, not surveyed land-use data. Open fields retain photographed soil and crop variation

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import sharp from 'sharp';
 import {protectedScenery} from '../js/world/scenery-ground.js';
-import {packCover} from '../js/world/approach-corridor.js';
+import {packCover,featherMissingHills} from '../js/world/approach-corridor.js';
 
 const root='assets/scenery/approach-corridor',manifest=JSON.parse(await fs.readFile(root+'.json'));
 const metadata=await sharp(root+'.png').metadata();
@@ -73,4 +73,16 @@ const close=(x,z)=>data[(Math.floor((z-manifest.bounds[1])/manifest.bounds[3]*ma
 for(const x of [4300,4600,4900])for(let z=990;z<=1070;z+=4){
  const woods=z<1030?close(x,z):hillside(x,z);assert.ok(woods>.6,`Continuous woods across the join at ${x}, ${z}: ${woods.toFixed(2)}`);
 }
+// Low quality omits the hill tile: the same decoded mask must gradually end both
+// the ground treatment and its planting, without altering the baked high-tier join.
+const lowRgba=Buffer.from(rgba);featherMissingHills(lowRgba,manifest);
+const lowCover=packCover(lowRgba,count),pixel=(x,z)=>Math.floor((z-z0)/depth*info.height)*info.width+Math.floor((x-x0)/width*info.width);
+for(const x of [4300,4600,4900]){
+ const ramp=[990,1004,1016,1028].map(z=>lowCover(pixel(x,z))[2]);
+ assert.ok(ramp[0]>.03&&ramp[0]<.2&&ramp.at(-1)===0,'The low-tier edge reaches zero gradually');
+ assert.ok(ramp.every((v,i)=>i===0||v<=ramp[i-1]),'No bright band along the outer fade');
+ assert.ok(cover(pixel(x,1028))[2]>.6,'The source high-tier join remains opaque');
+}
+assert.ok(lowRgba.subarray(0,pixel(x0,870)*4).equals(rgba.subarray(0,pixel(x0,870)*4)),'Interior cover stays byte-identical');
+for(const [x,z] of [[3370,-650],[7550,-400],[8500,1000],[5600,1028]])assert.deepEqual(lowCover(pixel(x,z)),cover(pixel(x,z)),'Fields and other map boundaries remain unchanged');
 console.log('Corridor coverage, airport clearance, registration, transfer budget and exact packed cover passed');

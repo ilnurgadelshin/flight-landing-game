@@ -2475,3 +2475,22 @@ after preparation; this branch also carries the flight-model tables, so the incr
 the hillside pass is not this change alone. No frame-rate measurements were repeated:
 tree instance counts are unchanged, texture memory falls on low and grows by the gutter
 rows on high, and the M2 Pro figures above still describe the first version.
+
+### Low-tier outer-edge fade — 2026-10-23
+
+Baseline `bcfb2cd`. Low quality omits the hill tile, so the unfeathered shared edge
+created a straight cutoff. The loader now fades the close mask over its last 160 m
+beside that absent tile, with blended lateral ends, before packing CPU placement data
+and filtering the GPU upload. The source asset and high-tier path are unchanged.
+
+Cost: one extra load-time pass over 134,400 RGBA pixels (RGB edited, alpha retained)
+and a canvas write. No new asset bytes, persistent buffers, texture storage, samplers,
+rendering passes or per-frame shader work are added. The total tree instances remain
+52,000 / 14,000, and texture dimensions remain 3450 × 1277 / 2048 × 603. Existing
+zone seeds/caps are retained; low-tier individual positions can change with selection.
+
+All 19 Node suites and both-tier Chromium Metal hillside/corridor checks pass.
+The sampled CPU/GPU coverage differs by at most 1/255. Four matched high-tier images
+are pixel-identical to `bcfb2cd`; low-tier images show the tapered edge. Raw reports:
+`benchmarks/2026-10-23-low-tier-edge-*.json`. No FPS benchmark was repeated, so this
+correction does not establish new frame-rate or physical-phone performance claims.

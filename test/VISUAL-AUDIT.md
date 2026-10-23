@@ -13,7 +13,9 @@ open clearings** bring combined interpreted cover to about 1348 ha. The close ma
 from its last 30 m beside the hill tile), five planting allocations and 62 complete
 buildings across eight sites remain. On high quality a separate hill allocation uses the
 existing total tree budget, reducing wider random planting; low quality keeps the
-photographed hillside and its background trees. Distant buildings now omit tiny trim while retaining walls, roofs and glass.
+photographed hillside and its background trees. Its close ground cover and planting
+now fade out over 160 m where that hill tile is absent, removing the hard shared-map edge.
+Distant buildings now omit tiny trim while retaining walls, roofs and glass.
 This improves a visible gap in the normal pilot view; it does **not** close the broader
 scenery category or improve the underlying distant tree forms.
 
@@ -98,6 +100,30 @@ ran on Metal. Corrections:
   the leaf-off photograph, as they did before the hillside pass (compared in the same view).
 - `hills-scenery` and `hills-motion` default to SwiftShader (`VISUAL_GPU=metal` for hardware);
   software rendering draws only the three sampled descent frames and records no video.
+
+Low-tier edge correction (2026-10-23, baseline `bcfb2cd`): the unfeathered shared map
+left a straight forest/ground-colour cutoff when the hill tile was disabled. The loader
+now applies a 160 m smooth fade to the decoded close mask only when that tile is absent,
+before both CPU packing and GPU filtering. The ends blend into neighbouring map edges.
+
+- Matched overview and pilot captures show a gradual low-tier transition. At x=4500,
+  woodland coverage at z=870/910/950/990/1028 is 1.00/0.84/0.49/0.15/0.00; CPU samples
+  and uploaded-image samples differ by at most 1/255 in the checked profile. Trees in
+  successive 40 m bands (x=4300–5000, z=870–1030) thin from 76 to 68 to 35 to 2.
+- All four matched high-tier captures are pixel-identical to the baseline; the continuous
+  high-tier join and distant-building detail remain intact. Low-tier planting within the
+  affected zone is regenerated with its existing seed and cap; individual tree positions
+  can change outside the fade as a result of the candidate selection sequence.
+- Both tiers retain their 52,000 / 14,000 tree budgets and 3450 × 1277 / 2048 × 603
+  uploaded masks. No asset changes, new textures, shaders or per-frame work. The extra
+  work is a one-time edit of about 134,400 decoded pixels and a canvas write during loading.
+- All 19 Node suites pass. Chromium Metal hillside checks cover CPU/GPU fade agreement,
+  tree density, building detail and invalid-atlas fallback. Both-tier corridor checks
+  cover field materials, placement clearances and missing-mask fallback. No new FPS
+  benchmark or physical-phone/SwiftShader run was performed for this correction.
+- Local [matched low-tier edge review](output/low-tier-edge-review.html); recorded checks:
+  `benchmarks/2026-10-23-low-tier-edge-*.json`. This fixes the coverage boundary, not the
+  remaining low-tier tree-card shapes or photographic ground limitations.
 
 The improvement is coverage visible during the approach. The runway, cockpit, weather,
 tree source geometry and complete-building count do not change. Low-tier woods remain

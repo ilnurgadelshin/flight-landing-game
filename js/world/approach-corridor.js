@@ -25,6 +25,28 @@ export function packCover(rgba,count){
  };
 }
 
+// The baked join stays opaque for the adjoining high-tier hill tile. When that
+// tile is absent, taper the close map back to the photograph over several crowns.
+// Edit the decoded pixels once so placement and the filtered GPU mask agree.
+export function featherMissingHills(rgba,manifest){
+ const {bounds:[x0,z0,width,depth],width:cols,height:rows,hills}=manifest;
+ const [hx,,hw]=hills.bounds,fade=160,edge=z0+depth;
+ const smooth=t=>{t=Math.max(0,Math.min(1,t));return t*t*(3-2*t);};
+ const firstRow=Math.max(0,Math.floor((depth-fade)/depth*rows));
+ const firstCol=Math.max(0,Math.floor((hx-fade-x0)/width*cols));
+ const lastCol=Math.min(cols,Math.ceil((hx+hw+fade-x0)/width*cols));
+ for(let j=firstRow;j<rows;j++){
+  const z=z0+(j+.5)*depth/rows,along=smooth((edge-z)/fade);
+  for(let i=firstCol;i<lastCol;i++){
+   const x=x0+(i+.5)*width/cols;
+   // Blend the ends into the neighbouring, already feathered map edge too.
+   const across=smooth((x-hx+fade)/fade)*smooth((hx+hw+fade-x)/fade);
+   const weight=1-across*(1-along),p=(j*cols+i)*4;
+   for(let c=0;c<3;c++)rgba[p+c]=Math.round(rgba[p+c]*weight);
+  }
+ }
+}
+
 export async function loadApproachCorridor(world){
  const url=name=>new URL('../../assets/scenery/approach-corridor.'+name,import.meta.url).href;
  const response=await fetch(url('json'));if(!response.ok)throw new Error(`Approach corridor: HTTP ${response.status}`);
@@ -67,14 +89,19 @@ export async function loadApproachCorridor(world){
  texture.colorSpace=THREE.NoColorSpace;texture.generateMipmaps=false;texture.minFilter=THREE.LinearFilter;
  const canvas=document.createElement('canvas');canvas.width=manifest.width;canvas.height=textureHeight;
  const context=canvas.getContext('2d',{willReadFrequently:true});context.drawImage(texture.image,0,0);
- // Keep the full 2 m mask for placement clearances (packed: 7 MB, not 14). The low tier
- // only needs a smaller, filtered ground-colour mask; never exceed the device texture limit.
- const cover=packCover(context.getImageData(0,0,manifest.width,manifest.height).data,manifest.width*manifest.height);
  // The hillside is used only by a tier with trees allotted to it (high): a tier without keeps
  // the photograph, its background trees, and a texture of just the close map.
  const low=world.lowDetail||world.quality==='low';
  const activeHills=hills&&hills.plantingZones.some(z=>(low?z.lowLimit:z.highLimit)>0)?hills:null;
  const rows=activeHills?textureHeight:manifest.height;
+ // Keep the full 2 m mask for placement clearances (packed: 7 MB, not 14). The low tier
+ // only needs a smaller, filtered ground-colour mask; never exceed the device texture limit.
+ const close=context.getImageData(0,0,manifest.width,manifest.height);
+ if(hills&&!activeHills){
+  featherMissingHills(close.data,manifest);
+  context.putImageData(close,0,0);
+ }
+ const cover=packCover(close.data,manifest.width*manifest.height);
  let hillCover;
  if(activeHills){
   const rgba=context.getImageData(...hills.atlas,hills.width,hills.height).data;

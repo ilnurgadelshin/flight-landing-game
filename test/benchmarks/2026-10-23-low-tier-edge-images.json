@@ -1,0 +1,59 @@
+{
+  "baseline": "bcfb2cd",
+  "renderer": "Chromium ANGLE Metal",
+  "viewport": [
+    1440,
+    900
+  ],
+  "pixelRatio": 1,
+  "images": [
+    {
+      "tier": "high",
+      "view": "hills-wide",
+      "meanAbsoluteRgbDelta": 0,
+      "changedOver12Percent": 0
+    },
+    {
+      "tier": "high",
+      "view": "captain-6500",
+      "meanAbsoluteRgbDelta": 0,
+      "changedOver12Percent": 0
+    },
+    {
+      "tier": "high",
+      "view": "captain-5500",
+      "meanAbsoluteRgbDelta": 0,
+      "changedOver12Percent": 0
+    },
+    {
+      "tier": "high",
+      "view": "hills-edge",
+      "meanAbsoluteRgbDelta": 0,
+      "changedOver12Percent": 0
+    },
+    {
+      "tier": "low",
+      "view": "hills-wide",
+      "meanAbsoluteRgbDelta": 5.617389917695027,
+      "changedOver12Percent": 16.140817901234566
+    },
+    {
+      "tier": "low",
+      "view": "captain-6500",
+      "meanAbsoluteRgbDelta": 0.939426183127579,
+      "changedOver12Percent": 2.734259259259259
+    },
+    {
+      "tier": "low",
+      "view": "captain-5500",
+      "meanAbsoluteRgbDelta": 0.9833256172839716,
+      "changedOver12Percent": 2.8165123456790124
+    },
+    {
+      "tier": "low",
+      "view": "hills-edge",
+      "meanAbsoluteRgbDelta": 0.04679320987654171,
+      "changedOver12Percent": 0
+    }
+  ]
+}
