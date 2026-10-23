@@ -73,6 +73,16 @@ export class Atmosphere {
     return RHO0 * Math.pow(T / 288.15, 4.256);
   }
 
+  /** ISA static pressure as a fraction of sea level's (the engines' thrust lapse uses it). */
+  pressureRatio(alt) {
+    return Math.pow((288.15 - 0.0065 * Math.max(0, alt)) / 288.15, 5.256);
+  }
+
+  /** ISA speed of sound (m/s). */
+  speedOfSound(alt) {
+    return Math.sqrt(1.4 * 287.05 * (288.15 - 0.0065 * Math.max(0, alt)));
+  }
+
   // Mean wind vector (m/s) at altitude, world frame. Wind FROM direction ψ
   // means the air moves toward ψ+180.
   meanWind(alt, out) {

@@ -1,7 +1,8 @@
 // ---------------------------------------------------------------------------
-// Aircraft flight model: 6-DOF rigid body (cannon-es) driven by a
-// coefficient-based aerodynamic model, engine spool dynamics, and a
-// spring/damper landing gear with a tyre friction model.
+// Aircraft flight model: 6-DOF rigid body (cannon-es) driven by tabulated
+// aerodynamic coefficients (js/physics/aero.js), two engines with spool
+// dynamics, thrust lapse and their own thrust lines (js/physics/engines.js),
+// and a spring/damper landing gear with a tyre friction model.
 //
 // Runs at a fixed rate (PHYSICS_HZ) via `step(dt)`; the caller accumulates
 // frame time and calls step() as many times as needed — rendering never
@@ -14,6 +15,8 @@
 import * as CANNON from 'cannon-es';
 import { AIRCRAFT as AC, KTS, DEG, G, PHYSICS_DT } from '../config.js';
 import { TERRAIN } from './terrain.js';
+import { aeroCoefficients, alphaForLift, flapValue } from './aero.js';
+import { engineThrust, n1ForThrust } from './engines.js';
 
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -26,6 +29,7 @@ const _v3 = new CANNON.Vec3();
 const _v4 = new CANNON.Vec3();
 const _v5 = new CANNON.Vec3();
 const _q1 = new CANNON.Quaternion();
+const _aero = { CL: 0, CD: 0, Cm: 0 };
 
 // Height of the CG above the ground with the gear extended and compressed
 // under static load. Used as the radio-altimeter datum.
@@ -115,7 +119,8 @@ export class Aircraft {
 
     // ----- internal state ---------------------------------------------------
     this.surfaces = { elevator: 0, aileron: 0, rudder: 0 }; // radians, actual positions
-    this.engines = [{ n1: AC.engines.idleN1, thrust: 0 }, { n1: AC.engines.idleN1, thrust: 0 }];
+    // engine 1 (left) and engine 2 (right), each with its thrust line's distance from the centreline
+    this.engines = [-1, 1].map((side) => ({ n1: AC.engines.idleN1, thrust: 0, failed: false, x: side * AC.engines.lateralArm }));
     this.reverserPos = 0;         // 0 stowed .. 1 deployed
     this.flapDeg = 0;
     this.gearPos = 1;             // 0 up .. 1 down & locked
@@ -170,7 +175,7 @@ export class Aircraft {
       p: 0, q: 0, r: 0,
       ias: 0, tas: 0, tasKts: 0, alpha: 0, beta: 0, mach: 0,
       track: 0, gamma: 0, gLoad: 1,
-      n1: [0, 0], thrust: 0, flapDeg: 0, flapIndex: 0, gearPos: 1, gearDown: true, gearInTransit: false,
+      n1: [0, 0], thrust: 0, engineThrust: [0, 0], engineFailed: [false, false], flapDeg: 0, flapIndex: 0, gearPos: 1, gearDown: true, gearInTransit: false,
       speedbrake: 0, speedbrakeArmed: false, reverser: 0, reverseSelected: false, trim: 0,
       elevator: 0, aileron: 0, rudder: 0, throttle: 0, brake: 0, autobrake: 0,
       onGround: false, wheelsOnGround: 0, mainsOnGround: false, noseOnGround: false,
@@ -230,11 +235,11 @@ export class Aircraft {
     const psi = headingDeg * DEG;
     const rho = this.atmosphere.density(y);
     const tas = iasKts * KTS / Math.sqrt(rho / 1.225);   // the start speed is an indicated airspeed
-    const qbar = 0.5 * rho * tas * tas;
-    const CLreq = onGround ? 0 : (AC.mass * G * Math.cos(gammaDeg * DEG)) / Math.max(qbar * AC.wingArea, 1);
-    const CL0 = AC.aero.CL0 + AC.flaps.dCL0[flapIndex];
-    let alpha = onGround ? 0 : (CLreq - CL0) / AC.aero.CLa;
-    alpha = clamp(alpha, -5 * DEG, 12 * DEG);
+    // angle of attack, thrust and stabiliser trim for equilibrium on this flight path
+    const E = AC.engines, flapDeg = AC.flapDetents[flapIndex];
+    const trim = onGround ? null : this.trimFor({ alt: y, tas, gamma: gammaDeg * DEG, flapDeg, gearDown,
+      n1: throttle === 'trim' ? null : lerp(E.idleN1, 1, throttle) });
+    const alpha = onGround ? 0 : trim.alpha;
     const theta = onGround ? 0 : gammaDeg * DEG + alpha;
     const qYaw = new CANNON.Quaternion().setFromAxisAngle(new CANNON.Vec3(0, 1, 0), -psi);
     const qPitch = new CANNON.Quaternion().setFromAxisAngle(new CANNON.Vec3(1, 0, 0), theta);
@@ -244,69 +249,45 @@ export class Aircraft {
     const dirX = Math.sin(psi) * cg, dirZ = -Math.cos(psi) * cg, dirY = Math.sin(gammaDeg * DEG);
     if (onGround) b.velocity.set(0, 0, 0);
     else b.velocity.set(dirX * tas + wind[0], dirY * tas + wind[1], dirZ * tas + wind[2]);
-    // thrust for equilibrium on this flight path: T = D + W sin(gamma)
-    if (throttle === 'trim') {
-      const CLt = CL0 + AC.aero.CLa * alpha;
-      const CDt = AC.aero.CD0 + AC.flaps.dCD0[flapIndex] + AC.aero.dCD_gear * (gearDown ? 1 : 0) + AC.aero.K * CLt * CLt;
-      const Treq = onGround ? 0 : qbar * AC.wingArea * CDt + AC.mass * G * Math.sin(gammaDeg * DEG);
-      const fracT = Math.pow(clamp(Treq / (AC.engines.count * AC.engines.maxThrust * (rho / 1.225)), 0, 1), 1 / 2.2);
-      const n1t = 0.2 + 0.8 * fracT;
-      throttle = clamp((n1t - AC.engines.idleN1) / (1 - AC.engines.idleN1), 0, 1);
-      this.input.throttle = throttle;
-    }
-    // trim the stabiliser for pitch equilibrium at this alpha
-    const Cm0 = AC.aero.Cm0 + AC.flaps.dCm0[flapIndex];
-    // thrust below the CG produces a nose-up moment that the trim must hold too
-    const n1 = lerp(AC.engines.idleN1, 1, throttle);
-    const frac = clamp((n1 - 0.2) / 0.8, 0, 1);
-    const thrust = AC.engines.count * AC.engines.maxThrust * Math.pow(frac, 2.2) * (rho / 1.225);
-    const CmThrust = onGround ? 0 : thrust * (-AC.engines.thrustArmY) / Math.max(qbar * AC.wingArea * AC.chord, 1);
-    const CmNeeded = -(Cm0 + AC.aero.Cma * alpha + CmThrust);
-    const de = CmNeeded / AC.aero.Cmde; // elevator radians equivalent
-    this.input.trim = onGround ? 0 : clamp(-de / DEG, -AC.controls.maxTrimDeg, AC.controls.maxTrimDeg);
-    for (const e of this.engines) { e.n1 = n1; e.thrust = thrust / AC.engines.count; }
+    const n1 = onGround ? lerp(E.idleN1, 1, throttle === 'trim' ? 0 : throttle) : trim.n1;
+    if (throttle === 'trim') this.input.throttle = clamp((n1 - E.idleN1) / (1 - E.idleN1), 0, 1);
+    this.input.trim = onGround ? 0 : clamp(trim.trimDeg, -AC.controls.maxTrimDeg, AC.controls.maxTrimDeg);
+    const thrust = onGround ? 0 : trim.thrust;
+    for (const e of this.engines) { e.n1 = n1; e.thrust = thrust / E.count; e.failed = false; }
     const wv = onGround ? 0 : tas;
     this.updateState(0, { tas: wv, totalThrust: thrust, alpha, wind });
   }
 
-  // ----- helpers ---------------------------------------------------------------
-  // Lift curve with a smooth stall; works with the actual (continuous) flap angle
-  liftCoefficient(alpha, dCL0f, aStall) {
-    const A = AC.aero;
-    const CL0 = A.CL0 + dCL0f;
-    const CLmax = CL0 + A.CLa * aStall;
-    const width = A.stallWidthDeg * DEG;
-    let CL;
-    if (alpha <= aStall && alpha >= -aStall * 0.8) {
-      CL = CL0 + A.CLa * alpha;
-    } else if (alpha > aStall) {
-      const over = alpha - aStall;
-      const t = clamp(over / width, 0, 1);
-      const smooth = t * t * (3 - 2 * t);
-      const CLdeep = CLmax * A.postStallCLfrac;
-      CL = CLmax - (CLmax - CLdeep) * smooth;
-      if (alpha > aStall + width) {
-        const beyond = alpha - aStall - width;
-        CL = Math.max(0.2, CLdeep * Math.cos(Math.min(beyond, Math.PI / 2)));
+  /**
+   * Steady straight flight on a path angle gamma (rad) at a true airspeed: the angle of attack,
+   * the thrust (and its N1) and the stabiliser trim that balance lift, drag and pitching moment,
+   * from the same tables and engines as step(). With an N1 given, the thrust is that N1's and
+   * only lift and moment are balanced.
+   */
+  trimFor({ alt, tas, gamma, flapDeg, gearDown, n1 = null }) {
+    const A = AC.aero, E = AC.engines, c = { CL: 0, CD: 0, Cm: 0 };
+    const qS = Math.max(0.5 * this.atmosphere.density(alt) * tas * tas * AC.wingArea, 1);
+    const mach = tas / this.atmosphere.speedOfSound(alt), pr = this.atmosphere.pressureRatio(alt);
+    const W = AC.mass * G;
+    let thrust = n1 === null ? 0 : E.count * engineThrust(n1, mach, pr, E), alpha = 0;
+    for (let k = 0; k < 20; k++) {
+      // the thrust line is along the body axis: alpha above the flight path
+      alpha = alphaForLift((W * Math.cos(gamma) - thrust * Math.sin(alpha)) / qS, flapDeg);
+      aeroCoefficients(alpha, flapDeg, c);
+      if (n1 === null) {
+        const CD = c.CD + A.dCD_gear * (gearDown ? 1 : 0) + A.K * c.CL * c.CL;
+        thrust = Math.max(0, (qS * CD + W * Math.sin(gamma)) / Math.cos(alpha));
       }
-    } else {
-      const aNeg = -aStall * 0.8;
-      const CLmin = CL0 + A.CLa * aNeg;
-      const over = aNeg - alpha;
-      const t = clamp(over / width, 0, 1);
-      CL = CLmin + (0 - CLmin) * 0.5 * t * t * (3 - 2 * t);
     }
-    return { CL, CLmax, aStall, CL0 };
+    if (n1 === null) n1 = n1ForThrust(thrust / E.count, mach, pr, E);
+    // the stabiliser holds the pitching moment, the thrust's (its line is below the CG) included:
+    // Cm + Cmde * (-trim) = 0
+    const Cm = c.Cm + thrust * (-E.thrustArmY) / (qS * AC.chord);
+    return { alpha, thrust, n1, trimDeg: Cm / A.Cmde / DEG };
   }
 
-  flapLerp(arr) {
-    const d = this.flapDeg;
-    const det = AC.flapDetents;
-    for (let i = 1; i < det.length; i++) {
-      if (d <= det[i]) { const t = (d - det[i - 1]) / (det[i] - det[i - 1]); return lerp(arr[i - 1], arr[i], t); }
-    }
-    return arr[arr.length - 1];
-  }
+  /** Fail an engine (0 = left, 1 = right), or restore it: it winds down to a windmilling fan. */
+  setEngineFailed(index, failed = true) { this.engines[index].failed = failed; }
 
   // ----- main fixed step ---------------------------------------------------------
   step(dt) {
@@ -363,26 +344,6 @@ export class Aircraft {
     const reverseAllowed = inp.reverse && (!this.airborne || this.state.agl < 2);
     this.reverserPos += ((reverseAllowed ? 1 : 0) - this.reverserPos) * (1 - Math.exp(-dt / 0.9));
 
-    // --- engines: N1 spool dynamics
-    let throttleForN1 = inp.throttle;
-    // the reverse levers: from reverse idle (idle N1, the reversers deployed) to max reverse
-    if (reverseAllowed) throttleForN1 = E.reverseMaxN1 * clamp(inp.reverseLevel === undefined ? 1 : inp.reverseLevel, 0, 1);
-    else if (this.reverserPos > 0.3) throttleForN1 = 0; // stowing: engines go to idle first
-    const n1Target = lerp(E.idleN1, 1.0, clamp(throttleForN1, 0, 1));
-    const rhoRatio = this.atmosphere.density(b.position.y) / 1.225;
-    let totalThrust = 0;
-    for (const eng of this.engines) {
-      const up = n1Target > eng.n1;
-      const tau = up ? (eng.n1 < 0.55 ? E.tauUpLow : E.tauUpHigh) : E.tauDown;
-      eng.n1 += (n1Target - eng.n1) * (1 - Math.exp(-dt / tau));
-      const frac = clamp((eng.n1 - 0.2) / 0.8, 0, 1);
-      let thrust = E.maxThrust * Math.pow(frac, 2.2) * rhoRatio;
-      thrust *= (1 - this.reverserPos) - this.reverserPos * E.reverseFraction;
-      eng.thrust = thrust;
-      totalThrust += thrust;
-    }
-    if (this.damage.destroyed) totalThrust = 0;
-
     // --- kinematics in the body frame
     const q = b.quaternion;
     const qInv = q.conjugate(_q1);
@@ -405,12 +366,30 @@ export class Aircraft {
     const qr = wBody.x;   // pitch rate, nose up +
     const r = -wBody.y;   // yaw rate, nose right +
 
-    // --- aerodynamic coefficients
-    const dCL0f = this.flapLerp(AC.flaps.dCL0);
-    const dCD0f = this.flapLerp(AC.flaps.dCD0);
-    const dCm0f = this.flapLerp(AC.flaps.dCm0);
-    const aStallDeg = this.flapLerp(AC.flaps.alphaStallDeg);
-    const lift = this.liftCoefficient(alpha, dCL0f, aStallDeg * DEG);
+    // --- engines: N1 spool dynamics, and each engine's thrust at this airspeed and altitude
+    let throttleForN1 = inp.throttle;
+    // the reverse levers: from reverse idle (idle N1, the reversers deployed) to max reverse
+    if (reverseAllowed) throttleForN1 = E.reverseMaxN1 * clamp(inp.reverseLevel === undefined ? 1 : inp.reverseLevel, 0, 1);
+    else if (this.reverserPos > 0.3) throttleForN1 = 0; // stowing: engines go to idle first
+    const n1Target = lerp(E.idleN1, 1.0, clamp(throttleForN1, 0, 1));
+    const mach = tas / this.atmosphere.speedOfSound(alt), pRatio = this.atmosphere.pressureRatio(alt);
+    const reverseFactor = (1 - this.reverserPos) - this.reverserPos * E.reverseFraction;
+    let totalThrust = 0, thrustYaw = 0;
+    for (const eng of this.engines) {
+      // a failed engine winds down to its windmilling fan, which drags instead of pushing
+      const target = eng.failed ? E.windmillN1 : n1Target;
+      const up = target > eng.n1;
+      const tau = up ? (eng.n1 < 0.55 ? E.tauUpLow : E.tauUpHigh) : E.tauDown;
+      eng.n1 += (target - eng.n1) * (1 - Math.exp(-dt / tau));
+      eng.thrust = this.damage.destroyed ? 0
+        : eng.failed ? -qbar * E.windmillDragArea : engineThrust(eng.n1, mach, pRatio, E) * reverseFactor;
+      totalThrust += eng.thrust;
+      thrustYaw += eng.thrust * eng.x;   // about +Y (up): the right engine's thrust turns the nose left
+    }
+
+    // --- aerodynamic coefficients: the tables, then the control, rate and configuration terms
+    const aero = aeroCoefficients(alpha, this.flapDeg, _aero);
+    const aStallDeg = flapValue('stallAlphaDeg', this.flapDeg);
 
     const V = Math.max(tas, 5);
     const qhat = qr * c / (2 * V), phat = p * bSpan / (2 * V), rhat = r * bSpan / (2 * V);
@@ -427,16 +406,16 @@ export class Aircraft {
     const dCLsb = this.speedbrakePos * (sbGround ? A.dCL_speedbrakeGround : A.dCL_speedbrakeFlight);
     const dCDsb = this.speedbrakePos * (sbGround ? A.dCD_speedbrakeGround : A.dCD_speedbrakeFlight);
 
-    const CL = (lift.CL + A.CLq * qhat + A.CLde * de) * geLift + dCLsb;
-    const CD = A.CD0 + dCD0f + A.dCD_gear * this.gearPos + dCDsb + A.K * CL * CL * geFactor
+    const CL = (aero.CL + A.CLq * qhat + A.CLde * de) * geLift + dCLsb;
+    const CD = aero.CD + A.dCD_gear * this.gearPos + dCDsb + A.K * CL * CL * geFactor
       + (this.damage.gearCollapsed ? 0.05 : 0);
     const CY = A.CYb * beta + A.CYdr * dr;
     const Cl = A.Clb * beta + A.Clp * phat + A.Clr * rhat + A.Clda * da + A.Cldr * dr;
-    const stallExcess = Math.max(0, alpha - aStallDeg * DEG);
-    const Cm = A.Cm0 + dCm0f + A.Cma * alpha + A.Cmq * qhat + A.Cmde * (de + deTrim) - 1.2 * stallExcess;
+    const Cm = aero.Cm + A.Cmq * qhat + A.Cmde * (de + deTrim);
     const Cn = A.Cnb * beta + A.Cnp * phat + A.Cnr * rhat + A.Cnda * da + A.Cndr * dr;
 
-    // --- forces
+    // --- aerodynamic forces and moments
+    let aeroFy = 0;
     if (tas > 0.5) {
       const dragDir = _v4.set(-vRelBody.x / tas, -vRelBody.y / tas, -vRelBody.z / tas);
       const symLen = Math.hypot(vRelBody.y, vRelBody.z) || 1;
@@ -447,25 +426,29 @@ export class Aircraft {
       const fBody = _v1.set(
         dragDir.x * D + liftDir.x * L + Y,
         dragDir.y * D + liftDir.y * L,
-        dragDir.z * D + liftDir.z * L - totalThrust,   // thrust along -Z (forward)
+        dragDir.z * D + liftDir.z * L,
       );
       const fWorld = q.vmult(fBody, _v2);
       b.applyForce(fWorld, CANNON.Vec3.ZERO);
-      this._aeroFy = fWorld.y;
+      aeroFy = fWorld.y;
       // moments (aero convention -> cannon local axes: pitch about +X, yaw about -Y, roll about -Z)
       const Lm = qbar * S * bSpan * Cl;
-      const Mm = qbar * S * c * Cm + totalThrust * (-E.thrustArmY);
+      const Mm = qbar * S * c * Cm;
       const Nm = qbar * S * bSpan * Cn;
       const tBody = _v1.set(Mm, -Nm, -Lm);
       const tWorld = q.vmult(tBody, _v2);
       b.torque.vadd(tWorld, b.torque);
-    } else {
-      const fBody = _v1.set(0, 0, -totalThrust);
-      b.applyForce(q.vmult(fBody, _v2), CANNON.Vec3.ZERO);
     }
+    // --- thrust along -Z (forward) on each engine's line: below the CG (nose-up with thrust)
+    // and either side of it (a yawing moment whenever the engines' thrusts differ)
+    const thrustWorld = q.vmult(_v1.set(0, 0, -totalThrust), _v2);
+    b.applyForce(thrustWorld, CANNON.Vec3.ZERO);
+    this._aeroFy = aeroFy + thrustWorld.y;
+    b.torque.vadd(q.vmult(_v1.set(totalThrust * (-E.thrustArmY), thrustYaw, 0), _v2), b.torque);
 
-    // stick shaker ~3.5 deg before the stall (about 1.08 Vs, like the real one), not 2 deg
-    this.stallWarning = tas > 20 && alpha > (aStallDeg - 3.5) * DEG;
+    // the stick shaker at 7 % above the 1-g stall speed (the tables' warning angle), the stall
+    // at the maximum lift's angle of attack
+    this.stallWarning = tas > 20 && alpha > flapValue('warnAlphaDeg', this.flapDeg) * DEG;
     this.stalled = tas > 20 && alpha > aStallDeg * DEG;
 
     // --- landing gear + tyres
@@ -846,12 +829,14 @@ export class Aircraft {
     st.ias = pitot * Math.sqrt(rho / 1.225) / KTS;
     st.tasKts = st.tas / KTS;
     st.alpha = extra.alpha || 0; st.beta = extra.beta || 0;
-    st.mach = st.tas / 340;
+    st.mach = st.tas / this.atmosphere.speedOfSound(st.alt);
     st.track = st.groundSpeed > 0.5 ? Math.atan2(st.vx, -st.vz) : st.heading;
     if (st.track < 0) st.track += Math.PI * 2;
     st.gamma = st.groundSpeed > 0.5 ? Math.atan2(st.vy, st.groundSpeed) : 0;
     st.gLoad = this._gFilt;
     st.n1[0] = this.engines[0].n1; st.n1[1] = this.engines[1].n1;
+    st.engineThrust[0] = this.engines[0].thrust; st.engineThrust[1] = this.engines[1].thrust;
+    st.engineFailed[0] = this.engines[0].failed; st.engineFailed[1] = this.engines[1].failed;
     st.thrust = extra.totalThrust || 0;
     st.flapDeg = this.flapDeg; st.flapIndex = this.input.flapIndex;
     st.gearPos = this.gearPos; st.gearDown = this.gearPos > 0.98; st.gearInTransit = this.gearPos > 0.02 && this.gearPos < 0.98;
