@@ -1,0 +1,114 @@
+[
+  {
+    "tier": "high",
+    "view": "captain-6500",
+    "mean": 0.4390501543209744,
+    "changedPercent": 0.7109567901234568,
+    "max": 153.33333333333334,
+    "pixelIdentical": false
+  },
+  {
+    "tier": "high",
+    "view": "captain-5500",
+    "mean": 0.576511574074099,
+    "changedPercent": 0.906712962962963,
+    "max": 157.66666666666666,
+    "pixelIdentical": false
+  },
+  {
+    "tier": "high",
+    "view": "captain-4300",
+    "mean": 0.7585992798354163,
+    "changedPercent": 1.300385802469136,
+    "max": 154.66666666666666,
+    "pixelIdentical": false
+  },
+  {
+    "tier": "high",
+    "view": "opposite-hills",
+    "mean": 5.374906635802305,
+    "changedPercent": 12.516203703703704,
+    "max": 161,
+    "pixelIdentical": false
+  },
+  {
+    "tier": "high",
+    "view": "opposite-fields",
+    "mean": 7.289172582303952,
+    "changedPercent": 15.181404320987655,
+    "max": 168.33333333333334,
+    "pixelIdentical": false
+  },
+  {
+    "tier": "high",
+    "view": "opposite-overcast",
+    "mean": 1.3706517489710561,
+    "changedPercent": 2.6219907407407406,
+    "max": 73,
+    "pixelIdentical": false
+  },
+  {
+    "tier": "high",
+    "view": "opposite-night",
+    "mean": 0.36653497942381047,
+    "changedPercent": 0.012422839506172838,
+    "max": 84.66666666666667,
+    "pixelIdentical": false
+  },
+  {
+    "tier": "low",
+    "view": "captain-6500",
+    "mean": 0,
+    "changedPercent": 0,
+    "max": 0,
+    "pixelIdentical": true
+  },
+  {
+    "tier": "low",
+    "view": "captain-5500",
+    "mean": 0,
+    "changedPercent": 0,
+    "max": 0,
+    "pixelIdentical": true
+  },
+  {
+    "tier": "low",
+    "view": "captain-4300",
+    "mean": 0,
+    "changedPercent": 0,
+    "max": 0,
+    "pixelIdentical": true
+  },
+  {
+    "tier": "low",
+    "view": "opposite-hills",
+    "mean": 0,
+    "changedPercent": 0,
+    "max": 0,
+    "pixelIdentical": true
+  },
+  {
+    "tier": "low",
+    "view": "opposite-fields",
+    "mean": 0,
+    "changedPercent": 0,
+    "max": 0,
+    "pixelIdentical": true
+  },
+  {
+    "tier": "low",
+    "view": "opposite-overcast",
+    "mean": 0,
+    "changedPercent": 0,
+    "max": 0,
+    "pixelIdentical": true
+  },
+  {
+    "tier": "low",
+    "view": "opposite-night",
+    "mean": 0,
+    "changedPercent": 0,
+    "max": 0,
+    "pixelIdentical": true
+  }
+]

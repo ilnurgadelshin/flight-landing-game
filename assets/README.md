@@ -361,19 +361,32 @@ and middle final: x=2100–5300, z=1030–2500 m. It interprets the existing 2 m
 These holes carry explicit meadow coverage so the older photographic planting cannot
 fill them back in. Buildings and roads retain their clearance masks.
 
+The 2026-10-24 opposite extension covers x=2100–5300, z=−2500–−1000 m, using
+fourteen interpreted woodland/field polygons in `tools/opposite-hills.mjs`. The
+3.2 × 1.5 km crop follows the same public-domain photograph. Five wooded areas
+connect around open meadows, harvested strips, gardens and the road valley. It is
+high quality only. Its 1024 × 256 tile occupies previously unused atlas columns,
+separated from the older hill by a six-column repeated-edge gutter. Atlas dimensions
+and the number of texture samplers stay unchanged.
+
 Linear RGB stores meadow/stubble/woodland coverage. The original 3450 × 1015 pixels
 retain 2 m/px CPU planting precision and are unchanged except their last 15 rows
 (z=1000–1030) alongside the hill tile: there the close map takes up the hill tile's
 woods and meadows, so neither map fades at their shared edge. A separately registered
 1024 × 256 hill tile is packed below them after a 6-row gutter that repeats each map's
-edge row, so bilinear filtering and downscaling cannot mix the two maps; unused space
-is left black. High uploads the combined 3450 × 1277 atlas. Low quality does not use
+edge row, so bilinear filtering and downscaling cannot mix the maps. The opposite
+hill now occupies columns 1030–2053 in that lower strip; the rest stays black. High uploads the combined 3450 × 1277 atlas. Low quality does not use
 the hill tile: it uploads only the close map, filtered to 2048 × 603 for ground colour,
 and keeps exact CPU samples of it. Before packing those samples or filtering the texture,
 the loader feathers the last 160 m beside the absent hill tile back to the photograph;
 the ends blend into neighbouring boundaries too. Ground colour and tree placement use
 the same edited pixels, avoiding an abrupt forest edge. This is a one-time low-tier
-decode operation; the baked PNG and high-tier join remain unchanged.
+decode operation; the baked close mask and older high-tier join remain unchanged.
+High quality joins the opposite tile into the close map's first 30 m during decoding,
+before CPU packing and GPU upload. Its trees and ground therefore share the same
+continuous north boundary. Low does not apply that join. The high canvas replaces
+the original decoded image as the texture upload source; the opposite tile adds
+another 0.52 MB of packed CPU samples, with no additional GPU texture storage.
 Upload dimensions also respect the renderer's maximum
 texture size. Each ground pixel selects one region and uses one land-cover lookup;
 there is no additional sampler or draw call. The RGBA8 texture uses 17.62 MB high /
@@ -382,8 +395,10 @@ there is no additional sampler or draw call. The RGBA8 texture uses 17.62 MB hig
 
 Baked high-tier coverage is approximately 76.27 ha meadow, 46.24 ha stubble and 813.89 ha woodland:
 936.40 ha in the original corridor, 5.66 ha of it from the rows continuing the hill
-tile. The hillside adds 25.73 ha meadow and 385.63 ha woodland, for **1347.76 ha
-combined weighted coverage**. These totals account for
+tile. The left hillside adds 25.73 ha meadow and 385.63 ha woodland. The opposite
+hill adds 30.57 ha meadow, 21.48 ha stubble and 231.32 ha woodland, bringing the
+baked tiles to **1631.13 ha combined weighted coverage**. The high-only decoded
+north join adds a net 1.13 ha (about 1632.26 ha effective high coverage). These totals account for
 feathered boundaries and clearances, rather than counting whole bounding rectangles.
 The 2026-10-22 crossing pass added 20.47 ha to the previous 910.27 ha.
 Clearing holes preserve the large
@@ -396,10 +411,10 @@ fills a separate central gap around x=4400–5300, with three wooded parcels and
 The three existing planting allocations remain 13,000 / 5,800, 5,500 / 2,600 and
 3,500 / 1,400 (high / low). The extension receives up to 18,000 / 2,600 at 16 / 30 m
 candidate spacing, uniformly thinned to its cap. These allocations replace wider
-photo-selected planting within the unchanged **52,000 / 14,000 total tree budgets**.
+photo-selected planting within the earlier **52,000 / 14,000 total tree budgets**.
 A fifth, non-overlapping central strip receives up to 700 / 300 at 12 / 18 m spacing;
 the existing four zones retain their bounds, seeds and allocations. The close spacing
-remains 9.5 / 14 m and the older upper stands 12 / 18 m. Sixty-six eligible
+remains 9.5 / 14 m and the older upper stands 12 / 18 m. Seventy-six eligible
 site trees remain individually placed. On high quality the separate hillside
 allocation receives 8000 trees from 13 m candidate spacing. Its density thins over
 200 m from the close map's woods at its north edge down to 30 % of that, so the two
@@ -408,20 +423,27 @@ keeps exactly the allocation. Low quality has no hillside allocation, so the hil
 keeps its photograph and the wider background keeps its low-tier trees.
 The previous five zones retain their bounds, seeds and caps. On high this consumes more
 of the same total budget, leaving fewer trees in the wider photo-selected background.
-Background positions/tints and some
-near-tree selections change when the fixed budget is redistributed.
+The opposite hill adds a separate 6000-tree high allocation, for **58,000 / 14,000**
+total instances. Existing zone bounds, seeds and caps remain; high's wider background
+allowance is retained. At the new join, density tapers over 200 m from the close woods
+to 40% of that density. This adds rendering and footprint-shadow geometry; measured
+cost is recorded in `test/RENDER-PERFORMANCE.md`. Low retains its original positions,
+mask and 14,000 instances. On high, changed cover/exclusions and the planting sequence
+can change individual tree positions, tints and near-tree selections.
 
 Open fields retain surveyed crop and soil variation. Nearby forest floors retain the
 existing scanned detail; distant floors now retain photographic light/shade between
 crowns instead of becoming uniform green surfaces. Tree cards, sparse low-tier canopy,
 photographic shadows and unmapped hills remain approximations.
 
-The PNG/JSON pair is 323,856 bytes, below a 450 KB budget, versus 303,681 before the
-hillside extension (+20,175 bytes). Lossless PNG compression limits transfer while the
+The PNG/JSON pair is 366,208 bytes, below a 450 KB budget, versus 323,856 before the
+opposite extension (+42,352 bytes on both tiers). Lossless PNG compression limits transfer while the
 larger decoded atlas still carries the memory cost above. It loads behind the menu. Reproduce with
 `node tools/bake-corridor.mjs` (upper traces are in `tools/upper-valley-cover.mjs`, crossing
-traces in `tools/crossing-sites.mjs`, hill traces in `tools/approach-hills.mjs`);
-validate with `npm run test:corridor` and `node test/hills-scenery.mjs`. The bake indexes road/building clearance bounds;
+traces in `tools/crossing-sites.mjs`, hill traces in `tools/approach-hills.mjs` and
+`tools/opposite-hills.mjs`);
+validate with `npm run test:corridor`, `node test/hills-scenery.mjs` and
+`node test/opposite-hills-scenery.mjs`. The bake indexes road/building clearance bounds;
 its distance calculation and feathering are unchanged.
 
 ## Complete approach sites — original geometry / CC0 materials
@@ -524,7 +546,8 @@ roof maps, siding and CC0 gravel materials are reused, with no new texture downl
 Ten lawn polygons, sixteen gravel areas, twelve drive/lane ribbons, nineteen access paths
 and eleven fence polylines complete the grounds. Nine additional main-road connections
 snap to the registered centerline; 76 eligible placed trees now serve the ten sites.
-The land-cover map and 52,000 / 14,000 total tree budgets are unchanged.
+The valley-lane building pass kept the land-cover map and then-current 52,000 / 14,000
+tree budgets unchanged; the opposite hillside extension described above raises high to 58,000.
 
 Current models, grounds and gravel maps total **4,177,422 bytes high / 3,224,396 low**,
 excluding the shared manifest. Including that manifest, this pass adds **527,024 / 526,900

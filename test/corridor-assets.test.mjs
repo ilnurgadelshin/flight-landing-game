@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import sharp from 'sharp';
 import {protectedScenery} from '../js/world/scenery-ground.js';
-import {packCover,featherMissingHills} from '../js/world/approach-corridor.js';
+import {packCover,featherMissingHills,joinOppositeHills} from '../js/world/approach-corridor.js';
 
 const root='assets/scenery/approach-corridor',manifest=JSON.parse(await fs.readFile(root+'.json'));
 const metadata=await sharp(root+'.png').metadata();
@@ -86,3 +86,22 @@ for(const x of [4300,4600,4900]){
 assert.ok(lowRgba.subarray(0,pixel(x0,870)*4).equals(rgba.subarray(0,pixel(x0,870)*4)),'Interior cover stays byte-identical');
 for(const [x,z] of [[3370,-650],[7550,-400],[8500,1000],[5600,1028]])assert.deepEqual(lowCover(pixel(x,z)),cover(pixel(x,z)),'Fields and other map boundaries remain unchanged');
 console.log('Corridor coverage, airport clearance, registration, transfer budget and exact packed cover passed');
+
+// The opposite hill occupies unused atlas columns. It must neither enlarge the
+// upload nor overwrite the original tile, and its fields must remain unplanted.
+const o=manifest.oppositeHills,other=await sharp(root+'.png').extract({left:o.atlas[0],top:o.atlas[1],width:o.width,height:o.height}).ensureAlpha().raw().toBuffer();
+assert.equal(manifest.textureHeight,1277);assert.equal(o.atlas[1],h.atlas[1]);assert.ok(o.atlas[0]>=h.width+6&&o.atlas[0]+o.width<=manifest.width);
+assert.deepEqual(o.bounds,[2100,-2500,3200,1500]);assert.equal(o.plantingZones[0].lowLimit,0);assert.equal(o.plantingZones[0].highLimit,6000);
+const opposite=(x,z)=>{const i=Math.floor((x-o.bounds[0])/o.bounds[2]*o.width),j=Math.floor((z-o.bounds[1])/o.bounds[3]*o.height);return [0,1,2].map(c=>other[(j*o.width+i)*4+c]/255)};
+for(const p of [[2500,-2100],[3200,-1800],[2700,-1200]])assert.ok(opposite(...p)[2]>.9,'The bare photographed ridge now has woodland');
+for(const p of [[4120,-2240],[4640,-1820],[4740,-1300]])assert.ok(opposite(...p)[0]+opposite(...p)[1]>.7&&opposite(...p)[2]===0,'Fields on the slope retain open cover');
+const oppositeTotals=[0,0,0];for(let i=0;i<other.length;i+=4){assert.ok(other[i]+other[i+1]+other[i+2]<=256);for(let c=0;c<3;c++)oppositeTotals[c]+=other[i+c]/255*o.bounds[2]*o.bounds[3]/o.width/o.height/10000;}
+for(let c=0;c<3;c++)assert.ok(Math.abs(oppositeTotals[c]-o.hectares[c])<.01);
+const joined=Buffer.from(rgba);joinOppositeHills(joined,manifest,other);const joinedCover=packCover(joined,count);
+for(const x of [2450,2500,2600])for(let z=-1028;z<=-960;z+=4)assert.ok((z< -1000?opposite(x,z):joinedCover(pixel(x,z)))[2]>.6,'No cover gap at the north join');
+assert.ok(joined.subarray(15*manifest.width*4).equals(rgba.subarray(15*manifest.width*4)),'The north join only edits the first 30 m; older fields and the south join remain intact');
+for(let j=0;j<h.height;j++)for(let g=0;g<6;g++){
+ const row=(h.atlas[1]+j)*manifest.width,from=row+(g<3?h.width-1:o.atlas[0]);
+ assert.ok(full.subarray((row+h.width+g)*3,(row+h.width+g+1)*3).equals(full.subarray(from*3,(from+1)*3)),'Horizontal gutter repeats adjacent tile edges');
+}
+console.log('Opposite hill cover, retained fields, shared atlas, bounded allocation and high-only join passed');

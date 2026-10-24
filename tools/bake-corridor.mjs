@@ -7,6 +7,7 @@ import {protectedScenery} from '../js/world/scenery-ground.js';
 import {upperValleyTraces} from './upper-valley-cover.mjs';
 import {crossingCover} from './crossing-sites.mjs';
 import {approachHills} from './approach-hills.mjs';
+import {oppositeHills} from './opposite-hills.mjs';
 const traces=[
  ['2_0','meadow',[[104,0],[195,0],[619,580],[695,734],[642,847],[549,927],[424,698]]],
  ['2_0','stubble',[[206,0],[336,0],[522,279],[610,492],[678,664],[698,732],[623,637]]],
@@ -206,12 +207,42 @@ for(let j=0;j<hills.height;j++)for(let i=0;i<hills.width;i++){
   const value=Math.round(weight*clearance*255);atlas[((hills.atlas[1]+j)*width+i)*3+c]=value;hillCounts[c]+=value/255;
  }
 }
+// Reuse unused atlas columns: no additional GPU texture or sampler. The loader
+// joins this tile to the close map only on high; low retains its original pixels.
+const opposite={...oppositeHills,atlas:[hills.width+gutter,hills.atlas[1]]},oppositeCounts=[0,0,0];
+for(let j=0;j<opposite.height;j++)for(let i=0;i<opposite.width;i++){
+ const [x0,z0,w,d]=opposite.bounds,x=x0+(i+.5)*w/opposite.width,z=z0+(j+.5)*d/opposite.height;
+ if(protectedScenery(x,z,16))continue;
+ const boundary=Math.max(0,Math.min(1,(x-x0)/150,(x0+w-x)/180,(z-z0)/180));
+ const weights=[0,0,0];
+ for(const a of opposite.areas){const c=['meadow','stubble','woodland'].indexOf(a.type);
+  weights[c]=Math.max(weights[c],Math.max(0,Math.min(1,signedDistance(x,z,a.points)/(c===2?18:12))));
+ }
+ weights[1]*=(1-weights[2])*(1-weights[0]);weights[0]*=1-weights[2];
+ const cell=`${Math.floor(x/cellSize)}:${Math.floor(z/cellSize)}`;
+ let clearance=Math.max(0,Math.min(1,(roadDistance(x,z,roadCells.get(cell)||[])-7)/7));
+ for(const b of buildingCells.get(cell)||[]){const dx=x-b.x,dz=z-b.z,c=Math.cos(b.angle),s=Math.sin(b.angle);
+  const distance=Math.hypot(Math.max(0,Math.abs(dx*c+dz*s)-b.w/2),Math.max(0,Math.abs(-dx*s+dz*c)-b.d/2));
+  clearance=Math.min(clearance,Math.max(0,Math.min(1,(distance-12)/12)));
+ }
+ for(let c=0;c<3;c++){
+  const value=Math.round(weights[c]*boundary*clearance*255);
+  atlas[((opposite.atlas[1]+j)*width+opposite.atlas[0]+i)*3+c]=value;oppositeCounts[c]+=value/255;
+ }
+}
+// Repeated-edge gutters prevent filtering between independently registered maps.
+for(let j=0;j<hills.height;j++)for(let g=0;g<gutter;g++){
+ const row=(hills.atlas[1]+j)*width,from=row+(g<gutter/2?hills.width-1:opposite.atlas[0]);
+ atlas.copyWithin((row+hills.width+g)*3,from*3,(from+1)*3);
+}
+opposite.hectares=oppositeCounts.map(n=>Number((n*opposite.bounds[2]*opposite.bounds[3]/opposite.width/opposite.height/10000).toFixed(2)));
 for(let g=0;g<gutter;g++){
  const from=g<gutter/2?height-1:hills.atlas[1];
  atlas.copyWithin((height+g)*width*3,from*width*3,(from+1)*width*3);
 }
 hills.hectares=hillCounts.map(n=>Number((n*hills.bounds[2]*hills.bounds[3]/hills.width/hills.height/10000).toFixed(2)));
 await sharp(atlas,{raw:{width,height:textureHeight,channels:3}}).png({compressionLevel:9,adaptiveFiltering:true}).toFile('assets/scenery/approach-corridor.png');
-await fs.writeFile('assets/scenery/approach-corridor.json',JSON.stringify({bounds,width,height,textureHeight,plantingZones,hills,licence:'Interpreted boundaries derived from public-domain USDA NAIP / USGS imagery already bundled in detail/2_0.webp through detail/8_0.webp, detail/2_-1.webp through detail/8_-1.webp and final-approach.webp. Not a land-use survey.',areas,hectares:counts.map(c=>Number((c*bounds[2]/width*bounds[3]/height/10000).toFixed(2)))},null,2)+'\n');
+await fs.writeFile('assets/scenery/approach-corridor.json',JSON.stringify({bounds,width,height,textureHeight,plantingZones,hills,oppositeHills:opposite,licence:'Interpreted boundaries derived from public-domain USDA NAIP / USGS imagery already bundled in detail/2_0.webp through detail/8_0.webp, detail/2_-1.webp through detail/8_-1.webp and final-approach.webp. Not a land-use survey.',areas,hectares:counts.map(c=>Number((c*bounds[2]/width*bounds[3]/height/10000).toFixed(2)))},null,2)+'\n');
 console.log('Corridor meadow/stubble/woodland hectares',counts.map(c=>c*4/10000),'mask bytes',(await fs.stat('assets/scenery/approach-corridor.png')).size);
 console.log('Additional hillside woodland hectares',hills.hectares);
+console.log('Opposite hillside meadow/stubble/woodland hectares',opposite.hectares);

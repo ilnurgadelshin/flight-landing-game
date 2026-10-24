@@ -35,7 +35,7 @@ try{
   });
   assert.equal(stats.intrusions,0);assert.deepEqual(stats.errors,[]);
   if(!baseline){assert.equal(stats.ready,1);assert.equal(stats.fieldTrees,0);assert.ok(stats.extended>(tier==='high'?6500:3000));assert.ok(stats.corridor.count>(tier==='high'?20000:9000));assert.ok(stats.opposite>(tier==='high'?3000:1500));assert.ok(stats.upperOpposite>(tier==='high'?3000:1200));assert.equal(stats.trees,stats.corridor.limit);}
-  if(!baseline){assert.ok(stats.upperValley>(tier==='high'?17500:2500),'Upper stands receive their bounded allocation');assert.equal(stats.trees,tier==='high'?52000:14000);}
+  if(!baseline){assert.ok(stats.upperValley>(tier==='high'?17500:2500),'Upper stands receive their bounded allocation');assert.equal(stats.trees,tier==='high'?58000:14000);}
   if(!baseline)assert.ok(stats.crossing>(tier==='high'?650:250),'Central wooded parcels receive planting without thinning established stands');
   // (low uploads only the close map: the hillside tile is high quality only)
   if(!baseline)assert.deepEqual(stats.maskSize,tier==='high'?[3450,1277]:[2048,603],'Low quality bounds the GPU atlas while retaining full CPU placement precision');

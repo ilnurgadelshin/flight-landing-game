@@ -1,0 +1,148 @@
+[
+  {
+    "tier": "high",
+    "trees": 58000,
+    "hillTrees": 6174,
+    "oldHills": 7933,
+    "intrusions": 0,
+    "fieldTrees": 0,
+    "airportSide": 613,
+    "join": {
+      "hill": 116,
+      "close": 124
+    },
+    "profiles": [
+      {
+        "z": -1030,
+        "cpu": 1,
+        "gpu": 1
+      },
+      {
+        "z": -1010,
+        "cpu": 1,
+        "gpu": 1
+      },
+      {
+        "z": -1002,
+        "cpu": 1,
+        "gpu": 1
+      },
+      {
+        "z": -998,
+        "cpu": 1,
+        "gpu": 1
+      },
+      {
+        "z": -990,
+        "cpu": 0.996078431372549,
+        "gpu": 0.996078431372549
+      },
+      {
+        "z": -980,
+        "cpu": 0.9058823529411765,
+        "gpu": 0.9058823529411765
+      },
+      {
+        "z": -970,
+        "cpu": 1,
+        "gpu": 1
+      },
+      {
+        "z": -960,
+        "cpu": 1,
+        "gpu": 1
+      }
+    ],
+    "zones": [
+      13000,
+      5500,
+      3428,
+      18000,
+      700,
+      8000,
+      6000
+    ],
+    "mask": [
+      3450,
+      1277
+    ],
+    "active": true,
+    "errors": []
+  },
+  {
+    "tier": "low",
+    "trees": 14000,
+    "hillTrees": 125,
+    "oldHills": 209,
+    "intrusions": 0,
+    "fieldTrees": 0,
+    "airportSide": 151,
+    "join": {
+      "hill": 0,
+      "close": 51
+    },
+    "profiles": [
+      {
+        "z": -1030,
+        "cpu": 0,
+        "gpu": null
+      },
+      {
+        "z": -1010,
+        "cpu": 0,
+        "gpu": null
+      },
+      {
+        "z": -1002,
+        "cpu": 0,
+        "gpu": null
+      },
+      {
+        "z": -998,
+        "cpu": 0.0392156862745098,
+        "gpu": 0.06666666666666667
+      },
+      {
+        "z": -990,
+        "cpu": 0.4392156862745098,
+        "gpu": 0.33725490196078434
+      },
+      {
+        "z": -980,
+        "cpu": 0.8392156862745098,
+        "gpu": 0.7411764705882353
+      },
+      {
+        "z": -970,
+        "cpu": 1,
+        "gpu": 1
+      },
+      {
+        "z": -960,
+        "cpu": 1,
+        "gpu": 1
+      }
+    ],
+    "zones": [
+      5800,
+      2600,
+      1400,
+      2600,
+      300
+    ],
+    "mask": [
+      2048,
+      603
+    ],
+    "active": false,
+    "errors": []
+  },
+  {
+    "invalidAtlas": {
+      "ready": 0,
+      "errors": [
+        "Error: Invalid opposite hillside land-cover allocation"
+      ]
+    }
+  }
+]

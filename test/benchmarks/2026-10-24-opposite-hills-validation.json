@@ -1,0 +1,34 @@
+{
+  "nodeSuites": 19,
+  "nodePassed": true,
+  "metalScenery": true,
+  "retainedHills": true,
+  "corridor": true,
+  "lowPixelIdenticalViews": 7,
+  "softwareAttempts": [
+    {
+      "viewport": [
+        1440,
+        900
+      ],
+      "startupTimeoutMs": 120000
+    },
+    {
+      "viewport": [
+        640,
+        400
+      ],
+      "startupTimeoutMs": 240000
+    }
+  ],
+  "softwareRetry": "Reduced viewport and paused automatic menu drawing at sim-ready; startup console exposed context creation failure. Test now fails promptly on a boot error.",
+  "softwareAvailable": false,
+  "softwareFailure": "Configured Chromium SwiftShader backend cannot create a WebGL context: BindToCurrentSequence failed. Failure occurs in the World renderer constructor, before terrain/scenery setup.",
+  "physicalDevicesTested": false,
+  "fullFunctionalSuiteRepeated": false,
+  "deliveryPassed": true,
+  "materialContributionPassed": true,
+  "reviewImages": 28,
+  "sliderControls": true,
+  "phoneReviewLayout": true
+}

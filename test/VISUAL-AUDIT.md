@@ -7,18 +7,19 @@ below record how the scene evolved; their older counts, captures and priorities 
 the remaining-work list. Update this section after each reviewed visual pass, including
 what changed, visible impact, measured cost, evidence and limitations.
 
-The latest pass completes the valley lane farm and neighboring roadside homes, adding
-19 buildings with joined grounds. There are now **81 complete building placements across
-ten sites**. Separate barn and house roof wings preserve their open courtyards; gravel
-access, lawns and timber boundaries connect them to the existing road. The gain is strongest
-in wider farm/roadside views and modest in the normal forward cockpit view, where many
-buildings are small or pass below the glareshield. This remains a partial scenery completion.
+The latest pass extends coherent coverage to the **opposite hillside**, visible through
+the right windshield on middle/lower final. Five wooded areas and nine open field polygons
+add **283.37 ha** around the existing road valley. Both nearer slopes now have interpreted
+cover on high quality; the original close corridor and left-hill baked pixels are unchanged.
+The new high-only north join is applied to both planting and ground during decoding.
 
-The previous hillside coverage and low-tier edge correction remain intact: about **1348 ha**
-of interpreted cover, high-only hillside planting within the existing total tree budget,
-and a 160 m low-tier fade where the hill tile is absent. Distant complete buildings omit
-tiny trim while retaining walls, roofs and glass. This pass does not change the land-cover
-map, tree forms, cockpit, weather, airport or flight model.
+Baked cover now totals **1631.13 ha** (about 1632.26 ha after the high-tier join). High adds
+6000 trees, reaching **58,000**, while keeping earlier zone caps and its wider background
+allowance. Low stays at **14,000** and retains identical captures in all seven comparison
+views. The new map occupies unused atlas space and adds 42,352 download bytes. Existing
+**81 complete building placements across ten sites** are unchanged. This remains a bounded
+landscape extension: farther flanks, airport-side countryside and most building footprints
+still have photographic or procedural treatment.
 
 Specific defects already addressed include the distorted source cockpit shell, black cabin
 reflection failure and degenerate panel normal calculation, the narrow phone windshield/MCP
@@ -31,8 +32,8 @@ should not be presented again as untouched tasks. Their broader quality limitati
 
 | Rank | Remaining work | Importance | Current limit / next acceptance evidence |
 | --- | --- | --- | --- |
-| 1 | Broader, coherent approach scenery | Very high | Ten complete sites, including the valley lane farm/homes, and the wooded left hillside cover selected stretches; most buildings remain procedural and other hills remain photographic. Further isolated building additions have a modest forward-view return. Prioritize gaps that occupy substantial windshield area, then connected grounds and missing-footprint checks, with normal flight views and measured cost. |
-| 2 | Mid-distance and distant vegetation | High | The hillside gap is denser, but distant/low-tier crowns still expose image planes, repeated species and thin silhouettes. The new coverage makes those form limits more apparent. Improve them within the existing instance budget and compare moving views before accepting additional geometry or sampling cost. |
+| 1 | Broader, coherent approach scenery | Very high | The close corridor spans x=2100–9000 m; both nearer flanks at x=2100–5300 now extend to z=−2500 / +2500 on high. Remaining gaps include upper flanks beyond x=5300, airport-side countryside, and procedural/missing buildings outside ten completed sites. Low retains photographic outer hills. Prioritize substantial pilot-visible gaps and connected land use, with motion and measured cost. |
+| 2 | Mid-distance and distant vegetation | High | Both nearer slopes have more coherent cover on high, but their distant crowns still expose image planes, repeated species and thin silhouettes; low retains sparse photographic hills. The new coverage makes those form limits more apparent. Improve them within the existing instance budget and compare moving views before accepting additional geometry or sampling cost. |
 | 3 | Complete cockpit material and lighting detail | High | Selected front panels, padding and grips have fitted wear; side consoles/overhead still lack a complete aircraft-specific texture set. Indirect light and local shadows remain approximations. Begin with source/game comparison and protect instrument readability on both tiers. |
 | 4 | Temporal stability of fine detail | Medium–high | Thin labels, branches, roof details and shadow edges can shimmer in motion. Evaluate actual flight motion and GPU cost, not only static screenshots. |
 | 5 | Finer cloud and wet-weather rendering | Medium overall; high in weather scenarios | Fair-weather clouds retain repeated forms; overcast uses bounded resolution/steps and a simplified deep interior. Water films and blade contact remain approximate. Preserve the corrected rain timing and cloud-entry visibility. |
@@ -44,7 +45,72 @@ the M2 Pro; retain adaptive quality and report costs. Physical phones, ordinary 
 and multiple GPU drivers need wider validation. Existing SwiftShader evidence in the log
 does not certify the latest pass on those devices.
 
-### Valley lane farm and homes — 2026-10-24
+### Opposite hillside and field margins — 2026-10-24
+
+Baseline: published main `09c7c36`. The source is bundled public-domain
+`final-approach.webp`, interpreted in `tools/opposite-hills.mjs`. This covers a
+3.2 × 1.5 km crop, x=2100–5300 / z=−2500–−1000, with five woodland and nine
+field polygons. Leaf-off imagery uses the existing leafy palette; this is an artistic
+land-cover interpretation, not a land-use or seasonal survey.
+
+- Added weighted coverage: **30.57 ha meadow, 21.48 ha stubble, 231.32 ha woodland**.
+  Open fields, gardens, roads and building clearances remain. The older close and
+  left-hill baked pixels are byte-identical to the baseline. High's decoded first
+  30 m joins the new tile before CPU packing and GPU upload, adding a net 1.13 ha.
+- The 1024 × 256 tile uses previously empty atlas columns, separated by a six-column
+  repeated-edge gutter. High/low upload dimensions remain **3450 × 1277 / 2048 × 603**.
+  No new sampler or render pass. High gains **0.52 MB** of packed CPU cover samples;
+  a joined canvas replaces the original decoded image as its upload source. The
+  PNG/JSON pair grows by **42,352 bytes**, to 366,208 bytes, on both tiers.
+- High receives an additional **6000-tree allocation**, for **58,000 total**, including
+  the associated ground-only shadow geometry. Earlier zone bounds, seeds and caps
+  remain. The north close-zone candidates change at the join (3440 → 3428 in the
+  upper-opposite zone); background planting fills the retained allowance and changes
+  positions/tints. The old left hill retains 7933 trees versus 7932, and airport-side
+  background trees increase 558 → 613 in the checked area. This is added rendering
+  work, not a claim of free coverage.
+- Across the new woodland join, the checked adjacent 40 m strips contain **116 / 124**
+  trees. CPU and uploaded mask values agree, with no cover gap. No new trees intrude
+  into mapped fields, roads or buildings. Both-tier corridor checks preserve prior
+  fields/stands and the missing-map photographic fallback; invalid atlas data is rejected.
+- Low applies neither the new tile nor the north join. All seven matched low captures
+  are **pixel-identical** to the baseline; its background count remains 151. Low's
+  160 m fade beside the older absent hill tile remains in place.
+- All 19 Node suites pass. A retained-hill check exposed an existing test-coordinate
+  rounding error: 1015 decoded rows became 1014.9999999999999 during coordinate
+  reconstruction, selecting the adjacent row at an exact boundary. Both archived
+  and current PNGs contain the same values there; the test now rounds the row count.
+- Local [matched pilot, slope and motion review](output/opposite-hills-review.html).
+  Full-image change area in high captain views is **0.71%, 0.91%, 1.30%** at x=6500,
+  5500, 4300 m respectively; the wider slope view changes 12.52%. These are pixel
+  change measures, not quality scores. The gain is a connected ridge through the
+  right windshield; much of the frame is still cockpit and sky.
+- Startup remains **14.24 MB high / 8.71 MB low**; prepared assets total **66.29 /
+  19.63 MB**. The delivery check passes both tiers, verifies no new requests after
+  its short flight starts, and retains slow-device/hidden-tab calibration checks.
+  The rendered new ground material contributes a mean 1.22 grey-level difference
+  in the isolated wide-view toggle. All 28 review images, slider controls and the
+  phone review-page layout pass.
+- On M2 Pro at fixed high 1.5×, captain FPS is **33.1 → 33.4** at x=5500 and
+  **36.0 → 36.0** at x=4300; the wider hillside is **57.1 → 55.5** (about 3% cost).
+  Low starts near 60 FPS, with one 55.8 FPS sample; a matched repeat of that view is
+  **60.0 → 60.0**. Initial and repeated measurements are retained.
+- A 480-frame normal pilot descent from x=5500 to 4901.25 is recorded at high 1×
+  without rendering errors. Recording overhead makes it visual evidence, not an FPS test.
+- SwiftShader could not create a WebGL context in this local Chromium configuration
+  ("BindToCurrentSequence failed"), before terrain/scenery setup. Reduced resolution
+  and pausing automatic drawing did not resolve it. Software compatibility remains
+  unverified for this pass; physical phones and the full functional suite were not rerun.
+- See [render measurements](RENDER-PERFORMANCE.md) and
+  `benchmarks/2026-10-24-opposite-hills-*.json` for measured costs and checks.
+
+Distant crowns remain sparse and repetitive, photographic blur/shadows are visible,
+and most houses are procedural. The added cover does not finish the upper flanks,
+airport-side countryside or low-tier outer hills. The broader scenery category remains
+open for those specific gaps; the completed opposite ridge should not be listed again
+as untouched work.
+
+### Valley lane farm and homes: previous pass — 2026-10-24
 
 Baseline: published main `07530bb`. Sources are the existing registered Microsoft
 footprints/road centerline and bundled public-domain `3_0` / `4_0` NAIP. Original site

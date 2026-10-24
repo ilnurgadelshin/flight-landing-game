@@ -137,14 +137,18 @@ export async function addWoodland(world,photo,approachPhoto) {
   context.drawImage(approachPhoto,0,0,1024,1024);
   const approachPixels=context.getImageData(0,0,1024,1024).data;
   const rng=makeRng(812),patches=new Map(),forms=Array(atlas.rows).fill(0);
-  const limit=low?14000:52000;
   const corridor=world.approachCorridor,localTrees=[];
+  const oppositeZones=corridor?.oppositeHills?.plantingZones||[];
+  // The opposite hill adds a measured high-only allocation. Keep the older
+  // mapped stands and their remaining background allowance, rather than thinning
+  // the airport-side trees to populate another slope. Missing maps add no budget.
+  const limit=low?14000:52000+oppositeZones.reduce((n,z)=>n+z.highLimit,0);
   // In the reviewed corridor, plant continuous canopy from the same land-cover
   // boundaries used by the ground. Jittered spacing avoids clumps and bare gaps.
-  // Reserve part of the EXISTING instance budget, rather than adding a new layer.
+  // Independent seeds and caps preserve the older stands' density.
   if(corridor){
     // (the hillside's zone only where the corridor uses its tile: see loadApproachCorridor)
-    const zones=[...(corridor.manifest.plantingZones||[{bounds:corridor.manifest.bounds,seed:94051,highLimit:10000,lowLimit:4800}]),...(corridor.hills?.plantingZones||[])];
+    const zones=[...(corridor.manifest.plantingZones||[{bounds:corridor.manifest.bounds,seed:94051,highLimit:10000,lowLimit:4800}]),...(corridor.hills?.plantingZones||[]),...oppositeZones];
     const zoneCounts=[];
     for(const zone of zones){
       const [x0,z0,width,depth]=zone.bounds,localRng=makeRng(zone.seed),zoneTrees=[],upperTrees=[];
@@ -172,11 +176,11 @@ export async function addWoodland(world,photo,approachPhoto) {
       const cap=low?zone.lowLimit:zone.highLimit;
       for(const list of [zoneTrees,upperTrees])for(let i=list.length-1;i>0;i--){const j=Math.floor(localRng()*(i+1));[list[i],list[j]]=[list[j],list[i]];}
       if(zone.taper){
-        // Density tapers from the zone's north edge, where it continues the close map's
-        // woods, down to taperFloor of it: each tree is kept with a probability scaled so the
+        // Density tapers away from the shared edge (north by default, south on the
+        // opposite hill) down to taperFloor of the close woods: each tree is kept with a probability scaled so the
         // kept trees fill the allocation. Systematic sampling over the shuffled candidates
         // keeps those probabilities and gives exactly the allocation, not just on average.
-        const weight=t=>zone.taperFloor+(1-zone.taperFloor)*Math.max(0,Math.min(1,1-(t.z-z0)/zone.taper));
+        const weight=t=>zone.taperFloor+(1-zone.taperFloor)*Math.max(0,Math.min(1,1-(zone.taperSide==='south'?z0+depth-t.z:t.z-z0)/zone.taper));
         let lo=0,hi=1/zone.taperFloor;
         for(let k=0;k<30;k++){const mid=(lo+hi)/2;if(upperTrees.reduce((n,t)=>n+Math.min(1,mid*weight(t)),0)<cap)lo=mid;else hi=mid;}
         let sum=localRng();const kept=[];

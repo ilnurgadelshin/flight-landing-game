@@ -52,7 +52,9 @@ try{
    const corridor=w.approachCorridor,mask=corridor.texture.image,m=corridor.manifest;
    const canvas=document.createElement('canvas');canvas.width=mask.width;canvas.height=mask.height;
    const context=canvas.getContext('2d',{willReadFrequently:true});context.drawImage(mask,0,0);
-   const closeHeight=mask.height*w.groundUniforms.uCorridorMainHeight.value;
+   // This is an integer row count. Rounding avoids 1014.9999999999999
+   // selecting the adjacent row when the sample lies exactly on a cell edge.
+   const closeHeight=Math.round(mask.height*w.groundUniforms.uCorridorMainHeight.value);
    const edgeProfile=[870,910,950,990,1004,1016,1028].map(z=>({z,cpu:corridor.sample(4500,z)[2],
     gpu:context.getImageData(Math.floor((4500-m.bounds[0])/m.bounds[2]*mask.width),Math.floor((z-m.bounds[1])/m.bounds[3]*closeHeight),1,1).data[2]/255}));
    canvas.width=canvas.height=0;
@@ -61,7 +63,7 @@ try{
   });
   console.log(tier,stats);
   if(!baseline){
-   assert.equal(stats.trees,tier==='high'?52000:14000);
+   assert.equal(stats.trees,tier==='high'?58000:14000);
    if(tier==='high'){
     assert.ok(stats.hills>=7900&&stats.hillsActive);
     // no gap or density step where the hillside continues the close map's woods

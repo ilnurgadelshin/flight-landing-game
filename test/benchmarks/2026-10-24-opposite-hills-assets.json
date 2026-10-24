@@ -1,0 +1,17 @@
+{
+  "closeUnchanged": true,
+  "oldHillUnchanged": true,
+  "transferDelta": 42352,
+  "hectares": [
+    30.57,
+    21.48,
+    231.32
+  ],
+  "totalHectares": 1631.1299999999999,
+  "highJoinDeltaHectares": [
+    -0.18706352941176438,
+    -0.19921882352941092,
+    1.5119670588234537
+  ],
+  "highEffectiveHectares": 1632.2556847058822
+}

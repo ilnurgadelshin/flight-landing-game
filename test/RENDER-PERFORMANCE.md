@@ -2552,3 +2552,72 @@ Reports: `benchmarks/2026-10-24-valley-lane-*.json`. Local
 [matched scenery and motion review](output/valley-lane-review.html). Geometry and grounds
 remain interpreted and simplified; photographic ground/shadows and repeated tree cards
 persist beyond the treated surfaces.
+
+## Opposite hillside and field margins — 2026-10-24
+
+Baseline: main `09c7c36`. Chromium 141, ANGLE Metal / Apple M2 Pro, 1440 × 900,
+fixed high 1.5× and low 1×. Four-second warm-up, twelve-second samples, paused physics;
+RAF pacing is display capped and CPU times exclude asynchronous GPU work. Ordinary
+play retains adaptive quality. No other browser graphics job ran concurrently.
+
+| Tier / scene | Before → after FPS | After p95 ms | Draw calls | Rendered triangles |
+| --- | --- | --- | --- | --- |
+| high / captain-5500 | 33.1 → 33.4 | 33.4 | 1116 → 1122 | 2,741,230 → 2,793,026 |
+| high / captain-4300 | 36.0 → 36.0 | 33.4 | 1008 → 1013 | 2,416,820 → 2,449,552 |
+| high / opposite-hills | 57.1 → 55.5 | 33.3 | 384 → 390 | 767,440 → 820,446 |
+| low / captain-5500 | 60.0 → 60.0 | 16.7 | 652 → 652 | 1,217,793 → 1,217,793 |
+| low / captain-4300 | 60.0 → 55.8 | 33.3 | 576 → 576 | 975,864 → 975,864 |
+| low / opposite-hills | 60.0 → 60.0 | 16.8 | 232 → 232 | 395,018 → 395,018 |
+
+High's ordinary captain samples change +0.9% / +0.05%; the wide hillside sample
+changes −2.7%. This is a modest measured exterior cost, with additional geometry
+and CPU work even where display-paced FPS is unchanged. The initial low x=4300
+sample falls to 55.8 FPS despite identical captured pixels and geometry. A subsequent
+matched repeat reaches **60.0 → 60.0 FPS**. Both initial and repeat reports
+are retained; these short samples do not establish stable performance on other hardware.
+
+The high tree total rises 52,000 → 58,000. A separate 6000-tree allocation preserves
+older zone caps and the wider background allowance. The new join changes candidate
+selection in the first 30 m of the old north edge, including 3440 → 3428 candidates
+in the upper-opposite zone; background filling makes up the difference. Tree cards
+and terrain-following footprint shadows both contribute to the measured cost. Low
+remains at 14,000 trees, with all seven reviewed images pixel-identical to baseline.
+
+The new 1024 × 256 cover tile occupies unused atlas columns. Uploaded sizes stay
+3450 × 1277 high / 2048 × 603 low (17.62 / 4.94 MB RGBA8); no sampler or render pass
+is added. Packed high CPU cover grows by 0.52 MB. A joined high canvas replaces the
+original decoded image as the texture upload source; it is retained for texture
+lifetime. The map/manifest pair adds **42,352 bytes** on both tiers. No new models,
+source imagery, PBR maps or tree forms are downloaded.
+
+All 19 Node suites pass. Both-tier corridor checks pass prior field/stand coverage,
+road/building clearance and missing-map fallback. New hillside checks pass continuous
+CPU/uploaded cover, adjacent-strip density, open fields and invalid-atlas fallback.
+The retained left hillside and far-building detail checks pass after correcting the
+test's fractional reconstruction of an integer image-row count.
+
+The [matched review](output/opposite-hills-review.html) includes normal pilot views,
+the slope, farmland, overcast and night. High captain change areas are 0.71%, 0.91%,
+1.30% at x=6500, 5500, 4300 m; the wide view is 12.52% (pixels differing by >12 grey
+levels). These quantify changed area, not photorealism. The 480-frame normal pilot
+motion comparison at 1× covers x=5500 → 4901.25 m; recording adds encoding overhead
+and is separate from these benchmarks.
+
+Reports: `benchmarks/2026-10-24-opposite-hills-*.json`. Farther upper flanks and
+low-tier outer hills remain photographic. Distant tree cards, repeated silhouettes,
+blurred fields and procedural houses remain visible limits.
+
+Software compatibility was attempted at 1440 × 900 and 640 × 400. The configured
+Chromium SwiftShader backend fails before scenery setup with `BindToCurrentSequence
+failed` / `Error creating WebGL context`. Pausing drawing at `sim-ready` also exposed
+the same failure; the new check now exits promptly on a boot error rather than waiting
+for readiness to time out. This is unavailable validation, not a passing software test.
+Physical phones and the complete functional flight suite were not rerun for this pass.
+
+Delivery validation passes with startup **14,241,604 / 8,705,717 bytes** and prepared
+assets **66,289,485 / 19,634,244 bytes** (high / low). The short flight adds no requests;
+slow automatic-tier selection and hidden-tab calibration checks pass. Both startup
+budgets remain below 15 / 9 MB. The isolated new-material toggle changes the wide
+view by a mean 1.22 grey levels on Metal, confirming the atlas tile reaches the
+terrain shader. All 28 comparison images, slider direction controls and the phone
+review-page layout pass.
