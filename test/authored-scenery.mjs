@@ -39,7 +39,7 @@ try{
     if(!process.env.REVIEW_ROOT){
       // Complete models replace some of the limited facade-kit candidates.
       assert.equal(status.authored.buildings,tier==='high'?24:8);assert.ok(status.authored.triangles<700000);
-      assert.equal(status.farm.buildings,62);assert.equal(status.farm.sites,8);assert.ok(status.farm.batches<=90,'Adjacent crossing buildings share material draws');assert.ok(status.farm.triangles<140000);
+      assert.equal(status.farm.buildings,81);assert.equal(status.farm.sites,10);assert.ok(status.farm.batches<=108,'Adjacent complete buildings share material draws');assert.ok(status.farm.triangles<165000);
     }
     assert.deepEqual(status.errors,[]);reports.push({tier,...status});console.log(tier,status);
     // Every fogged material compiled behind the menu must bind the atmosphere's uniforms (the

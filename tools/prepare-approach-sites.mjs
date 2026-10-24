@@ -2,6 +2,7 @@
 // including the 16 m gutter). No new imagery, map service or inferred survey data.
 import fs from 'node:fs/promises';
 import {prepareCrossingSites} from './crossing-sites.mjs';
+import {prepareValleyLaneSites} from './valley-lane-sites.mjs';
 const sites=[{
  id:'north-farm',name:'Opposite approach farm',tile:'2_-1',roadSurface:'gravel',
  lawns:[[[365,601],[389,598],[439,638],[455,675],[403,711],[349,711],[335,681],[355,659]]],
@@ -74,4 +75,5 @@ for(const site of sites){
  site.trees=site.trees.map(([x,z,h,row])=>{const [px,pz]=point([x,z]);return {x:px,z:pz,h,row};});
 }
 sites.push(...prepareCrossingSites(JSON.parse(await fs.readFile('assets/scenery/approach-roads.json')).roads));
+sites.push(...prepareValleyLaneSites(JSON.parse(await fs.readFile('assets/scenery/approach-roads.json')).roads));
 await fs.writeFile('assets/scenery/approach-sites.json',JSON.stringify({license:'MIT; original site interpretations from bundled public-domain USDA NAIP imagery. Not a surveyed reconstruction.',sites},null,2)+'\n');

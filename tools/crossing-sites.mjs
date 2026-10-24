@@ -148,7 +148,7 @@ export const crossingSites=[{
 
 // Join to the real rendered road centreline, rather than an approximate pixel
 // trace. The manually reviewed drive points above remain in the source module.
-export function prepareCrossingSites(roads){
+export function prepareRoadJoinedSites(roads,sources){
  const nearest=([x,z])=>{
   let best,dist=Infinity;
   for(const road of roads)for(let i=1;i<road.points.length;i++){
@@ -160,9 +160,10 @@ export function prepareCrossingSites(roads){
   if(dist>8)throw new Error(`Unreviewed road join ${x},${z}: ${dist} m`);
   return best.map(v=>Math.round(v*100)/100);
  };
- return crossingSites.map(source=>{
+ return sources.map(source=>{
   const site=structuredClone(source);site.roads=[];
   for(const street of site.streets)if(street.connectsMainRoad)street.points[street.points.length-1]=nearest(street.points.at(-1));
   return site;
  });
 }
+export const prepareCrossingSites=roads=>prepareRoadJoinedSites(roads,crossingSites);

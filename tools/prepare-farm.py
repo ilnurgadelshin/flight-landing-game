@@ -234,7 +234,7 @@ for x,z,name,style,finish in [
  bs.append(dict(b,id=name,style=style,finish=finish,cluster='roadside-homes',sparseBattens=True))
 b=next(b for b in extras if b['id']=='garden-cottage-garage')
 bs.append(dict(b,style='garage',finish='sand',cluster='roadside-homes',sparseBattens=True))
-# Complete the connected crossing neighborhood. Placements and original use/finish
+# Complete the connected crossing and valley lane. Placements and original use/finish
 # interpretations are shared with the reviewed parcel/access source, not duplicated.
 for site in json.loads((ROOT/'assets/scenery/approach-sites.json').read_text())['sites']:
  for spec in site.get('buildings',[]):
@@ -245,6 +245,31 @@ manifest=[]
 for b in bs:
  placement={**{k:b[k] for k in ['id','x','z','angle','w','d','height']},'style':b.get('style','barn'),'sourceHeight':b.get('sourceHeight',b['height']),'cluster':b.get('cluster','valley')}
  if placement['cluster'].startswith('crossing-'):placement['batchGroup']='approach-crossing'
+ if placement['cluster'].startswith('valley-lane-'):placement['batchGroup']='valley-lane'
+ if b.get('style')=='courtyard-house':
+  # Three individually pitched wings fit this concave roof; a single ridge
+  # across its bounding box would bridge the empty photographed forecourt.
+  B=Builder(b['id'],'house',b['finish'],'shingle')
+  farmWing(B,-12.3,-4.1,1.3,10.4,3.1,2.6,'z')
+  farmWing(B,-4.1,4.9,1.3,6.7,3.1,1.8,'x')
+  farmWing(B,4.9,12.3,-10.4,9.3,3.1,2.6,'z')
+  for x in [-9.7,-6.6,7.1,10.1]:
+   for z,sign in ([(10.44,1),(1.26,-1)] if x<0 else [(9.34,1),(-10.44,-1)]):
+    B.box((x,1.95,z),(1.15,1.25,.08),'dark');B.box((x,1.95,z+sign*.05),(1,.99,.035),'glass')
+    for dx in [-.62,.62]:B.box((x+dx,1.95,z+sign*.11),(.09,1.43,.15),'trim')
+    for y in [1.25,2.65]:B.box((x,y,z+sign*.11),(1.32,.10,.15),'trim')
+  for z in [-7,-2,3]:
+   for x in [4.86,12.34]:
+    sign=-1 if x<5 else 1
+    B.box((x,1.95,z),(.08,1.25,1.15),'dark');B.box((x+sign*.05,1.95,z),(.035,.99,1),'glass')
+    for dz in [-.62,.62]:B.box((x+sign*.11,1.95,z+dz),(.15,1.43,.09),'trim')
+    for y in [1.25,2.65]:B.box((x+sign*.11,y,z),(.15,.10,1.32),'trim')
+  B.box((.1,1.3,1.24),(1.2,2.1,.08),'dark');B.box((.1,1.3,1.18),(1.02,1.97,.04),'door')
+  B.box((.1,2.5,.8),(1.8,.13,1.4),'roof');B.box((.1,.15,.7),(1.8,.25,1.5),'stone')
+  B.box((8.6,5.9,2),(.65,.55,.65),'stone');B.box((8.6,6.21,2),(.8,.08,.8),'dark')
+  c,s=math.cos(b['angle']),math.sin(b['angle'])
+  placement['roofSamples']=[[round(x*c-z*s,3),round(x*s+z*c,3)] for x,z in [(-8.2,5),(8.6,-3)]]
+  B.finish();manifest.append(placement);continue
  if b.get('style') in ['silo','silos']:
   B=Builder(b['id'],b['style']);w,d=b['w'],b['d'];centres=[(0,0,min(w,d)*.46)] if b['style']=='silo' else [(-w*.25,0,min(w*.225,d*.43)),(w*.25,0,min(w*.225,d*.43))]
   for x,z,r in centres:silo(B,x,z,r,b['height'])
@@ -254,6 +279,36 @@ for b in bs:
    for i in range(24):
     u=x+r*math.cos(i*math.pi/12);v=z+r*math.sin(i*math.pi/12);outline.append([round(u*c-v*s,3),round(u*s+v*c,3)])
   placement['shadowOutline']=outline;placement['roofSamples']=[[round(x*c-z*s,3),round(x*s+z*c,3)] for x,z,_ in centres]
+  B.finish();manifest.append(placement);continue
+ if b.get('style')=='courtyard':
+  # The 3_0 photograph shows two perpendicular barn wings and an open yard,
+  # not the single flat slab in the detected footprint. Retain its local frame.
+  B=Builder(b['id'],'barn',b['finish'],'roof')
+  farmWing(B,-24,24,7,21.5,4.8,2.8,'x')
+  farmWing(B,-16,0,-21,7,5,2.6,'z')
+  # Substantial loading doors, recessed dark panels, glazing and roof vents.
+  for x in [-16,1,16]:
+   B.box((x,1.85,21.52),(3.8,3.2,.08),'dark');B.box((x,1.85,21.59),(3.55,3,.045),'door')
+   for dx in [-1.96,1.96]:B.box((x+dx,1.9,21.65),(.12,3.4,.22),'trim')
+   B.box((x,3.63,21.68),(4.1,.12,.25),'trim')
+  for z in [-16,-9,-2]:
+   B.box((.025,2.9,z),(.08,1.25,1.8),'dark');B.box((.08,2.9,z),(.035,1.05,1.6),'glass')
+   for y in [2.24,3.56]:B.box((.14,y,z),(.20,.10,1.98),'trim')
+   for dz in [-.95,.95]:B.box((.14,2.9,z+dz),(.20,1.42,.10),'trim')
+  # Doors face the open yard, including the southern end seen on descent.
+  for x,z,width in [(-8,-21.04,4.6),(9,6.96,4.8)]:
+   B.box((x,2.05,z),(width,3.6,.08),'dark');B.box((x,2.05,z-.06),(width-.24,3.38,.045),'door')
+   for dx in [-width/2,width/2]:B.box((x+dx,2.05,z-.13),(.12,3.82,.23),'trim')
+   B.box((x,3.98,z-.17),(width+.35,.13,.32),'trim')
+   B.box((x,.17,z-.6),(width+.5,.24,1.3),'stone')
+  for z in [-16,-8,0]:
+   B.box((-16.04,3.0,z),(.08,1.2,1.8),'dark');B.box((-16.10,3.0,z),(.035,1,1.6),'glass')
+   for y in [2.34,3.66]:B.box((-16.17,y,z),(.20,.10,1.98),'trim')
+   for dz in [-.95,.95]:B.box((-16.17,3.0,z+dz),(.20,1.42,.10),'trim')
+  for x in [-12,12]:
+   B.box((x,7.83,14.25),(1.1,.42,.8),'dark');B.box((x,8.09,14.25),(1.4,.12,1.1),'roof')
+  c,s=math.cos(b['angle']),math.sin(b['angle'])
+  placement['roofSamples']=[[round(x*c-z*s,3),round(x*s+z*c,3)] for x,z in [(0,14.25),(-8,-7)]]
   B.finish();manifest.append(placement);continue
  if b.get('style')=='dairy':
   B=Builder(b['id'],'dairy')

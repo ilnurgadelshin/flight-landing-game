@@ -41,15 +41,17 @@ try{
         const T=await import('/vendor/three.module.js'),s=window.__sim,w=s.world;
         w.camera=s.benchmarkCamera;if(w.composer)w.composer.passes[0].camera=w.camera;
         s.start({startId:'short',scenarioId:scene==='storm'?'storm':scene.startsWith('deck-')?'crosswind':'clear',seed:5});s.setTimeScale(0);
-        const approachX=scene==='captain-entry'?9000:scene==='captain-valley'?7500:scene==='captain-upper'?5500:3300;
+        const approachX=/^captain-\d+$/.test(scene)?Number(scene.slice(8)):scene==='captain-entry'?9000:scene==='captain-valley'?7500:scene==='captain-upper'?5500:3300;
         s.game.sim.aircraft.place({x:scene==='rollout'?1000:approachX,y:scene==='rollout'?2.5:scene==='deck-captain'?w.cloudTop+220:scene.startsWith('captain-')?15+(approachX-1500)*Math.tan(Math.PI/60):115,z:0,headingDeg:270,iasKts:scene==='rollout'?85:147,flapIndex:4,gearDown:true,gammaDeg:-3,onGround:scene==='rollout'});
         s.view.setMode('cockpit');for(let i=0;i<40;i++)s.view.update(1/60);
         s.game.state='menu';w.setPixelRatio(pixelRatio);
-        if(['hills','crossing','roadside-homes','airport','terminal','terminal-close','tower','nearby','site','corridor','extension','opposite','upper-opposite','contour-farm','shoulder','north-farm','hamlet','cloud-sky','cloud-close','deck-top','deck-base','deck-near-top','deck-inside-base','grass-meadow','grass-pasture','grass-soil'].includes(scene)){
+        if(['valley-lane-farm','valley-lane-wide','hills','crossing','roadside-homes','airport','terminal','terminal-close','tower','nearby','site','corridor','extension','opposite','upper-opposite','contour-farm','shoulder','north-farm','hamlet','cloud-sky','cloud-close','deck-top','deck-base','deck-near-top','deck-inside-base','grass-meadow','grass-pasture','grass-soil'].includes(scene)){
           const c=new T.PerspectiveCamera(50,innerWidth/innerHeight,.1,60000);
           if(scene==='hills'){const {sceneryGroundHeight}=await import('/js/world/scenery-ground.js');c.position.set(5200,380,600);c.lookAt(3300,sceneryGroundHeight(3300,1650,w.groundLowDetail)+10,1650);}
           else if(scene==='airport'){c.position.set(640,110,100);c.lookAt(0,14,440);}
           else if(scene==='crossing'){c.position.set(5410,220,165);c.lookAt(4860,3,-110);}
+          else if(scene==='valley-lane-wide'){c.position.set(4200,245,80);c.lookAt(3430,30,510);}
+          else if(scene==='valley-lane-farm'){c.position.set(3415,100,685);c.lookAt(3280,30,545);}
           else if(scene==='roadside-homes'){c.position.set(4910,185,335);c.lookAt(4510,35,115);}
           else if(scene==='terminal'){c.position.set(130,14,325);c.lookAt(0,12,452);}
           else if(scene==='terminal-close'){c.position.set(35,5,390);c.lookAt(5,6,427);}
@@ -81,7 +83,7 @@ try{
         if(disabled.includes('cumulus')&&w.cumulus)w.cumulus.group.visible=false;
         if(disabled.includes('bloom')&&w.bloom)w.bloom.enabled=false;
         if(disabled.includes('shadows'))w.renderer.shadowMap.enabled=false;
-        const base=w.camera.position.clone(),state={...s.state(),alt:scene.startsWith('cloud-')||scene.startsWith('captain-')||scene.startsWith('deck-')||scene.startsWith('grass-')||['hills','airport','terminal','terminal-close','tower','upper-opposite','contour-farm'].includes(scene)?eye.y:scene==='north-farm'?15:scene==='hamlet'?14:scene==='shoulder'?3.7:scene==='rollout'?5:scene==='site'?24:scene==='nearby'?18:scene==='opposite'?250:['corridor','extension'].includes(scene)?240:115};
+        const base=w.camera.position.clone(),state={...s.state(),alt:scene.startsWith('valley-lane-')||scene.startsWith('cloud-')||scene.startsWith('captain-')||scene.startsWith('deck-')||scene.startsWith('grass-')||['hills','airport','terminal','terminal-close','tower','upper-opposite','contour-farm'].includes(scene)?eye.y:scene==='north-farm'?15:scene==='hamlet'?14:scene==='shoulder'?3.7:scene==='rollout'?5:scene==='site'?24:scene==='nearby'?18:scene==='opposite'?250:['corridor','extension'].includes(scene)?240:115};
         const intervals=[],cpu=[],calls=[],triangles=[];let start,last;
         w.renderer.info.autoReset=false;
         await new Promise(resolve=>{

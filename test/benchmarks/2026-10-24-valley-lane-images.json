@@ -1,0 +1,52 @@
+[
+  {
+    "tier": "high",
+    "view": "captain-4300",
+    "changedPixelsOver12Percent": 0.7641975308641975
+  },
+  {
+    "tier": "high",
+    "view": "captain-3500",
+    "changedPixelsOver12Percent": 0.003780864197530864
+  },
+  {
+    "tier": "high",
+    "view": "valley-lane-wide",
+    "changedPixelsOver12Percent": 11.166435185185184
+  },
+  {
+    "tier": "high",
+    "view": "valley-lane-farm",
+    "changedPixelsOver12Percent": 8.064429012345679
+  },
+  {
+    "tier": "high",
+    "view": "valley-lane-east",
+    "changedPixelsOver12Percent": 15.464891975308642
+  },
+  {
+    "tier": "low",
+    "view": "captain-4300",
+    "changedPixelsOver12Percent": 0.22901234567901235
+  },
+  {
+    "tier": "low",
+    "view": "captain-3500",
+    "changedPixelsOver12Percent": 0.2253858024691358
+  },
+  {
+    "tier": "low",
+    "view": "valley-lane-wide",
+    "changedPixelsOver12Percent": 3.6530864197530866
+  },
+  {
+    "tier": "low",
+    "view": "valley-lane-farm",
+    "changedPixelsOver12Percent": 7.957175925925926
+  },
+  {
+    "tier": "low",
+    "view": "valley-lane-east",
+    "changedPixelsOver12Percent": 6.4135030864197535
+  }
+]

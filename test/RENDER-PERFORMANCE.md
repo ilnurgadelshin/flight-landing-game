@@ -2494,3 +2494,61 @@ The sampled CPU/GPU coverage differs by at most 1/255. Four matched high-tier im
 are pixel-identical to `bcfb2cd`; low-tier images show the tapered edge. Raw reports:
 `benchmarks/2026-10-23-low-tier-edge-*.json`. No FPS benchmark was repeated, so this
 correction does not establish new frame-rate or physical-phone performance claims.
+
+
+## Valley lane farm and homes — 2026-10-24
+
+Compared published main `07530bb` with 19 additional complete buildings and two connected
+sites. Apple M2 Pro, Chromium ANGLE Metal, 1440 × 900, high at 1.5× / low at 1×.
+Four-second warm-up, twelve-second samples, paused physics; assets prepared before
+sampling. RAF timing is display capped. These are rendering/scenery-update measurements,
+not a full-flight or physical-phone benchmark. Baseline and changed runs were sequential.
+
+| Tier / scene | Before FPS | After FPS | After p95 ms | Draw calls | Triangle change |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| high / captain-4300 | 36.5 | 36.2 | 33.4 | 995 → 1008 | +93,897 |
+| high / valley-lane-wide | 55.4 | 53.5 | 33.3 | 515 → 528 | +95,403 |
+| high / valley-lane-farm | 54.2 | 49.9 | 33.4 | 400 → 414 | +56,580 |
+| low / captain-4300 | 60.0 | 60.0 | 16.7 | 558 → 576 | +95,643 |
+| low / valley-lane-wide | 60.0 | 60.0 | 16.7 | 359 → 377 | +105,933 |
+| low / valley-lane-farm | 60.0 | 60.0 | 16.8 | 252 → 266 | +63,210 |
+
+The ordinary captain sample changes by −0.6%; the wide view by −3.5%; the close farm
+view by −8.0% on high. Low remains around the 60 FPS display limit. The new grounds
+and buildings have a measured cost, particularly in the exterior view; this is not
+a performance improvement or proof of sustained 60 FPS on high. GPU/thermal variance
+and the short sampling window limit the conclusions. Adaptive quality remains enabled
+in ordinary play; these fixed-resolution comparisons do not exercise its adjustments.
+
+The new sites share a building material group and inherit the existing far-detail level.
+Complete buildings: 133,587 → 160,949 near / 98,250 → 115,274 far triangles. Grounds and
+fences: 273,132 → 352,486, with the original 2,924-triangle yard unchanged. Site batches:
+88 → 106, before subtracting replaced procedural buildings. No new shader, texture
+sampler, land-cover mask or source texture is introduced. Total tree budgets remain
+52,000 / 14,000; 76 eligible planted site trees replace the previous 66. New yard
+exclusions redistribute some candidates within the existing seeded planting zones.
+
+Transfer including the manifest increases 527,024 / 526,900 bytes high/low. Startup
+remains 14,237,416 / 8,701,529 bytes; prepared assets total 66,242,945 / 19,587,704 bytes.
+The delivery check reports no requests after the short flight starts and passes slow
+automatic-tier selection and hidden-tab calibration checks. No new scenery streams
+into this flight after takeoff.
+
+All 19 Node suites pass. Both tiers pass 85 roof samples, two open-courtyard checks,
+54 local access joins, 25 main-road joins and terrain contact (maximum error 0.034 mm),
+with no unplanned trees in the sites or road/building intrusions. Authored material
+atmosphere binding and missing model/material/site fallbacks pass. Corridor checks
+retain field clearance, planting limits and missing-mask fallback. Full functional flight
+tests, SwiftShader and physical devices were not repeated for this scenery pass.
+
+A matched 480-frame normal pilot descent from x=4300 to 3701.25 m is recorded at high
+1×. Video encoding changes frame cost; those clips are visual evidence only. The high
+normal-view changed area is 0.76% at x=4300 and 0.004% at x=3500 (pixels differing by
+more than 12 grey levels). These are not quality scores: the improvement is mostly in
+small scenery through the left window, with much of the nearby area below the glareshield.
+The wide and close scenery views make the grounds and roof changes easier to inspect.
+
+Reports: `benchmarks/2026-10-24-valley-lane-*.json`. Local
+[matched scenery and motion review](output/valley-lane-review.html). Geometry and grounds
+remain interpreted and simplified; photographic ground/shadows and repeated tree cards
+persist beyond the treated surfaces.

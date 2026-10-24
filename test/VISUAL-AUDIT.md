@@ -1,23 +1,24 @@
 # Visual improvement audit
 
-## Current status — 2026-10-23
+## Current status — 2026-10-24
 
 This section is the current checklist. The original September audit and dated work log
 below record how the scene evolved; their older counts, captures and priorities are not
 the remaining-work list. Update this section after each reviewed visual pass, including
 what changed, visible impact, measured cost, evidence and limitations.
 
-The latest pass extends woodland onto the hillside visible through the pilot's left
-windshield during early and middle final. **385.63 ha of wooded cover and 25.73 ha of
-open clearings** bring combined interpreted cover to about 1348 ha. The close mask (apart
-from its last 30 m beside the hill tile), five planting allocations and 62 complete
-buildings across eight sites remain. On high quality a separate hill allocation uses the
-existing total tree budget, reducing wider random planting; low quality keeps the
-photographed hillside and its background trees. Its close ground cover and planting
-now fade out over 160 m where that hill tile is absent, removing the hard shared-map edge.
-Distant buildings now omit tiny trim while retaining walls, roofs and glass.
-This improves a visible gap in the normal pilot view; it does **not** close the broader
-scenery category or improve the underlying distant tree forms.
+The latest pass completes the valley lane farm and neighboring roadside homes, adding
+19 buildings with joined grounds. There are now **81 complete building placements across
+ten sites**. Separate barn and house roof wings preserve their open courtyards; gravel
+access, lawns and timber boundaries connect them to the existing road. The gain is strongest
+in wider farm/roadside views and modest in the normal forward cockpit view, where many
+buildings are small or pass below the glareshield. This remains a partial scenery completion.
+
+The previous hillside coverage and low-tier edge correction remain intact: about **1348 ha**
+of interpreted cover, high-only hillside planting within the existing total tree budget,
+and a 160 m low-tier fade where the hill tile is absent. Distant complete buildings omit
+tiny trim while retaining walls, roofs and glass. This pass does not change the land-cover
+map, tree forms, cockpit, weather, airport or flight model.
 
 Specific defects already addressed include the distorted source cockpit shell, black cabin
 reflection failure and degenerate panel normal calculation, the narrow phone windshield/MCP
@@ -30,7 +31,7 @@ should not be presented again as untouched tasks. Their broader quality limitati
 
 | Rank | Remaining work | Importance | Current limit / next acceptance evidence |
 | --- | --- | --- | --- |
-| 1 | Broader, coherent approach scenery | Very high | Eight complete sites and the newly wooded left hillside cover selected stretches; most buildings remain procedural and other hills remain photographic. Continue connected grounds and missing-footprint checks in pilot-visible areas. Evaluate wider coverage against the remaining background tree budget, with normal flight views and measured cost. |
+| 1 | Broader, coherent approach scenery | Very high | Ten complete sites, including the valley lane farm/homes, and the wooded left hillside cover selected stretches; most buildings remain procedural and other hills remain photographic. Further isolated building additions have a modest forward-view return. Prioritize gaps that occupy substantial windshield area, then connected grounds and missing-footprint checks, with normal flight views and measured cost. |
 | 2 | Mid-distance and distant vegetation | High | The hillside gap is denser, but distant/low-tier crowns still expose image planes, repeated species and thin silhouettes. The new coverage makes those form limits more apparent. Improve them within the existing instance budget and compare moving views before accepting additional geometry or sampling cost. |
 | 3 | Complete cockpit material and lighting detail | High | Selected front panels, padding and grips have fitted wear; side consoles/overhead still lack a complete aircraft-specific texture set. Indirect light and local shadows remain approximations. Begin with source/game comparison and protect instrument readability on both tiers. |
 | 4 | Temporal stability of fine detail | Medium–high | Thin labels, branches, roof details and shadow edges can shimmer in motion. Evaluate actual flight motion and GPU cost, not only static screenshots. |
@@ -43,7 +44,57 @@ the M2 Pro; retain adaptive quality and report costs. Physical phones, ordinary 
 and multiple GPU drivers need wider validation. Existing SwiftShader evidence in the log
 does not certify the latest pass on those devices.
 
-### Pilot-visible hillside: implementation and evidence
+### Valley lane farm and homes — 2026-10-24
+
+Baseline: published main `07530bb`. Sources are the existing registered Microsoft
+footprints/road centerline and bundled public-domain `3_0` / `4_0` NAIP. Original site
+interpretations live in `tools/valley-lane-sites.mjs`; Blender geometry in
+`tools/prepare-farm.py`. Heights, materials, parcel uses and planting are interpretations,
+not surveyed architecture. No external assets, new textures or land-cover bake are added.
+
+- Nineteen buildings replace procedural forms: six around the farm and thirteen beside
+  the road. The main barn has perpendicular pitched wings; the concave garden house has
+  three roof wings. Both leave their courtyards open. Existing registered outbuildings
+  were checked against the imagery; this pass adds no missing-footprint detections.
+- Ten lawn polygons, sixteen gravel areas, twelve lane/drive ribbons, nineteen access
+  paths and eleven timber fence polylines complete two connected sites. Nine additional
+  joins meet the registered main road. Candidate planting is checked against the shared
+  fields/building/road exclusions; eligible placed trees increase 66 → 76. The total tree
+  budgets remain 52,000 / 14,000. Changed yard exclusions can redistribute seeded trees
+  within the existing planting zone; unchanged budgets do not imply identical positions.
+- Both tiers pass 85 roof samples across all 81 buildings, open-courtyard ray checks,
+  54 local access joins, 25 main-road joins and terrain contact (maximum error 0.034 mm).
+  No unplanned trees occupy the complete sites and no placed trees intrude into roads
+  or buildings. Missing/invalid extension data retains the original nine-building site.
+- Buildings increase 133,587 → 160,949 near triangles and 98,250 → 115,274 far triangles.
+  Grounds/fences increase 273,132 → 352,486; the original 2,924-triangle yard is unchanged.
+  Adjacent new buildings share one material group and the existing distance detail level.
+  Site batches increase 88 → 106 before subtracting replaced procedural geometry.
+- Including the shared manifest, transfer increases **527,024 bytes high / 526,900 low**,
+  prepared behind the menu. Startup stays **14.24 MB high / 8.70 MB low**; all prepared
+  assets total **66.24 / 19.59 MB**. The delivery test confirms no additional requests
+  after starting its short flight and retains slow-device/hidden-tab calibration checks.
+- All 19 Node suites pass. Both-tier authored-material/atmosphere checks and missing
+  model/material/site fallbacks pass on Chromium Metal. These are focused scenery checks;
+  the full functional flight suite, physical phones and other GPU drivers were not rerun.
+- Local [matched scenery and motion review](output/valley-lane-review.html) contains
+  high/low, wider farm/home views, storm/night and the ordinary captain views at x=4300
+  and x=3500 m. The 480-frame descent uses the normal pilot camera at high 1×; recording
+  overhead means it is not an FPS benchmark. Costs are in [render measurements](RENDER-PERFORMANCE.md).
+- On the M2 Pro at fixed high 1.5×, captain FPS changes **36.5 → 36.2**, the wide view
+  **55.4 → 53.5**, and close farm **54.2 → 49.9**. Low at 1× remains around the 60 FPS
+  display limit in all three samples. This is an added rendering cost, especially in the
+  exterior view; short samples do not establish sustained performance on other devices.
+- Recorded checks and measurements: `benchmarks/2026-10-24-valley-lane-*.json`.
+
+The complete grounds read more coherently in the farm and roadside views. The forward
+pilot improvement is modest: at x=4300, about 0.76% / 0.23% of high/low image pixels change
+by more than 12 grey levels; at x=3500, about 0.004% / 0.23%. These are change-area measures,
+not quality scores, and include redistributed planting. Large areas remain photographic,
+materials and yard shading are simple, distant tree forms repeat, and thin details can
+shimmer. This pass does not close the very-high-impact broader scenery category.
+
+### Pilot-visible hillside: previous pass — 2026-10-23
 
 Baseline: published main `9c135d2`. Source: the existing public-domain
 `final-approach.webp`, interpreted in `tools/approach-hills.mjs`. The photographed

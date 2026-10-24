@@ -46,20 +46,20 @@ for(const asset of geometry.assets){
   }
 }
 const farm=JSON.parse(await fs.readFile('assets/scenery/farm-sources.json'));
-assert.equal(farm.geometryLicense,'MIT');assert.equal(farm.placements.length,62);
+assert.equal(farm.geometryLicense,'MIT');assert.equal(farm.placements.length,81);
 assert.ok(farm.sources.every(s=>s.license==='CC0-1.0'&&Object.keys(s.authors).length));
 for(const [file,bytes] of Object.entries(farm.bytes))assert.equal((await fs.stat('assets/scenery/'+file)).size,bytes);
 for(const low of [false,true]){
   const suffix=low?'-low':'';
   const bytes=Object.entries(farm.bytes).filter(([file])=>['valley-site.json','approach-sites.json'].includes(file)||file.includes('-low')===low).reduce((n,[,b])=>n+b,0);
-  // 27 additional complete buildings reuse the existing maps; the increase is
+  // The connected valley lane reuses the existing maps; the increase is
   // geometry and parcel data, prepared behind the menu rather than during flight.
-  assert.ok(bytes<(low?2.8e6:3.8e6),'Eight complete sites and yards stay within the transfer budget');
+  assert.ok(bytes<(low?3.3e6:4.3e6),'Ten complete sites and yards stay within the transfer budget');
   const doc=await io.read(`assets/scenery/valley-farm${suffix}.glb`);
   const residentialRoof=doc.getRoot().listMaterials().find(m=>m.getName()==='Charcoal residential roof');
   assert.deepEqual(residentialRoof.getBaseColorFactor(),[.14,.147,.154,1],'Export retains the authored roof tint');
   assert.equal((await sharp(residentialRoof.getBaseColorTexture().getImage()).metadata()).width,256,'Bounded shingle grain');
-  const nodes=doc.getRoot().listScenes()[0].listChildren();assert.equal(nodes.length,62);
+  const nodes=doc.getRoot().listScenes()[0].listChildren();assert.equal(nodes.length,81);
   let triangles=0;
   for(const placement of farm.placements){
     const node=nodes.find(n=>n.getName()===placement.id);assert.ok(node);
@@ -83,7 +83,7 @@ for(const low of [false,true]){
       }
     }
   }
-  assert.ok(triangles<140000,'Complete building geometry remains bounded');
+  assert.ok(triangles<165000,'Complete building geometry remains bounded');
 }
 for(const silo of farm.placements.filter(p=>['silo','silos'].includes(p.style))){
  assert.ok(silo.shadowOutline.length>=24&&silo.shadowOutline.every(p=>p.length===2&&p.every(Number.isFinite)),'Silo shadows use rounded plan outlines');
@@ -123,6 +123,6 @@ if(site.id)for(const line of site.fences)for(let i=1;i<line.length;i++){
 }
 const homes=sites.find(s=>s.id==='roadside-homes');
 assert.ok(siteCoverage(homes,4308,134,'lawns')<0,'The lawn leaves the photographed swimming pool clear');
-assert.ok((await fs.stat('assets/scenery/approach-sites.json')).size<110000,'Bounded extension site data');
+assert.ok((await fs.stat('assets/scenery/approach-sites.json')).size<150000,'Bounded extension site data');
 assert.ok((await fs.stat('assets/scenery/valley-site.json')).size<15000,'Small interpreted site data');
 console.log('Authored facade, farm and tree bounds, UVs, source records and delivery budgets passed');

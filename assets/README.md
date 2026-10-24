@@ -426,10 +426,10 @@ its distance calculation and feathering are unchanged.
 
 ## Complete approach sites — original geometry / CC0 materials
 
-`scenery/valley-farm.glb` and its `-low` variant contain sixty-two complete building placements, originally
+`scenery/valley-farm.glb` and its `-low` variant contain eighty-one complete building placements, originally
 authored by `tools/prepare-farm.py` in Blender under the project's MIT license. The original
 two valley barns, two opposite-side barns and the detached residential garage use NAIP-traced infill outlines; the other
-fifty-seven placements retain their Microsoft footprints. The models include clapboard homes,
+seventy-six placements retain their Microsoft footprints. The models include clapboard homes,
 red-roofed working buildings, workshops, timber barns and three domed silos in two groups.
 Recessed openings, thick roof edges/ridge caps, gutters, door
 canopies, foundations and home chimneys are geometry. Fine clapboard laps and standing seams
@@ -471,19 +471,20 @@ Source URLs, authors, checksums, placements and exact delivered byte counts are 
 `scenery/farm-sources.json`. Wood textures use 1024 px high / 512 px low WebP. The gravel
 colour map follows those sizes; gravel normal and roughness maps use 512 px high / 256 px low.
 Meshes are Meshopt-compressed. Building meshes merge by material within each site; the three
-adjacent crossing sites share one bounded building group to save 20 material batches.
-The eight sites use 88 draw batches before subtracting replaced procedural
-facades: 55 building material batches, the original yard and four grounds/boundary batches per
-site. Buildings use 133,587 triangles; grounds/fences use 273,132 triangles, plus the original
+adjacent crossing sites share one bounded building group to save 20 material batches;
+the two valley lane sites also share one building group, saving ten batches.
+The ten sites use 106 draw batches before subtracting replaced procedural
+facades: 65 building material batches, the original yard and four grounds/boundary batches per
+site. Buildings use 160,949 triangles; grounds/fences use 352,486 triangles, plus the original
 2,924-triangle yard. A distance detail level removes only painted/ironwork triangles smaller
 than 0.08 m² once the whole building group is more than 550 m away. Walls, roofs, glass
 and substantial trim retain their geometry and materials. At the far level, complete
-buildings total 98,250 triangles (26.5% fewer); 12% hysteresis prevents rapid switching.
+buildings total 115,274 triangles (28.4% fewer); 12% hysteresis prevents rapid switching.
 Both levels share vertex attributes and materials; the far level adds index buffers only.
-The original models and downloads are unchanged. Only referenced parcel-grid vertices are uploaded; narrow drives use
+The detail level adds no separate model downloads. Only referenced parcel-grid vertices are uploaded; narrow drives use
 feathered ribbons. Preparation happens behind the menu. Missing models or yard materials
 retain procedural buildings and imagery. Missing or invalid extension data keeps the original
-nine complete valley buildings and falls back for the other 53 placements.
+nine complete valley buildings and falls back for the other 72 placements.
 
 The 2026-10-19 residential frontage adds 13 models, including one previously missing garage,
 to the existing four sites. Twelve retain Microsoft footprints; the garage roof is traced from
@@ -508,11 +509,27 @@ unreviewed joins over 8 m are rejected. No footprint detections, external assets
 are added. Existing wall finishes and shingle/metal roofs are reused. Missing optional site
 data still selects fallback buildings before any shared material batching occurs.
 
-Models, grounds and gravel maps total 3,656,096 bytes high / 2,703,194 bytes low,
+In that crossing pass, models, grounds and gravel maps totaled 3,656,096 bytes high / 2,703,194 bytes low,
 excluding the shared manifest. Relative to `9c30fd6`, the whole crossing pass including
 land-cover changes adds **624,047 / 624,103 bytes** per tier. GLB delivery omits unused
 Blender child/mesh/accessor labels; building IDs, material names, geometry and texture
 precision remain. Both tiers retain the same complete-building geometry; low has smaller maps.
+
+The 2026-10-24 valley lane pass adds 19 buildings on registered footprints: six around the
+farm and thirteen at neighboring roadside parcels. `tools/valley-lane-sites.mjs` retains
+the world-metre interpretation of bundled public-domain `3_0` / `4_0` imagery. The farm's
+large placeholder becomes perpendicular barn wings; the concave garden house has three
+roof wings, leaving both courtyards open. Heights and uses are interpretations. Existing
+roof maps, siding and CC0 gravel materials are reused, with no new texture downloads.
+Ten lawn polygons, sixteen gravel areas, twelve drive/lane ribbons, nineteen access paths
+and eleven fence polylines complete the grounds. Nine additional main-road connections
+snap to the registered centerline; 76 eligible placed trees now serve the ten sites.
+The land-cover map and 52,000 / 14,000 total tree budgets are unchanged.
+
+Current models, grounds and gravel maps total **4,177,422 bytes high / 3,224,396 low**,
+excluding the shared manifest. Including that manifest, this pass adds **527,024 / 526,900
+bytes** relative to `07530bb`, prepared behind the menu. See the dated visual audit and
+render measurements for contact/roof tests, matched views, delivery and rendering costs.
 
 Reproduce (download cache and Blender source remain under ignored `test/output/farm-sources/`):
 

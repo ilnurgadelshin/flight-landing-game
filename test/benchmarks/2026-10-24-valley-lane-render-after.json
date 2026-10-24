@@ -1,0 +1,122 @@
+{
+  "date": "2026-10-23T22:20:07.606Z",
+  "browser": "141.0.7390.37",
+  "platform": "darwin",
+  "arch": "arm64",
+  "viewport": [
+    1440,
+    900
+  ],
+  "touch": false,
+  "pixelRatio": {
+    "high": 1.5,
+    "low": 1
+  },
+  "disabled": [],
+  "warmupSeconds": 4,
+  "sampleSeconds": 12,
+  "method": "Private Chromium ANGLE Metal; fixed-resolution renderer and scenery updates, paused physics. RAF pacing is display capped; no gl.finish. CPU times exclude asynchronous GPU work.",
+  "results": [
+    {
+      "tier": "high",
+      "scene": "captain-4300",
+      "frames": 436,
+      "fps": 36.2339918057991,
+      "p50FrameMs": 33.29999999999927,
+      "p95FrameMs": 33.400000000001455,
+      "p99FrameMs": 33.400000000001455,
+      "cpuP50Ms": 4.900000095367432,
+      "cpuP95Ms": 7.199999809265137,
+      "medianDrawCalls": 1008,
+      "medianTriangles": 2416820,
+      "nearTreesAtEnd": 8,
+      "pixelRatio": 1.5,
+      "assets": []
+    },
+    {
+      "tier": "high",
+      "scene": "valley-lane-wide",
+      "frames": 643,
+      "fps": 53.51109335730096,
+      "p50FrameMs": 16.69999999999709,
+      "p95FrameMs": 33.30000000000291,
+      "p99FrameMs": 33.400000000001455,
+      "cpuP50Ms": 3.0999999046325684,
+      "cpuP95Ms": 5.800000190734863,
+      "medianDrawCalls": 528,
+      "medianTriangles": 911503,
+      "nearTreesAtEnd": 0,
+      "pixelRatio": 1.5,
+      "assets": []
+    },
+    {
+      "tier": "high",
+      "scene": "valley-lane-farm",
+      "frames": 600,
+      "fps": 49.86329147587032,
+      "p50FrameMs": 16.69999999999709,
+      "p95FrameMs": 33.400000000001455,
+      "p99FrameMs": 33.400000000001455,
+      "cpuP50Ms": 3.0999999046325684,
+      "cpuP95Ms": 6.199999809265137,
+      "medianDrawCalls": 414,
+      "medianTriangles": 859888,
+      "nearTreesAtEnd": 20,
+      "pixelRatio": 1.5,
+      "assets": []
+    },
+    {
+      "tier": "low",
+      "scene": "captain-4300",
+      "frames": 721,
+      "fps": 60.00233018758011,
+      "p50FrameMs": 16.69999999999891,
+      "p95FrameMs": 16.700000000000728,
+      "p99FrameMs": 16.799999999999272,
+      "cpuP50Ms": 2.9000000953674316,
+      "cpuP95Ms": 3.6999998092651367,
+      "medianDrawCalls": 576,
+      "medianTriangles": 975864,
+      "nearTreesAtEnd": 0,
+      "pixelRatio": 1,
+      "assets": []
+    },
+    {
+      "tier": "low",
+      "scene": "valley-lane-wide",
+      "frames": 721,
+      "fps": 60.00233018758008,
+      "p50FrameMs": 16.69999999999709,
+      "p95FrameMs": 16.700000000004366,
+      "p99FrameMs": 16.799999999999272,
+      "cpuP50Ms": 2.5,
+      "cpuP95Ms": 4.400000095367432,
+      "medianDrawCalls": 377,
+      "medianTriangles": 467087,
+      "nearTreesAtEnd": 0,
+      "pixelRatio": 1,
+      "assets": []
+    },
+    {
+      "tier": "low",
+      "scene": "valley-lane-farm",
+      "frames": 721,
+      "fps": 60.00183084643358,
+      "p50FrameMs": 16.69999999999709,
+      "p95FrameMs": 16.799999999995634,
+      "p99FrameMs": 16.80000000000291,
+      "cpuP50Ms": 2.0999999046325684,
+      "cpuP95Ms": 3.700000286102295,
+      "medianDrawCalls": 266,
+      "medianTriangles": 426292,
+      "nearTreesAtEnd": 0,
+      "pixelRatio": 1,
+      "assets": []
+    }
+  ],
+  "startupBytes": {
+    "high": 14237416,
+    "low": 8701529
+  },
+  "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M2 Pro, Unspecified Version)"
+}
