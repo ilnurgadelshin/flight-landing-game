@@ -1,0 +1,121 @@
+{
+  "olderBakedMapsUnchanged": [
+    true,
+    true,
+    true
+  ],
+  "atlas": [
+    3450,
+    1277
+  ],
+  "bytesBefore": 366208,
+  "bytesAfter": 411261,
+  "transferDelta": 45053,
+  "netHectares": [
+    84.54775666553442,
+    16.63603855690605,
+    732.0162438608028
+  ],
+  "netTotalHectares": 833.2000390832433,
+  "method": "Net high-tier coverage change on a 2m grid over both non-overlapping upper slope rectangles; excludes double-counting their overlap with older maps.",
+  "diffs": [
+    {
+      "tier": "high",
+      "view": "captain-9000",
+      "changedPercent": 6.320833333333334,
+      "visibleChangePercent": 4.382021604938272,
+      "meanRgbDelta": 1.4388022119341564
+    },
+    {
+      "tier": "high",
+      "view": "captain-7500",
+      "changedPercent": 6.776929012345679,
+      "visibleChangePercent": 4.137808641975309,
+      "meanRgbDelta": 1.4172564300411523
+    },
+    {
+      "tier": "high",
+      "view": "captain-6000",
+      "changedPercent": 7.463811728395061,
+      "visibleChangePercent": 2.8935185185185186,
+      "meanRgbDelta": 0.9163112139917695
+    },
+    {
+      "tier": "high",
+      "view": "upper-slopes-north",
+      "changedPercent": 44.65416666666667,
+      "visibleChangePercent": 31.05293209876543,
+      "meanRgbDelta": 9.875715020576132
+    },
+    {
+      "tier": "high",
+      "view": "upper-slopes-south",
+      "changedPercent": 50.74868827160494,
+      "visibleChangePercent": 40.99313271604938,
+      "meanRgbDelta": 12.074580504115227
+    },
+    {
+      "tier": "high",
+      "view": "upper-overcast",
+      "changedPercent": 41.660570987654324,
+      "visibleChangePercent": 23.603395061728396,
+      "meanRgbDelta": 5.089831790123457
+    },
+    {
+      "tier": "high",
+      "view": "upper-night",
+      "changedPercent": 34.36543209876543,
+      "visibleChangePercent": 0.02484567901234568,
+      "meanRgbDelta": 0.6099369855967078
+    },
+    {
+      "tier": "low",
+      "view": "captain-9000",
+      "changedPercent": 0,
+      "visibleChangePercent": 0,
+      "meanRgbDelta": 0
+    },
+    {
+      "tier": "low",
+      "view": "captain-7500",
+      "changedPercent": 0,
+      "visibleChangePercent": 0,
+      "meanRgbDelta": 0
+    },
+    {
+      "tier": "low",
+      "view": "captain-6000",
+      "changedPercent": 0,
+      "visibleChangePercent": 0,
+      "meanRgbDelta": 0
+    },
+    {
+      "tier": "low",
+      "view": "upper-slopes-north",
+      "changedPercent": 0,
+      "visibleChangePercent": 0,
+      "meanRgbDelta": 0
+    },
+    {
+      "tier": "low",
+      "view": "upper-slopes-south",
+      "changedPercent": 0,
+      "visibleChangePercent": 0,
+      "meanRgbDelta": 0
+    },
+    {
+      "tier": "low",
+      "view": "upper-overcast",
+      "changedPercent": 0,
+      "visibleChangePercent": 0,
+      "meanRgbDelta": 0
+    },
+    {
+      "tier": "low",
+      "view": "upper-night",
+      "changedPercent": 0,
+      "visibleChangePercent": 0,
+      "meanRgbDelta": 0
+    }
+  ]
+}

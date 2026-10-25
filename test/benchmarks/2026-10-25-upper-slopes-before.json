@@ -1,0 +1,52 @@
+[
+  {
+    "tier": "high",
+    "trees": 58000,
+    "north": 388,
+    "south": 865,
+    "fields": 0,
+    "intrusions": 0,
+    "oldNorth": 6174,
+    "oldSouth": 7933,
+    "airport": 613,
+    "zones": [
+      13000,
+      5500,
+      3428,
+      18000,
+      700,
+      8000,
+      6000
+    ],
+    "active": 0,
+    "mask": [
+      3450,
+      1277
+    ],
+    "errors": []
+  },
+  {
+    "tier": "low",
+    "trees": 14000,
+    "north": 112,
+    "south": 256,
+    "fields": 0,
+    "intrusions": 0,
+    "oldNorth": 125,
+    "oldSouth": 209,
+    "airport": 151,
+    "zones": [
+      5800,
+      2600,
+      1400,
+      2600,
+      300
+    ],
+    "active": 0,
+    "mask": [
+      2048,
+      603
+    ],
+    "errors": []
+  }
+]

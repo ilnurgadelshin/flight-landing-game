@@ -1,0 +1,19 @@
+{
+  "nodeSuites": 19,
+  "nodePassed": true,
+  "metalScenery": true,
+  "cpuGpuJoinSamples": 31,
+  "roadBuildingFieldClearances": true,
+  "olderBakedMapsUnchanged": true,
+  "lowPixelIdenticalViews": 7,
+  "retainedHills": true,
+  "missingMaskAndInvalidAtlasFallback": true,
+  "deliveryPassed": true,
+  "motionFramesPerClip": 480,
+  "reviewImages": 28,
+  "sliderAndPhoneReviewLayout": true,
+  "softwareRetested": false,
+  "softwareLimitation": "The previous pass could not create a SwiftShader WebGL context on this Mac (BindToCurrentSequence failed); no software compatibility claim is made for this pass.",
+  "physicalDevicesTested": false,
+  "fullFunctionalSuiteRepeated": false
+}

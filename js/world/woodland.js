@@ -139,16 +139,17 @@ export async function addWoodland(world,photo,approachPhoto) {
   const rng=makeRng(812),patches=new Map(),forms=Array(atlas.rows).fill(0);
   const corridor=world.approachCorridor,localTrees=[];
   const oppositeZones=corridor?.oppositeHills?.plantingZones||[];
-  // The opposite hill adds a measured high-only allocation. Keep the older
+  const upperZones=(corridor?.upperSlopes||[]).flatMap(t=>t.plantingZones);
+  // The opposite and upper hills add bounded high-only allocations. Keep the older
   // mapped stands and their remaining background allowance, rather than thinning
   // the airport-side trees to populate another slope. Missing maps add no budget.
-  const limit=low?14000:52000+oppositeZones.reduce((n,z)=>n+z.highLimit,0);
+  const limit=low?14000:52000+[...oppositeZones,...upperZones].reduce((n,z)=>n+z.highLimit,0);
   // In the reviewed corridor, plant continuous canopy from the same land-cover
   // boundaries used by the ground. Jittered spacing avoids clumps and bare gaps.
   // Independent seeds and caps preserve the older stands' density.
   if(corridor){
     // (the hillside's zone only where the corridor uses its tile: see loadApproachCorridor)
-    const zones=[...(corridor.manifest.plantingZones||[{bounds:corridor.manifest.bounds,seed:94051,highLimit:10000,lowLimit:4800}]),...(corridor.hills?.plantingZones||[]),...oppositeZones];
+    const zones=[...(corridor.manifest.plantingZones||[{bounds:corridor.manifest.bounds,seed:94051,highLimit:10000,lowLimit:4800}]),...(corridor.hills?.plantingZones||[]),...oppositeZones,...upperZones];
     const zoneCounts=[];
     for(const zone of zones){
       const [x0,z0,width,depth]=zone.bounds,localRng=makeRng(zone.seed),zoneTrees=[],upperTrees=[];

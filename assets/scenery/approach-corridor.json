@@ -1319,6 +1319,99 @@
       231.32
     ]
   },
+  "upperSlopes": [
+    {
+      "side": "north",
+      "bounds": [
+        5120,
+        -2500,
+        3880,
+        1680
+      ],
+      "width": 692,
+      "height": 256,
+      "source": "final-approach.webp",
+      "sourceCrop": [
+        1560,
+        750,
+        1940,
+        840
+      ],
+      "plantingZones": [
+        {
+          "bounds": [
+            5300,
+            -2500,
+            3700,
+            1500
+          ],
+          "seed": 262401,
+          "highLimit": 3500,
+          "lowLimit": 0,
+          "highSpacing": 17,
+          "lowSpacing": 32,
+          "uniform": true,
+          "taper": 240,
+          "taperFloor": 0.45,
+          "taperSide": "south"
+        }
+      ],
+      "atlas": [
+        2060,
+        1021
+      ],
+      "hectares": [
+        86,
+        19.27,
+        276.43
+      ]
+    },
+    {
+      "side": "south",
+      "bounds": [
+        5120,
+        850,
+        3880,
+        1650
+      ],
+      "width": 692,
+      "height": 256,
+      "source": "final-approach.webp",
+      "sourceCrop": [
+        1560,
+        2425,
+        1940,
+        825
+      ],
+      "plantingZones": [
+        {
+          "bounds": [
+            5300,
+            1030,
+            3700,
+            1470
+          ],
+          "seed": 262402,
+          "highLimit": 4500,
+          "lowLimit": 0,
+          "highSpacing": 17,
+          "lowSpacing": 32,
+          "uniform": true,
+          "taper": 240,
+          "taperFloor": 0.45
+        }
+      ],
+      "atlas": [
+        2758,
+        1021
+      ],
+      "hectares": [
+        0.53,
+        0,
+        545.03
+      ]
+    }
+  ],
   "licence": "Interpreted boundaries derived from public-domain USDA NAIP / USGS imagery already bundled in detail/2_0.webp through detail/8_0.webp, detail/2_-1.webp through detail/8_-1.webp and final-approach.webp. Not a land-use survey.",
   "areas": [
     {

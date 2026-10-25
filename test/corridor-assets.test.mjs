@@ -105,3 +105,38 @@ for(let j=0;j<h.height;j++)for(let g=0;g<6;g++){
  assert.ok(full.subarray((row+h.width+g)*3,(row+h.width+g+1)*3).equals(full.subarray(from*3,(from+1)*3)),'Horizontal gutter repeats adjacent tile edges');
 }
 console.log('Opposite hill cover, retained fields, shared atlas, bounded allocation and high-only join passed');
+
+// Upper slope overlays share the atlas and blend into both older maps on high.
+const {validateUpperSlopes,upperSlopeBlend}=await import('../js/world/upper-slopes.js');
+validateUpperSlopes(manifest);
+const upperPixels=await Promise.all(manifest.upperSlopes.map(t=>sharp(root+'.png').extract({left:t.atlas[0],top:t.atlas[1],width:t.width,height:t.height}).raw().toBuffer()));
+const upperSample=(x,z)=>{
+ let base=x<5300?(z< -1000?opposite(x,z):z>=1030?[0,0,hillside(x,z)]:[0,1,2].map(c=>data[pixel(x,z)*3+c]/255)):z>=-1000&&z<1030?[0,1,2].map(c=>data[pixel(x,z)*3+c]/255):[0,0,0];
+ for(const [k,t] of manifest.upperSlopes.entries()){
+  const blend=upperSlopeBlend(t,x,z);if(!blend)continue;
+  const [tx,tz,tw,td]=t.bounds,i=Math.floor((x-tx)/tw*t.width),j=Math.floor((z-tz)/td*t.height);
+  base=base.map((v,c)=>v+(upperPixels[k][(j*t.width+i)*3+c]/255-v)*blend);
+ }
+ return base;
+};
+for(const [k,t] of manifest.upperSlopes.entries()){
+ const p=upperPixels[k],sums=[0,0,0];
+ for(let i=0;i<p.length;i+=3){assert.ok(p[i]+p[i+1]+p[i+2]<=256);for(let c=0;c<3;c++)sums[c]+=p[i+c]/255;}
+ for(let c=0;c<3;c++)assert.ok(Math.abs(sums[c]*t.bounds[2]*t.bounds[3]/t.width/t.height/10000-t.hectares[c])<.01);
+ assert.equal(t.plantingZones[0].lowLimit,0);
+ for(let j=0;j<t.height;j++)for(let g=0;g<6;g++){
+  const row=(t.atlas[1]+j)*manifest.width,from=row+(g<3?t.atlas[0]-7:t.atlas[0]);
+  assert.ok(full.subarray((row+t.atlas[0]-6+g)*3,(row+t.atlas[0]-5+g)*3).equals(full.subarray(from*3,(from+1)*3)));
+ }
+}
+for(const [x,z] of [[6500,1650],[7500,1800],[8100,-1300]])assert.ok(upperSample(x,z)[2]>.9,'Upper wooded slopes have connected cover');
+for(const [x,z] of [[6300,-2250],[7425,-2250],[6080,-1025]])assert.ok(upperSample(x,z)[0]>.7&&upperSample(x,z)[2]<.1,'Contour pastures remain open');
+for(const [x,z] of [[6630,-1875],[7240,-2137]])assert.ok(upperSample(x,z)[1]>.7,'Harvested strips retain separate cover');
+for(const [x,z] of [[5790,1830],[8480,2120],[7000,-1200]])assert.ok(upperSample(x,z)[2]<.1,'Residential clearings remain open');
+for(const x of [6500,8000])for(let z=860;z<1080;z+=10)assert.ok(upperSample(x,z)[2]>.6,'No bare band between close and upper south woods');
+for(let x=5110;x<5400;x+=10)assert.ok(upperSample(x,1650)[2]>.65,'No bare band at the previous hillside end');
+for(const mutate of [m=>m.upperSlopes[1].atlas[0]=m.upperSlopes[0].atlas[0],m=>m.upperSlopes[0].width=2000,m=>m.upperSlopes[0].bounds[0]++,m=>m.upperSlopes[0].plantingZones[0].highLimit=8000,m=>m.upperSlopes[0].plantingZones[0].lowLimit=1,m=>m.upperSlopes[0].plantingZones[0].bounds[0]=5100]){
+ const bad=structuredClone(manifest);mutate(bad);assert.throws(()=>validateUpperSlopes(bad),/Invalid upper slope/);
+}
+const legacy=structuredClone(manifest);delete legacy.upperSlopes;assert.doesNotThrow(()=>validateUpperSlopes(legacy));
+console.log('Upper slope land use, atlas bounds, overlapping joins and allocation guards passed');

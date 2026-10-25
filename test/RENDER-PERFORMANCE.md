@@ -2621,3 +2621,77 @@ budgets remain below 15 / 9 MB. The isolated new-material toggle changes the wid
 view by a mean 1.22 grey levels on Metal, confirming the atlas tile reaches the
 terrain shader. All 28 comparison images, slider direction controls and the phone
 review-page layout pass.
+
+## Connected upper approach slopes — 2026-10-25
+
+Baseline: published main `2b627a3`. Chromium 141, ANGLE Metal / Apple M2 Pro,
+1440 × 900; fixed high 1.5× and low 1×. Four-second warm-up, twelve-second samples,
+paused physics. RAF pacing is display capped; CPU times exclude asynchronous GPU
+work. Ordinary play retains adaptive resolution. No other graphics job ran during
+the baseline, repeat baseline or final benchmark.
+
+| Tier / scene | Before → final FPS | Final p95 ms | Draw calls | Rendered triangles |
+| --- | --- | --- | --- | --- |
+| high / captain-9000 | 32.3 → 32.4 | 33.4 | 1,333 → 1,331 | 3,165,399 → 3,216,013 |
+| high / captain-7500 | 32.9 → 33.4 | 33.4 | 1,265 → 1,263 | 3,024,841 → 3,049,345 |
+| high / upper-slopes-north | 49.1 → 49.1 | 33.4 | 849 → 851 | 1,619,726 → 1,657,913 |
+| high / upper-slopes-south | 49.5 → 48.9 | 33.4 | 761 → 762 | 1,442,213 → 1,482,967 |
+| low / captain-9000 | 60.0 → 60.0 | 16.7 | 738 → 738 | 1,280,764 → 1,280,764 |
+| low / captain-7500 | 59.6 → 60.0 | 16.8 | 708 → 708 | 1,253,118 → 1,253,118 |
+| low / upper-slopes-north | 60.0 → 60.0 | 16.8 | 536 → 536 | 851,222 → 851,222 |
+| low / upper-slopes-south | 60.0 → 60.0 | 16.8 | 505 → 505 | 741,550 → 741,550 |
+
+The pilot views remain within ordinary run variation. The south exterior changes
+−1.2%, north is essentially unchanged. This adds rendering work despite similar FPS:
+8,000 more high-tier trees and their terrain-following shadows add approximately
+25,000–51,000 rendered triangles in the sampled views. Spatial batching and changed
+background distribution mean draw calls can decrease even with more total trees.
+Low has identical draw/triangle counts and all seven matched captures are pixel-identical.
+
+The initial terrain shader used a loop over the two new strips and always read the
+base map. It measured **25.8 / 26.7 FPS** in the pilot views and **33.9 / 36.9 FPS**
+in north/south exteriors; its unchanged low views also slowed. A repeated baseline
+returned **33.5 FPS cockpit / 50.6 north**, with low near 60. The final shader selects
+the strip by Z explicitly, avoids dynamic array indexing, and only reads both maps
+within an overlap. Final measurements are in the table. The initial run included a
+brief CPU-only area/difference calculation; the repeat baseline and final measurements
+had no such work. Both initial and repeat reports remain available instead of being
+replaced by the faster result. These short samples do not certify other machines.
+
+Two 692 × 256 maps occupy unused atlas columns at x=2060 / 2758. Upload dimensions
+remain **3450 × 1277 high / 2048 × 603 low**, or **17.62 / 4.94 MB** RGBA8. Packed
+CPU cover increases by **708,608 bytes**, plus mixed-pixel tables. No new source
+image/model, sampler, terrain mesh or terrain draw pass. The PNG/JSON pair grows
+**366,208 → 411,261 bytes**; original tracing coordinates remain in the tools.
+
+High allocations are 3500 north / 4500 south, giving **66,000 total**. Earlier caps,
+seeds and bounds are retained, but changed cover within 180 m overlaps affects
+candidate selection. The old upper-opposite zone now fills 3500 versus 3428; the
+checked old north/south slopes retain 6246 / 7932 trees. Background airport-side
+planting becomes 876 versus 613. The new slopes contain 3689 / 4519 trees including
+background entries. Low retains 14,000 total and 151 airport-side background trees.
+
+CPU planting and the real uploaded GLSL agree at 31 sampled joins/land-use points.
+The three older baked maps are byte-identical. Net new coverage is **833.20 ha**,
+computed by integrating the combined maps at 2 m spacing; overlap is not counted twice.
+Field/road/building clearance, retained hill/low-fade checks, original field material
+contribution, missing-mask fallback and invalid new atlas tests pass on Metal.
+All 19 Node suites pass. Physical phones, other GPUs, SwiftShader and the complete
+functional flight suite were not rerun. SwiftShader failed to create a WebGL context
+in the preceding pass on this Mac; this pass makes no software-renderer claim.
+
+Delivery: startup **14,246,102 / 8,710,215 bytes** and prepared **66,339,036 /
+19,683,795 bytes** (high / low). Both startup budgets remain below 15 / 9 MB.
+No new requests occur after the short flight starts. Slow automatic selection,
+hidden-tab calibration and quality-fallback terrain registration pass.
+
+Matched 480-frame pilot descent recordings at high 1× run from x=9000 → 8401.25 m
+without rendering errors. They are visual evidence, not FPS tests. The overcast review
+camera sits 100 m below the cloud base; before/after capture sequences retain equal
+extra render counts for material-isolation checks so cloud jitter phases match.
+All 28 review images, slider controls and phone review-page layout pass.
+
+[Scenery and motion comparison](output/upper-slopes-review.html). Evidence:
+`benchmarks/2026-10-25-upper-slopes-*.json`. Sparse/repeated tree silhouettes,
+photographic shadows, simple houses, airport-side countryside and land beyond the
+mapped bounds remain visible limits.

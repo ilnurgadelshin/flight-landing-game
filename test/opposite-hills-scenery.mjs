@@ -48,7 +48,7 @@ try{
    return {trees,hillTrees,oldHills,intrusions,fieldTrees,airportSide,join,profiles,zones:c.zoneCounts,mask:[mask.width,mask.height],active:!!w.groundUniforms.uOppositeHillsReady?.value,errors:w.assetErrors};
   });
   if(!baseline){
-   assert.equal(stats.trees,tier==='high'?58000:14000);assert.equal(stats.active,tier==='high');
+   assert.equal(stats.trees,tier==='high'?66000:14000);assert.equal(stats.active,tier==='high');
    assert.equal(stats.intrusions,0);assert.equal(stats.fieldTrees,0);
    assert.deepEqual(stats.mask,tier==='high'?[3450,1277]:[2048,603]);
    if(tier==='high'){

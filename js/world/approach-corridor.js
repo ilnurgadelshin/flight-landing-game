@@ -1,11 +1,13 @@
 // The same interpreted land-cover mask drives ground materials and woodland placement.
 // Keep it optional: existing photographed terrain and planting are the fallback.
 import * as THREE from 'three';
+import {upperSlopeBlend,validateUpperSlopes} from './upper-slopes.js';
 
 export function corridorUniforms(fallback){
  return {uCorridor:{value:fallback},uCorridorRect:{value:new THREE.Vector4(2100,180,2000,850)},uCorridorReady:{value:0},uCorridorInfluence:{value:1},
   uCorridorMainHeight:{value:1},uHillsRect:{value:new THREE.Vector4(0,0,1,1)},uHillsAtlas:{value:new THREE.Vector2()},uHillsReady:{value:0},
-  uOppositeHillsRect:{value:new THREE.Vector4(0,0,1,1)},uOppositeHillsAtlas:{value:new THREE.Vector3()},uOppositeHillsReady:{value:0}};
+  uOppositeHillsRect:{value:new THREE.Vector4(0,0,1,1)},uOppositeHillsAtlas:{value:new THREE.Vector3()},uOppositeHillsReady:{value:0},
+  uUpperSlopesReady:{value:0},uUpperSlopeRect:{value:[new THREE.Vector4(),new THREE.Vector4()]},uUpperSlopeAtlas:{value:[new THREE.Vector3(),new THREE.Vector3()]}};
 }
 
 /**
@@ -117,6 +119,7 @@ export async function loadApproachCorridor(world){
     !Number.isFinite(z.taper)||z.taper<=0||z.taper>1000||!Number.isFinite(z.taperFloor)||z.taperFloor<=0||z.taperFloor>1||z.taperSide!=='south'))
    throw new Error('Invalid opposite hillside land-cover allocation');
  }
+ validateUpperSlopes(manifest);
  const texture=await new THREE.TextureLoader().loadAsync(url('png'));
  if(texture.image.width!==manifest.width||texture.image.height!==textureHeight){texture.dispose();throw new Error('Approach land-cover image does not match its manifest');}
  texture.colorSpace=THREE.NoColorSpace;texture.generateMipmaps=false;texture.minFilter=THREE.LinearFilter;
@@ -127,6 +130,8 @@ export async function loadApproachCorridor(world){
  const low=world.lowDetail||world.quality==='low';
  const activeHills=hills&&hills.plantingZones.some(z=>(low?z.lowLimit:z.highLimit)>0)?hills:null;
  const activeOpposite=!low&&opposite?opposite:null;
+ const upperSlopes=low?[]:manifest.upperSlopes||[];
+ const upperCover=upperSlopes.map(t=>packCover(context.getImageData(...t.atlas,t.width,t.height).data,t.width*t.height));
  const rows=activeHills?textureHeight:manifest.height;
  // Keep the full 2 m mask for placement clearances (packed: 7 MB, not 14). The low tier
  // only needs a smaller, filtered ground-colour mask; never exceed the device texture limit.
@@ -161,7 +166,7 @@ export async function loadApproachCorridor(world){
  // Keep the joined high image alive; release temporary decoding canvases.
  if(texture.image!==canvas)canvas.width=canvas.height=0;
  const [x0,z0,width,depth]=manifest.bounds;
- const sample=(x,z)=>{
+ const baseSample=(x,z)=>{
   const i=Math.floor((x-x0)/width*manifest.width),j=Math.floor((z-z0)/depth*manifest.height);
   if(i>=0&&j>=0&&i<manifest.width&&j<manifest.height)return cover(j*manifest.width+i);
   if(activeHills){
@@ -174,11 +179,25 @@ export async function loadApproachCorridor(world){
   }
   return [0,0,0];
  };
+ const sample=(x,z)=>{
+  const base=baseSample(x,z);
+  for(let k=0;k<upperSlopes.length;k++){
+   const t=upperSlopes[k],blend=upperSlopeBlend(t,x,z);if(!blend)continue;
+   const [tx,tz,tw,td]=t.bounds,i=Math.floor((x-tx)/tw*t.width),j=Math.floor((z-tz)/td*t.height),cover=upperCover[k](j*t.width+i);
+   return base.map((v,c)=>v+(cover[c]-v)*blend);
+  }
+  return base;
+ };
  world.groundUniforms.uCorridor.value=texture;
  world.groundUniforms.uCorridorRect.value.fromArray(manifest.bounds);
  world.groundUniforms.uCorridorMainHeight.value=manifest.height/rows;
  world.groundUniforms.uHillsReady.value=activeHills?1:0;
  world.groundUniforms.uOppositeHillsReady.value=activeOpposite?1:0;
+ world.groundUniforms.uUpperSlopesReady.value=upperSlopes.length?1:0;
+ upperSlopes.forEach((t,i)=>{
+  world.groundUniforms.uUpperSlopeRect.value[i].fromArray(t.bounds);
+  world.groundUniforms.uUpperSlopeAtlas.value[i].set(t.atlas[0]/manifest.width,t.width/manifest.width,t.height/rows);
+ });
  if(activeOpposite){
   world.groundUniforms.uOppositeHillsRect.value.fromArray(opposite.bounds);
   world.groundUniforms.uOppositeHillsAtlas.value.set(opposite.atlas[0]/manifest.width,opposite.width/manifest.width,opposite.height/rows);
@@ -188,7 +207,7 @@ export async function loadApproachCorridor(world){
   world.groundUniforms.uHillsAtlas.value.set(hills.width/manifest.width,hills.height/textureHeight);
  }
  world.groundUniforms.uCorridorReady.value=1;
- return world.approachCorridor={manifest,texture,sample,hills:activeHills,oppositeHills:activeOpposite};
+ return world.approachCorridor={manifest,texture,sample,hills:activeHills,oppositeHills:activeOpposite,upperSlopes};
 }
 
 export const CORRIDOR_GLSL=`
@@ -200,7 +219,10 @@ uniform vec2 uHillsAtlas;
 uniform float uOppositeHillsReady;
 uniform vec4 uOppositeHillsRect;
 uniform vec3 uOppositeHillsAtlas;
-vec3 corridorCover(vec2 position){
+uniform float uUpperSlopesReady;
+uniform vec4 uUpperSlopeRect[2];
+uniform vec3 uUpperSlopeAtlas[2];
+vec3 corridorBaseCover(vec2 position){
  if(uCorridorReady<.5)return vec3(0.0);
  vec2 uv=(position-uCorridorRect.xy)/uCorridorRect.zw;
  if(min(uv.x,uv.y)>=0.0&&max(uv.x,uv.y)<1.0)
@@ -211,4 +233,21 @@ vec3 corridorCover(vec2 position){
  vec2 opposite=(position-uOppositeHillsRect.xy)/uOppositeHillsRect.zw;
  if(uOppositeHillsReady<.5||min(opposite.x,opposite.y)<0.0||max(opposite.x,opposite.y)>=1.0)return vec3(0.0);
  return texture2D(uCorridor,vec2(uOppositeHillsAtlas.x+opposite.x*uOppositeHillsAtlas.y,(1.0-opposite.y)*uOppositeHillsAtlas.z)).rgb*uCorridorInfluence;
+}
+vec3 corridorCover(vec2 position){
+ if(uCorridorReady>.5&&uUpperSlopesReady>.5){
+  // The two strips are disjoint in Z. Select one explicitly, avoiding dynamic
+  // uniform-array indexing and a second texture read outside the narrow join.
+  bool north=position.y<0.0;
+  vec4 rect=north?uUpperSlopeRect[0]:uUpperSlopeRect[1];
+  vec2 offset=position-rect.xy,uv=offset/rect.zw;
+  if(min(uv.x,uv.y)>=0.0&&max(uv.x,uv.y)<1.0){
+   float blend=smoothstep(0.0,180.0,offset.x)*smoothstep(0.0,180.0,north?rect.w-offset.y:offset.y);
+   vec3 atlas=north?uUpperSlopeAtlas[0]:uUpperSlopeAtlas[1];
+   vec3 cover=texture2D(uCorridor,vec2(atlas.x+uv.x*atlas.y,(1.0-uv.y)*atlas.z)).rgb*uCorridorInfluence;
+   if(blend>=1.0)return cover;
+   return mix(corridorBaseCover(position),cover,blend);
+  }
+ }
+ return corridorBaseCover(position);
 }`;

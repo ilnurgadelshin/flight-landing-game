@@ -346,7 +346,8 @@ it is not a version-pinned mirror. The game never calls the Poly Haven API.
 ## Interpreted approach land cover — public-domain imagery / original mask
 
 `scenery/approach-corridor.png` and `.json` describe meadow, stubble and woodland
-along 6.9 km of final, over combined bounds of 6.9 × 2.03 km. The original bilateral
+along 6.9 km of final. The close map spans 6.9 × 2.03 km; high-quality hillside
+extensions reach both sides out to z=−2500 / +2500 m. The original bilateral
 4 km coverage now continues another 2.9 km through the upper valley, including the
 woods beneath the early short-final view. Boundaries and clearing holes are original
 interpretations of bundled USDA NAIP / USGS `scenery/detail/2_0.webp` through `8_0.webp`
@@ -375,7 +376,8 @@ retain 2 m/px CPU planting precision and are unchanged except their last 15 rows
 woods and meadows, so neither map fades at their shared edge. A separately registered
 1024 × 256 hill tile is packed below them after a 6-row gutter that repeats each map's
 edge row, so bilinear filtering and downscaling cannot mix the maps. The opposite
-hill now occupies columns 1030–2053 in that lower strip; the rest stays black. High uploads the combined 3450 × 1277 atlas. Low quality does not use
+hill occupies columns 1030–2053 in that lower strip. The two upper-slope tiles
+occupy columns 2060–2751 and 2758–3449, each with a six-column repeated-edge gutter. High uploads the combined 3450 × 1277 atlas. Low quality does not use
 the hill tile: it uploads only the close map, filtered to 2048 × 603 for ground colour,
 and keeps exact CPU samples of it. Before packing those samples or filtering the texture,
 the loader feathers the last 160 m beside the absent hill tile back to the photograph;
@@ -388,8 +390,9 @@ continuous north boundary. Low does not apply that join. The high canvas replace
 the original decoded image as the texture upload source; the opposite tile adds
 another 0.52 MB of packed CPU samples, with no additional GPU texture storage.
 Upload dimensions also respect the renderer's maximum
-texture size. Each ground pixel selects one region and uses one land-cover lookup;
-there is no additional sampler or draw call. The RGBA8 texture uses 17.62 MB high /
+texture size. The upper slopes select one region and use one land-cover lookup away
+from their 180 m overlaps; those overlaps blend two lookups. There is no additional
+sampler or terrain draw call. The RGBA8 texture uses 17.62 MB high /
 4.94 MB low, against 14.01 / 4.94 MB without the hillside. On high the hill tile adds
 0.52 MB of packed CPU samples; the original 7 MB buffer and small mixed-pixel table remain.
 
@@ -398,7 +401,11 @@ Baked high-tier coverage is approximately 76.27 ha meadow, 46.24 ha stubble and 
 tile. The left hillside adds 25.73 ha meadow and 385.63 ha woodland. The opposite
 hill adds 30.57 ha meadow, 21.48 ha stubble and 231.32 ha woodland, bringing the
 baked tiles to **1631.13 ha combined weighted coverage**. The high-only decoded
-north join adds a net 1.13 ha (about 1632.26 ha effective high coverage). These totals account for
+north join adds a net 1.13 ha (about 1632.26 ha before the upper-slope pass).
+The 2026-10-25 overlays add a net **833.20 ha** (84.55 meadow, 16.64 stubble,
+732.02 woodland), bringing effective high coverage to about **2465.46 ha**.
+This net change is integrated on a 2 m grid after blending with the older maps;
+simply adding the new tiles’ raw areas would double-count their overlap. These totals account for
 feathered boundaries and clearances, rather than counting whole bounding rectangles.
 The 2026-10-22 crossing pass added 20.47 ha to the previous 910.27 ha.
 Clearing holes preserve the large
@@ -423,7 +430,7 @@ keeps exactly the allocation. Low quality has no hillside allocation, so the hil
 keeps its photograph and the wider background keeps its low-tier trees.
 The previous five zones retain their bounds, seeds and caps. On high this consumes more
 of the same total budget, leaving fewer trees in the wider photo-selected background.
-The opposite hill adds a separate 6000-tree high allocation, for **58,000 / 14,000**
+The opposite hill added a separate 6000-tree high allocation, reaching **58,000 / 14,000**
 total instances. Existing zone bounds, seeds and caps remain; high's wider background
 allowance is retained. At the new join, density tapers over 200 m from the close woods
 to 40% of that density. This adds rendering and footprint-shadow geometry; measured
@@ -431,19 +438,38 @@ cost is recorded in `test/RENDER-PERFORMANCE.md`. Low retains its original posit
 mask and 14,000 instances. On high, changed cover/exclusions and the planting sequence
 can change individual tree positions, tints and near-tree selections.
 
+The 2026-10-25 upper-slope pass covers x=5300–9000 m on both flanks, with
+180 m overlaps into the preceding hills and close map. It uses the same photograph:
+contour pastures and harvested strips on the north side, broad woodland and housing
+clearings on the south. Its original outlines remain in `tools/upper-slopes.mjs`;
+the delivered manifest contains only registration, planting and area metadata.
+Each new 692 × 256 tile contributes about 0.35 MB of packed CPU samples. Neither
+uploaded texture dimensions nor the low-tier decoded map change. CPU planting
+and the terrain shader apply the same smooth overlap; existing baked maps remain
+byte-identical. Missing or malformed optional data keeps the photographic fallback.
+
+The two new high-only zones add 3500 / 4500 instances, for **66,000 / 14,000 total**.
+Candidate spacing is 17 m, with a 240 m density taper from the close woods down to
+45% of that density. Earlier zone caps and seeds are retained; coverage changes
+inside overlaps can still change their accepted candidates and background placement.
+The added trees include terrain-following footprint shadows. Their measured cost,
+including an initially slow shader and its subsequent optimization, is recorded in
+`test/RENDER-PERFORMANCE.md`. No claim is made of full canopy density or high-detail
+coverage beyond x=9000 m / |z|=2500 m, or on the low tier.
+
 Open fields retain surveyed crop and soil variation. Nearby forest floors retain the
 existing scanned detail; distant floors now retain photographic light/shade between
 crowns instead of becoming uniform green surfaces. Tree cards, sparse low-tier canopy,
 photographic shadows and unmapped hills remain approximations.
 
-The PNG/JSON pair is 366,208 bytes, below a 450 KB budget, versus 323,856 before the
-opposite extension (+42,352 bytes on both tiers). Lossless PNG compression limits transfer while the
+The PNG/JSON pair is **411,261 bytes**, below a 450 KB budget, versus 366,208 before
+the upper-slope extension (+45,053 bytes on both tiers). Lossless PNG compression limits transfer while the
 larger decoded atlas still carries the memory cost above. It loads behind the menu. Reproduce with
 `node tools/bake-corridor.mjs` (upper traces are in `tools/upper-valley-cover.mjs`, crossing
 traces in `tools/crossing-sites.mjs`, hill traces in `tools/approach-hills.mjs` and
-`tools/opposite-hills.mjs`);
+`tools/opposite-hills.mjs`; upper-slope outlines are in `tools/upper-slopes.mjs`);
 validate with `npm run test:corridor`, `node test/hills-scenery.mjs` and
-`node test/opposite-hills-scenery.mjs`. The bake indexes road/building clearance bounds;
+`node test/opposite-hills-scenery.mjs`, `node test/upper-slopes-scenery.mjs`. The bake indexes road/building clearance bounds;
 its distance calculation and feathering are unchanged.
 
 ## Complete approach sites — original geometry / CC0 materials
@@ -547,7 +573,7 @@ Ten lawn polygons, sixteen gravel areas, twelve drive/lane ribbons, nineteen acc
 and eleven fence polylines complete the grounds. Nine additional main-road connections
 snap to the registered centerline; 76 eligible placed trees now serve the ten sites.
 The valley-lane building pass kept the land-cover map and then-current 52,000 / 14,000
-tree budgets unchanged; the opposite hillside extension described above raises high to 58,000.
+tree budgets unchanged; subsequent hillside extensions described above raise high to 66,000.
 
 Current models, grounds and gravel maps total **4,177,422 bytes high / 3,224,396 low**,
 excluding the shared manifest. Including that manifest, this pass adds **527,024 / 526,900

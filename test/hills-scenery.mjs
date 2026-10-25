@@ -63,7 +63,7 @@ try{
   });
   console.log(tier,stats);
   if(!baseline){
-   assert.equal(stats.trees,tier==='high'?58000:14000);
+   assert.equal(stats.trees,tier==='high'?66000:14000);
    if(tier==='high'){
     assert.ok(stats.hills>=7900&&stats.hillsActive);
     // no gap or density step where the hillside continues the close map's woods
