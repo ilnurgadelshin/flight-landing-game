@@ -61,11 +61,11 @@
         "Rob Tuytel": "guidance",
         "Rico Cilliers": "All"
       },
-      "bytes": 1609408,
+      "bytes": 2322092,
       "forms": [
         {
           "name": "jacaranda_tree_LOD0",
-          "triangles": 50288
+          "triangles": 74288
         }
       ]
     },
@@ -77,11 +77,11 @@
         "Rob Tuytel": "scanning, processing",
         "Rico Cilliers": "cleanup, processing"
       },
-      "bytes": 1120084,
+      "bytes": 1591920,
       "forms": [
         {
           "name": "island_tree_02_LOD0",
-          "triangles": 27871
+          "triangles": 51871
         }
       ]
     }

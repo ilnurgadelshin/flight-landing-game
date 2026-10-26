@@ -1,0 +1,92 @@
+{
+  "baseline": "5967d47",
+  "sizes": [
+    {
+      "file": "jacaranda_tree-near.glb",
+      "before": 1609408,
+      "after": 2322092
+    },
+    {
+      "file": "island_tree_02-near.glb",
+      "before": 1120084,
+      "after": 1591920
+    },
+    {
+      "file": "tree-variety.webp",
+      "before": 1823326,
+      "after": 1851248
+    },
+    {
+      "file": "tree-variety-low.webp",
+      "before": 537056,
+      "after": 545816
+    },
+    {
+      "file": "tree-light-response.webp",
+      "before": 630314,
+      "after": 645168
+    },
+    {
+      "file": "tree-light-response-low.webp",
+      "before": 205730,
+      "after": 213202
+    },
+    {
+      "file": "tree-variety.json",
+      "before": 2328,
+      "after": 2329
+    }
+  ],
+  "highTransferDelta": 1227297,
+  "lowTransferDelta": 16233,
+  "images": [
+    {
+      "tier": "high",
+      "view": "captain-3000",
+      "changedPercent": 0.8623456790123457,
+      "meanDelta": 0.39344881687242483
+    },
+    {
+      "tier": "high",
+      "view": "airport-country-north",
+      "changedPercent": 6.154938271604938,
+      "meanDelta": 2.3045534979424405
+    },
+    {
+      "tier": "high",
+      "view": "airport-country-south",
+      "changedPercent": 2.2708333333333335,
+      "meanDelta": 0.8078086419753544
+    },
+    {
+      "tier": "high",
+      "view": "airport-overcast",
+      "changedPercent": 2.0901234567901232,
+      "meanDelta": 0.8122330246914128
+    },
+    {
+      "tier": "low",
+      "view": "captain-3000",
+      "changedPercent": 0.4095679012345679,
+      "meanDelta": 0.1848868312757213
+    },
+    {
+      "tier": "low",
+      "view": "airport-country-north",
+      "changedPercent": 2.4205246913580245,
+      "meanDelta": 0.8874323559670936
+    },
+    {
+      "tier": "low",
+      "view": "airport-country-south",
+      "changedPercent": 0.08209876543209876,
+      "meanDelta": 0.03021039094650209
+    },
+    {
+      "tier": "low",
+      "view": "airport-overcast",
+      "changedPercent": 0.6774691358024691,
+      "meanDelta": 0.25127572016461097
+    }
+  ]
+}

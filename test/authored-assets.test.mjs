@@ -32,7 +32,7 @@ const geometry=JSON.parse(await fs.readFile('assets/scenery/tree-geometry.json')
 for(const name of ['jacaranda_tree','island_tree_02']){
   const asset=geometry.assets.find(a=>a.name===name);assert.ok(asset);
   assert.equal((await fs.stat(asset.file)).size,asset.bytes);
-  assert.ok(asset.bytes<1.7e6,'New near-tree payload budget, including leaf transparency');
+  assert.ok(asset.bytes<(name==='jacaranda_tree'?2.4e6:1.7e6),'Bounded near-tree payload, including retained foliage and transparency');
   const doc=await io.read(asset.file),{min,max}=getBounds(doc.getRoot().listScenes()[0]);
   assert.ok(Math.abs(min[1])<.001&&Math.abs(max[1]-1)<.01,'Simplified tree retains ground contact and source height within 1%');
   assert.ok(asset.forms[0].triangles<=75000);

@@ -30,17 +30,25 @@ for(const name of ['jacaranda_tree','island_tree_02']){
       // or it also removes the new mask, leaving opaque black leaf rectangles.
       const rgb=await sharp(t.getImage()).removeAlpha().toBuffer();
       t.setImage(await sharp(rgb).joinChannel(alpha,{raw:{width,height,channels:1}}).png().toBuffer()).setMimeType('image/png');
-      material.setAlphaMode('MASK').setAlphaCutoff(.4).setDoubleSided(true);
+      // Filtered small leaf clusters have fractional coverage. The previous .4
+      // cutoff discarded much of it in both the near view and the atlas bake.
+      // Keep the transparent background masked; do not turn leaves into blends.
+      material.setAlphaMode('MASK').setAlphaCutoff(.25).setDoubleSided(true);
     }
   }
   await doc.transform(prune(),dedup(),weld());
   for(const mesh of doc.getRoot().listMeshes())for(const p of mesh.listPrimitives()){
-    const count=p.getIndices().getCount()/3,target=/leaves/.test(p.getMaterial().getName())?24000:2000;
-    simplifyPrimitive(p,{simplifier:MeshoptSimplifier,ratio:Math.min(1,target/count),error:.012});
+    const leaves=/leaves/.test(p.getMaterial().getName());
+    const count=p.getIndices().getCount()/3,target=leaves?48000:2000;
+    // Leaf clusters are disconnected surfaces: the old 1.2% error allowance
+    // removed most of their coverage, leaving bare branches in the atlas too.
+    // Bound geometric error before chasing a triangle target. The runtime near
+    // pool retains its existing aggregate triangle limit.
+    simplifyPrimitive(p,{simplifier:MeshoptSimplifier,ratio:Math.min(1,target/count),error:leaves?.005:.012});
   }
   await doc.transform(prune(),textureCompress({encoder:sharp,targetFormat:'webp',quality:88,resize:[512,512]}));
   const forms=doc.getRoot().listNodes().filter(n=>n.getMesh()).map(n=>({name:n.getName(),triangles:n.getMesh().listPrimitives().reduce((sum,p)=>sum+p.getIndices().getCount()/3,0)}));
-  await doc.transform(meshopt({encoder:MeshoptEncoder,level:'high',quantizePosition:14}));
+  await doc.transform(meshopt({encoder:MeshoptEncoder,level:'high',quantizePosition:14,quantizeNormal:10,quantizeTexcoord:12}));
   const file=`assets/scenery/${name}-near.glb`;await io.write(file,doc);
   report.assets=report.assets.filter(a=>a.name!==name);
   const info=JSON.parse(await fs.readFile(`${folder}/info.json`));

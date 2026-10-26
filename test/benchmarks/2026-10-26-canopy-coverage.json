@@ -1,0 +1,1526 @@
+[
+  {
+    "tier": "high",
+    "samples": [
+      {
+        "row": 0,
+        "yaw": 0,
+        "elevation": 0,
+        "size": 128,
+        "before": {
+          "area": 2701.0745098039197,
+          "border": 0
+        },
+        "after": {
+          "area": 2701.0745098039197,
+          "border": 0
+        }
+      },
+      {
+        "row": 0,
+        "yaw": 0,
+        "elevation": 0,
+        "size": 64,
+        "before": {
+          "area": 666.050980392157,
+          "border": 0
+        },
+        "after": {
+          "area": 800.5607843137258,
+          "border": 0
+        }
+      },
+      {
+        "row": 0,
+        "yaw": 0,
+        "elevation": 0,
+        "size": 24,
+        "before": {
+          "area": 92.74901960784317,
+          "border": 0
+        },
+        "after": {
+          "area": 117.16862745098041,
+          "border": 0
+        }
+      },
+      {
+        "row": 0,
+        "yaw": 0,
+        "elevation": 22.5,
+        "size": 128,
+        "before": {
+          "area": 3364.0039215686206,
+          "border": 0
+        },
+        "after": {
+          "area": 3364.0039215686206,
+          "border": 0
+        }
+      },
+      {
+        "row": 0,
+        "yaw": 0,
+        "elevation": 22.5,
+        "size": 64,
+        "before": {
+          "area": 803.9960784313728,
+          "border": 0
+        },
+        "after": {
+          "area": 1012.5607843137254,
+          "border": 0
+        }
+      },
+      {
+        "row": 0,
+        "yaw": 0,
+        "elevation": 22.5,
+        "size": 24,
+        "before": {
+          "area": 103.29019607843136,
+          "border": 0
+        },
+        "after": {
+          "area": 132.0705882352941,
+          "border": 0
+        }
+      },
+      {
+        "row": 0,
+        "yaw": 0,
+        "elevation": 45,
+        "size": 128,
+        "before": {
+          "area": 3245.2666666666605,
+          "border": 0
+        },
+        "after": {
+          "area": 3245.2666666666605,
+          "border": 0
+        }
+      },
+      {
+        "row": 0,
+        "yaw": 0,
+        "elevation": 45,
+        "size": 64,
+        "before": {
+          "area": 809.9450980392155,
+          "border": 0
+        },
+        "after": {
+          "area": 949.2901960784316,
+          "border": 0
+        }
+      },
+      {
+        "row": 0,
+        "yaw": 0,
+        "elevation": 45,
+        "size": 24,
+        "before": {
+          "area": 114.75686274509805,
+          "border": 0
+        },
+        "after": {
+          "area": 137.58039215686273,
+          "border": 0
+        }
+      },
+      {
+        "row": 0,
+        "yaw": 22.5,
+        "elevation": 0,
+        "size": 128,
+        "before": {
+          "area": 3314.380392156857,
+          "border": 0
+        },
+        "after": {
+          "area": 3314.380392156857,
+          "border": 0
+        }
+      },
+      {
+        "row": 0,
+        "yaw": 22.5,
+        "elevation": 0,
+        "size": 64,
+        "before": {
+          "area": 778.1725490196083,
+          "border": 0
+        },
+        "after": {
+          "area": 1045.2431372549017,
+          "border": 0
+        }
+      },
+      {
+        "row": 0,
+        "yaw": 22.5,
+        "elevation": 0,
+        "size": 24,
+        "before": {
+          "area": 93.21960784313723,
+          "border": 0
+        },
+        "after": {
+          "area": 139.05098039215687,
+          "border": 0
+        }
+      },
+      {
+        "row": 0,
+        "yaw": 22.5,
+        "elevation": 22.5,
+        "size": 128,
+        "before": {
+          "area": 3463.5450980392106,
+          "border": 0
+        },
+        "after": {
+          "area": 3463.5450980392106,
+          "border": 0
+        }
+      },
+      {
+        "row": 0,
+        "yaw": 22.5,
+        "elevation": 22.5,
+        "size": 64,
+        "before": {
+          "area": 844.7960784313725,
+          "border": 0
+        },
+        "after": {
+          "area": 1174.3019607843141,
+          "border": 0
+        }
+      },
+      {
+        "row": 0,
+        "yaw": 22.5,
+        "elevation": 22.5,
+        "size": 24,
+        "before": {
+          "area": 109.13725490196077,
+          "border": 0
+        },
+        "after": {
+          "area": 150.6196078431373,
+          "border": 0
+        }
+      },
+      {
+        "row": 0,
+        "yaw": 22.5,
+        "elevation": 45,
+        "size": 128,
+        "before": {
+          "area": 3737.2470588235183,
+          "border": 0
+        },
+        "after": {
+          "area": 3737.2470588235183,
+          "border": 0
+        }
+      },
+      {
+        "row": 0,
+        "yaw": 22.5,
+        "elevation": 45,
+        "size": 64,
+        "before": {
+          "area": 901.1960784313727,
+          "border": 0
+        },
+        "after": {
+          "area": 1122.258823529411,
+          "border": 0
+        }
+      },
+      {
+        "row": 0,
+        "yaw": 22.5,
+        "elevation": 45,
+        "size": 24,
+        "before": {
+          "area": 115.51372549019612,
+          "border": 0
+        },
+        "after": {
+          "area": 154.42352941176472,
+          "border": 0
+        }
+      },
+      {
+        "row": 7,
+        "yaw": 0,
+        "elevation": 0,
+        "size": 128,
+        "before": {
+          "area": 5746.976470588233,
+          "border": 0
+        },
+        "after": {
+          "area": 5746.976470588233,
+          "border": 0
+        }
+      },
+      {
+        "row": 7,
+        "yaw": 0,
+        "elevation": 0,
+        "size": 64,
+        "before": {
+          "area": 1486.0117647058785,
+          "border": 0
+        },
+        "after": {
+          "area": 1835.3490196078396,
+          "border": 0
+        }
+      },
+      {
+        "row": 7,
+        "yaw": 0,
+        "elevation": 0,
+        "size": 24,
+        "before": {
+          "area": 219.14117647058828,
+          "border": 0
+        },
+        "after": {
+          "area": 279.15294117647056,
+          "border": 0
+        }
+      },
+      {
+        "row": 7,
+        "yaw": 0,
+        "elevation": 22.5,
+        "size": 128,
+        "before": {
+          "area": 8203.96862745099,
+          "border": 0
+        },
+        "after": {
+          "area": 8203.96862745099,
+          "border": 0
+        }
+      },
+      {
+        "row": 7,
+        "yaw": 0,
+        "elevation": 22.5,
+        "size": 64,
+        "before": {
+          "area": 2023.9490196078389,
+          "border": 0
+        },
+        "after": {
+          "area": 2394.2117647058794,
+          "border": 0
+        }
+      },
+      {
+        "row": 7,
+        "yaw": 0,
+        "elevation": 22.5,
+        "size": 24,
+        "before": {
+          "area": 271.8274509803922,
+          "border": 0
+        },
+        "after": {
+          "area": 327.53333333333336,
+          "border": 0
+        }
+      },
+      {
+        "row": 7,
+        "yaw": 0,
+        "elevation": 45,
+        "size": 128,
+        "before": {
+          "area": 7847.799999999993,
+          "border": 0
+        },
+        "after": {
+          "area": 7847.799999999993,
+          "border": 0
+        }
+      },
+      {
+        "row": 7,
+        "yaw": 0,
+        "elevation": 45,
+        "size": 64,
+        "before": {
+          "area": 1970.5999999999967,
+          "border": 0
+        },
+        "after": {
+          "area": 2204.9137254901916,
+          "border": 0
+        }
+      },
+      {
+        "row": 7,
+        "yaw": 0,
+        "elevation": 45,
+        "size": 24,
+        "before": {
+          "area": 272.8156862745098,
+          "border": 0
+        },
+        "after": {
+          "area": 315.9725490196079,
+          "border": 0
+        }
+      },
+      {
+        "row": 7,
+        "yaw": 22.5,
+        "elevation": 0,
+        "size": 128,
+        "before": {
+          "area": 6609.431372549024,
+          "border": 0
+        },
+        "after": {
+          "area": 6609.431372549024,
+          "border": 0
+        }
+      },
+      {
+        "row": 7,
+        "yaw": 22.5,
+        "elevation": 0,
+        "size": 64,
+        "before": {
+          "area": 1659.4941176470554,
+          "border": 0
+        },
+        "after": {
+          "area": 2066.5450980392125,
+          "border": 0
+        }
+      },
+      {
+        "row": 7,
+        "yaw": 22.5,
+        "elevation": 0,
+        "size": 24,
+        "before": {
+          "area": 228.9803921568627,
+          "border": 0
+        },
+        "after": {
+          "area": 286.67843137254914,
+          "border": 0
+        }
+      },
+      {
+        "row": 7,
+        "yaw": 22.5,
+        "elevation": 22.5,
+        "size": 128,
+        "before": {
+          "area": 8350.082352941195,
+          "border": 0
+        },
+        "after": {
+          "area": 8350.082352941195,
+          "border": 0
+        }
+      },
+      {
+        "row": 7,
+        "yaw": 22.5,
+        "elevation": 22.5,
+        "size": 64,
+        "before": {
+          "area": 2083.8862745098013,
+          "border": 0
+        },
+        "after": {
+          "area": 2591.180392156854,
+          "border": 0
+        }
+      },
+      {
+        "row": 7,
+        "yaw": 22.5,
+        "elevation": 22.5,
+        "size": 24,
+        "before": {
+          "area": 274.5254901960784,
+          "border": 0
+        },
+        "after": {
+          "area": 344.80392156862763,
+          "border": 0
+        }
+      },
+      {
+        "row": 7,
+        "yaw": 22.5,
+        "elevation": 45,
+        "size": 128,
+        "before": {
+          "area": 9017.058823529433,
+          "border": 0
+        },
+        "after": {
+          "area": 9017.058823529433,
+          "border": 0
+        }
+      },
+      {
+        "row": 7,
+        "yaw": 22.5,
+        "elevation": 45,
+        "size": 64,
+        "before": {
+          "area": 2175.819607843133,
+          "border": 0
+        },
+        "after": {
+          "area": 2576.9999999999973,
+          "border": 0
+        }
+      },
+      {
+        "row": 7,
+        "yaw": 22.5,
+        "elevation": 45,
+        "size": 24,
+        "before": {
+          "area": 286.36862745098045,
+          "border": 0
+        },
+        "after": {
+          "area": 350.8156862745098,
+          "border": 0
+        }
+      },
+      {
+        "row": 8,
+        "yaw": 0,
+        "elevation": 0,
+        "size": 128,
+        "before": {
+          "area": 5894.160784313709,
+          "border": 0
+        },
+        "after": {
+          "area": 5894.160784313709,
+          "border": 0
+        }
+      },
+      {
+        "row": 8,
+        "yaw": 0,
+        "elevation": 0,
+        "size": 64,
+        "before": {
+          "area": 1470.2509803921546,
+          "border": 0
+        },
+        "after": {
+          "area": 1742.4352941176455,
+          "border": 0
+        }
+      },
+      {
+        "row": 8,
+        "yaw": 0,
+        "elevation": 0,
+        "size": 24,
+        "before": {
+          "area": 205.2235294117647,
+          "border": 0
+        },
+        "after": {
+          "area": 248.85098039215697,
+          "border": 0
+        }
+      },
+      {
+        "row": 8,
+        "yaw": 0,
+        "elevation": 22.5,
+        "size": 128,
+        "before": {
+          "area": 6958.854901960771,
+          "border": 0
+        },
+        "after": {
+          "area": 6958.854901960771,
+          "border": 0
+        }
+      },
+      {
+        "row": 8,
+        "yaw": 0,
+        "elevation": 22.5,
+        "size": 64,
+        "before": {
+          "area": 1685.6392156862707,
+          "border": 0
+        },
+        "after": {
+          "area": 2191.125490196073,
+          "border": 0
+        }
+      },
+      {
+        "row": 8,
+        "yaw": 0,
+        "elevation": 22.5,
+        "size": 24,
+        "before": {
+          "area": 228.5254901960785,
+          "border": 0
+        },
+        "after": {
+          "area": 304.19607843137265,
+          "border": 0
+        }
+      },
+      {
+        "row": 8,
+        "yaw": 0,
+        "elevation": 45,
+        "size": 128,
+        "before": {
+          "area": 5859.458823529386,
+          "border": 0
+        },
+        "after": {
+          "area": 5859.458823529386,
+          "border": 0
+        }
+      },
+      {
+        "row": 8,
+        "yaw": 0,
+        "elevation": 45,
+        "size": 64,
+        "before": {
+          "area": 1482.0705882352906,
+          "border": 0
+        },
+        "after": {
+          "area": 1893.3999999999953,
+          "border": 0
+        }
+      },
+      {
+        "row": 8,
+        "yaw": 0,
+        "elevation": 45,
+        "size": 24,
+        "before": {
+          "area": 210.3137254901962,
+          "border": 0
+        },
+        "after": {
+          "area": 282.121568627451,
+          "border": 0
+        }
+      },
+      {
+        "row": 8,
+        "yaw": 22.5,
+        "elevation": 0,
+        "size": 128,
+        "before": {
+          "area": 6979.266666666662,
+          "border": 0
+        },
+        "after": {
+          "area": 6979.266666666662,
+          "border": 0
+        }
+      },
+      {
+        "row": 8,
+        "yaw": 22.5,
+        "elevation": 0,
+        "size": 64,
+        "before": {
+          "area": 1706.3803921568617,
+          "border": 0
+        },
+        "after": {
+          "area": 2035.9568627450953,
+          "border": 0
+        }
+      },
+      {
+        "row": 8,
+        "yaw": 22.5,
+        "elevation": 0,
+        "size": 24,
+        "before": {
+          "area": 224.7764705882354,
+          "border": 0
+        },
+        "after": {
+          "area": 282.6627450980392,
+          "border": 0
+        }
+      },
+      {
+        "row": 8,
+        "yaw": 22.5,
+        "elevation": 22.5,
+        "size": 128,
+        "before": {
+          "area": 6918.199999999991,
+          "border": 0
+        },
+        "after": {
+          "area": 6918.199999999991,
+          "border": 0
+        }
+      },
+      {
+        "row": 8,
+        "yaw": 22.5,
+        "elevation": 22.5,
+        "size": 64,
+        "before": {
+          "area": 1693.5607843137238,
+          "border": 0
+        },
+        "after": {
+          "area": 2392.803921568624,
+          "border": 0
+        }
+      },
+      {
+        "row": 8,
+        "yaw": 22.5,
+        "elevation": 22.5,
+        "size": 24,
+        "before": {
+          "area": 227.40392156862745,
+          "border": 0
+        },
+        "after": {
+          "area": 318.5803921568628,
+          "border": 0
+        }
+      },
+      {
+        "row": 8,
+        "yaw": 22.5,
+        "elevation": 45,
+        "size": 128,
+        "before": {
+          "area": 6632.145098039207,
+          "border": 0
+        },
+        "after": {
+          "area": 6632.145098039207,
+          "border": 0
+        }
+      },
+      {
+        "row": 8,
+        "yaw": 22.5,
+        "elevation": 45,
+        "size": 64,
+        "before": {
+          "area": 1605.745098039212,
+          "border": 0
+        },
+        "after": {
+          "area": 2260.3686274509737,
+          "border": 0
+        }
+      },
+      {
+        "row": 8,
+        "yaw": 22.5,
+        "elevation": 45,
+        "size": 24,
+        "before": {
+          "area": 214.76862745098035,
+          "border": 0
+        },
+        "after": {
+          "area": 313.450980392157,
+          "border": 0
+        }
+      }
+    ],
+    "coverageRatio": 1.2533779385800186
+  },
+  {
+    "tier": "low",
+    "samples": [
+      {
+        "row": 0,
+        "yaw": 0,
+        "elevation": 0,
+        "size": 128,
+        "before": {
+          "area": 3194.1215686274504,
+          "border": 0
+        },
+        "after": {
+          "area": 3194.1215686274504,
+          "border": 0
+        }
+      },
+      {
+        "row": 0,
+        "yaw": 0,
+        "elevation": 0,
+        "size": 64,
+        "before": {
+          "area": 701.6901960784317,
+          "border": 0
+        },
+        "after": {
+          "area": 836.7294117647059,
+          "border": 0
+        }
+      },
+      {
+        "row": 0,
+        "yaw": 0,
+        "elevation": 0,
+        "size": 24,
+        "before": {
+          "area": 100.95686274509808,
+          "border": 0
+        },
+        "after": {
+          "area": 126.41960784313724,
+          "border": 0
+        }
+      },
+      {
+        "row": 0,
+        "yaw": 0,
+        "elevation": 22.5,
+        "size": 128,
+        "before": {
+          "area": 3725.2549019607845,
+          "border": 0
+        },
+        "after": {
+          "area": 3725.2549019607845,
+          "border": 0
+        }
+      },
+      {
+        "row": 0,
+        "yaw": 0,
+        "elevation": 22.5,
+        "size": 64,
+        "before": {
+          "area": 842.5764705882352,
+          "border": 0
+        },
+        "after": {
+          "area": 1049.7921568627457,
+          "border": 0
+        }
+      },
+      {
+        "row": 0,
+        "yaw": 0,
+        "elevation": 22.5,
+        "size": 24,
+        "before": {
+          "area": 110.72549019607843,
+          "border": 0
+        },
+        "after": {
+          "area": 143.10588235294114,
+          "border": 0
+        }
+      },
+      {
+        "row": 0,
+        "yaw": 0,
+        "elevation": 45,
+        "size": 128,
+        "before": {
+          "area": 3737.474509803924,
+          "border": 0
+        },
+        "after": {
+          "area": 3737.474509803924,
+          "border": 0
+        }
+      },
+      {
+        "row": 0,
+        "yaw": 0,
+        "elevation": 45,
+        "size": 64,
+        "before": {
+          "area": 841.6980392156862,
+          "border": 0
+        },
+        "after": {
+          "area": 986.0313725490197,
+          "border": 0
+        }
+      },
+      {
+        "row": 0,
+        "yaw": 0,
+        "elevation": 45,
+        "size": 24,
+        "before": {
+          "area": 122.36078431372546,
+          "border": 0
+        },
+        "after": {
+          "area": 145.2509803921569,
+          "border": 0
+        }
+      },
+      {
+        "row": 0,
+        "yaw": 22.5,
+        "elevation": 0,
+        "size": 128,
+        "before": {
+          "area": 3698.168627450978,
+          "border": 0
+        },
+        "after": {
+          "area": 3698.168627450978,
+          "border": 0
+        }
+      },
+      {
+        "row": 0,
+        "yaw": 22.5,
+        "elevation": 0,
+        "size": 64,
+        "before": {
+          "area": 829.8000000000001,
+          "border": 0
+        },
+        "after": {
+          "area": 1094.4745098039214,
+          "border": 0
+        }
+      },
+      {
+        "row": 0,
+        "yaw": 22.5,
+        "elevation": 0,
+        "size": 24,
+        "before": {
+          "area": 102.2666666666667,
+          "border": 0
+        },
+        "after": {
+          "area": 152.27843137254902,
+          "border": 0
+        }
+      },
+      {
+        "row": 0,
+        "yaw": 22.5,
+        "elevation": 22.5,
+        "size": 128,
+        "before": {
+          "area": 3807.635294117646,
+          "border": 0
+        },
+        "after": {
+          "area": 3807.635294117646,
+          "border": 0
+        }
+      },
+      {
+        "row": 0,
+        "yaw": 22.5,
+        "elevation": 22.5,
+        "size": 64,
+        "before": {
+          "area": 877.5254901960782,
+          "border": 0
+        },
+        "after": {
+          "area": 1220.0274509803917,
+          "border": 0
+        }
+      },
+      {
+        "row": 0,
+        "yaw": 22.5,
+        "elevation": 22.5,
+        "size": 24,
+        "before": {
+          "area": 116.58823529411764,
+          "border": 0
+        },
+        "after": {
+          "area": 160.65490196078434,
+          "border": 0
+        }
+      },
+      {
+        "row": 0,
+        "yaw": 22.5,
+        "elevation": 45,
+        "size": 128,
+        "before": {
+          "area": 4112.352941176471,
+          "border": 0
+        },
+        "after": {
+          "area": 4112.352941176471,
+          "border": 0
+        }
+      },
+      {
+        "row": 0,
+        "yaw": 22.5,
+        "elevation": 45,
+        "size": 64,
+        "before": {
+          "area": 941.8313725490198,
+          "border": 0
+        },
+        "after": {
+          "area": 1161.4392156862743,
+          "border": 0
+        }
+      },
+      {
+        "row": 0,
+        "yaw": 22.5,
+        "elevation": 45,
+        "size": 24,
+        "before": {
+          "area": 123.88235294117649,
+          "border": 0
+        },
+        "after": {
+          "area": 164.09019607843135,
+          "border": 0
+        }
+      },
+      {
+        "row": 7,
+        "yaw": 0,
+        "elevation": 0,
+        "size": 128,
+        "before": {
+          "area": 7250.082352941177,
+          "border": 0
+        },
+        "after": {
+          "area": 7250.082352941177,
+          "border": 0
+        }
+      },
+      {
+        "row": 7,
+        "yaw": 0,
+        "elevation": 0,
+        "size": 64,
+        "before": {
+          "area": 1642.6862745098008,
+          "border": 0
+        },
+        "after": {
+          "area": 1995.666666666665,
+          "border": 0
+        }
+      },
+      {
+        "row": 7,
+        "yaw": 0,
+        "elevation": 0,
+        "size": 24,
+        "before": {
+          "area": 235.0078431372549,
+          "border": 0
+        },
+        "after": {
+          "area": 295.0352941176469,
+          "border": 0
+        }
+      },
+      {
+        "row": 7,
+        "yaw": 0,
+        "elevation": 22.5,
+        "size": 128,
+        "before": {
+          "area": 9033.576470588247,
+          "border": 0
+        },
+        "after": {
+          "area": 9033.576470588247,
+          "border": 0
+        }
+      },
+      {
+        "row": 7,
+        "yaw": 0,
+        "elevation": 22.5,
+        "size": 64,
+        "before": {
+          "area": 2127.61568627451,
+          "border": 0
+        },
+        "after": {
+          "area": 2505.231372549019,
+          "border": 0
+        }
+      },
+      {
+        "row": 7,
+        "yaw": 0,
+        "elevation": 22.5,
+        "size": 24,
+        "before": {
+          "area": 285.5411764705882,
+          "border": 0
+        },
+        "after": {
+          "area": 344.30980392156874,
+          "border": 0
+        }
+      },
+      {
+        "row": 7,
+        "yaw": 0,
+        "elevation": 45,
+        "size": 128,
+        "before": {
+          "area": 8935.788235294129,
+          "border": 0
+        },
+        "after": {
+          "area": 8935.788235294129,
+          "border": 0
+        }
+      },
+      {
+        "row": 7,
+        "yaw": 0,
+        "elevation": 45,
+        "size": 64,
+        "before": {
+          "area": 2083.6392156862726,
+          "border": 0
+        },
+        "after": {
+          "area": 2336.3098039215706,
+          "border": 0
+        }
+      },
+      {
+        "row": 7,
+        "yaw": 0,
+        "elevation": 45,
+        "size": 24,
+        "before": {
+          "area": 288.3019607843138,
+          "border": 0
+        },
+        "after": {
+          "area": 333.96470588235303,
+          "border": 0
+        }
+      },
+      {
+        "row": 7,
+        "yaw": 22.5,
+        "elevation": 0,
+        "size": 128,
+        "before": {
+          "area": 7691.254901960789,
+          "border": 0
+        },
+        "after": {
+          "area": 7691.254901960789,
+          "border": 0
+        }
+      },
+      {
+        "row": 7,
+        "yaw": 22.5,
+        "elevation": 0,
+        "size": 64,
+        "before": {
+          "area": 1778.6000000000015,
+          "border": 0
+        },
+        "after": {
+          "area": 2197.4509803921574,
+          "border": 0
+        }
+      },
+      {
+        "row": 7,
+        "yaw": 22.5,
+        "elevation": 0,
+        "size": 24,
+        "before": {
+          "area": 242.58039215686267,
+          "border": 0
+        },
+        "after": {
+          "area": 302.8156862745099,
+          "border": 0
+        }
+      },
+      {
+        "row": 7,
+        "yaw": 22.5,
+        "elevation": 22.5,
+        "size": 128,
+        "before": {
+          "area": 9055.815686274515,
+          "border": 0
+        },
+        "after": {
+          "area": 9055.815686274515,
+          "border": 0
+        }
+      },
+      {
+        "row": 7,
+        "yaw": 22.5,
+        "elevation": 22.5,
+        "size": 64,
+        "before": {
+          "area": 2164.4549019607857,
+          "border": 0
+        },
+        "after": {
+          "area": 2673.5333333333315,
+          "border": 0
+        }
+      },
+      {
+        "row": 7,
+        "yaw": 22.5,
+        "elevation": 22.5,
+        "size": 24,
+        "before": {
+          "area": 286.9058823529411,
+          "border": 0
+        },
+        "after": {
+          "area": 357.3019607843138,
+          "border": 0
+        }
+      },
+      {
+        "row": 7,
+        "yaw": 22.5,
+        "elevation": 45,
+        "size": 128,
+        "before": {
+          "area": 9703.015686274517,
+          "border": 0
+        },
+        "after": {
+          "area": 9703.015686274517,
+          "border": 0
+        }
+      },
+      {
+        "row": 7,
+        "yaw": 22.5,
+        "elevation": 45,
+        "size": 64,
+        "before": {
+          "area": 2286.5215686274505,
+          "border": 0
+        },
+        "after": {
+          "area": 2691.098039215685,
+          "border": 0
+        }
+      },
+      {
+        "row": 7,
+        "yaw": 22.5,
+        "elevation": 45,
+        "size": 24,
+        "before": {
+          "area": 302.1333333333334,
+          "border": 0
+        },
+        "after": {
+          "area": 368.6588235294118,
+          "border": 0
+        }
+      },
+      {
+        "row": 8,
+        "yaw": 0,
+        "elevation": 0,
+        "size": 128,
+        "before": {
+          "area": 6700.4980392156795,
+          "border": 0
+        },
+        "after": {
+          "area": 6700.4980392156795,
+          "border": 0
+        }
+      },
+      {
+        "row": 8,
+        "yaw": 0,
+        "elevation": 0,
+        "size": 64,
+        "before": {
+          "area": 1570.1098039215685,
+          "border": 0
+        },
+        "after": {
+          "area": 1863.64705882353,
+          "border": 0
+        }
+      },
+      {
+        "row": 8,
+        "yaw": 0,
+        "elevation": 0,
+        "size": 24,
+        "before": {
+          "area": 216.46274509803925,
+          "border": 0
+        },
+        "after": {
+          "area": 262.39607843137253,
+          "border": 0
+        }
+      },
+      {
+        "row": 8,
+        "yaw": 0,
+        "elevation": 22.5,
+        "size": 128,
+        "before": {
+          "area": 7654.619607843138,
+          "border": 0
+        },
+        "after": {
+          "area": 7654.619607843138,
+          "border": 0
+        }
+      },
+      {
+        "row": 8,
+        "yaw": 0,
+        "elevation": 22.5,
+        "size": 64,
+        "before": {
+          "area": 1787.41568627451,
+          "border": 0
+        },
+        "after": {
+          "area": 2317.686274509802,
+          "border": 0
+        }
+      },
+      {
+        "row": 8,
+        "yaw": 0,
+        "elevation": 22.5,
+        "size": 24,
+        "before": {
+          "area": 241.0156862745098,
+          "border": 0
+        },
+        "after": {
+          "area": 317.4117647058824,
+          "border": 0
+        }
+      },
+      {
+        "row": 8,
+        "yaw": 0,
+        "elevation": 45,
+        "size": 128,
+        "before": {
+          "area": 7141.031372549011,
+          "border": 0
+        },
+        "after": {
+          "area": 7141.031372549011,
+          "border": 0
+        }
+      },
+      {
+        "row": 8,
+        "yaw": 0,
+        "elevation": 45,
+        "size": 64,
+        "before": {
+          "area": 1620.0588235294115,
+          "border": 0
+        },
+        "after": {
+          "area": 2050.2431372549013,
+          "border": 0
+        }
+      },
+      {
+        "row": 8,
+        "yaw": 0,
+        "elevation": 45,
+        "size": 24,
+        "before": {
+          "area": 225.43137254901964,
+          "border": 0
+        },
+        "after": {
+          "area": 298.1450980392159,
+          "border": 0
+        }
+      },
+      {
+        "row": 8,
+        "yaw": 22.5,
+        "elevation": 0,
+        "size": 128,
+        "before": {
+          "area": 7511.239215686273,
+          "border": 0
+        },
+        "after": {
+          "area": 7511.239215686273,
+          "border": 0
+        }
+      },
+      {
+        "row": 8,
+        "yaw": 22.5,
+        "elevation": 0,
+        "size": 64,
+        "before": {
+          "area": 1778.5176470588233,
+          "border": 0
+        },
+        "after": {
+          "area": 2125.3607843137256,
+          "border": 0
+        }
+      },
+      {
+        "row": 8,
+        "yaw": 22.5,
+        "elevation": 0,
+        "size": 24,
+        "before": {
+          "area": 237.26666666666662,
+          "border": 0
+        },
+        "after": {
+          "area": 294.14117647058833,
+          "border": 0
+        }
+      },
+      {
+        "row": 8,
+        "yaw": 22.5,
+        "elevation": 22.5,
+        "size": 128,
+        "before": {
+          "area": 7510.0470588235185,
+          "border": 0
+        },
+        "after": {
+          "area": 7510.0470588235185,
+          "border": 0
+        }
+      },
+      {
+        "row": 8,
+        "yaw": 22.5,
+        "elevation": 22.5,
+        "size": 64,
+        "before": {
+          "area": 1766.278431372548,
+          "border": 0
+        },
+        "after": {
+          "area": 2494.4901960784337,
+          "border": 0
+        }
+      },
+      {
+        "row": 8,
+        "yaw": 22.5,
+        "elevation": 22.5,
+        "size": 24,
+        "before": {
+          "area": 236.50588235294117,
+          "border": 0
+        },
+        "after": {
+          "area": 331.8901960784315,
+          "border": 0
+        }
+      },
+      {
+        "row": 8,
+        "yaw": 22.5,
+        "elevation": 45,
+        "size": 128,
+        "before": {
+          "area": 7517.1176470588125,
+          "border": 0
+        },
+        "after": {
+          "area": 7517.1176470588125,
+          "border": 0
+        }
+      },
+      {
+        "row": 8,
+        "yaw": 22.5,
+        "elevation": 45,
+        "size": 64,
+        "before": {
+          "area": 1725.8313725490204,
+          "border": 0
+        },
+        "after": {
+          "area": 2430.572549019604,
+          "border": 0
+        }
+      },
+      {
+        "row": 8,
+        "yaw": 22.5,
+        "elevation": 45,
+        "size": 24,
+        "before": {
+          "area": 228.45098039215688,
+          "border": 0
+        },
+        "after": {
+          "area": 332.28627450980395,
+          "border": 0
+        }
+      }
+    ],
+    "coverageRatio": 1.2475344439458738
+  }
+]

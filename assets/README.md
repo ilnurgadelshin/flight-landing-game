@@ -649,7 +649,7 @@ target, so this follows resolution changes automatically. Standard alpha-to-cove
 smoothing remains on multisampled targets, with a hard cutoff on single-sample targets.
 The coverage adjustment adds no texture sample or alpha-blending pass. These remain impostors: azimuth transitions, repeated
 species and extreme close-up silhouettes are less convincing than full 3D branches.
-The colour atlases are 1536×5184 (high, 1,823,326 bytes) and 768×2592 (low, 537,056 bytes).
+The colour atlases are 1536×5184 (high, 1,851,248 bytes) and 768×2592 (low, 545,816 bytes).
 High frames are 192 px and low frames 96 px. Eight directions reduce silhouette doubling
 between adjacent views; using the delivered geometry also avoids the fuller source model
 changing into a different simplified crown at close range. Texel count rises 12.5% over
@@ -667,7 +667,7 @@ each tree, evaluates the current sunlight direction/colour, and fades it under o
 and at night. Alpha-weighted blending uses the same four atlas views as colour; empty
 samples stay finite. Missing or incorrectly sized response data falls back to diffuse sky.
 
-The linear-data response atlases are 768×2592 (630,314 bytes) and 384×1296 (205,730 bytes),
+The linear-data response atlases are 768×2592 (645,168 bytes) and 384×1296 (213,202 bytes),
 96/48 pixels per view. They add four texture reads per surviving sunlit crown fragment, one sampler,
 and approximately 10.1/2.5 MiB including mipmaps. Net image transfer grows by 607,980/199,768
 bytes (high/low), including the smaller rebaked colour maps. Loading remains inside the
@@ -704,9 +704,30 @@ The five `scenery/*-near.glb` assets use the **same CC0 sources and nine forms**
 real nearby branches, trunks and leaf geometry on the high tier. They are normalized
 to unit height, simplified separately for foliage and wood, texture-packed and Meshopt
 compressed. The original broadleaf keeps about 159,000 triangles to retain its canopy; the added
-broadleaf forms use 50,288 and 27,871 triangles, and conifers use about 19,000–79,000.
-Files total **14,398,432 bytes** (14.40 MB decimal), including 2,729,492 bytes for the two additions. Exact sizes, triangle
+broadleaf forms use 74,288 and 51,871 triangles, and conifers use about 19,000–79,000.
+Files total **15,582,952 bytes** (15.58 MB decimal), including 3,914,012 bytes for the two additions. Exact sizes, triangle
 counts and source URLs are in `tree-geometry.json`.
+
+The 2026-10-26 canopy pass revises the jacaranda and island-tree reductions from the
+same downloaded sources. Foliage targets 48,000 triangles with a 0.5% geometric-error
+limit, rather than 24,000 / 1.2%; wood keeps the previous reduction. The masked leaf
+cutoff is 0.25 rather than 0.4, retaining filtered small clusters without alpha blending.
+The colour and directional-response atlases are rebaked from those delivered models.
+Tree locations, species assignments, heights and planting rules stay unchanged; the
+jacaranda's measured aspect increases from 1.32995 to 1.33952 as branches are retained.
+All instances still use the same total and near-camera budgets below. The two GLBs
+add **1,184,520 bytes**; the rebaked image pairs add **42,776 / 16,232 bytes** high / low.
+Texture dimensions, sampler count and the two-triangle distant representation are unchanged.
+The larger models add decoded geometry memory and can reduce the number of simultaneous
+near trees within the aggregate triangle cap. They do not add a new download to low quality.
+
+`test/broadleaf-source.mjs` compares twelve directions per species against the ignored
+full originals. Mean projected coverage is **73% → 111%** of the jacaranda source and
+**68% → 88%** of the island-tree source. The slightly fuller jacaranda reflects its lower
+mask cutoff; these area ratios do not measure all shape or lighting differences.
+Run after `fetch-authored-scenery.py`, optionally supplying `CANOPY_BASELINE` with an
+older checkout for the before images. Source models remain offline-only. The matched
+scenery/motion review and measured costs are recorded in `test/VISUAL-AUDIT.md`.
 
 At runtime, nearby trees transition between geometry and cards over 90–180 m using
 complementary dithering. A 14% selection preference retains existing trees when distances

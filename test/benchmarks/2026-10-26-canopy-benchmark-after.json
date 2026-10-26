@@ -1,0 +1,122 @@
+{
+  "date": "2026-10-26T15:59:58.252Z",
+  "browser": "141.0.7390.37",
+  "platform": "darwin",
+  "arch": "arm64",
+  "viewport": [
+    1440,
+    900
+  ],
+  "touch": false,
+  "pixelRatio": {
+    "high": 1.5,
+    "low": 1
+  },
+  "disabled": [],
+  "warmupSeconds": 4,
+  "sampleSeconds": 12,
+  "method": "Private Chromium ANGLE Metal; fixed-resolution renderer and scenery updates, paused physics. RAF pacing is display capped; no gl.finish. CPU times exclude asynchronous GPU work.",
+  "results": [
+    {
+      "tier": "high",
+      "scene": "captain-3000",
+      "frames": 485,
+      "fps": 40.362177726735574,
+      "p50FrameMs": 16.799999999999272,
+      "p95FrameMs": 33.400000000001455,
+      "p99FrameMs": 33.400000000001455,
+      "cpuP50Ms": 4.700000286102295,
+      "cpuP95Ms": 6.800000190734863,
+      "medianDrawCalls": 889,
+      "medianTriangles": 2144100,
+      "nearTreesAtEnd": 0,
+      "pixelRatio": 1.5,
+      "assets": []
+    },
+    {
+      "tier": "high",
+      "scene": "airport-country-north",
+      "frames": 679,
+      "fps": 56.50704881742982,
+      "p50FrameMs": 16.69999999999709,
+      "p95FrameMs": 33.29999999999927,
+      "p99FrameMs": 33.400000000001455,
+      "cpuP50Ms": 2.6999998092651367,
+      "cpuP95Ms": 6.799999713897705,
+      "medianDrawCalls": 319,
+      "medianTriangles": 571133,
+      "nearTreesAtEnd": 0,
+      "pixelRatio": 1.5,
+      "assets": []
+    },
+    {
+      "tier": "high",
+      "scene": "nearby",
+      "frames": 658,
+      "fps": 54.759408132354636,
+      "p50FrameMs": 16.69999999999709,
+      "p95FrameMs": 33.30000000000291,
+      "p99FrameMs": 33.400000000001455,
+      "cpuP50Ms": 1.3000001907348633,
+      "cpuP95Ms": 3.5999999046325684,
+      "medianDrawCalls": 394,
+      "medianTriangles": 2449368,
+      "nearTreesAtEnd": 17,
+      "pixelRatio": 1.5,
+      "assets": []
+    },
+    {
+      "tier": "low",
+      "scene": "captain-3000",
+      "frames": 721,
+      "fps": 60.0023301875801,
+      "p50FrameMs": 16.69999999999891,
+      "p95FrameMs": 16.700000000000728,
+      "p99FrameMs": 16.80000000000109,
+      "cpuP50Ms": 2.6999998092651367,
+      "cpuP95Ms": 3.6000003814697266,
+      "medianDrawCalls": 524,
+      "medianTriangles": 789102,
+      "nearTreesAtEnd": 0,
+      "pixelRatio": 1,
+      "assets": []
+    },
+    {
+      "tier": "low",
+      "scene": "airport-country-north",
+      "frames": 721,
+      "fps": 60.00183084643358,
+      "p50FrameMs": 16.69999999999709,
+      "p95FrameMs": 16.700000000004366,
+      "p99FrameMs": 16.799999999999272,
+      "cpuP50Ms": 1.9000000953674316,
+      "cpuP95Ms": 4.199999809265137,
+      "medianDrawCalls": 192,
+      "medianTriangles": 191822,
+      "nearTreesAtEnd": 0,
+      "pixelRatio": 1,
+      "assets": []
+    },
+    {
+      "tier": "low",
+      "scene": "nearby",
+      "frames": 721,
+      "fps": 60.00183084643358,
+      "p50FrameMs": 16.69999999999709,
+      "p95FrameMs": 16.799999999995634,
+      "p99FrameMs": 16.80000000000291,
+      "cpuP50Ms": 2.1999998092651367,
+      "cpuP95Ms": 4.5,
+      "medianDrawCalls": 257,
+      "medianTriangles": 316939,
+      "nearTreesAtEnd": 0,
+      "pixelRatio": 1,
+      "assets": []
+    }
+  ],
+  "startupBytes": {
+    "high": 14250643,
+    "low": 8714756
+  },
+  "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M2 Pro, Unspecified Version)"
+}

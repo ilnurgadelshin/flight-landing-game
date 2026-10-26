@@ -7,26 +7,22 @@ below record how the scene evolved; their older counts, captures and priorities 
 the remaining-work list. Update this section after each reviewed visual pass, including
 what changed, visible impact, measured cost, evidence and limitations.
 
-The latest pass connects **airport-side fields and woodland to the completed approach**.
-A high-only companion map covers selected parcels within x=−2100–2280 m /
-z=−2500–2500 m, joining the earlier approach at x=2100–2280. Ground treatment
-and trees follow the same parcels; open fields, roads and farm clearings remain open.
-A 110 m fade softens the woodland beside the fictional airport earthworks.
+The latest pass restores **broadleaf foliage lost during model reduction**. Jacaranda
+and island-tree crowns retain more source leaves; their distant colour and directional
+response views are rebaked from the delivered geometry. This makes the existing stands
+fuller on both tiers. Counts stay at **70,000 high / 14,000 low** and planting is unchanged.
+The 90–180 m near transition and 1.8M target / 2.4M hard triangle budgets remain in place.
 
-Net weighted coverage grows **609.33 ha**, bringing effective high-tier coverage to
-about **3074.79 ha**. Four thousand additional trees give **70,000 high / 14,000 low**.
-The previous five baked maps remain byte-identical. All seven matched low-tier views
-remain pixel-identical and low downloads neither new mask file. The high-only
-PNG/JSON adds **39,791 bytes**, a separate **640 × 768** texture (1.97 MB RGBA8),
-about **0.98 MB** packed CPU coverage and one sampler. The earlier atlas is unchanged.
+This is a bounded canopy correction, not completion of the vegetation category. Repeated
+species, sparse spacing and image-plane transitions remain. It adds **1.227 MB high /
+16 KB low** behind the menu, with no additional atlas texels, sampler or draw pass. The
+nearby models consume more geometry memory, and the fixed pool can admit fewer trees.
 
-The airport-to-upper-approach ground/woodland connection is now in place. Do not
-keep listing those delivered connections as untouched work. This does **not** mean
-every parcel, yard or building inside the bounds is complete: **81 complete building
-placements across ten sites** remain, with basic buildings and photographic yards
-elsewhere. The clearest remaining weaknesses are sparse/repeated tree crowns and
-incomplete farm/hamlet groups. Extending the geographic bounds further is a separate
-scope choice, not a prerequisite for improving these already visible limitations.
+The airport-to-upper-approach landscape connection is already delivered: effective high
+coverage is about **3074.79 ha**, with **81 complete building placements across ten sites**.
+Do not keep listing those connections as untouched work. Basic houses, photographic yards
+and incomplete farm/hamlet groups remain within those bounds. The next recommended scope
+is one complete, pilot-visible rural building group, rather than further geographic expansion.
 
 Specific defects already addressed include the distorted source cockpit shell, black cabin
 reflection failure and degenerate panel normal calculation, the narrow phone windshield/MCP
@@ -39,9 +35,9 @@ should not be presented again as untouched tasks. Their broader quality limitati
 
 | Rank | Remaining work | Importance | Current limit / next acceptance evidence |
 | --- | --- | --- | --- |
-| 1 | Mid-distance vegetation form and canopy coherence | High | Mapped woodland is connected, but sparse crowns, repeated species and thin image-plane silhouettes remain conspicuous beside the airfield and on the slopes. Improve shape, grouping and transitions within the present instance budget. Require moving pilot views and measured GPU cost. |
-| 2 | Complete rural building groups | High | Ground cover now connects the airport and approach. Basic houses, isolated roofs, flat yards and incomplete farm/hamlet groups remain outside ten completed sites. Finish a pilot-visible settlement as a coherent site before adding further distant coverage. Untraced individual parcels and countryside beyond x=−2100–9000 / |z|=2500 remain photographic. |
-| 3 | Complete cockpit material and lighting detail | High | Selected front panels, padding and grips have fitted wear; side consoles/overhead still lack a complete aircraft-specific texture set. Indirect light and local shadows remain approximations. Begin with source/game comparison and protect instrument readability on both tiers. |
+| 1 | Complete rural building groups | High | Ground cover now connects the airport and approach. Basic houses, isolated roofs, flat yards and incomplete farm/hamlet groups remain outside ten completed sites. Finish a pilot-visible settlement as a coherent site before adding further distant coverage. Untraced individual parcels and countryside beyond x=−2100–9000 / absolute z=2500 remain photographic. |
+| 2 | Complete cockpit material and lighting detail | High | Selected front panels, padding and grips have fitted wear; side consoles/overhead still lack a complete aircraft-specific texture set. Indirect light and local shadows remain approximations. Begin with source/game comparison and protect instrument readability on both tiers. |
+| 3 | Further canopy form and grouping | Medium–high | The overly reduced jacaranda/island foliage is corrected. Repeated species, sparse stand spacing and blended image-plane silhouettes remain. Further work needs better form variation or representation, checked in motion within existing budgets; increasing geographic coverage does not solve it. |
 | 4 | Temporal stability of fine detail | Medium–high | Thin labels, branches, roof details and shadow edges can shimmer in motion. Evaluate actual flight motion and GPU cost, not only static screenshots. |
 | 5 | Finer cloud and wet-weather rendering | Medium overall; high in weather scenarios | Fair-weather clouds retain repeated forms; overcast uses bounded resolution/steps and a simplified deep interior. Water films and blade contact remain approximate. Preserve the corrected rain timing and cloud-entry visibility. |
 | 6 | Airport ground-level detail and local shadows | Medium | Terminal glass and architecture improved, but wear, drainage, service clutter and shadows on raised surfaces remain sparse. Concentrate on details visible during flare/rollout. |
@@ -51,6 +47,55 @@ separate cosmetic milestone. Current high-resolution scenes still fall below 60 
 the M2 Pro; retain adaptive quality and report costs. Physical phones, ordinary laptops
 and multiple GPU drivers need wider validation. Existing SwiftShader evidence in the log
 does not certify the latest pass on those devices.
+
+### Retained broadleaf foliage — 2026-10-26
+
+Baseline: published main `5967d47`. Direct comparison with the already downloaded CC0
+originals showed that the broadleaf reduction discarded too much leaf coverage. No new
+source asset or licence is introduced.
+
+- Jacaranda and island-tree leaf primitives target **48,000 triangles / 0.5% error**,
+  replacing 24,000 / 1.2%; wood reduction is unchanged. Their masked leaf cutoff falls
+  from 0.4 to **0.25**, retaining filtered clusters without alpha blending. The complete
+  models grow **50,288 → 74,288** and **27,871 → 51,871** triangles, respectively.
+- The source comparison measures twelve directions for each species. Mean projected
+  coverage increases **52% / 28%**, from **73% → 111%** and **68% → 88%** of the full
+  source. Jacaranda is slightly fuller than the reference because of the lower cutoff.
+  These are area checks, not proof of identical shape or photorealism.
+- The 216-view colour and directional-response atlases are rebaked from the delivered
+  geometry. Dimensions, sampler counts, distant quads, species assignments and heights
+  stay unchanged. Jacaranda framing records its retained outer branches: aspect
+  1.32995 → 1.33952. Positions, zone allocations, field/road/building/airfield exclusions
+  remain. The actual scenery check confirms **70,000 / 14,000**, with zero checked
+  field, road, building or protected-airport intrusions.
+- The two GLBs add **1,184,520 bytes** on high only. Colour/response images add
+  **42,776 / 16,232 bytes** high / low, plus one metadata byte. Total runtime transfer
+  grows **1,227,297 / 16,233 bytes**. Atlas GPU allocation is unchanged; decoded model
+  geometry grows. Preparation remains behind the menu.
+- The 360-frame close pass stays below **30 simultaneous trees / 2,396,266 triangles**,
+  versus 34 / 2,387,696 before. The same 2.4M hard cap and bounded fade speed pass.
+  Mean card/geometry silhouette overlap stays approximately **0.397 → 0.402** across
+  the retained test views. This does not eliminate billboard blending or close mismatch.
+- Matched pilot and north/south views on both tiers show the fuller existing trees.
+  At a 12-level pixel-change threshold, high pilot/north/south change **0.86% / 6.15% /
+  2.27%** of the frame. The pilot impact is modest because trees occupy a narrow exterior
+  strip; the close exterior view makes the change clearer. Counts are not a realism score.
+- M2 Pro / Chromium ANGLE Metal / 1440 × 900, high 1.5×: repeated-baseline pilot
+  **40.2 → 40.4 FPS**, north **57.3 → 56.5**, nearby moving **51.8 → 54.8**. Low's
+  three scenes remain about **60 FPS**. The near pool admits fewer richer trees; the
+  apparent nearby improvement is not a general speedup. Earlier, slower baseline
+  samples are retained. See the performance log for method and limits.
+- All **20 Node suites** pass. Both-tier directional-light tests, optional missing/wrong
+  response-map fallbacks, 108 distance/elevation coverage cases, terrain shade and
+  sunless-weather checks pass. Source, transition and actual land-cover checks pass.
+- Delivery passes with unchanged menu startup **14.25 / 8.71 MB** and prepared flight
+  **67.61 / 19.70 MB** high / low; no extra requests occur after flight start. The
+  two matched 480-frame pilot descents and two 360-frame exterior passes are recorded.
+  Review controls, 22 images, four video metadata loads and the phone page layout pass.
+- Evidence: [canopy comparison](output/canopy-review.html),
+  [performance log](RENDER-PERFORMANCE.md), and `benchmarks/2026-10-26-canopy-*.json`.
+  Physical phones, other GPU drivers, SwiftShader and the full functional flight suite
+  are not certified by this pass.
 
 ### Airport-side countryside connection — 2026-10-26
 
@@ -109,9 +154,9 @@ not a land-use survey. No new source photograph, model, service or licence is ne
   Physical phones, other GPUs, SwiftShader and the complete functional flight suite
   were not rerun. The previous local SwiftShader context failure remains unverified.
 
-The next recommended visual pass is vegetation form and canopy coherence within the
-existing allocation, followed by a complete pilot-visible rural building group. More
-land area alone will not correct the thin trees or basic buildings already in view.
+The subsequent retained-foliage pass above addresses excessive broadleaf reduction.
+A complete pilot-visible rural building group is next; further land area alone will not
+correct the repeated tree forms or basic buildings already in view.
 
 ### Connected upper approach slopes — 2026-10-25
 

@@ -2755,3 +2755,60 @@ not rerun. The earlier local SwiftShader context-creation failure is not a pass.
 Sparse/repeated crowns, photographic ground/shadows and basic rural buildings remain
 visible limitations. [Scenery comparison](output/airport-countryside-review.html);
 evidence: `benchmarks/2026-10-26-airport-countryside-*.json`.
+
+## Retained broadleaf foliage — 2026-10-26
+
+Baseline `5967d47`; same Apple M2 Pro / Chromium 141 / ANGLE Metal renderer,
+1440 × 900, high 1.5× / low 1×, four-second warm-up and twelve-second samples.
+Physics is paused; scenery updates and rendering run, with the nearby camera moving
+30 m during each sample. GPU tests run sequentially.
+
+| Tier / view | Baseline FPS | Revised FPS | Revised p95 ms | Baseline → revised median triangles | Calls |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| High / captain 3000 | 40.2 | 40.4 | 33.4 | 2,144,087 → 2,144,100 | 889 |
+| High / northern countryside | 57.3 | 56.5 | 33.3 | 571,119 → 571,133 | 319 |
+| High / nearby moving | 51.8 | 54.8 | 33.3 | 2,501,924 → 2,449,368 | 394 |
+| Low / captain 3000 | 60.0 | 60.0 | 16.7 | 789,093 → 789,102 | 524 |
+| Low / northern countryside | 60.0 | 60.0 | 16.7 | 191,817 → 191,822 | 192 |
+| Low / nearby moving | 60.0 | 60.0 | 16.8 | 316,930 → 316,939 | 257 |
+
+The first high baseline was slower: **36.7 / 52.3 / 49.7 FPS**. Offline model
+preparation overlapped part of that initial run. The table uses the clean high baseline
+repeated immediately after the revised-version benchmark, with no model baking or
+other test competing. Both baseline records remain, rather than claiming the first
+sample's large apparent gain as an improvement. Low uses its initial display-capped
+baseline. No performance result is a portable pass/fail threshold.
+
+The foliage fix adds 24,000 triangles to each of two near-tree forms. Runtime still
+targets 32 trees / 1.8M triangles, with a hard 48 / 2.4M including retirees. The moving
+benchmark ends with **19 → 17** near trees. Fewer admitted models can reduce total
+geometry in a particular view; the faster nearby sample is not a general optimization.
+A separate 360-frame transition pass peaks at **30 trees / 2,396,266 triangles**, versus
+34 / 2,387,696 before, and retains the same maximum fade increment (0.047619 per frame).
+Jacaranda's slightly wider retained branches change a few terrain-projection triangles.
+The distant tree shader, instance counts, draw batches and texture dimensions are unchanged.
+
+The two GLBs grow by **1,184,520 bytes**. High colour/response images add **42,776**,
+low **16,232**, and metadata adds one byte. Total prepared-transfer delta is therefore
+**1,227,297 high / 16,233 low**. Measured menu startup stays **14,250,643 / 8,714,756**
+bytes; complete prepared flight is **67,610,665 / 19,704,569**. Delivery tests confirm
+no extra requests after flight start, no low-tier near-tree models, and unchanged
+hidden-tab calibration / automatic low selection behavior. The larger models consume
+additional decoded geometry memory; atlas allocation, samplers and render passes do not grow.
+
+All 20 Node suites, source-coverage comparisons, actual placement/material checks,
+near-tree transition budgets, both-tier canopy coverage, directional lighting including
+missing/wrong-response fallbacks, and clear/dusk/overcast/night ground-shade checks pass.
+Matched 480-frame pilot descents and 360-frame exterior passes are review recordings,
+not benchmarks: capture/encoding affects their pacing. The review verifies image/video
+loads and slider direction. Physical phones, other GPUs, SwiftShader and the full browser
+functional suite were not rerun.
+
+Evidence: `test/benchmarks/2026-10-26-canopy-*.json` and
+[canopy review](output/canopy-review.html). To reproduce the source-quality comparison,
+first fetch the ignored originals with `tools/fetch-authored-scenery.py`, then run:
+
+```sh
+PLAYWRIGHT_BROWSERS_PATH=/private/tmp/flight-playwright VISUAL_GPU=metal \
+CANOPY_BASELINE=/path/to/5967d47-archive node test/broadleaf-source.mjs
+```

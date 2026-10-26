@@ -1,0 +1,669 @@
+{
+  "summary": [
+    {
+      "name": "jacaranda_tree",
+      "before": 21717.379738561347,
+      "after": 32998.16045751529,
+      "source": 29649.74869280901,
+      "retained": 1.11293221400957
+    },
+    {
+      "name": "island_tree_02",
+      "before": 22817.44477124031,
+      "after": 29268.116993462474,
+      "source": 33389.43300653467,
+      "retained": 0.8765682540261881
+    }
+  ],
+  "views": [
+    {
+      "name": "jacaranda_tree",
+      "mode": "before",
+      "elevation": 0,
+      "azimuth": 0,
+      "triangles": 50288,
+      "area": 18929.305882352077,
+      "border": 0
+    },
+    {
+      "name": "jacaranda_tree",
+      "mode": "before",
+      "elevation": 0,
+      "azimuth": 22.5,
+      "triangles": 50288,
+      "area": 18393.984313724675,
+      "border": 0
+    },
+    {
+      "name": "jacaranda_tree",
+      "mode": "before",
+      "elevation": 0,
+      "azimuth": 45,
+      "triangles": 50288,
+      "area": 17593.73725490129,
+      "border": 0
+    },
+    {
+      "name": "jacaranda_tree",
+      "mode": "before",
+      "elevation": 0,
+      "azimuth": 67.5,
+      "triangles": 50288,
+      "area": 15992.270588234675,
+      "border": 0
+    },
+    {
+      "name": "jacaranda_tree",
+      "mode": "before",
+      "elevation": 22.5,
+      "azimuth": 0,
+      "triangles": 50288,
+      "area": 22045.756862744263,
+      "border": 0
+    },
+    {
+      "name": "jacaranda_tree",
+      "mode": "before",
+      "elevation": 22.5,
+      "azimuth": 22.5,
+      "triangles": 50288,
+      "area": 21382.02745097949,
+      "border": 0
+    },
+    {
+      "name": "jacaranda_tree",
+      "mode": "before",
+      "elevation": 22.5,
+      "azimuth": 45,
+      "triangles": 50288,
+      "area": 20473.835294116972,
+      "border": 0
+    },
+    {
+      "name": "jacaranda_tree",
+      "mode": "before",
+      "elevation": 22.5,
+      "azimuth": 67.5,
+      "triangles": 50288,
+      "area": 19672.83137254844,
+      "border": 0
+    },
+    {
+      "name": "jacaranda_tree",
+      "mode": "before",
+      "elevation": 45,
+      "azimuth": 0,
+      "triangles": 50288,
+      "area": 27461.501960783487,
+      "border": 0
+    },
+    {
+      "name": "jacaranda_tree",
+      "mode": "before",
+      "elevation": 45,
+      "azimuth": 22.5,
+      "triangles": 50288,
+      "area": 27228.79999999925,
+      "border": 0
+    },
+    {
+      "name": "jacaranda_tree",
+      "mode": "before",
+      "elevation": 45,
+      "azimuth": 45,
+      "triangles": 50288,
+      "area": 25772.80784313651,
+      "border": 0
+    },
+    {
+      "name": "jacaranda_tree",
+      "mode": "before",
+      "elevation": 45,
+      "azimuth": 67.5,
+      "triangles": 50288,
+      "area": 25661.698039215004,
+      "border": 0
+    },
+    {
+      "name": "jacaranda_tree",
+      "mode": "after",
+      "elevation": 0,
+      "azimuth": 0,
+      "triangles": 74288,
+      "area": 30615.250980390923,
+      "border": 0
+    },
+    {
+      "name": "jacaranda_tree",
+      "mode": "after",
+      "elevation": 0,
+      "azimuth": 22.5,
+      "triangles": 74288,
+      "area": 29909.19607843022,
+      "border": 0
+    },
+    {
+      "name": "jacaranda_tree",
+      "mode": "after",
+      "elevation": 0,
+      "azimuth": 45,
+      "triangles": 74288,
+      "area": 28151.38431372453,
+      "border": 0
+    },
+    {
+      "name": "jacaranda_tree",
+      "mode": "after",
+      "elevation": 0,
+      "azimuth": 67.5,
+      "triangles": 74288,
+      "area": 25544.89019607759,
+      "border": 0
+    },
+    {
+      "name": "jacaranda_tree",
+      "mode": "after",
+      "elevation": 22.5,
+      "azimuth": 0,
+      "triangles": 74288,
+      "area": 34434.94901960664,
+      "border": 0
+    },
+    {
+      "name": "jacaranda_tree",
+      "mode": "after",
+      "elevation": 22.5,
+      "azimuth": 22.5,
+      "triangles": 74288,
+      "area": 33354.36078431246,
+      "border": 0
+    },
+    {
+      "name": "jacaranda_tree",
+      "mode": "after",
+      "elevation": 22.5,
+      "azimuth": 45,
+      "triangles": 74288,
+      "area": 31254.09803921468,
+      "border": 0
+    },
+    {
+      "name": "jacaranda_tree",
+      "mode": "after",
+      "elevation": 22.5,
+      "azimuth": 67.5,
+      "triangles": 74288,
+      "area": 30187.749019606763,
+      "border": 0
+    },
+    {
+      "name": "jacaranda_tree",
+      "mode": "after",
+      "elevation": 45,
+      "azimuth": 0,
+      "triangles": 74288,
+      "area": 39339.38431372457,
+      "border": 0
+    },
+    {
+      "name": "jacaranda_tree",
+      "mode": "after",
+      "elevation": 45,
+      "azimuth": 22.5,
+      "triangles": 74288,
+      "area": 39087.47843137154,
+      "border": 0
+    },
+    {
+      "name": "jacaranda_tree",
+      "mode": "after",
+      "elevation": 45,
+      "azimuth": 45,
+      "triangles": 74288,
+      "area": 37110.24705882261,
+      "border": 0
+    },
+    {
+      "name": "jacaranda_tree",
+      "mode": "after",
+      "elevation": 45,
+      "azimuth": 67.5,
+      "triangles": 74288,
+      "area": 36988.93725490092,
+      "border": 0
+    },
+    {
+      "name": "jacaranda_tree",
+      "mode": "source",
+      "elevation": 0,
+      "azimuth": 0,
+      "triangles": 3863832,
+      "area": 24676.450980389967,
+      "border": 0
+    },
+    {
+      "name": "jacaranda_tree",
+      "mode": "source",
+      "elevation": 0,
+      "azimuth": 22.5,
+      "triangles": 3863832,
+      "area": 24050.98039215485,
+      "border": 0
+    },
+    {
+      "name": "jacaranda_tree",
+      "mode": "source",
+      "elevation": 0,
+      "azimuth": 45,
+      "triangles": 3863832,
+      "area": 22755.52156862573,
+      "border": 0
+    },
+    {
+      "name": "jacaranda_tree",
+      "mode": "source",
+      "elevation": 0,
+      "azimuth": 67.5,
+      "triangles": 3863832,
+      "area": 20756.333333331793,
+      "border": 0
+    },
+    {
+      "name": "jacaranda_tree",
+      "mode": "source",
+      "elevation": 22.5,
+      "azimuth": 0,
+      "triangles": 3863832,
+      "area": 30440.952941174684,
+      "border": 0
+    },
+    {
+      "name": "jacaranda_tree",
+      "mode": "source",
+      "elevation": 22.5,
+      "azimuth": 22.5,
+      "triangles": 3863832,
+      "area": 29446.301960782683,
+      "border": 0
+    },
+    {
+      "name": "jacaranda_tree",
+      "mode": "source",
+      "elevation": 22.5,
+      "azimuth": 45,
+      "triangles": 3863832,
+      "area": 27783.02745097904,
+      "border": 0
+    },
+    {
+      "name": "jacaranda_tree",
+      "mode": "source",
+      "elevation": 22.5,
+      "azimuth": 67.5,
+      "triangles": 3863832,
+      "area": 27002.717647057463,
+      "border": 0
+    },
+    {
+      "name": "jacaranda_tree",
+      "mode": "source",
+      "elevation": 45,
+      "azimuth": 0,
+      "triangles": 3863832,
+      "area": 38311.42745097948,
+      "border": 0
+    },
+    {
+      "name": "jacaranda_tree",
+      "mode": "source",
+      "elevation": 45,
+      "azimuth": 22.5,
+      "triangles": 3863832,
+      "area": 38151.99999999904,
+      "border": 0
+    },
+    {
+      "name": "jacaranda_tree",
+      "mode": "source",
+      "elevation": 45,
+      "azimuth": 45,
+      "triangles": 3863832,
+      "area": 36221.67843137165,
+      "border": 0
+    },
+    {
+      "name": "jacaranda_tree",
+      "mode": "source",
+      "elevation": 45,
+      "azimuth": 67.5,
+      "triangles": 3863832,
+      "area": 36199.59215686177,
+      "border": 0
+    },
+    {
+      "name": "island_tree_02",
+      "mode": "before",
+      "elevation": 0,
+      "azimuth": 0,
+      "triangles": 27871,
+      "area": 22846.811764704576,
+      "border": 0
+    },
+    {
+      "name": "island_tree_02",
+      "mode": "before",
+      "elevation": 0,
+      "azimuth": 22.5,
+      "triangles": 27871,
+      "area": 23810.772549018075,
+      "border": 0
+    },
+    {
+      "name": "island_tree_02",
+      "mode": "before",
+      "elevation": 0,
+      "azimuth": 45,
+      "triangles": 27871,
+      "area": 23408.60392156709,
+      "border": 0
+    },
+    {
+      "name": "island_tree_02",
+      "mode": "before",
+      "elevation": 0,
+      "azimuth": 67.5,
+      "triangles": 27871,
+      "area": 22953.18823529248,
+      "border": 0
+    },
+    {
+      "name": "island_tree_02",
+      "mode": "before",
+      "elevation": 22.5,
+      "azimuth": 0,
+      "triangles": 27871,
+      "area": 22428.24705882216,
+      "border": 0
+    },
+    {
+      "name": "island_tree_02",
+      "mode": "before",
+      "elevation": 22.5,
+      "azimuth": 22.5,
+      "triangles": 27871,
+      "area": 22332.572549018234,
+      "border": 0
+    },
+    {
+      "name": "island_tree_02",
+      "mode": "before",
+      "elevation": 22.5,
+      "azimuth": 45,
+      "triangles": 27871,
+      "area": 22477.69019607696,
+      "border": 0
+    },
+    {
+      "name": "island_tree_02",
+      "mode": "before",
+      "elevation": 22.5,
+      "azimuth": 67.5,
+      "triangles": 27871,
+      "area": 22160.882352939752,
+      "border": 0
+    },
+    {
+      "name": "island_tree_02",
+      "mode": "before",
+      "elevation": 45,
+      "azimuth": 0,
+      "triangles": 27871,
+      "area": 21988.482352939554,
+      "border": 0
+    },
+    {
+      "name": "island_tree_02",
+      "mode": "before",
+      "elevation": 45,
+      "azimuth": 22.5,
+      "triangles": 27871,
+      "area": 21946.819607841666,
+      "border": 0
+    },
+    {
+      "name": "island_tree_02",
+      "mode": "before",
+      "elevation": 45,
+      "azimuth": 45,
+      "triangles": 27871,
+      "area": 22848.505882351277,
+      "border": 0
+    },
+    {
+      "name": "island_tree_02",
+      "mode": "before",
+      "elevation": 45,
+      "azimuth": 67.5,
+      "triangles": 27871,
+      "area": 24606.760784311904,
+      "border": 0
+    },
+    {
+      "name": "island_tree_02",
+      "mode": "after",
+      "elevation": 0,
+      "azimuth": 0,
+      "triangles": 51871,
+      "area": 28626.168627449722,
+      "border": 0
+    },
+    {
+      "name": "island_tree_02",
+      "mode": "after",
+      "elevation": 0,
+      "azimuth": 22.5,
+      "triangles": 51871,
+      "area": 29714.317647057505,
+      "border": 0
+    },
+    {
+      "name": "island_tree_02",
+      "mode": "after",
+      "elevation": 0,
+      "azimuth": 45,
+      "triangles": 51871,
+      "area": 29460.713725488895,
+      "border": 0
+    },
+    {
+      "name": "island_tree_02",
+      "mode": "after",
+      "elevation": 0,
+      "azimuth": 67.5,
+      "triangles": 51871,
+      "area": 29335.839215684828,
+      "border": 0
+    },
+    {
+      "name": "island_tree_02",
+      "mode": "after",
+      "elevation": 22.5,
+      "azimuth": 0,
+      "triangles": 51871,
+      "area": 28468.74509803793,
+      "border": 0
+    },
+    {
+      "name": "island_tree_02",
+      "mode": "after",
+      "elevation": 22.5,
+      "azimuth": 22.5,
+      "triangles": 51871,
+      "area": 28545.38431372404,
+      "border": 0
+    },
+    {
+      "name": "island_tree_02",
+      "mode": "after",
+      "elevation": 22.5,
+      "azimuth": 45,
+      "triangles": 51871,
+      "area": 28628.45490195921,
+      "border": 0
+    },
+    {
+      "name": "island_tree_02",
+      "mode": "after",
+      "elevation": 22.5,
+      "azimuth": 67.5,
+      "triangles": 51871,
+      "area": 28417.12941176321,
+      "border": 0
+    },
+    {
+      "name": "island_tree_02",
+      "mode": "after",
+      "elevation": 45,
+      "azimuth": 0,
+      "triangles": 51871,
+      "area": 29268.003921566753,
+      "border": 0
+    },
+    {
+      "name": "island_tree_02",
+      "mode": "after",
+      "elevation": 45,
+      "azimuth": 22.5,
+      "triangles": 51871,
+      "area": 29123.03137254712,
+      "border": 0
+    },
+    {
+      "name": "island_tree_02",
+      "mode": "after",
+      "elevation": 45,
+      "azimuth": 45,
+      "triangles": 51871,
+      "area": 29882.772549017587,
+      "border": 0
+    },
+    {
+      "name": "island_tree_02",
+      "mode": "after",
+      "elevation": 45,
+      "azimuth": 67.5,
+      "triangles": 51871,
+      "area": 31746.843137252814,
+      "border": 0
+    },
+    {
+      "name": "island_tree_02",
+      "mode": "source",
+      "elevation": 0,
+      "azimuth": 0,
+      "triangles": 1072213,
+      "area": 32191.137254900903,
+      "border": 0
+    },
+    {
+      "name": "island_tree_02",
+      "mode": "source",
+      "elevation": 0,
+      "azimuth": 22.5,
+      "triangles": 1072213,
+      "area": 33134.80784313627,
+      "border": 0
+    },
+    {
+      "name": "island_tree_02",
+      "mode": "source",
+      "elevation": 0,
+      "azimuth": 45,
+      "triangles": 1072213,
+      "area": 32927.79607843044,
+      "border": 0
+    },
+    {
+      "name": "island_tree_02",
+      "mode": "source",
+      "elevation": 0,
+      "azimuth": 67.5,
+      "triangles": 1072213,
+      "area": 33239.686274508706,
+      "border": 0
+    },
+    {
+      "name": "island_tree_02",
+      "mode": "source",
+      "elevation": 22.5,
+      "azimuth": 0,
+      "triangles": 1072213,
+      "area": 32402.768627449936,
+      "border": 0
+    },
+    {
+      "name": "island_tree_02",
+      "mode": "source",
+      "elevation": 22.5,
+      "azimuth": 22.5,
+      "triangles": 1072213,
+      "area": 32572.066666665494,
+      "border": 0
+    },
+    {
+      "name": "island_tree_02",
+      "mode": "source",
+      "elevation": 22.5,
+      "azimuth": 45,
+      "triangles": 1072213,
+      "area": 32704.780392155655,
+      "border": 0
+    },
+    {
+      "name": "island_tree_02",
+      "mode": "source",
+      "elevation": 22.5,
+      "azimuth": 67.5,
+      "triangles": 1072213,
+      "area": 32369.48627450857,
+      "border": 0
+    },
+    {
+      "name": "island_tree_02",
+      "mode": "source",
+      "elevation": 45,
+      "azimuth": 0,
+      "triangles": 1072213,
+      "area": 34033.70196078274,
+      "border": 0
+    },
+    {
+      "name": "island_tree_02",
+      "mode": "source",
+      "elevation": 45,
+      "azimuth": 22.5,
+      "triangles": 1072213,
+      "area": 34008.92941176307,
+      "border": 0
+    },
+    {
+      "name": "island_tree_02",
+      "mode": "source",
+      "elevation": 45,
+      "azimuth": 45,
+      "triangles": 1072213,
+      "area": 34562.513725488505,
+      "border": 0
+    },
+    {
+      "name": "island_tree_02",
+      "mode": "source",
+      "elevation": 45,
+      "azimuth": 67.5,
+      "triangles": 1072213,
+      "area": 36525.52156862577,
+      "border": 0
+    }
+  ],
+  "errors": []
+}
