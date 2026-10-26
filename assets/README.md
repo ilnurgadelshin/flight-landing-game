@@ -345,6 +345,36 @@ it is not a version-pinned mirror. The game never calls the Poly Haven API.
 
 ## Interpreted approach land cover — public-domain imagery / original mask
 
+The airport-side companion, `scenery/airport-countryside.png` and `.json`, interprets
+the already bundled public-domain `airport.webp` across x=−2100–2280 m,
+z=−2500–2500 m. Its original field, woodland and clearing outlines are recorded in
+`tools/airport-countryside.mjs`; reproduce with `node tools/bake-airport-countryside.mjs`.
+Like the approach map, it is original MIT project work and an artistic land-cover
+interpretation, not a land-use survey. No new source photograph or model is downloaded.
+
+The PNG/JSON pair is **39,791 bytes**, with a net **609.33 ha** of weighted coverage
+after subtracting prior cover in the overlap. Raw meadow/stubble/woodland areas are
+138.01 / 98.33 / 415.83 ha; raw totals include overlap and must not be added to the
+previous maps directly.
+
+This separate 640 × 768 linear RGB mask is loaded only on high quality, with scenery
+behind the menu. It adds 1.97 MB of RGBA8 GPU storage and about 0.98 MB of packed CPU
+coverage, plus mixed-pixel records. The earlier five baked maps and their atlas stay
+unchanged. CPU planting and the ground shader share a smooth 180 m overlap at
+x=2100–2280. The new sampler is read only inside its rectangle; the older map is
+also read inside the overlap. There is no extra terrain draw pass. If the optional
+airport data fails validation or cannot load, the older corridor still loads and the
+airport retains its photograph and previous tree budget.
+
+Two bounded high-only planting zones add 2000 trees per side, for **70,000 high /
+14,000 low**. Existing zone caps and seeds remain; accepted trees at the overlap and
+background positions can change. The airfield and approach-light protection includes
+a 24 m clear margin and a further 110 m canopy/ground fade beside the earthworks.
+Roads, buildings, settlement clearings and mapped fields retain exclusions. The new
+outer boundaries fade over 180 m. The low tier requests neither airport mask file
+and retains its existing ground and tree allocations. This does not replace all
+farm buildings, remove photographic shadows or supply dense, detailed distant crowns.
+
 `scenery/approach-corridor.png` and `.json` describe meadow, stubble and woodland
 along 6.9 km of final. The close map spans 6.9 × 2.03 km; high-quality hillside
 extensions reach both sides out to z=−2500 / +2500 m. The original bilateral

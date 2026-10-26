@@ -1,0 +1,127 @@
+{
+  "olderBakedMapsUnchanged": [
+    true,
+    true,
+    true,
+    true,
+    true
+  ],
+  "atlas": [
+    3450,
+    1277
+  ],
+  "bytesBefore": 411261,
+  "bytesAfter": 451052,
+  "transferDelta": 39791,
+  "netHectares": [
+    134.77949042072993,
+    96.29400528395318,
+    378.2555261885147
+  ],
+  "netTotalHectares": 609.3290218931978,
+  "airportMask": [
+    640,
+    768
+  ],
+  "method": "Net high-tier coverage change on a 2m grid over the airport rectangle, subtracting prior coverage within the 180m join.",
+  "diffs": [
+    {
+      "tier": "high",
+      "view": "captain-4000",
+      "changedPercent": 4.783641975308642,
+      "visibleChangePercent": 1.826466049382716,
+      "meanRgbDelta": 1.0018734567901235
+    },
+    {
+      "tier": "high",
+      "view": "captain-3000",
+      "changedPercent": 3.217206790123457,
+      "visibleChangePercent": 1.6343364197530865,
+      "meanRgbDelta": 0.9304115226337448
+    },
+    {
+      "tier": "high",
+      "view": "captain-2200",
+      "changedPercent": 1.1462962962962964,
+      "visibleChangePercent": 0.7234567901234568,
+      "meanRgbDelta": 0.48863683127572016
+    },
+    {
+      "tier": "high",
+      "view": "airport-country-north",
+      "changedPercent": 30.07121913580247,
+      "visibleChangePercent": 23.902006172839506,
+      "meanRgbDelta": 9.00920267489712
+    },
+    {
+      "tier": "high",
+      "view": "airport-country-south",
+      "changedPercent": 18.859876543209875,
+      "visibleChangePercent": 13.348611111111111,
+      "meanRgbDelta": 5.414131430041152
+    },
+    {
+      "tier": "high",
+      "view": "airport-overcast",
+      "changedPercent": 28.772916666666667,
+      "visibleChangePercent": 18.55679012345679,
+      "meanRgbDelta": 4.3840208333333335
+    },
+    {
+      "tier": "high",
+      "view": "airport-night",
+      "changedPercent": 24.20077160493827,
+      "visibleChangePercent": 0.013734567901234567,
+      "meanRgbDelta": 0.479951646090535
+    },
+    {
+      "tier": "low",
+      "view": "captain-4000",
+      "changedPercent": 0,
+      "visibleChangePercent": 0,
+      "meanRgbDelta": 0
+    },
+    {
+      "tier": "low",
+      "view": "captain-3000",
+      "changedPercent": 0,
+      "visibleChangePercent": 0,
+      "meanRgbDelta": 0
+    },
+    {
+      "tier": "low",
+      "view": "captain-2200",
+      "changedPercent": 0,
+      "visibleChangePercent": 0,
+      "meanRgbDelta": 0
+    },
+    {
+      "tier": "low",
+      "view": "airport-country-north",
+      "changedPercent": 0,
+      "visibleChangePercent": 0,
+      "meanRgbDelta": 0
+    },
+    {
+      "tier": "low",
+      "view": "airport-country-south",
+      "changedPercent": 0,
+      "visibleChangePercent": 0,
+      "meanRgbDelta": 0
+    },
+    {
+      "tier": "low",
+      "view": "airport-overcast",
+      "changedPercent": 0,
+      "visibleChangePercent": 0,
+      "meanRgbDelta": 0
+    },
+    {
+      "tier": "low",
+      "view": "airport-night",
+      "changedPercent": 0,
+      "visibleChangePercent": 0,
+      "meanRgbDelta": 0
+    }
+  ]
+}

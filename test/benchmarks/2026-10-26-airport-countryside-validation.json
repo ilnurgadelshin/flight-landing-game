@@ -1,0 +1,20 @@
+{
+  "baseline": "8f492ad",
+  "nodeSuites": 20,
+  "nodePassed": true,
+  "metalScenery": true,
+  "cpuGpuSamples": 31,
+  "fieldRoadBuildingAirportClearances": true,
+  "olderBakedMapsUnchanged": 5,
+  "lowPixelIdenticalViews": 7,
+  "retainedFields": true,
+  "invalidAndMissingAirportFallback": true,
+  "deliveryPassed": true,
+  "motionFramesPerClip": 480,
+  "reviewImages": 28,
+  "reviewVideos": 2,
+  "reviewControlsAndPhoneLayout": true,
+  "physicalDevicesTested": false,
+  "softwareRendererTested": false,
+  "fullFunctionalSuiteRepeated": false
+}

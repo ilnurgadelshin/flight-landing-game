@@ -1,0 +1,59 @@
+{
+  "bounds": [
+    -2100,
+    -2500,
+    4380,
+    5000
+  ],
+  "width": 640,
+  "height": 768,
+  "join": [
+    2100,
+    2280
+  ],
+  "source": "airport.webp",
+  "sourceCrop": [
+    950,
+    750,
+    2190,
+    2500
+  ],
+  "plantingZones": [
+    {
+      "bounds": [
+        -2100,
+        -2500,
+        4200,
+        1900
+      ],
+      "seed": 2610251,
+      "highLimit": 2000,
+      "lowLimit": 0,
+      "highSpacing": 18,
+      "lowSpacing": 32,
+      "uniform": true,
+      "strictBounds": true
+    },
+    {
+      "bounds": [
+        -2100,
+        850,
+        4200,
+        1650
+      ],
+      "seed": 2610252,
+      "highLimit": 2000,
+      "lowLimit": 0,
+      "highSpacing": 15,
+      "lowSpacing": 32,
+      "uniform": true,
+      "strictBounds": true
+    }
+  ],
+  "hectares": [
+    138.01,
+    98.33,
+    415.83
+  ],
+  "licence": "Original interpreted boundaries from bundled public-domain USDA NAIP / USGS airport.webp. Not a land-use survey."
+}

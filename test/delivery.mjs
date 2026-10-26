@@ -26,6 +26,9 @@ try{
     await page.evaluate(async()=>{await window.__sim.world.sceneryPrepared;});
     const prepared=await resources(),progress=await page.evaluate(()=>window.__sim.world.sceneryProgress);
     const grass=prepared.filter(r=>/\/grass-patches.*\.webp$/.test(r.name));
+    const airport=prepared.filter(r=>/\/airport-countryside\.(png|json)$/.test(r.name));
+    assert.equal(airport.length,tier==='high'?2:0,'Airport countryside data is high-tier only');
+    assert.ok(!startup.some(r=>/\/airport-countryside\.(png|json)$/.test(r.name)),'Airport countryside loads behind the menu');
     assert.deepEqual(grass.map(r=>r.name.replace(url,'')),tier==='high'?['/assets/scenery/grass-patches.webp']:[],'The grass atlas is prepared on high only');
     assert.ok(progress.total>4&&progress.done===progress.total,`Scenery progress completes: ${JSON.stringify(progress)}`);
     // a flight then requests nothing more

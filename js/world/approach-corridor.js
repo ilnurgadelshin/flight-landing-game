@@ -2,9 +2,11 @@
 // Keep it optional: existing photographed terrain and planting are the fallback.
 import * as THREE from 'three';
 import {upperSlopeBlend,validateUpperSlopes} from './upper-slopes.js';
+import {airportCountryBlend,loadAirportCountryside} from './airport-countryside.js';
 
 export function corridorUniforms(fallback){
- return {uCorridor:{value:fallback},uCorridorRect:{value:new THREE.Vector4(2100,180,2000,850)},uCorridorReady:{value:0},uCorridorInfluence:{value:1},
+ return {uAirportCountry:{value:fallback},uAirportCountryReady:{value:0},uAirportCountryRect:{value:new THREE.Vector4()},
+  uCorridor:{value:fallback},uCorridorRect:{value:new THREE.Vector4(2100,180,2000,850)},uCorridorReady:{value:0},uCorridorInfluence:{value:1},
   uCorridorMainHeight:{value:1},uHillsRect:{value:new THREE.Vector4(0,0,1,1)},uHillsAtlas:{value:new THREE.Vector2()},uHillsReady:{value:0},
   uOppositeHillsRect:{value:new THREE.Vector4(0,0,1,1)},uOppositeHillsAtlas:{value:new THREE.Vector3()},uOppositeHillsReady:{value:0},
   uUpperSlopesReady:{value:0},uUpperSlopeRect:{value:[new THREE.Vector4(),new THREE.Vector4()]},uUpperSlopeAtlas:{value:[new THREE.Vector3(),new THREE.Vector3()]}};
@@ -207,11 +209,23 @@ export async function loadApproachCorridor(world){
   world.groundUniforms.uHillsAtlas.value.set(hills.width/manifest.width,hills.height/textureHeight);
  }
  world.groundUniforms.uCorridorReady.value=1;
- return world.approachCorridor={manifest,texture,sample,hills:activeHills,oppositeHills:activeOpposite,upperSlopes};
+ const corridor=world.approachCorridor={manifest,texture,sample,hills:activeHills,oppositeHills:activeOpposite,upperSlopes};
+ try{
+  const airport=await loadAirportCountryside(world,packCover);corridor.airportCountryside=airport;
+  if(airport)corridor.sample=(x,z)=>{
+   const blend=airportCountryBlend(airport.manifest,x,z);if(!blend)return sample(x,z);
+   const cover=airport.sample(x,z);if(blend===1)return cover;
+   return sample(x,z).map((v,c)=>v+(cover[c]-v)*blend);
+  };
+ }catch(error){corridor.airportError=String(error);console.warn('Airport countryside unavailable; retaining photographic ground.',error);}
+ return corridor;
 }
 
 export const CORRIDOR_GLSL=`
 uniform sampler2D uCorridor;
+uniform sampler2D uAirportCountry;
+uniform float uAirportCountryReady;
+uniform vec4 uAirportCountryRect;
 uniform vec4 uCorridorRect;
 uniform float uCorridorReady,uCorridorInfluence,uCorridorMainHeight,uHillsReady;
 uniform vec4 uHillsRect;
@@ -235,6 +249,15 @@ vec3 corridorBaseCover(vec2 position){
  return texture2D(uCorridor,vec2(uOppositeHillsAtlas.x+opposite.x*uOppositeHillsAtlas.y,(1.0-opposite.y)*uOppositeHillsAtlas.z)).rgb*uCorridorInfluence;
 }
 vec3 corridorCover(vec2 position){
+ if(uCorridorReady>.5&&uAirportCountryReady>.5){
+  vec2 uv=(position-uAirportCountryRect.xy)/uAirportCountryRect.zw;
+  if(min(uv.x,uv.y)>=0.0&&max(uv.x,uv.y)<1.0){
+   vec3 cover=texture2D(uAirportCountry,vec2(uv.x,1.0-uv.y)).rgb*uCorridorInfluence;
+   float blend=1.0-smoothstep(2100.0,2280.0,position.x);
+   if(blend>=1.0)return cover;
+   return mix(corridorBaseCover(position),cover,blend);
+  }
+ }
  if(uCorridorReady>.5&&uUpperSlopesReady>.5){
   // The two strips are disjoint in Z. Select one explicitly, avoiding dynamic
   // uniform-array indexing and a second texture read outside the narrow join.

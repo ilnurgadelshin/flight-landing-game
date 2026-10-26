@@ -35,7 +35,7 @@ try{
       shadows:sh?{...sh.stats,visible:sh.group.visible,opacity:sh.material.opacity,draws:sh.group.children.length,sharedAtlas:sh.material.map===w.woodlandMaterial.map}:null};
     w.renderer.info.autoReset=true;return stats;
    },view);
-   assert.deepEqual(stats.errors,[]);if(!baseline)assert.equal(stats.trees,tier==='high'?66000:14000);
+   assert.deepEqual(stats.errors,[]);if(!baseline)assert.equal(stats.trees,tier==='high'?70000:14000);
    const on=await page.screenshot({path:`test/output/${label}-${tier}-${view}.png`});
    if(!baseline){
     assert.equal(stats.shadows.sharedAtlas,true,'No duplicate atlas');

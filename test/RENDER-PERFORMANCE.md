@@ -2695,3 +2695,63 @@ All 28 review images, slider controls and phone review-page layout pass.
 `benchmarks/2026-10-25-upper-slopes-*.json`. Sparse/repeated tree silhouettes,
 photographic shadows, simple houses, airport-side countryside and land beyond the
 mapped bounds remain visible limits.
+
+
+## Airport countryside — 2026-10-26
+
+Baseline: main `8f492ad`. Apple M2 Pro, Chromium 141.0.7390.37, ANGLE Metal,
+1440 × 900, high 1.5× / low 1×, four-second warm-up and twelve-second samples,
+paused physics. Browser measurement jobs ran sequentially.
+
+| Tier / scene | Before → after FPS | After p95 ms | Draw calls | Rendered triangles |
+| --- | --- | --- | --- | --- |
+| high / captain-4000 | 37.6 → 37.4 | 33.4 | 999 → 1,003 | 2,388,519 → 2,426,517 |
+| high / captain-3000 | 41.0 → 41.6 | 33.4 | 885 → 889 | 2,112,739 → 2,144,087 |
+| high / airport-country-north | 59.3 → 57.8 | 16.8 | 317 → 319 | 552,134 → 571,119 |
+| high / airport-country-south | 60.0 → 60.0 | 16.8 | 390 → 392 | 447,068 → 466,391 |
+| low / captain-4000 | 60.0 → 60.0 | 16.7 | 567 → 567 | 910,760 → 910,760 |
+| low / captain-3000 | 60.0 → 57.7 | 16.8 | 524 → 524 | 789,093 → 789,093 |
+| low / airport-country-north | 60.0 → 60.0 | 16.8 | 192 → 192 | 191,817 → 191,817 |
+| low / airport-country-south | 60.0 → 60.0 | 16.8 | 262 → 262 | 163,139 → 163,139 |
+
+Cockpit results are within ordinary short-run variation. North exterior slows about
+2.5%; the south remains display-capped. The change adds 4000 trees and their ground
+shade, with roughly 19,000–38,000 extra rendered triangles in these views and 2–4
+more draw calls. This is added work, not a performance improvement.
+
+The low captain-3000 sample measured 57.7 FPS; an isolated repeat without code
+changes measured 60.0 FPS (p95 16.7 ms). Its draw calls and triangles
+match the baseline. Both original and repeat reports are retained, and all seven
+matched low images are pixel-identical. Other low samples remain at about 60 FPS.
+
+The optional PNG/JSON adds **39,791 bytes on high only**. The previous atlas is
+unchanged; a new 640 × 768 RGBA8 texture adds **1,966,080 bytes** of GPU storage and
+**983,040 bytes** of packed CPU coverage, plus mixed-pixel records. One extra sampler
+is read only inside the airport rectangle. Within the 180 m east overlap, the
+shader also samples the earlier map. No extra terrain mesh or draw pass is added.
+Low requests neither airport data file; the small runtime module is shared.
+
+High reaches 70,000 trees; low retains 14,000. Earlier zone caps/seeds remain, though
+accepted candidates within the overlap and background placement can change.
+Airport protection now includes a 24 m margin and a 110 m fade. Net coverage adds
+609.33 ha after subtracting old cover in the overlap, about 3074.79 ha total.
+The previous five baked maps remain byte-identical. CPU and actual GPU output agree
+at 31 checked points. Invalid/missing airport data retains earlier ground and
+66,000 high trees. All 20 Node suites pass.
+
+Retained-field checks pass on both tiers, including the older missing-mask fallback.
+Delivery passes with startup **14,250,643 / 8,714,756 bytes**, prepared **66,383,368 /
+19,688,336 bytes** high / low. Compared with the preceding pass, the prepared increase
+is 44,332 high / 4,541 low: the new 39,791-byte asset pair plus shared runtime code.
+Low requests neither airport asset. No requests occur during the short test flight.
+Automatic low selection and hidden-tab calibration still pass.
+
+Matched 480-frame pilot descents at high 1× cover x=3600 → 3001.25 m without renderer
+errors. These recordings are visual evidence; encoding affects pacing. All 28 review
+images, two video metadata loads, controls and phone review-page layout pass.
+
+Physical phones, other GPUs, SwiftShader and the full functional flight suite were
+not rerun. The earlier local SwiftShader context-creation failure is not a pass.
+Sparse/repeated crowns, photographic ground/shadows and basic rural buildings remain
+visible limitations. [Scenery comparison](output/airport-countryside-review.html);
+evidence: `benchmarks/2026-10-26-airport-countryside-*.json`.

@@ -140,16 +140,17 @@ export async function addWoodland(world,photo,approachPhoto) {
   const corridor=world.approachCorridor,localTrees=[];
   const oppositeZones=corridor?.oppositeHills?.plantingZones||[];
   const upperZones=(corridor?.upperSlopes||[]).flatMap(t=>t.plantingZones);
-  // The opposite and upper hills add bounded high-only allocations. Keep the older
+  const airportZones=corridor?.airportCountryside?.plantingZones||[];
+  // The outer hills and airport countryside add bounded high-only allocations. Keep the older
   // mapped stands and their remaining background allowance, rather than thinning
   // the airport-side trees to populate another slope. Missing maps add no budget.
-  const limit=low?14000:52000+[...oppositeZones,...upperZones].reduce((n,z)=>n+z.highLimit,0);
+  const limit=low?14000:52000+[...oppositeZones,...upperZones,...airportZones].reduce((n,z)=>n+z.highLimit,0);
   // In the reviewed corridor, plant continuous canopy from the same land-cover
   // boundaries used by the ground. Jittered spacing avoids clumps and bare gaps.
   // Independent seeds and caps preserve the older stands' density.
   if(corridor){
     // (the hillside's zone only where the corridor uses its tile: see loadApproachCorridor)
-    const zones=[...(corridor.manifest.plantingZones||[{bounds:corridor.manifest.bounds,seed:94051,highLimit:10000,lowLimit:4800}]),...(corridor.hills?.plantingZones||[]),...oppositeZones,...upperZones];
+    const zones=[...(corridor.manifest.plantingZones||[{bounds:corridor.manifest.bounds,seed:94051,highLimit:10000,lowLimit:4800}]),...(corridor.hills?.plantingZones||[]),...oppositeZones,...upperZones,...airportZones];
     const zoneCounts=[];
     for(const zone of zones){
       const [x0,z0,width,depth]=zone.bounds,localRng=makeRng(zone.seed),zoneTrees=[],upperTrees=[];
@@ -159,6 +160,7 @@ export async function addWoodland(world,photo,approachPhoto) {
         const spacing=(low?zone.lowSpacing:zone.highSpacing)??(xx<4100?(low?14:9.5):(low?18:12));
         for(let zz=z0;zz<z0+depth;zz+=spacing){
           const x=xx+(localRng()-.5)*spacing*.8,z=zz+(localRng()-.5)*spacing*.8;
+          if(zone.strictBounds&&(x<x0||x>=x0+width||z<z0||z>=z0+depth))continue;
           const cover=corridor.sample(x,z),weight=cover[2];
           if(weight<.15||cover[0]+cover[1]>.35||localRng()>Math.min(1,weight*1.6))continue;
           if(world.approachSiteExcludes?.(x,z)||protectedScenery(x,z,14)||world.approachBuildingExcludes?.(x,z)||world.approachRoadExcludes?.(x,z))continue;
@@ -204,6 +206,7 @@ export async function addWoodland(world,photo,approachPhoto) {
     // near stands read as woodland; distant photo coverage can carry fewer cards.
     const close=rng()<.65;
     const x=close?2000+rng()*8000:-3900+rng()*13800,z=(rng()-.5)*(close?4000:7800);
+    if(corridor?.airportCountryside&&x>=-2100&&x<2280&&Math.abs(z)<2500&&protectedScenery(x,z,24))continue;
     if(Math.abs(x)<2100&&Math.abs(z-120)<700)continue;
     if(Math.abs(z)<180&&x>1500&&x<3400)continue;
     if(world.approachSiteExcludes?.(x,z)||world.approachBuildingExcludes?.(x,z))continue;

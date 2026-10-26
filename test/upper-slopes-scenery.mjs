@@ -35,7 +35,7 @@ try{
    return {trees,north,south,fields,intrusions,oldNorth,oldSouth,airport,zones:c.zoneCounts,active:c.upperSlopes?.length||0,mask:[c.texture.image.width,c.texture.image.height],errors:w.assetErrors};
   });
   if(!baseline){
-   assert.equal(stats.trees,tier==='high'?66000:14000);assert.equal(stats.active,tier==='high'?2:0);
+   assert.equal(stats.trees,tier==='high'?70000:14000);assert.equal(stats.active,tier==='high'?2:0);
    assert.deepEqual(stats.mask,tier==='high'?[3450,1277]:[2048,603]);
    if(tier==='high'){
     assert.equal(stats.fields,0);assert.equal(stats.intrusions,0);
