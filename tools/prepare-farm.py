@@ -148,14 +148,33 @@ def silo(B,cx,cz,r,height):
  for k in range(int((eave-.6)/.33)):
   y=.75+k*.33;B.beam((cx-.27,y,cz+r+.12),(cx+.27,y,cz+r+.12),.026,'silo',5)
 
-def farmWing(B,x0,x1,z0,z1,eave,rise,axis='z'):
+def farmWing(B,x0,x1,z0,z1,eave,rise,axis='z',openings=()):
  # Separate pitched wings match the dairy's T-shaped roof instead of one broad roof.
  # Coordinates are in the source footprint frame; the runtime places the whole site.
  roof=lambda x,z:eave+rise*(1-abs(((x-x0)/(x1-x0) if axis=='z' else (z-z0)/(z1-z0))*2-1))
  points=[(x0,z0),(x1,z0),(x1,z1),(x0,z1)]
- for a,b in zip(points,points[1:]+points[:1]):
+ for edge,(a,b) in enumerate(zip(points,points[1:]+points[:1])):
   out=((a[0]+b[0])/2-(x0+x1)/2,0,(a[1]+b[1])/2-(z0+z1)/2)
-  B.face([(a[0],.3,a[1]),(b[0],.3,b[1]),(b[0],eave,b[1]),(a[0],eave,a[1])],'siding',outward=out)
+  cuts=[o[1:] for o in openings if o[0]==edge]
+  if not cuts:B.face([(a[0],.3,a[1]),(b[0],.3,b[1]),(b[0],eave,b[1]),(a[0],eave,a[1])],'siding',outward=out)
+  else:
+   length=math.dist(a,b);dx,dz=(b[0]-a[0])/length,(b[1]-a[1])/length;nx,nz=dz,-dx
+   at=lambda u,y,offset=0:(a[0]+dx*u+nx*offset,y,a[1]+dz*u+nz*offset)
+   box=lambda u,y,offset,w,h,d,mat:B.box(at(u,y,offset),(w,h,d),mat,(dx,nx,dz,nz))
+   xs=sorted(set([0,length]+[v for lo,hi,_,_,_ in cuts for v in [lo,hi]]));ys=sorted(set([.3,eave]+[v for _,_,bottom,top,_ in cuts for v in [bottom,top]]))
+   for lo,hi in zip(xs,xs[1:]):
+    for bottom,top in zip(ys,ys[1:]):
+     if not any(l<(lo+hi)/2<h and b<(bottom+top)/2<t for l,h,b,t,_ in cuts):B.face([at(lo,bottom),at(hi,bottom),at(hi,top),at(lo,top)],'siding',outward=out)
+   for lo,hi,bottom,top,kind in cuts:
+    u,y=(lo+hi)/2,(bottom+top)/2;w,h=hi-lo,top-bottom
+    box(u,y,-.20,w+.1,h+.1,.12,'dark');box(u,y,-.12,w-.12,h-.12,.04,kind)
+    for q in [lo,hi]:box(q,y,0,.12,h+.24,.32,'trim')
+    for q in [bottom,top]:box(u,q,0,w+.24,.12,.32,'trim')
+    if kind=='glass':box(u,y,.04,.06,h,.08,'trim')
+    else:
+     box(u,bottom-.1,.25,w+.4,.18,.9,'stone')
+     box(u,top+.19,.08,w+.5,.10,.20,'dark')
+     box(u+.25,bottom+h*.5,.02,.05,.3,.1,'dark')
   mid=((a[0]+b[0])/2,(a[1]+b[1])/2)
   if roof(*mid)>eave+.01:B.face([(a[0],eave,a[1]),(b[0],eave,b[1]),(mid[0],roof(*mid),mid[1])],'paint',outward=out)
   B.beam((a[0],eave,a[1]),(b[0],eave,b[1]),.10,'trim',4)
@@ -246,6 +265,44 @@ for b in bs:
  placement={**{k:b[k] for k in ['id','x','z','angle','w','d','height']},'style':b.get('style','barn'),'sourceHeight':b.get('sourceHeight',b['height']),'cluster':b.get('cluster','valley')}
  if placement['cluster'].startswith('crossing-'):placement['batchGroup']='approach-crossing'
  if placement['cluster'].startswith('valley-lane-'):placement['batchGroup']='valley-lane'
+ if placement['cluster']=='ridge-farm':
+  c,s=math.cos(b['angle']),math.sin(b['angle'])
+  placement['foundationPolygons']=[[[round(x*c+z*s,4),round(-x*s+z*c,4)] for x,z in b['outline']]]
+  if b['id']=='ridge-lane-store':
+   points=placement['foundationPolygons'][0]
+   a,q=next((a,points[(i+1)%len(points)]) for i,a in enumerate(points) if (a[1]+points[(i+1)%len(points)][1])/2>0 and math.dist(a,points[(i+1)%len(points)])>b['w']*.65)
+   length=math.dist(a,q);normal=[-(q[1]-a[1])/length,(q[0]-a[0])/length]
+   placement['accessRamps']=[{'center':[round(a[k]+(q[k]-a[k])*.47,4) for k in range(2)],'out':normal,'width':4.2,'length':4}]
+ if b.get('style') in ['ridge-house','ridge-workshop']:
+  # Distinct adjoining roof wings follow the photographed stepped outlines.
+  # Window/door panels sit in wall openings, not on a solid painted facade.
+  house=b['style']=='ridge-house';B=Builder(b['id'],'house' if house else 'barn',b['finish'],'shingle' if house else 'roof')
+  if house:
+   farmWing(B,-18.1,18.1,-3.7,5.2,4,1.7,'x',[
+    (0,3,4.5,1.6,3,'glass'),(0,23,24.5,1.6,3,'glass'),(0,30,31.5,1.6,3,'glass'),
+    (1,2,3.5,1.6,3,'glass'),(1,5.3,6.8,1.6,3,'glass'),
+    (2,4,5.5,1.6,3,'glass'),(2,11,12.5,1.6,3,'glass'),(2,16,17.2,1.6,3,'glass')])
+   farmWing(B,-8.3,-1.9,-7.5,-3.7,3.2,1.15,'z',[(0,1.1,2.3,1.3,2.65,'glass'),(0,4,5.2,1.3,2.65,'glass')])
+   farmWing(B,-15.1,-5,5.2,7.5,3.1,.9,'x',[(2,1.5,2.8,1.3,2.6,'glass'),(2,4.4,5.6,.3,2.5,'door'),(2,7.3,8.6,1.3,2.6,'glass')])
+   B.box((9,5.7,.75),(.7,.7,.8),'stone');B.box((9,6.09,.75),(.85,.08,.95),'dark')
+   placement['accessRamps']=[{'center':[-10.1,7.5],'out':[0,1],'width':1.8,'length':2.5}]
+   samples=[(7,.75)]
+   wings=[(-18.1,18.1,-3.7,5.2),(-8.3,-1.9,-7.5,-3.7),(-15.1,-5,5.2,7.5)]
+  else:
+   farmWing(B,-8.6,12.5,-11.1,1.7,4.6,1.8,'x',[
+    (0,2,6,.3,3.8,'door'),(0,12,16,.3,3.8,'door'),
+    (1,3,4.8,2.6,3.8,'glass'),(2,1,2.8,2.6,3.8,'glass')])
+   farmWing(B,-12.5,7.1,-1.4,11.1,4.6,1.8,'x',[
+    (2,2,3.8,2.4,3.8,'glass'),(2,10,11.8,2.4,3.8,'glass'),(3,3,4.8,2.4,3.8,'glass'),(3,8,9.8,2.4,3.8,'glass')])
+   for x,z in [(5,-4.7),(-6,4.85)]:
+    B.box((x,6.54,z),(1.1,.32,.8),'dark');B.box((x,6.74,z),(1.35,.10,1.05),'roof')
+   placement['accessRamps']=[{'center':[x,-11.1],'out':[0,-1],'width':4.6,'length':6.5} for x in [-4.6,5.4]]
+   samples=[(1,-4.7),(-3,4.85)]
+   wings=[(-8.6,12.5,-11.1,1.7),(-12.5,7.1,-1.4,11.1)]
+  placement['foundationPolygons']=[[[x0,z0],[x1,z0],[x1,z1],[x0,z1]] for x0,x1,z0,z1 in wings]
+  c,s=math.cos(b['angle']),math.sin(b['angle'])
+  placement['roofSamples']=[[round(x*c-z*s,3),round(x*s+z*c,3)] for x,z in samples]
+  B.finish();manifest.append(placement);continue
  if b.get('style')=='courtyard-house':
   # Three individually pitched wings fit this concave roof; a single ridge
   # across its bounding box would bridge the empty photographed forecourt.
@@ -337,7 +394,7 @@ for b in bs:
   if (a[0]+p[0])*nx+(a[1]+p[1])*nz<0:nx,nz=-nx,-nz
   at=lambda along,y,out=0:(a[0]+dx*along+nx*out,y,a[1]+dz*along+nz*out)
   box=lambda along,y,out,width,height,depth,mat:B.box(at(along,y,out),(width,height,depth),mat,(dx,nx,dz,nz))
-  front=length>w*.65 and (a[1]+p[1])/2<0
+  front=length>w*.65 and (a[1]+p[1])/2*(1 if b['id']=='ridge-lane-store' else -1)>0
   openings=[]
   if front:
    doorW=1.15 if style=='house' else 3.8 if w>15 else 1.25;doorH=min(2.2 if style=='house' else 3.5,eave-.3)

@@ -1,0 +1,28 @@
+{
+  "transferDelta": {
+    "high": 85588,
+    "low": 85560
+  },
+  "pixelChanges": [
+    {
+      "view": "captain-6500",
+      "changed": 38,
+      "percent": 0.002932098765432099
+    },
+    {
+      "view": "captain-6000",
+      "changed": 63,
+      "percent": 0.004861111111111111
+    },
+    {
+      "view": "ridge-farm-wide",
+      "changed": 234423,
+      "percent": 18.088194444444444
+    },
+    {
+      "view": "ridge-farm-close",
+      "changed": 123536,
+      "percent": 9.5320987654321
+    }
+  ]
+}

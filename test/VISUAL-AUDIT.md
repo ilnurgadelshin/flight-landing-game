@@ -1,28 +1,27 @@
 # Visual improvement audit
 
-## Current status — 2026-10-26
+## Current status — 2026-10-27
 
 This section is the current checklist. The original September audit and dated work log
 below record how the scene evolved; their older counts, captures and priorities are not
 the remaining-work list. Update this section after each reviewed visual pass, including
 what changed, visible impact, measured cost, evidence and limitations.
 
-The latest pass restores **broadleaf foliage lost during model reduction**. Jacaranda
-and island-tree crowns retain more source leaves; their distant colour and directional
-response views are rebaked from the delivered geometry. This makes the existing stands
-fuller on both tiers. Counts stay at **70,000 high / 14,000 low** and planting is unchanged.
-The 90–180 m near transition and 1.8M target / 2.4M hard triangle budgets remain in place.
+The latest pass completes the **ridge farm and pond lane**: three existing building
+footprints now have complete models, stepped roof wings, recessed openings and occupied
+yards connected to the actual road. Terrain-fitted base walls close the gaps below level
+floors on the sloping ground. The nearby pond and crop fields remain photographic.
+The scene now has **84 complete building placements across eleven sites**; the existing
+landscape coverage stays about **3074.79 ha**. High/low tree budgets remain **70,000 / 14,000**.
 
-This is a bounded canopy correction, not completion of the vegetation category. Repeated
-species, sparse spacing and image-plane transitions remain. It adds **1.227 MB high /
-16 KB low** behind the menu, with no additional atlas texels, sampler or draw pass. The
-nearby models consume more geometry memory, and the fixed pool can admit fewer trees.
-
-The airport-to-upper-approach landscape connection is already delivered: effective high
-coverage is about **3074.79 ha**, with **81 complete building placements across ten sites**.
-Do not keep listing those connections as untouched work. Basic houses, photographic yards
-and incomplete farm/hamlet groups remain within those bounds. The next recommended scope
-is one complete, pilot-visible rural building group, rather than further geographic expansion.
+This is a local exterior improvement. Matched ordinary forward pilot captures at x=6500
+and 6000 change under **0.005%** of the frame at a 12-level pixel threshold: the farm is
+mostly below or beside the windshield. This did not deliver the hoped-for pilot-visible
+settlement gain. Further rural work should first demonstrate visibility from the actual
+seat; completing increasingly remote parcels is not the next best use of the frame budget.
+The next recommended pass is **cockpit materials and lighting**, which occupy most of
+that view. The prior broadleaf correction remains delivered, with unchanged transitions,
+texture dimensions and the 1.8M target / 2.4M hard near-tree triangle budgets.
 
 Specific defects already addressed include the distorted source cockpit shell, black cabin
 reflection failure and degenerate panel normal calculation, the narrow phone windshield/MCP
@@ -35,10 +34,10 @@ should not be presented again as untouched tasks. Their broader quality limitati
 
 | Rank | Remaining work | Importance | Current limit / next acceptance evidence |
 | --- | --- | --- | --- |
-| 1 | Complete rural building groups | High | Ground cover now connects the airport and approach. Basic houses, isolated roofs, flat yards and incomplete farm/hamlet groups remain outside ten completed sites. Finish a pilot-visible settlement as a coherent site before adding further distant coverage. Untraced individual parcels and countryside beyond x=−2100–9000 / absolute z=2500 remain photographic. |
-| 2 | Complete cockpit material and lighting detail | High | Selected front panels, padding and grips have fitted wear; side consoles/overhead still lack a complete aircraft-specific texture set. Indirect light and local shadows remain approximations. Begin with source/game comparison and protect instrument readability on both tiers. |
-| 3 | Further canopy form and grouping | Medium–high | The overly reduced jacaranda/island foliage is corrected. Repeated species, sparse stand spacing and blended image-plane silhouettes remain. Further work needs better form variation or representation, checked in motion within existing budgets; increasing geographic coverage does not solve it. |
-| 4 | Temporal stability of fine detail | Medium–high | Thin labels, branches, roof details and shadow edges can shimmer in motion. Evaluate actual flight motion and GPU cost, not only static screenshots. |
+| 1 | Complete cockpit material and lighting detail | High | Selected front panels, padding and grips have fitted wear; side consoles/overhead still lack a complete aircraft-specific texture set. Indirect light and local shadows remain approximations. Begin with source/game comparison and protect instrument readability on both tiers. |
+| 2 | Temporal stability of fine detail | Medium–high | Thin labels, branches, roof details and shadow edges can shimmer in motion. Evaluate actual flight motion and GPU cost, not only static screenshots. |
+| 3 | Further canopy form and grouping | Medium–high | Lost broadleaf foliage is corrected. Repeated species, sparse spacing and blended image-plane silhouettes remain. Further work needs better form variation or representation, checked in motion within existing budgets. |
+| 4 | Other rural building groups | Medium in the forward cockpit; high in close exterior views | Eleven sites are complete; basic houses, isolated roofs and flat yards remain elsewhere. Select further sites only after a pilot-view visibility check. No further geographic extension is proposed. Untraced parcels and countryside beyond x=−2100–9000 / absolute z=2500 remain photographic. |
 | 5 | Finer cloud and wet-weather rendering | Medium overall; high in weather scenarios | Fair-weather clouds retain repeated forms; overcast uses bounded resolution/steps and a simplified deep interior. Water films and blade contact remain approximate. Preserve the corrected rain timing and cloud-entry visibility. |
 | 6 | Airport ground-level detail and local shadows | Medium | Terminal glass and architecture improved, but wear, drainage, service clutter and shadows on raised surfaces remain sparse. Concentrate on details visible during flare/rollout. |
 
@@ -47,6 +46,57 @@ separate cosmetic milestone. Current high-resolution scenes still fall below 60 
 the M2 Pro; retain adaptive quality and report costs. Physical phones, ordinary laptops
 and multiple GPU drivers need wider validation. Existing SwiftShader evidence in the log
 does not certify the latest pass on those devices.
+
+### Ridge farm and pond lane — 2026-10-27
+
+Baseline: published main `d2cf021`. Three registered buildings at x=5453–5683,
+z=−427…−483 become one complete rural site, using the existing public-domain `5_-1`
+NAIP tile and the existing original/CC0 material set. No new source service or licence.
+Uses, finishes and 4.7 / 5.7 / 6.4 m heights are interpretations, not surveyed architecture.
+
+- Separate roof wings follow the house and workshop's stepped outlines. Recessed windows,
+  lane-facing doors and filtered roof/siding relief replace the simple roof blocks.
+  Three lawn parcels, three gravel yards, a road-connected lane, three local access
+  paths and five timber boundary polylines complete the occupied margins. The pond,
+  crop fields and overall land-cover coverage remain. Site trees respect the existing
+  exclusions; 77 eligible planted trees now serve eleven sites, within the same budgets.
+- Level floors on this slope left gaps of up to 3.6 m. Optional foundation polygons now
+  generate terrain-fitted concrete bases, and four ramps join road-facing doorsteps to
+  the yard. These merge into the existing concrete batches. The downhill retaining walls
+  are substantial; terrain grading and more detailed weathering remain simplified.
+  Existing buildings without the new foundation metadata retain their original geometry.
+- Totals: **84 buildings / 11 sites**, **165,567 near / 118,598 far building triangles**,
+  **377,642 site triangles**, plus the original 2,924-triangle yard. The pass adds 4,618
+  building triangles including foundations/ramps, 25,156 grounds/fence triangles and
+  14 material batches (106 → 120 before subtracting replaced procedural facades).
+- Runtime transfer increases **85,588 high / 85,560 low bytes**, including shared code
+  and manifests. The images and map dimensions are unchanged. Models and site geometry
+  are still prepared behind the menu; no new per-frame effect, light or render pass.
+  Startup is 14,253,990 / 8,718,103 bytes and prepared flight 67,696,253 / 19,790,129.
+  The short flight makes no additional requests; automatic low selection and hidden-tab
+  calibration still pass.
+- Both tiers pass 89 roof samples, three downhill foundation rays, four ramp joins,
+  open roof-notch/courtyard checks, 57 local accesses, 26 main-road joins and terrain
+  contact within 0.034 mm. No checked unplanned or intruding site trees. Missing or
+  invalid extension data retains the original nine-building site. All 20 Node suites
+  pass, including slope/winding and ramp-contact checks.
+- At 1440 × 900 on M2 Pro / ANGLE Metal, final high 1.5× FPS is **33.2 pilot / 60.0
+  wide / 45.4 close**, against **31.3 / 60.0 / 46.4** before. Low 1× remains about 60.
+  The close view selects 20 near trees instead of 19 after the parcel exclusions change;
+  total rendered geometry increases more than the authored models alone. These bounded
+  samples vary; the higher pilot result is not evidence of an optimization.
+- Matched ordinary pilot captures at x=6500 and 6000 change **0.0029% / 0.0049%** of
+  pixels above a 12-level threshold. The architecture is mostly below or beside that
+  forward view. This closes a local farm, not the broad scenery category, and does not
+  deliver a strong pilot-visible gain. Future settlements need a visibility check
+  before authoring; cockpit materials and lighting are the next recommended focus.
+
+[Matched high/low review](output/ridge-farm-review.html) includes exterior, yard, pilot,
+storm and night views plus two 480-frame pilot descents. All 28 image loads, both video
+metadata loads, slider direction and phone review-page layout pass. Video encoding affects pacing;
+the recordings are visual evidence, not benchmarks. See the performance record and
+`benchmarks/2026-10-27-ridge-farm-*.json` for retained measurements. Physical phones,
+other GPUs, SwiftShader and the full functional browser suite were not rerun.
 
 ### Retained broadleaf foliage — 2026-10-26
 

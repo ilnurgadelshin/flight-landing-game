@@ -706,16 +706,18 @@ The visual assets are bundled locally and need no map service, account or API ke
   and unselected buildings retain their procedural forms.
   Six additional roofs traced from the public-domain imagery fill prominent gaps
   in the source footprints, with interpreted corrugated roofs and agricultural facades.
-  Eighty-one building placements across ten sites use complete original models: timber
+  Eighty-four building placements across eleven sites use complete original models: timber
   barns, clapboard homes, working sheds and three domed silos. The upper-valley dairy has
   separate pitched wings; silo groups replace two incorrectly inferred windowed blocks.
   Recessed openings, roof details, gutters and foundations add depth. Matching lawns,
-  gravel yards, connected drives, local lanes, fences and 76 eligible placed trees replace the
+  gravel yards, connected drives, local lanes, fences and 77 eligible placed trees replace the
   photographic ground at these sites. The approach crossing connects 27 of those buildings
   through three adjacent groups of grounds, with wooded parcels and open pasture following
   the same land-cover map. Nineteen more buildings complete the valley lane farm and nearby
   homes, with separate roof wings around the barn and garden-house courtyards. Projected
-  silo shadows follow their rounded outlines.
+  silo shadows follow their rounded outlines. Three ridge-farm buildings gain separate
+  roof wings, recessed openings and a connected pond lane; surrounding fields and the
+  photographed pond remain intact.
   Fine clapboard and roof seams use filtered normal maps to avoid bright subpixel strips.
   Timber and gravel use CC0 scans. Footprints are retained; architecture, grounds and some
   estimated heights are interpreted. The previous buildings remain as a fallback if the

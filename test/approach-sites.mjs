@@ -17,17 +17,42 @@ try{
   await page.goto(url+'/?quality='+tier);await page.waitForFunction(()=>window.__sim,null,{timeout:120000});await completeScenery(page);
   const stats=await page.evaluate(async baseline=>{
    const s=window.__sim,w=s.world,T=await import('/vendor/three.module.js');s.setDrawing(false);s.game.state='menu';
-   const result={...w.approachBuildings.farm,groundError:0,roofs:0,roofSamples:0,roadConnections:0,mainRoadConnections:0,trees:0,unplanned:0,intrusions:0,errors:w.assetErrors};
+   const result={...w.approachBuildings.farm,groundError:0,roofs:0,roofSamples:0,foundations:0,ramps:0,roadConnections:0,mainRoadConnections:0,trees:0,unplanned:0,intrusions:0,errors:w.assetErrors};
    if(baseline)return result;
    const {sceneryGroundHeight}=await import('/js/world/scenery-ground.js'),data=await(await fetch('/assets/scenery/approach-sites.json')).json();
+   const registered=(await(await fetch('/assets/scenery/approach-buildings.json')).json()).buildings;
    const manifest=await(await fetch('/assets/scenery/farm-sources.json')).json(),farm=w.approachBuildings.group.getObjectByName('Authored valley farm');farm.updateMatrixWorld(true);
    for(const p of manifest.placements){
     for(const [dx,dz] of p.roofSamples||[[0,0]]){
      const x=p.x+dx,z=p.z+dz,ground=sceneryGroundHeight(x,z,w.groundLowDetail),hit=new T.Raycaster(new T.Vector3(x,ground+100,z),new T.Vector3(0,-1,0)).intersectObject(farm,true)[0];
      if(!hit||hit.face.normal.y<.5||hit.point.y-ground<p.height-.5)throw new Error('Missing/low/inverted roof '+p.id);result.roofSamples++;
     }result.roofs++;
+    if(p.foundationPolygons){
+     const b=registered.find(b=>b.x===p.x&&b.z===p.z),floor=Math.max(...b.outline.map(([x,z])=>sceneryGroundHeight(b.x+x,b.z+z,w.groundLowDetail)))+.15;
+     const edges=[];for(const poly of p.foundationPolygons){
+      const area=poly.reduce((n,a,i)=>{const b=poly[(i+1)%poly.length];return n+a[0]*b[1]-b[0]*a[1];},0),ring=area<0?[...poly].reverse():poly;
+      for(let i=0;i<ring.length;i++){
+       const a=ring[i],b=ring[(i+1)%ring.length],u=(a[0]+b[0])/2,v=(a[1]+b[1])/2,c=Math.cos(p.angle),s=Math.sin(p.angle),length=Math.hypot(b[0]-a[0],b[1]-a[1]);
+       const nx=(b[1]-a[1])/length,nz=-(b[0]-a[0])/length,x=p.x+u*c-v*s,z=p.z+u*s+v*c;
+       edges.push({x,z,nx:nx*c-nz*s,nz:nx*s+nz*c,ground:sceneryGroundHeight(x,z,w.groundLowDetail)});
+      }
+     }
+     const e=edges.sort((a,b)=>a.ground-b.ground)[0],y=(floor+e.ground)/2;
+     const hit=new T.Raycaster(new T.Vector3(e.x+e.nx*2,y,e.z+e.nz*2),new T.Vector3(-e.nx,0,-e.nz),0,2.1).intersectObject(farm,true)[0];
+     if(!hit||!hit.object.name.includes('Foundation concrete'))throw new Error('Floating downhill foundation: '+p.id);
+     result.foundations++;
+     for(const ramp of p.accessRamps||[]){
+      for(const t of [.2,.99]){
+       const along=.75+(ramp.length-.75)*t,u=ramp.center[0]+ramp.out[0]*along,v=ramp.center[1]+ramp.out[1]*along,c=Math.cos(p.angle),s=Math.sin(p.angle),x=p.x+u*c-v*s,z=p.z+u*s+v*c;
+       const hit=new T.Raycaster(new T.Vector3(x,floor+10,z),new T.Vector3(0,-1,0)).intersectObject(farm,true)[0];
+       const eu=ramp.center[0]+ramp.out[0]*ramp.length,ev=ramp.center[1]+ramp.out[1]*ramp.length,endGround=sceneryGroundHeight(p.x+eu*c-ev*s,p.z+eu*s+ev*c,w.groundLowDetail);
+       const expected=Math.max(sceneryGroundHeight(x,z,w.groundLowDetail)+.04,(floor+.30)*(1-t)+(endGround+.04)*t);
+       if(!hit||hit.face.normal.y<.5||(t<.5&&!hit.object.name.includes('Foundation concrete'))||Math.abs(hit.point.y-expected)>.12)throw new Error('Entrance ramp misses floor or yard: '+p.id);
+      }result.ramps++;
+     }
+    }
    }
-   for(const [id,u,v] of [['lane-courtyard-barn',8,-10],['lane-garden-house',0,-5]]){
+   for(const [id,u,v] of [['lane-courtyard-barn',8,-10],['lane-garden-house',0,-5],['ridge-farmhouse',-14,-6],['ridge-workshop',10,7],['ridge-workshop',-10,-7]]){
     const p=manifest.placements.find(p=>p.id===id),x=p.x+u*Math.cos(p.angle)-v*Math.sin(p.angle),z=p.z+u*Math.sin(p.angle)+v*Math.cos(p.angle);
     const ground=sceneryGroundHeight(x,z,w.groundLowDetail),yard=new T.Raycaster(new T.Vector3(x,ground+100,z),new T.Vector3(0,-1,0)).intersectObject(farm,true)[0];
     if(yard&&yard.point.y-ground>1)throw new Error('Courtyard filled by a false roof: '+id);
@@ -58,13 +83,19 @@ try{
    return result;
   },baseline);
   assert.deepEqual(stats.errors,[]);
-  if(!baseline){assert.equal(stats.buildings,81);assert.equal(stats.sites,10);assert.equal(stats.roofs,81);assert.equal(stats.roofSamples,85);assert.equal(stats.roadConnections,54);assert.equal(stats.mainRoadConnections,25);assert.ok(stats.groundError<.001);assert.equal(stats.intrusions,0);assert.equal(stats.unplanned,0);assert.ok(stats.trees>50);}
+  if(!baseline){assert.equal(stats.buildings,84);assert.equal(stats.sites,11);assert.equal(stats.roofs,84);assert.equal(stats.roofSamples,89);assert.equal(stats.foundations,3);assert.equal(stats.ramps,4);assert.equal(stats.roadConnections,57);assert.equal(stats.mainRoadConnections,26);assert.ok(stats.groundError<.001);assert.equal(stats.intrusions,0);assert.equal(stats.unplanned,0);assert.ok(stats.trees>50);}
   console.log(tier,stats);report.push({tier,...stats});
   for(const view of process.env.REVIEW_VIEWS?.split(',')||['valley-lane-wide','valley-lane-farm','valley-lane-east','valley-lane-overcast','valley-lane-night','crossing-wide','crossing-front','crossing-lane','crossing-bend','crossing-overcast','crossing-night','captain-6000','captain-5500','captain-5000','homes-wide','homes-close','homes-garden','homes-overcast','homes-night','farm-wide','farm-close','hamlet-wide','hamlet-close','contour-wide','contour-close','contour-overcast','contour-night','overcast','night','captain-4300','captain-3500','captain-2900']){
    await page.evaluate(async view=>{
     const T=await import('/vendor/three.module.js'),s=window.__sim,w=s.world;
     s.start({startId:'short',scenarioId:view.endsWith('overcast')?'storm':'clear',night:view.endsWith('night'),seed:5});s.setDrawing(false);s.setTimeScale(0);s.game.state='menu';
     const c=new T.PerspectiveCamera(50,1440/900,.1,60000);
+    if(view.startsWith('ridge-farm-')){
+     const {sceneryGroundHeight}=await import('/js/world/scenery-ground.js'),g=(x,z)=>sceneryGroundHeight(x,z,w.groundLowDetail);
+     if(view==='ridge-farm-wide'){c.position.set(5880,g(5880,-180)+170,-180);c.lookAt(5520,g(5520,-450)+4,-450);}
+     else if(view==='ridge-farm-yard'){c.position.set(5687,g(5687,-447)+6,-447);c.lookAt(5683,g(5683,-474)+3,-474);}
+     else{c.position.set(5735,g(5735,-540)+18,-540);c.lookAt(5632,g(5632,-476)+4,-476);}
+    }
     if(view==='farm-wide'){c.position.set(2620,140,-610);c.lookAt(2370,0,-390);}
     if(view==='farm-close'){c.position.set(2390,15,-320);c.lookAt(2387,3,-385);}
     if(view==='hamlet-wide'){c.position.set(3410,125,-490);c.lookAt(3180,0,-285);}

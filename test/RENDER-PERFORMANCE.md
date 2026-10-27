@@ -2812,3 +2812,58 @@ first fetch the ignored originals with `tools/fetch-authored-scenery.py`, then r
 PLAYWRIGHT_BROWSERS_PATH=/private/tmp/flight-playwright VISUAL_GPU=metal \
 CANOPY_BASELINE=/path/to/5967d47-archive node test/broadleaf-source.mjs
 ```
+
+## Ridge farm and pond lane — 2026-10-27
+
+Baseline `d2cf021`; Apple M2 Pro / Chromium 141 / ANGLE Metal, 1440 × 900,
+high 1.5× / low 1×. Four-second warm-up, twelve-second samples; paused physics,
+active rendering and scenery updates. Benchmark jobs run alone, without model baking
+or other GPU tests. The baseline close camera was moved out of the trees and resampled
+before comparison; the retained combined baseline uses that matched field-side view.
+
+| Tier / scene | Before FPS | After FPS | After p95 ms | Median calls | Median triangles |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| high / captain-6500 | 31.3 | 33.2 | 33.4 | 1187 → 1201 | 2,990,497 → 3,018,747 |
+| high / ridge-farm-wide | 60.0 | 60.0 | 16.8 | 398 → 412 | 1,057,828 → 1,085,958 |
+| high / ridge-farm-close | 46.4 | 45.4 | 33.4 | 722 → 732 | 2,777,727 → 3,077,851 |
+| low / captain-6500 | 60.0 | 60.0 | 16.7 | 686 → 700 | 1,249,291 → 1,277,609 |
+| low / ridge-farm-wide | 60.0 | 60.0 | 16.7 | 231 → 245 | 497,846 → 527,458 |
+| low / ridge-farm-close | 60.0 | 60.0 | 16.7 | 484 → 498 | 762,723 → 792,335 |
+
+The farm adds three complete buildings, 4,618 building triangles including 414 triangles
+of terrain-fitted foundation/entrance geometry, 25,156 ground/fence triangles and 14
+material batches. Near/far complete-building totals are 165,567 / 118,598; grounds
+use 377,642 triangles, plus the existing 2,924-triangle yard. Foundation bases and
+ramps reuse the concrete material batch and survive the far detail level.
+
+High's close view selects 20 nearby trees versus 19 before, after the new parcels
+change procedural planting exclusions. This changes the mix of near geometry and
+accounts for much of the roughly 300K increase in total rendered triangles there.
+The near pool's 1.8M target / 2.4M hard cap and total planting caps remain unchanged.
+The pilot sample remains around 30–33 FPS at this fixed high resolution. Its higher
+final result is run-to-run variation, not a measured optimization; adaptive resolution
+remains necessary on this hardware. Low's display-capped 60 FPS does not certify phones.
+
+Measured startup is **14,253,990 / 8,718,103 bytes** high / low, up 3,347 bytes of shared
+code. Full prepared flight is **67,696,253 / 19,790,129 bytes**, up **85,588 / 85,560**.
+Models and site data still prepare behind the menu; no new images or larger textures.
+No requests occur during the short test flight. Automatic low selection, hidden-tab
+calibration, missing GLB/material/site fallbacks and low-tier terrain registration pass.
+
+All 20 Node suites pass. The actual browser checks cover both quality tiers, 89 roof
+samples, three downhill base walls, four ramp joins, 57 local accesses, 26 main-road
+joins, roof notches, planting clearances and terrain contact within 0.034 mm. The
+shared atmospheric uniforms bind on all checked fogged materials (190 high / 171 low).
+Two matched 480-frame pilot descents run without renderer errors; the recorded videos
+are visual evidence, not benchmarks, because encoding changes their pacing. All 28
+comparison images, both video metadata loads, slider direction and phone page layout pass.
+
+Forward pilot visibility is very limited: changed pixels above a 12-level threshold
+are 0.0029% at x=6500 and 0.0049% at x=6000. The new site is most apparent in the
+exterior and yard views. The audit therefore moves the next focus to cockpit materials
+and lighting, requiring an initial pilot-view check before further rural authoring.
+The retained evidence does not certify other GPUs, SwiftShader or physical phones;
+the full functional browser suite was not rerun.
+
+Evidence: `benchmarks/2026-10-27-ridge-farm-*.json` and
+[ridge farm comparison](output/ridge-farm-review.html).

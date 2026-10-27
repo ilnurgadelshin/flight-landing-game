@@ -45,21 +45,41 @@ for(const asset of geometry.assets){
     const stats=await image.stats();assert.equal(stats.channels[3].min,0);assert.equal(stats.channels[3].max,255);
   }
 }
+const {farmFoundation}=await import('../js/world/farm-foundation.js');
+for(const reverse of [false,true]){
+ const polygon=[[-6,-4],[6,-4],[6,4],[-6,4]],floor=5,ground=(x,z)=>x*.12+z*.08;
+ const g=farmFoundation([reverse?polygon.reverse():polygon],{x:3,z:-2,angle:.4},floor,ground),a=g.attributes.position;
+ for(let i=0;i<a.count;i+=4){
+  for(const j of [0,3])assert.ok(a.getY(i+j)<ground(a.getX(i+j),a.getZ(i+j)),'Foundation bottom is buried below the slope');
+  for(const j of [1,2])assert.ok(Math.abs(a.getY(i+j)-floor-.18)<.00001,'Base wall meets the level model plinth');
+ }
+ for(let i=0;i<a.count;i++){const n=g.attributes.normal;assert.ok(n.getX(i)*(a.getX(i)-3)+n.getZ(i)*(a.getZ(i)+2)>0,'Foundation normals face outward for either footprint winding');}
+ g.dispose();
+}
+for(const direction of [-1,1]){
+ const ground=(x,z)=>x*.03+z*.05,g=farmFoundation([],{x:0,z:0,angle:0},2,ground,[{center:[0,0],out:[0,direction],width:4,length:6}]);
+ const material=new THREE.MeshBasicMaterial(),mesh=new THREE.Mesh(g,material);
+ for(const t of [.01,.99]){const x=0,z=(.75+5.25*t)*direction,hit=new THREE.Raycaster(new THREE.Vector3(x,10,z),new THREE.Vector3(0,-1,0)).intersectObject(mesh)[0];
+  assert.ok(hit&&hit.face.normal.y>.5,'Ramp top faces upward for either access direction');
+  assert.ok(Math.abs(hit.point.y-(t<.5?2.30:ground(x,z)+.04))<.04,'Ramp reaches the floor and yard');
+ }
+ g.dispose();material.dispose();
+}
 const farm=JSON.parse(await fs.readFile('assets/scenery/farm-sources.json'));
-assert.equal(farm.geometryLicense,'MIT');assert.equal(farm.placements.length,81);
+assert.equal(farm.geometryLicense,'MIT');assert.equal(farm.placements.length,84);
 assert.ok(farm.sources.every(s=>s.license==='CC0-1.0'&&Object.keys(s.authors).length));
 for(const [file,bytes] of Object.entries(farm.bytes))assert.equal((await fs.stat('assets/scenery/'+file)).size,bytes);
 for(const low of [false,true]){
   const suffix=low?'-low':'';
   const bytes=Object.entries(farm.bytes).filter(([file])=>['valley-site.json','approach-sites.json'].includes(file)||file.includes('-low')===low).reduce((n,[,b])=>n+b,0);
-  // The connected valley lane reuses the existing maps; the increase is
+  // The ridge farm reuses the existing maps; the increase is
   // geometry and parcel data, prepared behind the menu rather than during flight.
-  assert.ok(bytes<(low?3.3e6:4.3e6),'Ten complete sites and yards stay within the transfer budget');
+  assert.ok(bytes<(low?3.35e6:4.3e6),'Eleven complete sites and yards stay within the transfer budget');
   const doc=await io.read(`assets/scenery/valley-farm${suffix}.glb`);
   const residentialRoof=doc.getRoot().listMaterials().find(m=>m.getName()==='Charcoal residential roof');
   assert.deepEqual(residentialRoof.getBaseColorFactor(),[.14,.147,.154,1],'Export retains the authored roof tint');
   assert.equal((await sharp(residentialRoof.getBaseColorTexture().getImage()).metadata()).width,256,'Bounded shingle grain');
-  const nodes=doc.getRoot().listScenes()[0].listChildren();assert.equal(nodes.length,81);
+  const nodes=doc.getRoot().listScenes()[0].listChildren();assert.equal(nodes.length,84);
   let triangles=0;
   for(const placement of farm.placements){
     const node=nodes.find(n=>n.getName()===placement.id);assert.ok(node);
@@ -83,7 +103,7 @@ for(const low of [false,true]){
       }
     }
   }
-  assert.ok(triangles<165000,'Complete building geometry remains bounded');
+  assert.ok(triangles<170000,'Complete building geometry remains bounded');
 }
 for(const silo of farm.placements.filter(p=>['silo','silos'].includes(p.style))){
  assert.ok(silo.shadowOutline.length>=24&&silo.shadowOutline.every(p=>p.length===2&&p.every(Number.isFinite)),'Silo shadows use rounded plan outlines');
@@ -121,6 +141,8 @@ if(site.id)for(const line of site.fences)for(let i=1;i<line.length;i++){
  }
 }
 }
+const ridge=sites.find(s=>s.id==='ridge-farm');
+for(const kind of ['lawns','gravel','roads'])assert.ok(siteCoverage(ridge,5380,-432,kind)<-20,'The pond remains outside reconstructed farm surfaces');
 const homes=sites.find(s=>s.id==='roadside-homes');
 assert.ok(siteCoverage(homes,4308,134,'lawns')<0,'The lawn leaves the photographed swimming pool clear');
 assert.ok((await fs.stat('assets/scenery/approach-sites.json')).size<150000,'Bounded extension site data');

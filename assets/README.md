@@ -551,18 +551,18 @@ colour map follows those sizes; gravel normal and roughness maps use 512 px high
 Meshes are Meshopt-compressed. Building meshes merge by material within each site; the three
 adjacent crossing sites share one bounded building group to save 20 material batches;
 the two valley lane sites also share one building group, saving ten batches.
-The ten sites use 106 draw batches before subtracting replaced procedural
-facades: 65 building material batches, the original yard and four grounds/boundary batches per
-site. Buildings use 160,949 triangles; grounds/fences use 352,486 triangles, plus the original
+The eleven sites use 120 draw batches before subtracting replaced procedural
+facades: 75 building material batches, the original yard and four grounds/boundary batches per
+site. Buildings use 165,567 triangles; grounds/fences use 377,642 triangles, plus the original
 2,924-triangle yard. A distance detail level removes only painted/ironwork triangles smaller
 than 0.08 m² once the whole building group is more than 550 m away. Walls, roofs, glass
 and substantial trim retain their geometry and materials. At the far level, complete
-buildings total 115,274 triangles (28.4% fewer); 12% hysteresis prevents rapid switching.
+buildings total 118,598 triangles (28.4% fewer); 12% hysteresis prevents rapid switching.
 Both levels share vertex attributes and materials; the far level adds index buffers only.
 The detail level adds no separate model downloads. Only referenced parcel-grid vertices are uploaded; narrow drives use
 feathered ribbons. Preparation happens behind the menu. Missing models or yard materials
 retain procedural buildings and imagery. Missing or invalid extension data keeps the original
-nine complete valley buildings and falls back for the other 72 placements.
+nine complete valley buildings and falls back for the other 75 placements.
 
 The 2026-10-19 residential frontage adds 13 models, including one previously missing garage,
 to the existing four sites. Twelve retain Microsoft footprints; the garage roof is traced from
@@ -605,10 +605,32 @@ snap to the registered centerline; 76 eligible placed trees now serve the ten si
 The valley-lane building pass kept the land-cover map and then-current 52,000 / 14,000
 tree budgets unchanged; subsequent hillside extensions described above raise high to 66,000.
 
-Current models, grounds and gravel maps total **4,177,422 bytes high / 3,224,396 low**,
+After the valley-lane pass, models, grounds and gravel maps totaled **4,177,422 bytes high / 3,224,396 low**,
 excluding the shared manifest. Including that manifest, this pass adds **527,024 / 526,900
 bytes** relative to `07530bb`, prepared behind the menu. See the dated visual audit and
 render measurements for contact/roof tests, matched views, delivery and rendering costs.
+
+The 2026-10-27 ridge farm adds three complete buildings on existing registered footprints
+at x=5453–5683, z=−427…−483. `tools/ridge-farm-site.mjs` records the interpretation of
+the bundled public-domain `5_-1` imagery. Separate pitched wings replace the two compound
+roof placeholders; wall openings retain recessed panels and substantial frames. The store,
+house and workshop uses, finishes and 4.7 / 5.7 / 6.4 m heights are artistic estimates.
+The new models also carry local foundation polygons. At preparation time their concrete
+base walls extend from the level floor to the rendered terrain on each quality tier,
+closing downhill gaps of up to 3.6 m without stretching the walls or lowering the roofs.
+Four short ramps connect road-facing doorsteps to the yard. Bases and ramps merge into
+the existing concrete batch and introduce no extra material draws.
+Three lawn parcels, three gravel yards, one road-connected lane, three access paths and
+five timber boundary polylines complete the occupied margins. The lane snaps to the actual
+main road; fences leave it clear. The photographed pond and fields remain uncovered.
+Eight candidate planted trees are checked against existing clearance rules; 77 eligible
+placed trees now serve all eleven sites. The overall 70,000 high / 14,000 low budgets remain.
+
+Current models, grounds and gravel maps total **4,256,034 / 3,302,980 bytes** high / low,
+excluding the shared manifest. No new material images, services or source licences are
+introduced. The added geometry/parcel data is prepared behind the menu, with no changes
+to the streaming or quality-selection code. The forward pilot impact is very small;
+the exterior comparison shows the completed roofs and connected grounds more clearly.
 
 Reproduce (download cache and Blender source remain under ignored `test/output/farm-sources/`):
 
