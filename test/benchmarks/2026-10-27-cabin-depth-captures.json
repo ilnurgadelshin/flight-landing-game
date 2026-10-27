@@ -1,0 +1,489 @@
+{
+  "date": "2026-10-27T15:54:19.643Z",
+  "results": [
+    {
+      "tier": "high",
+      "view": "captain",
+      "finishes": {
+        "materials": 96,
+        "maps": 6,
+        "wearSize": 1024,
+        "errors": []
+      },
+      "finishBytes": 413076,
+      "invalid": 0,
+      "paddingInside": 352,
+      "paddingOutside": 1449,
+      "screenFinishes": 0,
+      "consoleFinish": "trim",
+      "eye": [
+        -0.408,
+        0.029499999999999346,
+        -0.08499999999999988
+      ],
+      "probes": [
+        {
+          "screen": [
+            505,
+            250
+          ],
+          "name": "Body020_Material008_0",
+          "material": "Material.008",
+          "finish": "frame",
+          "point": [
+            -0.5918812526371056,
+            0.027500185784191444,
+            -0.8000768176348174
+          ]
+        },
+        {
+          "screen": [
+            600,
+            490
+          ],
+          "name": "Cube1067_Material457_0",
+          "material": "Material.457",
+          "finish": "paint",
+          "point": [
+            -0.5413100428773575,
+            -0.23179792977126112,
+            -0.9493268235996766
+          ]
+        },
+        {
+          "screen": [
+            480,
+            448
+          ],
+          "name": "Cylinder822_Material479_0",
+          "material": "Material.481",
+          "finish": "padding",
+          "point": [
+            -0.6470317220580918,
+            -0.1641722679646307,
+            -0.8700108170278327
+          ]
+        },
+        {
+          "screen": [
+            1090,
+            363
+          ],
+          "name": "Cylinder822_Material479_0",
+          "material": "Material.481",
+          "finish": "padding",
+          "point": [
+            -0.027200393583744154,
+            -0.08575020043397785,
+            -0.9173601439579215
+          ]
+        },
+        {
+          "screen": [
+            290,
+            720
+          ],
+          "name": "Cube1061_Material424_0",
+          "material": "Material.424",
+          "finish": "trim",
+          "point": [
+            -0.8278898780889081,
+            -0.41809991475301445,
+            -0.7904032874016593
+          ]
+        },
+        {
+          "screen": [
+            548,
+            795
+          ],
+          "name": "Sphere003_Material129_0",
+          "material": "Material.166",
+          "finish": "rubber",
+          "point": [
+            -0.526391715663175,
+            -0.33610285478189894,
+            -0.5697479057821511
+          ]
+        },
+        {
+          "screen": [
+            905,
+            485
+          ],
+          "name": "Switch_2007_Material034_0",
+          "material": "Material.166",
+          "finish": "occlusion",
+          "point": [
+            -0.2029613070584707,
+            -0.22580946360554321,
+            -0.9486447595058962
+          ]
+        },
+        {
+          "screen": [
+            700,
+            800
+          ],
+          "name": "Cube567_Material219_0",
+          "material": "Material.219",
+          "finish": "occlusion",
+          "point": [
+            -0.446056019852007,
+            -0.9904030405873243,
+            -1.4227342852150286
+          ]
+        },
+        {
+          "screen": [
+            340,
+            570
+          ],
+          "name": "Cube1061_Material424_0",
+          "material": "Material.424",
+          "finish": "trim",
+          "point": [
+            -0.7978517861690524,
+            -0.29144330889519665,
+            -0.8633455489302833
+          ]
+        }
+      ],
+      "assets": []
+    },
+    {
+      "tier": "high",
+      "view": "panel",
+      "finishes": {
+        "materials": 96,
+        "maps": 6,
+        "wearSize": 1024,
+        "errors": []
+      },
+      "finishBytes": 413076,
+      "invalid": 0,
+      "paddingInside": 352,
+      "paddingOutside": 1449,
+      "screenFinishes": 0,
+      "consoleFinish": "trim",
+      "eye": [
+        -0.408,
+        0.029499999999999346,
+        -0.08499999999999988
+      ],
+      "probes": [],
+      "assets": []
+    },
+    {
+      "tier": "high",
+      "view": "side",
+      "finishes": {
+        "materials": 96,
+        "maps": 6,
+        "wearSize": 1024,
+        "errors": []
+      },
+      "finishBytes": 413076,
+      "invalid": 0,
+      "paddingInside": 352,
+      "paddingOutside": 1449,
+      "screenFinishes": 0,
+      "consoleFinish": "trim",
+      "eye": [
+        -0.408,
+        0.029499999999999346,
+        -0.08499999999999988
+      ],
+      "probes": [],
+      "assets": []
+    },
+    {
+      "tier": "high",
+      "view": "night",
+      "finishes": {
+        "materials": 96,
+        "maps": 6,
+        "wearSize": 1024,
+        "errors": []
+      },
+      "finishBytes": 413076,
+      "invalid": 0,
+      "paddingInside": 352,
+      "paddingOutside": 1449,
+      "screenFinishes": 0,
+      "consoleFinish": "trim",
+      "eye": [
+        -0.408,
+        0.029499999999999346,
+        -0.08499999999999988
+      ],
+      "probes": [],
+      "assets": []
+    },
+    {
+      "tier": "high",
+      "view": "storm",
+      "finishes": {
+        "materials": 96,
+        "maps": 6,
+        "wearSize": 1024,
+        "errors": []
+      },
+      "finishBytes": 413076,
+      "invalid": 0,
+      "paddingInside": 352,
+      "paddingOutside": 1449,
+      "screenFinishes": 0,
+      "consoleFinish": "trim",
+      "eye": [
+        -0.408,
+        0.029499999999999346,
+        -0.08499999999999988
+      ],
+      "probes": [],
+      "assets": []
+    },
+    {
+      "tier": "low",
+      "view": "captain",
+      "finishes": {
+        "materials": 95,
+        "maps": 0,
+        "wearSize": 512,
+        "errors": []
+      },
+      "finishBytes": 268548,
+      "invalid": 0,
+      "paddingInside": 282,
+      "paddingOutside": 1109,
+      "screenFinishes": 0,
+      "consoleFinish": "trim",
+      "eye": [
+        -0.408,
+        0.029499999999999346,
+        -0.08499999999999988
+      ],
+      "probes": [
+        {
+          "screen": [
+            505,
+            250
+          ],
+          "name": "Body020_Material008_0",
+          "material": "Material.008",
+          "finish": "frame",
+          "point": [
+            -0.5918822081491689,
+            0.027500175392475512,
+            -0.800080533426808
+          ]
+        },
+        {
+          "screen": [
+            600,
+            490
+          ],
+          "name": "Cube1067_Material457_0",
+          "material": "Material.457",
+          "finish": "paint",
+          "point": [
+            -0.5413100428773575,
+            -0.23179792977126112,
+            -0.9493268235996766
+          ]
+        },
+        {
+          "screen": [
+            480,
+            448
+          ],
+          "name": "Cylinder822_Material479_0",
+          "material": "Material.481",
+          "finish": "padding",
+          "point": [
+            -0.6470293914534289,
+            -0.16417037962324343,
+            -0.8700031630232843
+          ]
+        },
+        {
+          "screen": [
+            1090,
+            363
+          ],
+          "name": "Cylinder822_Material479_0",
+          "material": "Material.481",
+          "finish": "padding",
+          "point": [
+            -0.027100093248324797,
+            -0.08578055664642648,
+            -0.9175793826339032
+          ]
+        },
+        {
+          "screen": [
+            290,
+            720
+          ],
+          "name": "Cube1061_Material424_0",
+          "material": "Material.424",
+          "finish": "trim",
+          "point": [
+            -0.8275311722899346,
+            -0.4177175366738197,
+            -0.7898006716604868
+          ]
+        },
+        {
+          "screen": [
+            548,
+            795
+          ],
+          "name": "Sphere003_Material129_0",
+          "material": "Material.166",
+          "finish": "rubber",
+          "point": [
+            -0.5263927975045475,
+            -0.336106195592464,
+            -0.569752335317844
+          ]
+        },
+        {
+          "screen": [
+            905,
+            485
+          ],
+          "name": "Switch_2007_Material034_0",
+          "material": "Material.166",
+          "finish": "occlusion",
+          "point": [
+            -0.20296130705847065,
+            -0.22580946360554321,
+            -0.9486447595058962
+          ]
+        },
+        {
+          "screen": [
+            700,
+            800
+          ],
+          "name": "Cube567_Material219_0",
+          "material": "Material.219",
+          "finish": "occlusion",
+          "point": [
+            -0.4460592797858552,
+            -0.9904904069608449,
+            -1.4228488774738253
+          ]
+        },
+        {
+          "screen": [
+            340,
+            570
+          ],
+          "name": "Body018_Material014_0",
+          "material": "Material.014",
+          "finish": "trim",
+          "point": [
+            -0.7876170887645426,
+            -0.2830176513323579,
+            -0.8429118060244036
+          ]
+        }
+      ],
+      "assets": []
+    },
+    {
+      "tier": "low",
+      "view": "panel",
+      "finishes": {
+        "materials": 95,
+        "maps": 0,
+        "wearSize": 512,
+        "errors": []
+      },
+      "finishBytes": 268548,
+      "invalid": 0,
+      "paddingInside": 282,
+      "paddingOutside": 1109,
+      "screenFinishes": 0,
+      "consoleFinish": "trim",
+      "eye": [
+        -0.408,
+        0.029499999999999346,
+        -0.08499999999999988
+      ],
+      "probes": [],
+      "assets": []
+    },
+    {
+      "tier": "low",
+      "view": "side",
+      "finishes": {
+        "materials": 95,
+        "maps": 0,
+        "wearSize": 512,
+        "errors": []
+      },
+      "finishBytes": 268548,
+      "invalid": 0,
+      "paddingInside": 282,
+      "paddingOutside": 1109,
+      "screenFinishes": 0,
+      "consoleFinish": "trim",
+      "eye": [
+        -0.408,
+        0.029499999999999346,
+        -0.08499999999999988
+      ],
+      "probes": [],
+      "assets": []
+    },
+    {
+      "tier": "low",
+      "view": "night",
+      "finishes": {
+        "materials": 95,
+        "maps": 0,
+        "wearSize": 512,
+        "errors": []
+      },
+      "finishBytes": 268548,
+      "invalid": 0,
+      "paddingInside": 282,
+      "paddingOutside": 1109,
+      "screenFinishes": 0,
+      "consoleFinish": "trim",
+      "eye": [
+        -0.408,
+        0.029499999999999346,
+        -0.08499999999999988
+      ],
+      "probes": [],
+      "assets": []
+    },
+    {
+      "tier": "low",
+      "view": "storm",
+      "finishes": {
+        "materials": 95,
+        "maps": 0,
+        "wearSize": 512,
+        "errors": []
+      },
+      "finishBytes": 268548,
+      "invalid": 0,
+      "paddingInside": 282,
+      "paddingOutside": 1109,
+      "screenFinishes": 0,
+      "consoleFinish": "trim",
+      "eye": [
+        -0.408,
+        0.029499999999999346,
+        -0.08499999999999988
+      ],
+      "probes": [],
+      "assets": []
+    }
+  ]
+}

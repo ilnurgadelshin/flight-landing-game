@@ -33,9 +33,10 @@ try {
      const hit=ray.intersectObjects(c.root.children,true).find(h=>{for(let n=h.object;n&&n!==c.root;n=n.parent)if(!n.visible)return false;return h.object.material.isMeshStandardMaterial&&!h.object.material.transparent;});
      if(hit)probes.push({screen:[x,y],name:hit.object.name,material:hit.object.material.name,finish:hit.object.material.userData.cockpitFinish,point:c.root.worldToLocal(hit.point).toArray()});
     }
-    let finishBytes=0,invalid=0,paddingInside=0,paddingOutside=0,screenFinishes=0;
+    let finishBytes=0,invalid=0,paddingInside=0,paddingOutside=0,screenFinishes=0,consoleFinish=null;
     c.root.traverse(mesh=>{
      if(!mesh.isMesh)return;
+     if(mesh.material.name==='Material.424')consoleFinish=mesh.material.userData.cockpitFinish;
      const attr=mesh.geometry.getAttribute('deckFinish');if(!attr)return;
      finishBytes+=attr.array.byteLength;
      if(mesh.material.isMeshBasicMaterial)screenFinishes++;
@@ -47,13 +48,14 @@ try {
       }
      }
     });
-    return {finishes:c.authoredModel.userData.surfaceDetail,finishBytes,invalid,paddingInside,paddingOutside,screenFinishes,
+    return {finishes:c.authoredModel.userData.surfaceDetail,finishBytes,invalid,paddingInside,paddingOutside,screenFinishes,consoleFinish,
      eye:c.eyeLocal.toArray(),probes,assets:w.assetErrors};
    },{tier,view});
    assert.deepEqual(result.assets,[]);assert.deepEqual(result.finishes.errors,[]);
    if(!process.env.REVIEW_ROOT){
     assert.equal(result.finishes.wearSize,tier==='high'?1024:512);
     assert.equal(result.invalid,0,'All part UVs and weights are finite and bounded');
+    assert.equal(result.consoleFinish,'trim','Both visible side consoles receive their verified liner finish');
     assert.equal(result.screenFinishes,0,'Live displays never receive a wear finish');
     assert.ok(result.paddingInside>0&&result.paddingOutside>0,'Shared fittings outside the glareshield keep their source finish');
    }

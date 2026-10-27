@@ -90,10 +90,35 @@ Reproduce these two maps with `node tools/prepare-cockpit-wear.mjs`; the measure
 layout is in `js/cockpit/surface-layout.js`. No model geometry, lettering, base material
 colours, camera position or lighting calibration is changed by this pass.
 
+The 2026-10-27 contact-shading pass adds the missing molded-trim finish to
+`Cube.1060` and `Cube.1061` / `Material.424`, verified in the saved original-source
+Blender scene and by ray picking the delivered cockpit. High reuses the existing
+liner scan; low uses its average roughness. No additional image request is made.
+
+Broad static panel, console and forward-floor faces now have finer shading samples.
+Linear subdivision preserves their silhouettes. A 128-ray, 22 cm contact bake replaces
+the interpolated coarse contact component while retaining the prior broad cabin
+shading; it still affects only indirect illumination. The selected source materials
+are `.103`, `.219` (floor), `.261`, `.354`, `.424` and `.457`, inside the forward
+cabin volume. Moving controls, source lettering and the window frame are excluded.
+Maximum shading edges are 9 cm high / 14 cm low. This adds 23,705 / 9,363 triangles,
+with no additional material batches, light or render pass. The resulting GLBs are
+8,279,228 / 3,622,368 bytes (increases of 79,784 / 51,572 bytes).
+
+`tools/prepare-cockpit.mjs` applies this refinement when rebuilding from the source.
+The current assets were derived from the already optimized models in main `13482b7`
+with `node tools/prepare-cabin-shading.mjs /path/to/unmodified/assets/models`.
+Always supply an unmodified baseline in a separate directory; this is an offline
+shading operation, not a runtime subdivision step. The original CC BY 4.0 credit
+continues to cover these adapted models. The finish is a material interpretation,
+not an aircraft-specific photographic texture set. Fixed-eye reflections, the
+simple headliner and other untextured surfaces remain limitations.
+
 The material assignments were checked in Blender against these source meshes:
 
 | Source material | Verified parts | Runtime finish |
 | --- | --- | --- |
+| `Material.424` | `Cube.1060`, `Cube.1061` left/right consoles | Molded trim |
 | `Material.014` | `Body.002`, `Body.006`, `Body.018` cabin liner | Molded trim |
 | `Material.008` | `Body.020` windshield frame | Coated frame |
 | `Material.457` | `Cube.008` main panel and side panels | Coated panel |

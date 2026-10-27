@@ -4,16 +4,20 @@ import * as THREE from 'three';
 import { MeshBVH } from 'three-mesh-bvh';
 import { headlinerData } from '../js/cockpit/headliner.js';
 
-export function bakeOcclusion(document) {
-  const primitives=document.getRoot().listMeshes().flatMap(m=>m.listPrimitives());
+export function cabinOcclusionSampler(document, {count=24,contactOnly=false}={}) {
+  // Include node transforms so the same baker can inspect a delivered, quantized
+  // GLB as well as the converter's metre-space geometry.
+  const primitives=document.getRoot().listNodes().flatMap(node=>(node.getMesh()?.listPrimitives()||[])
+    .map(primitive=>({primitive,matrix:new THREE.Matrix4().fromArray(node.getWorldMatrix())})));
   const roof=headlinerData();
   let vertices=roof.positions.length/3,indices=roof.indices.length;
-  for(const p of primitives){vertices+=p.getAttribute('POSITION').getCount();indices+=p.getIndices().getCount();}
+  for(const {primitive:p} of primitives){vertices+=p.getAttribute('POSITION').getCount();indices+=p.getIndices().getCount();}
   const positions=new Float32Array(vertices*3), triangles=new Uint32Array(indices);
   let vo=0,io=0;
-  for(const p of primitives){
+  const point=new THREE.Vector3();
+  for(const {primitive:p,matrix} of primitives){
     const a=p.getAttribute('POSITION'),index=p.getIndices().getArray();
-    positions.set(a.getArray(),vo*3);
+    for(let i=0;i<a.getCount();i++)point.fromArray(a.getElement(i,[])).applyMatrix4(matrix).toArray(positions,(vo+i)*3);
     for(let i=0;i<index.length;i++)triangles[io+i]=index[i]+vo;
     vo+=a.getCount();io+=index.length;
   }
@@ -22,13 +26,10 @@ export function bakeOcclusion(document) {
   const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.BufferAttribute(positions,3));geometry.setIndex(new THREE.BufferAttribute(triangles,1));
   const tree=new MeshBVH(geometry,{targetLeafSize:12});
   const ray=new THREE.Ray(),normal=new THREE.Vector3(),u=new THREE.Vector3(),v=new THREE.Vector3(),up=new THREE.Vector3(),cache=new Map();
-  const count=24, contactRadius=.22, cabinRadius=2.5;
+  const contactRadius=.22, cabinRadius=2.5;
   let sampled=0;
-  for(const p of primitives){
-    const position=p.getAttribute('POSITION'),normals=p.getAttribute('NORMAL');if(!normals)continue;
-    const colors=new Uint8Array(position.getCount()*3);
-    for(let i=0;i<position.getCount();i++){
-      const pos=position.getElement(i,[]),n=normals.getElement(i,[]);
+  return {
+    sample(pos,n){
       const key=pos.map(x=>Math.round(x*400)).join(',')+':'+n.map(x=>Math.round(x*8)).join(',');
       let shade=cache.get(key);
       if(shade===undefined){
@@ -39,7 +40,7 @@ export function bakeOcclusion(document) {
         for(let k=0;k<count;k++){
           const a=k*2.399963229728653,r=Math.sqrt((k+.5)/count),z=Math.sqrt(1-r*r);
           ray.direction.copy(normal).multiplyScalar(z).addScaledVector(u,Math.cos(a)*r).addScaledVector(v,Math.sin(a)*r).normalize();
-          const hit=tree.raycastFirst(ray,THREE.DoubleSide,.001,cabinRadius);
+          const hit=tree.raycastFirst(ray,THREE.DoubleSide,.001,contactOnly?contactRadius:cabinRadius);
           if(hit){
             contact+=Math.max(0,1-hit.distance/contactRadius);
             enclosed+=1;
@@ -47,12 +48,28 @@ export function bakeOcclusion(document) {
         }
         // Retain bounced light in enclosed areas. Rays escaping the cabin add
         // soft sky light near windows, while the pedestal and recesses stay shaded.
-        shade=Math.round(255*(1-.50*contact/count)*(1-.55*enclosed/count));
+        shade=Math.round(255*(1-.50*contact/count)*(contactOnly?1:1-.55*enclosed/count));
         cache.set(key,shade);sampled++;
       }
-      colors.fill(shade,i*3,i*3+3);
+      return shade;
+    },
+    dispose(){geometry.dispose();},
+    get samples(){return sampled;},
+  };
+}
+
+export function bakeOcclusion(document) {
+  const sampler=cabinOcclusionSampler(document),normal=new THREE.Vector3(),point=new THREE.Vector3();
+  for(const node of document.getRoot().listNodes())for(const p of node.getMesh()?.listPrimitives()||[]){
+    const position=p.getAttribute('POSITION'),normals=p.getAttribute('NORMAL');if(!normals)continue;
+    const matrix=new THREE.Matrix4().fromArray(node.getWorldMatrix()),normalMatrix=new THREE.Matrix3().getNormalMatrix(matrix);
+    const colors=new Uint8Array(position.getCount()*3);
+    for(let i=0;i<position.getCount();i++){
+      point.fromArray(position.getElement(i,[])).applyMatrix4(matrix);
+      normal.fromArray(normals.getElement(i,[])).applyNormalMatrix(normalMatrix);
+      colors.fill(sampler.sample(point.toArray(),normal.toArray()),i*3,i*3+3);
     }
     p.setAttribute('COLOR_0',document.createAccessor().setType('VEC3').setArray(colors).setNormalized(true).setBuffer(document.getRoot().listBuffers()[0]));
   }
-  geometry.dispose();console.log(`Baked cabin shading: ${sampled} samples, ${Math.round((indices-roof.indices.length)/3)} model triangles`);
+  sampler.dispose();console.log(`Baked cabin shading: ${sampler.samples} samples`);
 }

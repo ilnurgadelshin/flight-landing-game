@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-27",
+  "baseline": "13482b7",
+  "unitSuites": 21,
+  "checks": {
+    "cockpitBothTiers": true,
+    "sourceProportionsAndColours": true,
+    "animatedControlBindings": true,
+    "finiteOcclusionAfterCompression": true,
+    "finiteReflectionCaptures": true,
+    "dayNightWeather": true,
+    "missingTexturesAndInvalidCaptureFallback": true,
+    "phoneTabletDesktopLayouts": 10,
+    "downloadBudgets": true,
+    "automaticQualityFallback": true,
+    "matchedMotionFrames": 360,
+    "review": {
+      "images": 20,
+      "videos": 2,
+      "slider": true,
+      "phoneLayout": true,
+      "errors": []
+    }
+  },
+  "gpu": "Apple M2 Pro / Chromium ANGLE Metal",
+  "limitations": [
+    "No physical phone or additional GPU-driver validation",
+    "Motion recording is not a frame-rate benchmark",
+    "Aircraft-specific cockpit texture set remains incomplete"
+  ]
+}

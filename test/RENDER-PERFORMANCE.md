@@ -2867,3 +2867,35 @@ the full functional browser suite was not rerun.
 
 Evidence: `benchmarks/2026-10-27-ridge-farm-*.json` and
 [ridge farm comparison](output/ridge-farm-review.html).
+
+
+## Cockpit contact shading and console finish — 2026-10-27
+
+Baseline: main `13482b7`. Same Apple M2 Pro / Chromium ANGLE Metal method, 1440×900,
+high 1.5× / low 1×, four-second warm-up and twelve-second samples; paused physics.
+Runs were sequential with no competing graphics test or asset bake.
+
+| Tier / scene | Baseline FPS (recheck) | Final FPS | Final p95 ms | Draw calls | Added drawn triangles |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| High / captain | 37.3 (38.1) | 37.6 | 33.4 | 918 | 47,410 |
+| High / storm | 39.9 (38.7) | 39.2 | 33.4 | 873 | 47,410 |
+| Low / captain | 60.0 | 60.0 | 16.7 | 529 | 9,363 |
+| Low / storm | 60.0 | 60.0 | 16.7 | 499 | 9,363 |
+
+Refined contact shading adds 23,705 high / 9,363 low model triangles. High draws them
+in the cabin shadow pass too. The console reuses the existing liner texture and adds no
+texture download or render pass. A one-projection fast path for axis-aligned surfaces
+avoids unnecessary texture samples on high; curved surfaces retain the original blend,
+with explicit gradients for mip selection. Low does not use these grain maps or this path.
+
+An initial denser mesh added 63,957 high / 25,965 low triangles and measured 35.3 / 37.0
+FPS on high. Reducing it and adding the projection fast path produced the final result
+above. Baseline rechecks bracket the final high readings, so report similar performance
+within short-run variation, not a measured speedup. High remains below 60 FPS at this
+render scale; adaptive resolution is still needed. Physical phone performance is unmeasured.
+
+Reports: `benchmarks/2026-10-27-cabin-depth-before.json`, `-baseline-recheck.json`,
+`-final-high.json` and `-final-low.json`. The high-only texture optimization was measured
+separately; the low rows come from the unchanged low-tier run. The `-reduced-before-projection`
+report records that intermediate mesh for transparency. Model downloads increase by
+79,784 high / 51,572 low bytes, to 8,279,228 / 3,622,368 bytes respectively.

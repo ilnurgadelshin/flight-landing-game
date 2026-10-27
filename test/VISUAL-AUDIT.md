@@ -7,21 +7,26 @@ below record how the scene evolved; their older counts, captures and priorities 
 the remaining-work list. Update this section after each reviewed visual pass, including
 what changed, visible impact, measured cost, evidence and limitations.
 
-The latest pass completes the **ridge farm and pond lane**: three existing building
-footprints now have complete models, stepped roof wings, recessed openings and occupied
-yards connected to the actual road. Terrain-fitted base walls close the gaps below level
-floors on the sloping ground. The nearby pond and crop fields remain photographic.
-The scene now has **84 complete building placements across eleven sites**; the existing
-landscape coverage stays about **3074.79 ha**. High/low tree budgets remain **70,000 / 14,000**.
+The latest pass improves **cockpit contact shading and the molded side-console finish**.
+Large static faces now resolve local contact around adjoining panels, the pedestal and the
+forward floor. The two exposed side consoles use the existing liner material on high and
+average roughness on low. The source colors, shape, live displays and fitted eye remain.
+This is a modest pilot-visible depth improvement, strongest while looking at the console
+and floor; it is **not a complete aircraft-specific cockpit texture set**.
 
-This is a local exterior improvement. Matched ordinary forward pilot captures at x=6500
-and 6000 change under **0.005%** of the frame at a 12-level pixel threshold: the farm is
-mostly below or beside the windshield. This did not deliver the hoped-for pilot-visible
-settlement gain. Further rural work should first demonstrate visibility from the actual
-seat; completing increasingly remote parcels is not the next best use of the frame budget.
-The next recommended pass is **cockpit materials and lighting**, which occupy most of
-that view. The prior broadleaf correction remains delivered, with unchanged transitions,
-texture dimensions and the 1.8M target / 2.4M hard near-tree triangle budgets.
+The refined GLBs add **23,705 high / 9,363 low triangles** and **79,784 / 51,572 bytes**.
+A cheaper texture projection on axis-aligned high-tier surfaces offsets the measured cost.
+Final high samples are **37.6 FPS daylight / 39.2 FPS storm** at 1440×900 and 1.5× resolution,
+within the baseline runs' variation; low remains around 60 FPS at 1×. There are no new
+texture downloads, dynamic lights, render passes or material batches. See the dated entry
+below for evidence and the limits of these short hardware measurements.
+
+The preceding ridge-farm pass remains delivered: **84 complete buildings across eleven
+sites**, about **3074.79 ha** of connected landscape coverage, and unchanged **70,000 /
+14,000** tree budgets. That farm changed under 0.005% of the ordinary forward pilot frame;
+further remote parcel work must demonstrate pilot visibility before taking more frame budget.
+The broadleaf correction, transitions and 1.8M target / 2.4M hard near-tree triangle budgets
+also remain. Further geographic expansion is not the current priority.
 
 Specific defects already addressed include the distorted source cockpit shell, black cabin
 reflection failure and degenerate panel normal calculation, the narrow phone windshield/MCP
@@ -34,7 +39,7 @@ should not be presented again as untouched tasks. Their broader quality limitati
 
 | Rank | Remaining work | Importance | Current limit / next acceptance evidence |
 | --- | --- | --- | --- |
-| 1 | Complete cockpit material and lighting detail | High | Selected front panels, padding and grips have fitted wear; side consoles/overhead still lack a complete aircraft-specific texture set. Indirect light and local shadows remain approximations. Begin with source/game comparison and protect instrument readability on both tiers. |
+| 1 | Complete cockpit material and lighting detail | High | Front panels, padding and grips have fitted wear; exposed side consoles now have a verified liner finish and broad static faces have finer contact shading. A coherent aircraft-specific texture set for the pedestal, overhead and remaining shell is still missing. Local light and fixed-eye reflections remain approximations. Next material work needs a visible pilot-seat comparison and readable instruments on both tiers. |
 | 2 | Temporal stability of fine detail | Medium–high | Thin labels, branches, roof details and shadow edges can shimmer in motion. Evaluate actual flight motion and GPU cost, not only static screenshots. |
 | 3 | Further canopy form and grouping | Medium–high | Lost broadleaf foliage is corrected. Repeated species, sparse spacing and blended image-plane silhouettes remain. Further work needs better form variation or representation, checked in motion within existing budgets. |
 | 4 | Other rural building groups | Medium in the forward cockpit; high in close exterior views | Eleven sites are complete; basic houses, isolated roofs and flat yards remain elsewhere. Select further sites only after a pilot-view visibility check. No further geographic extension is proposed. Untraced parcels and countryside beyond x=−2100–9000 / absolute z=2500 remain photographic. |
@@ -46,6 +51,54 @@ separate cosmetic milestone. Current high-resolution scenes still fall below 60 
 the M2 Pro; retain adaptive quality and report costs. Physical phones, ordinary laptops
 and multiple GPU drivers need wider validation. Existing SwiftShader evidence in the log
 does not certify the latest pass on those devices.
+
+### Cockpit contact shading and console finish — 2026-10-27
+
+Baseline: published main `13482b7`. Source/game inspection found that the exposed
+`Cube.1060/1061` consoles use `Material.424`, which had only baked occlusion while the
+other cabin liner already had a finish. Blender inspection of the original source and
+ray picking of the delivered models confirmed the part identities before changing them.
+
+- Both consoles now receive molded-trim roughness; high reuses the existing CC0 liner
+  scan. No new texture asset. The source paint values and geometry remain intact.
+- Broad static faces in six verified material groups gain finer contact shading. Linear
+  subdivision preserves shape; 128 rays within 22 cm refine local occlusion relative to
+  the original interpolated values. Broad cabin shading is preserved to avoid noisy
+  blotches. Moving controls, source lettering and the window frame are excluded.
+  The original-source converter and a separate baseline-GLB preparation tool reproduce
+  this pass. Light and surface maps continue to follow the moving aircraft.
+- High adds 13,502 vertices / 23,705 triangles; low adds 5,615 / 9,363. Total cockpit
+  triangles are **1,043,103 / 429,802** and GLB sizes **8,279,228 / 3,622,368 bytes**.
+  There are no extra draw calls, lights or render passes. The high shadow pass also draws
+  the added static triangles; total benchmark triangles therefore rise by 47,410 on high
+  and 9,363 on low. No additional texture or framebuffer allocation is introduced.
+- Measured menu transfer is **14,334,381 high / 8,770,282 low bytes**, and prepared
+  flight is **67,776,644 / 19,842,308 bytes**. Both startup budgets pass; starting
+  the prepared flight makes no further asset requests. Runtime code plus models add
+  80,391 / 52,179 bytes relative to the preceding pass.
+- Axis-aligned surfaces now use one texture projection when its weight exceeds 0.9999;
+  curved surfaces retain the blended projection. Explicit gradients preserve mip choice
+  across branch boundaries. The existing degenerate-normal guard remains intact.
+- Hardware: Apple M2 Pro, Chromium ANGLE Metal, 1440×900, high 1.5× / low 1×,
+  four-second warm-up and twelve-second samples with paused physics. Baseline high runs
+  measured **37.3–38.1 FPS daylight / 38.7–39.9 FPS storm**; final high measured
+  **37.6 / 39.2 FPS**, low approximately **60 / 60**. High p95 stayed 33.4 ms and
+  low p95 about 16.7 ms. These support broadly similar performance, not a speedup or a
+  guaranteed zero cost. A denser trial was reduced before delivery.
+- Evidence: `test/output/cabin-depth-review.html`, both-tier captain/panel/side/night/storm
+  captures, matched 360-frame pilot head movement, phone captures, finite day/night/weather
+  reflections, missing-map and invalid-capture fallbacks, source proportions/colors/control
+  bindings, and the unit contact-shading fixture. Machine-readable reports are retained
+  in `test/benchmarks/2026-10-27-cabin-depth-*.json`. All 21 Node suites pass, as do
+  the final both-tier cockpit/lighting checks, ten phone/tablet/desktop layout cases,
+  delivery and automatic-low selection, and all 20 review images/two videos/slider
+  controls. Motion clips and sampled frames show the new finish following the model;
+  they do not establish a temporal-aliasing improvement.
+
+Remaining: the result adds local depth rather than a fully textured aircraft. Pedestal and
+overhead finishes, simple headliner/floor materials and fixed-eye indirect reflections
+still limit realism. Fine source labels can shimmer in motion. No physical phone, ordinary
+laptop or additional GPU driver was validated by this pass.
 
 ### Ridge farm and pond lane — 2026-10-27
 

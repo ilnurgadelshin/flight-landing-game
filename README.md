@@ -657,7 +657,9 @@ The visual assets are bundled locally and need no map service, account or API ke
   moving water in rain and synchronized wiper clearing. High quality refracts the exterior
   through drops; low uses a cheaper water highlight. Part-fitted surface masks give the
   painted panels subtle edge wear, the glareshield a matte padded finish, and the yoke
-  grips smoother contact areas. The old cockpit remains available if the model cannot load.
+  grips smoother contact areas. Molded side consoles share the liner finish; refined
+  baked contacts add depth around panel joints, the pedestal and column bases. The old
+  cockpit remains available if the model cannot load.
 - Outside rain uses fresh, individually recycled drops with soft streaks aligned to wind and
   aircraft velocity. Looking sideways no longer rotates the rain toward the pilot. Pane drops
   also change position and shape on each arrival instead of replaying the same short pattern.
@@ -740,8 +742,8 @@ The visual assets are bundled locally and need no map service, account or API ke
   without it, and automatic quality reduction releases it. Crossed patch planes and simple
   distant fields remain visible at some angles.
 
-The desktop cockpit has about 1.02 million triangles and an 8.2 MB download. The lighter
-phone model has about 420,000 triangles and a 3.6 MB download, omits tiny molded labels,
+The desktop cockpit has about 1.04 million triangles and an 8.3 MB download. The lighter
+phone model has about 430,000 triangles and a 3.6 MB download, omits tiny molded labels,
 and retains the live instruments. Phones also use 1024 px aerial images and fewer trees.
 The captain’s desktop view uses a 58° vertical field of view and an eye position fitted
 to the original cabin. The GLBs preserve the authored shell proportions and material values.
@@ -824,6 +826,10 @@ woodland pass while checking instance, triangle and fade-speed limits.
 `npm run test:corridor` checks land-cover registration, transfer and planting budgets,
 field/building/road clearance, rendered surface changes on both sides and quality tiers,
 normal cockpit views and missing-mask fallback.
+`node test/cockpit-surfaces.mjs` checks both cockpit finish tiers in day/night/weather;
+`node test/cabin-depth-motion.mjs` records a matched pilot look around. The offline
+contact-shading fixture is included in `npm test`; `node test/cockpit-lighting.mjs`
+checks finite reflections, readable panels and fallback behavior.
 
 **Head-up view** (`js/hud.js`, `js/view.js`): the flight deck hidden and a
 conformal head-up display modelled on the 737's HGS (see *Views* above).

@@ -20,6 +20,15 @@ for(const suffix of ['', '-low']){
     assert.ok(m.getBaseColorFactor().slice(0,3).every(c=>Math.abs(c-color)<1e-5),`${suffix||'high'}: preserve ${name} colour`);
     assert.ok(Math.abs(m.getRoughnessFactor()-roughness)<1e-5,`${suffix||'high'}: preserve ${name} roughness`);
   }
+  const consoleColour=byName('Material.424').getBaseColorFactor();
+  [.777285,.80004,.709816,1].forEach((v,i)=>assert.ok(Math.abs(consoleColour[i]-v)<1e-5,'Preserve source console paint'));
+  for(const mesh of root.listMeshes())for(const p of mesh.listPrimitives()){
+    const ao=p.getAttribute('COLOR_0');assert.equal(ao.getCount(),p.getAttribute('POSITION').getCount());
+    for(let i=0;i<ao.getCount();i++){
+      const [r,g,b]=ao.getElement(i,[]);
+      assert.ok(Number.isFinite(r)&&r>=0&&r<=1&&r===g&&r===b,'Finite scalar occlusion survives mesh compression');
+    }
+  }
   // Blender inspection of Body.020 in the downloaded glTF: source Y 2.00593..2.26994.
   // Uniform 1.7× conversion gives a 0.449 m frame, not the former stretched 0.789 m.
   let bottom=Infinity,top=-Infinity;

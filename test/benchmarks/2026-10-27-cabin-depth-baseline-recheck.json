@@ -1,0 +1,57 @@
+{
+  "date": "2026-10-27T15:50:10.317Z",
+  "browser": "141.0.7390.37",
+  "platform": "darwin",
+  "arch": "arm64",
+  "viewport": [
+    1440,
+    900
+  ],
+  "touch": false,
+  "pixelRatio": {
+    "high": 1.5,
+    "low": 1
+  },
+  "disabled": [],
+  "warmupSeconds": 4,
+  "sampleSeconds": 12,
+  "method": "Private Chromium ANGLE Metal; fixed-resolution renderer and scenery updates, paused physics. RAF pacing is display capped; no gl.finish. CPU times exclude asynchronous GPU work.",
+  "results": [
+    {
+      "tier": "high",
+      "scene": "captain",
+      "frames": 459,
+      "fps": 38.1454179790408,
+      "p50FrameMs": 33.29999999999927,
+      "p95FrameMs": 33.400000000001455,
+      "p99FrameMs": 33.400000000001455,
+      "cpuP50Ms": 4.400000095367432,
+      "cpuP95Ms": 6,
+      "medianDrawCalls": 918,
+      "medianTriangles": 2208418,
+      "nearTreesAtEnd": 0,
+      "pixelRatio": 1.5,
+      "assets": []
+    },
+    {
+      "tier": "high",
+      "scene": "storm",
+      "frames": 466,
+      "fps": 38.72715637959262,
+      "p50FrameMs": 33.299999999995634,
+      "p95FrameMs": 33.400000000001455,
+      "p99FrameMs": 33.400000000001455,
+      "cpuP50Ms": 4.299999713897705,
+      "cpuP95Ms": 5.5,
+      "medianDrawCalls": 873,
+      "medianTriangles": 2100255,
+      "nearTreesAtEnd": 0,
+      "pixelRatio": 1.5,
+      "assets": []
+    }
+  ],
+  "startupBytes": {
+    "high": 14253990
+  },
+  "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M2 Pro, Unspecified Version)"
+}

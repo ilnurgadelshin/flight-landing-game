@@ -7,6 +7,7 @@ import { MeshoptEncoder, MeshoptSimplifier } from 'meshoptimizer';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { bakeOcclusion } from './bake-cockpit-occlusion.mjs';
+import { refineCabinShading } from './refine-cabin-shading.mjs';
 
 if(!process.argv[2]) throw new Error('Pass the downloaded scene.gltf path. See assets/README.md.');
 const output=process.argv[3]||'assets/models';
@@ -83,10 +84,12 @@ const low=cloneDocument(document);
 for(const node of low.getRoot().listNodes())if(/^Text/.test(node.getName()))node.dispose();
 await low.transform(prune(),dedup(),weld(),simplify({simplifier:MeshoptSimplifier,ratio:.20,error:.008}),join());
 bakeOcclusion(low);
+refineCabinShading(low,{lowDetail:true});
 await low.transform(meshopt({encoder:MeshoptEncoder,level:'high',quantizePosition:15}));
 await io.write(path.join(output,'737-cockpit-low.glb'),low);
 await document.transform(prune(),dedup(),weld(),simplify({simplifier:MeshoptSimplifier,ratio:.32,error:.003}),join());
 bakeOcclusion(document);
+refineCabinShading(document);
 // Meshopt provides compact, offline delivery without a network decoder or a GPU extension.
 await document.transform(meshopt({encoder:MeshoptEncoder,level:'high',quantizePosition:16}));
 await io.write(path.join(output,'737-cockpit.glb'),document);
