@@ -7,19 +7,21 @@ below record how the scene evolved; their older counts, captures and priorities 
 the remaining-work list. Update this section after each reviewed visual pass, including
 what changed, visible impact, measured cost, evidence and limitations.
 
-The latest pass improves **cockpit contact shading and the molded side-console finish**.
-Large static faces now resolve local contact around adjoining panels, the pedestal and the
-forward floor. The two exposed side consoles use the existing liner material on high and
-average roughness on low. The source colors, shape, live displays and fitted eye remain.
-This is a modest pilot-visible depth improvement, strongest while looking at the console
-and floor; it is **not a complete aircraft-specific cockpit texture set**.
+The latest pass extends the **fitted cockpit finishes to the pedestal, overhead and upper
+cabin liner**. Coating variation and shallow edge wear follow connected source panel
+faces; restrained contact wear follows small control bases. The liner gains molded grain
+and shallow authored joins. The source shape, paint colours, lettering, live displays and
+fitted eye remain. This is a modest material improvement, strongest while looking down or
+up from the pilot seat. These three regions are no longer untouched material work, but
+the result is **not a photographic aircraft texture set**.
 
-The refined GLBs add **23,705 high / 9,363 low triangles** and **79,784 / 51,572 bytes**.
-A cheaper texture projection on axis-aligned high-tier surfaces offsets the measured cost.
-Final high samples are **37.6 FPS daylight / 39.2 FPS storm** at 1440×900 and 1.5× resolution,
-within the baseline runs' variation; low remains around 60 FPS at 1×. There are no new
-texture downloads, dynamic lights, render passes or material batches. See the dated entry
-below for evidence and the limits of these short hardware measurements.
+The packed atlas grows to 2048×1024 high / 1024×512 low, adding **352,754 / 146,578 image
+bytes** behind the menu and approximately **5.33 / 1.33 MiB** of mipmapped RGBA8 texture
+storage. Source GLBs, triangle counts and draw calls are unchanged. Final high samples
+are **35.2 FPS forward / 52.5 overhead / 44.8 pedestal**, compared with **32.0 / 50.0 /
+42.1** before at 1440×900 and 1.5×; low stays near 60 FPS at 1×. These short runs show
+no observed regression, not a speedup. The preceding contact-shading and console finish
+remain in place. See the dated entry below for evidence and limitations.
 
 The preceding ridge-farm pass remains delivered: **84 complete buildings across eleven
 sites**, about **3074.79 ha** of connected landscape coverage, and unchanged **70,000 /
@@ -39,8 +41,8 @@ should not be presented again as untouched tasks. Their broader quality limitati
 
 | Rank | Remaining work | Importance | Current limit / next acceptance evidence |
 | --- | --- | --- | --- |
-| 1 | Complete cockpit material and lighting detail | High | Front panels, padding and grips have fitted wear; exposed side consoles now have a verified liner finish and broad static faces have finer contact shading. A coherent aircraft-specific texture set for the pedestal, overhead and remaining shell is still missing. Local light and fixed-eye reflections remain approximations. Next material work needs a visible pilot-seat comparison and readable instruments on both tiers. |
-| 2 | Temporal stability of fine detail | Medium–high | Thin labels, branches, roof details and shadow edges can shimmer in motion. Evaluate actual flight motion and GPU cost, not only static screenshots. |
+| 1 | Complete cockpit material and lighting detail | High | Fitted coatings now cover the front panels, pedestal and overhead; padding, grips, consoles and upper liner also have finishes. Remaining knobs/metal, floor and some shell surfaces are simple. Local light and fixed-eye reflections are approximations. Any further material pass needs visible pilot-seat value; do not repeat the completed pedestal/overhead/liner scope. |
+| 2 | Temporal stability of fine detail | Medium–high | Thin labels, branches, roof details and shadow edges can shimmer in motion. Low-detail overhead lettering also loses shape. Next recommended pass: inspect pilot head/flight movement and protect small lettering while measuring GPU cost; static screenshots alone are insufficient. |
 | 3 | Further canopy form and grouping | Medium–high | Lost broadleaf foliage is corrected. Repeated species, sparse spacing and blended image-plane silhouettes remain. Further work needs better form variation or representation, checked in motion within existing budgets. |
 | 4 | Other rural building groups | Medium in the forward cockpit; high in close exterior views | Eleven sites are complete; basic houses, isolated roofs and flat yards remain elsewhere. Select further sites only after a pilot-view visibility check. No further geographic extension is proposed. Untraced parcels and countryside beyond x=−2100–9000 / absolute z=2500 remain photographic. |
 | 5 | Finer cloud and wet-weather rendering | Medium overall; high in weather scenarios | Fair-weather clouds retain repeated forms; overcast uses bounded resolution/steps and a simplified deep interior. Water films and blade contact remain approximate. Preserve the corrected rain timing and cloud-entry visibility. |
@@ -51,6 +53,62 @@ separate cosmetic milestone. Current high-resolution scenes still fall below 60 
 the M2 Pro; retain adaptive quality and report costs. Physical phones, ordinary laptops
 and multiple GPU drivers need wider validation. Existing SwiftShader evidence in the log
 does not certify the latest pass on those devices.
+
+### Pedestal, overhead and upper-liner finishes — 2026-10-27
+
+Baseline: published main `437ed97`. Matched captures from the real fitted pilot eye
+showed uniform pedestal/overhead coatings and a largely blank upper liner. The visible
+liner is primarily the original `Material.014`, so the finish includes it as well as the
+simulator's fitted roof. The existing hakai315 CC BY 4.0 cockpit and CC0 scans are reused;
+there is no new source service or licence.
+
+- The packed finish atlas adds source-derived pedestal and overhead masks: 53 / 101
+  connected coating islands, 4,809 / 12,783 boundary segments and five / eight small
+  control-contact footprints. Curved connected faces join before outlining. An early
+  prototype drew false curvature seams; a bent-panel fixture now protects against that.
+- Both upper-liner pieces receive the existing molded grain plus a restrained transverse
+  join on each side of the overhead opening. The joins are authored interpretations,
+  not surveyed aircraft seams. High uses shallow 0.65 mm panel / 0.35 mm liner relief;
+  low uses colour and roughness only. Surface position/orientation gates prevent the
+  horizontal masks from leaking onto vertical casings or lower shared-material parts.
+- Existing four atlas slots retain their texel density. The new files are **662,114 /
+  279,710 bytes**, increases of **352,754 / 146,578**. Approximate additional GPU atlas
+  storage is **5.33 / 1.33 MiB** with RGBA8 mipmaps. Finish-coordinate buffers add
+  **476,352 / 339,756 bytes**; the fitted roof also gains 2,652 bytes of high-tier grain
+  coordinates. There are no additional model triangles, draw calls, lights or passes.
+- Measured startup is **14,335,851 high / 8,771,752 low bytes**; prepared flight is
+  **68,130,868 / 19,990,356 bytes**. The runtime change adds 1,470 startup bytes;
+  the larger atlas adds the remaining prepared-flight increase. Both menu budgets,
+  prepared-flight zero further asset requests, automatic low selection and hidden-tab
+  calibration checks pass.
+- Actual pilot-seat high/low captures cover forward, pedestal, overhead, liner, night
+  and storm views. The improvement is stronger while looking up/down than in the
+  ordinary forward frame. Broad coating differences are restrained; controls, source
+  colours, live instruments and source geometry remain. The low model's simplified
+  fine lettering is still visibly imperfect; this pass does not repair its shape.
+- Apple M2 Pro / ANGLE Metal, 1440×900, high 1.5× / low 1×, four-second warm-up and
+  twelve-second samples with paused physics: high **35.2 / 52.5 / 44.8 FPS** forward /
+  overhead / pedestal against **32.0 / 50.0 / 42.1** before. Low remains about 60 FPS.
+  Draw calls stay **918 / 325 / 416 high**, **529 / 143 / 224 low**. High p95 is
+  33.3–33.4 ms, low 16.7–16.8 ms. Run-to-run variation prevents a speedup claim;
+  adaptive quality remains necessary for high-resolution flight.
+
+All 22 Node suites pass, including the curved-part fixture, fitted-region exclusions,
+source colour/proportion and animated-control checks. Both-tier cockpit checks,
+finite day/night/weather reflection captures, missing-map and invalid-capture fallbacks,
+and all ten phone/tablet/desktop layout cases pass on Chromium ANGLE Metal. Matched
+360-frame pilot head movement records without asset or shader errors; sampled frames
+show the finish following the surfaces. All 24 review images, both video metadata
+loads, slider direction and 390 px review layout pass. The full functional browser
+suite was not rerun. These clips do not establish an improvement in temporal aliasing.
+
+Evidence: [matched review](output/cabin-textures-review.html),
+`benchmarks/2026-10-27-cabin-textures-*.json`, `test/cockpit-materials.test.mjs` and
+`tools/cockpit-panel-masks.mjs`. The full aircraft material set remains incomplete:
+floor, many knob/metal finishes and fixed-eye indirect lighting are still simplified.
+The next recommended focus is small-detail stability during pilot movement, including
+low-tier lettering, before adding more texture detail. Physical phones and other GPU
+drivers require separate validation.
 
 ### Cockpit contact shading and console finish — 2026-10-27
 

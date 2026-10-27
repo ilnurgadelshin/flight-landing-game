@@ -658,8 +658,11 @@ The visual assets are bundled locally and need no map service, account or API ke
   through drops; low uses a cheaper water highlight. Part-fitted surface masks give the
   painted panels subtle edge wear, the glareshield a matte padded finish, and the yoke
   grips smoother contact areas. Molded side consoles share the liner finish; refined
-  baked contacts add depth around panel joints, the pedestal and column bases. The old
-  cockpit remains available if the model cannot load.
+  baked contacts add depth around panel joints, the pedestal and column bases. The
+  pedestal and overhead have geometry-fitted coating variation and shallow edge wear;
+  the upper liner has molded grain and restrained joins. These are material
+  interpretations rather than photographic aircraft textures. The old cockpit remains
+  available if the model cannot load.
 - Outside rain uses fresh, individually recycled drops with soft streaks aligned to wind and
   aircraft velocity. Looking sideways no longer rotates the rain toward the pilot. Pane drops
   also change position and shape on each arrival instead of replaying the same short pattern.

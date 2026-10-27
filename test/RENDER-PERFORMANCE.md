@@ -2899,3 +2899,51 @@ Reports: `benchmarks/2026-10-27-cabin-depth-before.json`, `-baseline-recheck.jso
 separately; the low rows come from the unchanged low-tier run. The `-reduced-before-projection`
 report records that intermediate mesh for transparency. Model downloads increase by
 79,784 high / 51,572 low bytes, to 8,279,228 / 3,622,368 bytes respectively.
+
+
+## Pedestal, overhead and upper-liner finishes — 2026-10-27
+
+Baseline: main `437ed97`. Sequential Apple M2 Pro / Chromium ANGLE Metal runs,
+1440×900, high 1.5× / low 1×, four-second warm-up and twelve-second samples, paused
+physics. No competing graphics test or asset bake. The actual pilot eye is fixed;
+the overhead and pedestal cases turn the normal head-look controls.
+
+| Tier / view | Before FPS | After FPS | After p95 ms | Draw calls (unchanged) | Drawn triangles (unchanged) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| high / captain | 32.0 | 35.2 | 33.4 | 918 | 2,255,828 |
+| high / cabin-overhead | 50.0 | 52.5 | 33.3 | 325 | 1,679,248 |
+| high / cabin-pedestal | 42.1 | 44.8 | 33.4 | 416 | 2,101,464 |
+| low / captain | 60.0 | 60.0 | 16.7 | 529 | 794,755 |
+| low / cabin-overhead | 60.0 | 60.0 | 16.8 | 143 | 525,133 |
+| low / cabin-pedestal | 60.0 | 60.0 | 16.7 | 224 | 654,143 |
+
+No observed regression in these samples. The modest increases are within short-run
+scheduling variation and are not evidence of an optimization. Fixed high-resolution
+forward flight remains below 60 FPS; automatic resolution/quality management is still
+needed. Display-capped low results do not measure physical-phone performance.
+
+The packed atlas doubles in area to 2048×1024 / 1024×512, preserving old-slot texel
+density. Files increase by 352,754 / 146,578 bytes to 662,114 / 279,710 bytes and still
+load behind the menu. Assuming mipmapped RGBA8 storage, the atlas adds approximately
+5.33 / 1.33 MiB. Additional finish-coordinate arrays use 476,352 / 339,756 bytes;
+the fitted roof gains 2,652 bytes of high-tier grain coordinates. Driver allocation
+can vary. The source GLBs and their triangle counts are unchanged.
+
+The new regions reuse existing texture objects and six high-tier grain maps; low uses
+none of those grain maps. More surfaces sample the shared packed atlas, and the roof
+now shares the existing trim shader. There is no added light, render pass or draw call.
+Connected curved parts are outlined as a whole offline, so normal changes do not
+create false seams. A narrow liner join replaces the overly prominent prototype.
+
+Evidence: `benchmarks/2026-10-27-cabin-textures-before.json`, `-after.json`, and
+[matched cockpit review](output/cabin-textures-review.html). Its 360-frame head movement
+clips show material attachment during motion, not frame-rate performance; video encoding
+alters pacing. Fine source lettering still aliases, and low-tier lettering also loses
+shape. No physical phone or additional GPU driver is certified by this pass.
+
+Measured startup is 14,335,851 / 8,771,752 bytes high / low (1,470 new runtime bytes).
+Prepared flight is 68,130,868 / 19,990,356 bytes, increases of 354,224 / 148,048.
+Menu budgets, preparation completion, zero further asset requests during the short
+flight, automatic low selection and hidden-tab calibration all pass. The 22 Node
+suites, finite lighting/reflection/fallback checks and ten viewport layout cases pass.
+Reports are retained alongside the benchmark under `2026-10-27-cabin-textures-*`.

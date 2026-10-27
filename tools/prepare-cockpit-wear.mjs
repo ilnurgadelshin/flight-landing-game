@@ -5,7 +5,8 @@ import {ALL_EXTENSIONS} from '@gltf-transform/extensions';
 import {MeshoptDecoder} from 'meshoptimizer';
 import sharp from 'sharp';
 import fs from 'node:fs/promises';
-import {SURFACE_LAYOUT} from '../js/cockpit/surface-layout.js';
+import {SURFACE_LAYOUT,SURFACE_ATLAS} from '../js/cockpit/surface-layout.js';
+import {panelMasks,linerMask} from './cockpit-panel-masks.mjs';
 await MeshoptDecoder.ready;
 const io=new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({'meshopt.decoder':MeshoptDecoder});
 const doc=await io.read('assets/models/737-cockpit.glb');
@@ -41,7 +42,9 @@ const clamp=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
 const hash=(x,y,s=0)=>{let n=Math.imul(x,374761393)+Math.imul(y,668265263)+s;n=Math.imul(n^(n>>>13),1274126177);return ((n^(n>>>16))>>>0)/4294967295;};
 function noise(x,y,s=0){const ix=Math.floor(x),iy=Math.floor(y);let u=x-ix,v=y-iy;u*=u*(3-2*u);v*=v*(3-2*v);const a=hash(ix,iy,s)*(1-u)+hash(ix+1,iy,s)*u,b=hash(ix,iy+1,s)*(1-u)+hash(ix+1,iy+1,s)*u;return a*(1-v)+b*v;}
 const spot=(x,y,cx,cy,rx,ry)=>Math.exp(-2*((x-cx)**2/rx**2+(y-cy)**2/ry**2));
-const data=Buffer.alloc(1024*1024*3);
+const [atlasWidth,atlasHeight]=SURFACE_ATLAS,data=Buffer.alloc(atlasWidth*atlasHeight*3);
+const masks={pedestal:await panelMasks(doc,SURFACE_LAYOUT.pedestal,'pedestal'),overhead:await panelMasks(doc,SURFACE_LAYOUT.overhead,'overhead')};
+const liner=await linerMask(SURFACE_LAYOUT.headliner);
 // Locations measured on the source: panel selector knobs and MCP/EFIS controls.
 const contacts=[[-.445,-.300,.060,.026],[.372,-.300,.060,.026],[-.30,-.16,.055,.025],[.27,-.16,.055,.025],[-.014,-.15,.17,.026],[-.18,-.26,.034,.07]];
 for(const [kind,{rect:[rx,ry,rw,rh],bounds:[left,bottom,right,top]}] of Object.entries(SURFACE_LAYOUT)) {
@@ -71,16 +74,25 @@ for(const [kind,{rect:[rx,ry,rw,rh],bounds:[left,bottom,right,top]}] of Object.e
    const thumb=Math.max(spot(x,y,-.12,-.184,.035,.025),spot(x,y,.12,-.184,.035,.025));
    const worn=Math.max(grip,thumb)*(.85+.15*noise(x*85,y*85,8));
    color=1+.05*broad+.25*worn;rough=1-.48*worn+.08*broad;relief=1-.82*worn;
+  } else if(masks[kind]) {
+   const mask=masks[kind],p=j*rw+i,e=mask.edge[p]/255,g=mask.grime[p]/255,touch=mask.touch[p]/255;
+   const broken=.4+.6*noise(x*190,y*190,71);
+   color=mask.tone[p]/128*(1+.07*broad+.02*fine+.20*e*broken-.15*g-.10*touch);
+   rough=1+.14*broad-.22*touch-.22*e*broken;relief=1-.80*e;
+  } else if(kind==='headliner') {
+   const p=j*rw+i,seam=liner.seam[p]/255,edge=liner.edge[p]/255;
+   color=1+.055*broad-.10*seam+.025*edge;
+   rough=1+.06*broad+.08*seam;relief=1-.9*seam;
   } else {
    // Soft cleaning variation on painted rails; no seam lines projected through
    // the sloping pillar. Keep the original colour and overall matte finish.
    const sill=Math.exp(-(((y+.13)/.07)**2))*(.4+.6*noise(x*11,y*11,61));
    color=1+.13*broad-.045*sill;rough=1+.16*broad-.14*sill;relief=1-.4*sill;
   }
-  const k=((ry+j)*1024+rx+i)*3;
+  const k=((ry+j)*atlasWidth+rx+i)*3;
   data[k]=Math.round(clamp(color/2)*255);data[k+1]=Math.round(clamp(rough/2)*255);data[k+2]=Math.round(clamp(relief)*255);
  }
 }
 await fs.mkdir('assets/cockpit',{recursive:true});
-for(const size of [1024,512])await sharp(data,{raw:{width:1024,height:1024,channels:3}}).resize(size,size).webp({lossless:true,effort:6}).toFile(`assets/cockpit/service-wear${size===512?'-low':''}.webp`);
-console.log(`Authored four finish masks from ${boundary.length} measured panel edges; 1024/512px packed linear maps.`);
+for(const scale of [1,.5])await sharp(data,{raw:{width:atlasWidth,height:atlasHeight,channels:3}}).resize(atlasWidth*scale,atlasHeight*scale).webp({lossless:true,effort:6}).toFile(`assets/cockpit/service-wear${scale===.5?'-low':''}.webp`);
+console.log('Authored seven fitted finishes:',{forwardEdges:boundary.length,pedestal:masks.pedestal.report,overhead:masks.overhead.report,dimensions:SURFACE_ATLAS});

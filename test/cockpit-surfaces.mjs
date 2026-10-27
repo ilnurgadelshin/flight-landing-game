@@ -20,7 +20,9 @@ try {
     const T=await import('/vendor/three.module.js'),s=window.__sim,w=s.world,c=s.cockpit;
     s.start({startId:'short',scenarioId:view==='storm'?'storm':'clear',night:view==='night',seed:5});s.setTimeScale(0);s.setDrawing(false);
     s.game.state='paused';s.game.sim.aircraft.place({x:3300,y:115,z:0,headingDeg:270,iasKts:147,flapIndex:4,gearDown:true,gammaDeg:-3});
-    s.view.setMode('cockpit');s.view.setNdView(false);Object.assign(s.view.look,{yaw:view==='side'?.45:0,pitch:0,down:view==='panel'?.45:0});
+    s.view.setMode('cockpit');s.view.setNdView(false);Object.assign(s.view.look,{
+      yaw:view==='side'?.45:view==='liner'?.65:['pedestal','overhead'].includes(view)?-.38:0,
+      pitch:view==='pedestal'?-.55:view==='overhead'?.95:view==='liner'?.7:0,down:view==='panel'?.45:0});
     for(let i=0;i<120;i++){s.presentation.frame(1/60,0);s.view.update(1/60);}
     w.setPixelRatio(tier==='high'?1.5:1);
     const eye=w.camera.getWorldPosition(new T.Vector3());await w.groundDetail.settle(eye);w.nearWoodland?.settle(eye);w.groundCover?.settle(eye);
@@ -28,7 +30,9 @@ try {
     // stays within its time limit with software rendering.
     s.view.draw();const gl=w.renderer.getContext();gl.readPixels(0,0,1,1,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array(4));
     const ray=new T.Raycaster(),probes=[];
-    if(view==='captain')for(const [x,y] of [[505,250],[600,490],[480,448],[1090,363],[290,720],[548,795],[905,485],[700,800],[340,570]]) {
+    const picks=view==='captain'?[[505,250],[600,490],[480,448],[1090,363],[290,720],[548,795],[905,485],[700,800],[340,570]]:
+      ['pedestal','overhead','liner'].includes(view)?[280,560,840,1120].flatMap(x=>[250,450,650].map(y=>[x,y])):[];
+    for(const [x,y] of picks) {
      ray.setFromCamera(new T.Vector2(x/720-1,1-y/450),w.camera);
      const hit=ray.intersectObjects(c.root.children,true).find(h=>{for(let n=h.object;n&&n!==c.root;n=n.parent)if(!n.visible)return false;return h.object.material.isMeshStandardMaterial&&!h.object.material.transparent;});
      if(hit)probes.push({screen:[x,y],name:hit.object.name,material:hit.object.material.name,finish:hit.object.material.userData.cockpitFinish,point:c.root.worldToLocal(hit.point).toArray()});
@@ -53,7 +57,8 @@ try {
    },{tier,view});
    assert.deepEqual(result.assets,[]);assert.deepEqual(result.finishes.errors,[]);
    if(!process.env.REVIEW_ROOT){
-    assert.equal(result.finishes.wearSize,tier==='high'?1024:512);
+    assert.equal(result.finishes.wearSize,tier==='high'?2048:1024);
+    for(const region of ['pedestal','overhead','headliner'])assert.ok(result.finishes.regions[region]>100,`${region} has fitted finish coordinates`);
     assert.equal(result.invalid,0,'All part UVs and weights are finite and bounded');
     assert.equal(result.consoleFinish,'trim','Both visible side consoles receive their verified liner finish');
     assert.equal(result.screenFinishes,0,'Live displays never receive a wear finish');

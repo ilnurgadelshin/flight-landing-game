@@ -68,27 +68,44 @@ uses the original procedural finish. Exact source files and modifications are in
 The yoke's pure-black grip alone is given 2.2% neutral diffuse reflectance, so its shape remains
 visible; screens, lettering and other black parts keep their original colours.
 
-The 2026-10-18 finish pass adds `cockpit/service-wear.webp` (1024² high) and
-`service-wear-low.webp` (512² low). These are original, non-repeating material masks
-fitted to the source parts, with panel boundaries derived from the credited cockpit
-geometry above (CC BY 4.0). They are interpretations of light service wear, not
-photographs or a surveyed aircraft livery. R stores colour modulation / 2, G stores
-roughness modulation / 2, and B stores grain retention or the forward panel's shallow
-edge profile. All channels are linear and the WebP encoding is lossless.
+The fitted finish atlas introduced on 2026-10-18 was extended on 2026-10-27 to
+`cockpit/service-wear.webp` (2048×1024 high, 662,114 bytes) and
+`service-wear-low.webp` (1024×512 low, 279,710 bytes). These are original,
+non-repeating material masks fitted to source parts, with panel boundaries derived
+from the credited cockpit geometry above (CC BY 4.0). They interpret light service
+wear; they are not photographs or a surveyed aircraft livery. R stores colour
+modulation / 2, G stores roughness modulation / 2, and B stores grain retention or
+shallow edge relief. All channels are linear; WebP encoding is lossless.
 
-Panel rims follow 1,033 measured boundary segments, including display cutouts;
-coplanar tessellation edges, lettering and emissive screens are excluded. High quality
-adds a rolled paint edge under 0.6 mm through bump shading. Both tiers vary coating
-and roughness around measured controls, lower window rails and yoke grip locations.
-The forward glareshield reuses the CC0 leather grain on high, with the finish gated
-to its measured volume because its source material is shared with distant fittings.
-The UVs stay attached to animated controls. Low adds only the small colour/roughness
-mask, without grain or bump sampling. The mask is requested with the scenery, behind the
-menu, so it is not part of the startup download; until it arrives, or if it fails, the
+The original forward-panel, padding, grip and frame slots keep their texel density.
+The forward contour has 1,294 segments after contact-mesh subdivision, with the same
+physical outline as the earlier 1,033-segment version. New pedestal and overhead
+slots follow 53 / 101 connected coating islands, with 4,809 / 12,783 boundary
+segments and five / eight small control-contact footprints. Connected curved faces
+join before outlining, so tessellation and normal changes do not become false seams.
+Moving controls, source lettering and live displays do not contribute these outlines.
+The main panel's repeated material identities are gated by source-space position and
+orientation, preserving vertical casing faces and fittings outside each region.
+
+The original upper cabin liner (`Material.014`) and the fitted roof now share trim
+grain, gentle tonal variation and a shallow transverse join on each side of the
+overhead opening. These joins are an authored interpretation, not measured aircraft
+seams. High adds at most 0.65 mm panel-edge / 0.35 mm liner-join bump depth and reuses
+the existing six material maps. Low uses the packed colour/roughness masks and
+average grain roughness, without grain or bump sampling. The forward glareshield
+still reuses the CC0 leather grain within its measured volume; the grip finish
+continues to follow the animated yokes.
+
+The atlas is requested behind the menu. Until it arrives, or if it fails, the
 masked parts sample a neutral value (colour, roughness and relief unchanged).
-Reproduce these two maps with `node tools/prepare-cockpit-wear.mjs`; the measured
-layout is in `js/cockpit/surface-layout.js`. No model geometry, lettering, base material
-colours, camera position or lighting calibration is changed by this pass.
+The extension adds 352,754 high / 146,578 low image bytes. Assuming RGBA8 storage
+with mipmaps, the larger atlas adds approximately 5.33 / 1.33 MiB; driver allocation
+can vary. It adds no model triangles, material draw batches, light or render pass.
+Reproduce both maps with `node tools/prepare-cockpit-wear.mjs`; geometry-derived
+masks are in `tools/cockpit-panel-masks.mjs` and the shared measured layout in
+`js/cockpit/surface-layout.js`. Source geometry, lettering, base material colours,
+camera placement and lighting calibration are preserved. The floor, many knob and
+metal finishes, and fixed-eye indirect reflections remain simplified.
 
 The 2026-10-27 contact-shading pass adds the missing molded-trim finish to
 `Cube.1060` and `Cube.1061` / `Material.424`, verified in the saved original-source
@@ -112,7 +129,7 @@ Always supply an unmodified baseline in a separate directory; this is an offline
 shading operation, not a runtime subdivision step. The original CC BY 4.0 credit
 continues to cover these adapted models. The finish is a material interpretation,
 not an aircraft-specific photographic texture set. Fixed-eye reflections, the
-simple headliner and other untextured surfaces remain limitations.
+floor and remaining control finishes are limitations; the subsequent fitted-material extension is documented above.
 
 The material assignments were checked in Blender against these source meshes:
 

@@ -43,7 +43,9 @@ try{
         s.start({startId:'short',scenarioId:scene==='storm'?'storm':scene.startsWith('deck-')?'crosswind':'clear',seed:5});s.setTimeScale(0);
         const approachX=/^captain-\d+$/.test(scene)?Number(scene.slice(8)):scene==='captain-entry'?9000:scene==='captain-valley'?7500:scene==='captain-upper'?5500:3300;
         s.game.sim.aircraft.place({x:scene==='rollout'?1000:approachX,y:scene==='rollout'?2.5:scene==='deck-captain'?w.cloudTop+220:scene.startsWith('captain-')?15+(approachX-1500)*Math.tan(Math.PI/60):115,z:0,headingDeg:270,iasKts:scene==='rollout'?85:147,flapIndex:4,gearDown:true,gammaDeg:-3,onGround:scene==='rollout'});
-        s.view.setMode('cockpit');for(let i=0;i<40;i++)s.view.update(1/60);
+        s.view.setMode('cockpit');Object.assign(s.view.look,{yaw:scene.startsWith('cabin-')?-.38:0,
+          pitch:scene==='cabin-overhead'?.95:scene==='cabin-pedestal'?-.55:0,down:false});
+        for(let i=0;i<40;i++)s.view.update(1/60);
         s.game.state='menu';w.setPixelRatio(pixelRatio);
         if(['ridge-farm-wide','ridge-farm-close','airport-country-north','airport-country-south','upper-slopes-north','upper-slopes-south','opposite-hills','valley-lane-farm','valley-lane-wide','hills','crossing','roadside-homes','airport','terminal','terminal-close','tower','nearby','site','corridor','extension','opposite','upper-opposite','contour-farm','shoulder','north-farm','hamlet','cloud-sky','cloud-close','deck-top','deck-base','deck-near-top','deck-inside-base','grass-meadow','grass-pasture','grass-soil'].includes(scene)){
           const c=new T.PerspectiveCamera(50,innerWidth/innerHeight,.1,60000);
