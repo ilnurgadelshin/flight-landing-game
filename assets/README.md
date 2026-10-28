@@ -408,14 +408,32 @@ also read inside the overlap. There is no extra terrain draw pass. If the option
 airport data fails validation or cannot load, the older corridor still loads and the
 airport retains its photograph and previous tree budget.
 
-Two bounded high-only planting zones add 2000 trees per side, for **70,000 high /
-14,000 low**. Existing zone caps and seeds remain; accepted trees at the overlap and
-background positions can change. The airfield and approach-light protection includes
+The airport pass originally added 2000 trees per side, for **70,000 high /
+14,000 low**. Since the 2026-10-28 correction, these allocations are density targets
+blended across joins, rather than fixed per-map counts; see the current rules below. The airfield and approach-light protection includes
 a 24 m clear margin and a further 110 m canopy/ground fade beside the earthworks.
 Roads, buildings, settlement clearings and mapped fields retain exclusions. The new
 outer boundaries fade over 180 m. The low tier requests neither airport mask file
 and retains its existing ground and tree allocations. This does not replace all
 farm buildings, remove photographic shadows or supply dense, detailed distant crowns.
+
+The 2026-10-28 join correction traces one missing woodland margin around the hillside
+lane, using the existing public-domain `final-approach.webp` crop at x=2700–4200,
+z=500–1300. The outline deliberately excludes photographed gardens beside the lane.
+It adds **12.39 ha** of weighted woodland, bringing the close map to **91 outlines**
+and **826.28 ha woodland**. Effective combined high coverage is approximately
+**3087.18 ha**. The corridor pair is 414,460 bytes; with the airport pair the land-cover
+download is **454,251 bytes**. Atlas dimensions and GPU allocations are unchanged.
+
+High planting now blends expected density within **350 m of each allocation edge**,
+using a common **9.5 m candidate grid** before deterministic selection. A sparse outer
+candidate grid cannot realize a dense neighbour's edge, so the denser candidates are
+needed even where most are rejected. The retained mapped allocation stays **66,700**,
+plus eligible site trees and background trees within the existing **70,000 hard cap**.
+Individual map counts may redistribute. Low keeps its original grid, selection and
+14,000 total cap; it does receive the corrected woodland outline. The high-only
+selection module loads during scenery preparation, outside menu startup and low-tier
+downloads. No extra rendered tree, mesh type, light or render pass is introduced.
 
 `scenery/approach-corridor.png` and `.json` describe meadow, stubble and woodland
 along 6.9 km of final. The close map spans 6.9 × 2.03 km; high-quality hillside
@@ -443,8 +461,9 @@ separated from the older hill by a six-column repeated-edge gutter. Atlas dimens
 and the number of texture samplers stay unchanged.
 
 Linear RGB stores meadow/stubble/woodland coverage. The original 3450 × 1015 pixels
-retain 2 m/px CPU planting precision and are unchanged except their last 15 rows
-(z=1000–1030) alongside the hill tile: there the close map takes up the hill tile's
+retain 2 m/px CPU planting precision. In addition to the corrected woodland margin,
+their last 15 rows
+(z=1000–1030) are adjusted alongside the hill tile: there the close map takes up the hill tile's
 woods and meadows, so neither map fades at their shared edge. A separately registered
 1024 × 256 hill tile is packed below them after a 6-row gutter that repeats each map's
 edge row, so bilinear filtering and downscaling cannot mix the maps. The opposite
@@ -458,8 +477,10 @@ the same edited pixels, avoiding an abrupt forest edge. This is a one-time low-t
 decode operation; the baked close mask and older high-tier join remain unchanged.
 High quality joins the opposite tile into the close map's first 30 m during decoding,
 before CPU packing and GPU upload. Its trees and ground therefore share the same
-continuous north boundary. Low does not apply that join. The high canvas replaces
-the original decoded image as the texture upload source; the opposite tile adds
+continuous north boundary. Low does not apply that join. Edited high and reduced low
+canvases are snapshotted losslessly into decoded images, then their backing stores are
+released. The image remains available for GPU re-upload; decoded-image and GPU memory
+are still required. The high image replaces the original texture upload source; the opposite tile adds
 another 0.52 MB of packed CPU samples, with no additional GPU texture storage.
 Upload dimensions also respect the renderer's maximum
 texture size. The upper slopes select one region and use one land-cover lookup away
@@ -468,7 +489,8 @@ sampler or terrain draw call. The RGBA8 texture uses 17.62 MB high /
 4.94 MB low, against 14.01 / 4.94 MB without the hillside. On high the hill tile adds
 0.52 MB of packed CPU samples; the original 7 MB buffer and small mixed-pixel table remain.
 
-Baked high-tier coverage is approximately 76.27 ha meadow, 46.24 ha stubble and 813.89 ha woodland:
+Before the 2026-10-28 margin correction, baked high-tier coverage was approximately
+76.27 ha meadow, 46.24 ha stubble and 813.89 ha woodland:
 936.40 ha in the original corridor, 5.66 ha of it from the rows continuing the hill
 tile. The left hillside adds 25.73 ha meadow and 385.63 ha woodland. The opposite
 hill adds 30.57 ha meadow, 21.48 ha stubble and 231.32 ha woodland, bringing the

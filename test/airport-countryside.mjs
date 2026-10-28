@@ -40,9 +40,11 @@ try{
    assert.deepEqual(stats.mask,tier==='high'?[3450,1277]:[2048,603]);
    assert.equal(stats.airportError,undefined);
    if(tier==='high'){
+    // Retain at least 80% of each nominal allocation while density crosses tile edges.
+    // The fixed total and per-edge density ratios are checked in woodland-joins.mjs.
     assert.deepEqual(stats.airportMask,[640,768]);
     assert.equal(stats.fields,0);assert.equal(stats.intrusions,0);assert.equal(stats.protectedTrees,0);
-    assert.ok(stats.north>=2000&&stats.south>=2000);
+    assert.ok(stats.north>=1600&&stats.south>=1600);
     stats.profiles=await page.evaluate(async()=>{
      const T=await import('/vendor/three.module.js'),{CORRIDOR_GLSL}=await import('/js/world/approach-corridor.js'),w=window.__sim.world;
      const points=[];for(const z of [-1300,-1800,1700,2200])for(const x of [2080,2120,2160,2210,2260,2290])points.push([x,z]);

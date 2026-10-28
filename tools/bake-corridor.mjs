@@ -116,6 +116,15 @@ const areas=traces.map(([tile,type,points,size=1600,holes=[]])=>{
  const project=ps=>ps.map(([x,z])=>[Number((Number(tile.split('_')[0])*1000-16+x*1032/size).toFixed(2)),Number((Number(tile.split('_')[1])*1000-16+z*1032/size).toFixed(2))]);
  return {tile,type,points:project(points),...(holes.length?{holes:holes.map(project)}:{})};
 });
+// The original 3_0 traces omitted this continuous leaf-off stand. Follow its
+// photographed margin instead of importing a rectangular hill edge over 30 m.
+// Reviewed final-approach.webp crop: [350,2250,750,400] (x2700–4200,z500–1300).
+areas.push({tile:'final-approach',type:'woodland',points:[
+ [2980,1060],[3100,1030],[3180,1015],[3260,980],[3320,990],[3370,960],
+ [3410,935],[3430,920],[3500,905],[3560,870],[3640,850],[3690,820],
+ [3740,800],[3780,750],[3850,730],[3900,660],[3970,620],[4020,580],
+ [4090,580],[4120,640],[4120,1060],
+]});
 // Polygon bounds reject distant pixels before the more expensive edge distances.
 const boundedAreas=areas.map(a=>({...a,rect:[Math.min(...a.points.map(p=>p[0])),Math.min(...a.points.map(p=>p[1])),Math.max(...a.points.map(p=>p[0])),Math.max(...a.points.map(p=>p[1]))]}));
 function signedDistance(x,z,points){

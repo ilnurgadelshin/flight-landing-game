@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import sharp from 'sharp';
 import {Document} from '@gltf-transform/core';
-import {SURFACE_ATLAS,SURFACE_LAYOUT,finishCoordinates} from '../js/cockpit/surface-layout.js';
+import {SURFACE_ATLAS,SURFACE_LAYOUT,finishCoordinates,guardFinishBoundaries} from '../js/cockpit/surface-layout.js';
 import {panelMasks} from '../tools/cockpit-panel-masks.mjs';
 
 // Existing masks keep their texel density in the left half of the wider atlas.
@@ -39,3 +39,10 @@ for(const [suffix,width,height,budget] of [['',2048,1024,800000],['-low',1024,51
  assert.ok((await fs.stat(file)).size<budget,'Packed finish stays within its delivery budget');
 }
 console.log('Cockpit materials: fitted regions, exclusions, curved-part outlines and packed-map budgets passed');
+
+// A partly faded vertex is not enough: interpolated UVs still sweep through the
+// other slots. Neutralize every vertex of a face that spans two atlas regions.
+const boundaryUV=new Float32Array([.2,.7,1,.6,.4,1,.2,.8,0,.2,.9,1]);
+guardFinishBoundaries([0,1,2,0,2,3],['panel','pedestal','panel','panel'],boundaryUV);
+assert.deepEqual([boundaryUV[2],boundaryUV[5],boundaryUV[8]],[0,0,0]);
+assert.equal(boundaryUV[11],1,'An interior vertex keeps its finish');

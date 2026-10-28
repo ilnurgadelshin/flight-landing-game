@@ -37,7 +37,7 @@ try {
      const hit=ray.intersectObjects(c.root.children,true).find(h=>{for(let n=h.object;n&&n!==c.root;n=n.parent)if(!n.visible)return false;return h.object.material.isMeshStandardMaterial&&!h.object.material.transparent;});
      if(hit)probes.push({screen:[x,y],name:hit.object.name,material:hit.object.material.name,finish:hit.object.material.userData.cockpitFinish,point:c.root.worldToLocal(hit.point).toArray()});
     }
-    let finishBytes=0,invalid=0,paddingInside=0,paddingOutside=0,screenFinishes=0,consoleFinish=null;
+    let finishBytes=0,invalid=0,paddingInside=0,paddingOutside=0,screenFinishes=0,consoleFinish=null,crossingFaces=0;
     c.root.traverse(mesh=>{
      if(!mesh.isMesh)return;
      if(mesh.material.name==='Material.424')consoleFinish=mesh.material.userData.cockpitFinish;
@@ -51,8 +51,15 @@ try {
        if(values[2]>.5)paddingInside++;if(values[2]===0)paddingOutside++;
       }
      }
+     // Atlas-slot interpolation must not sweep across unrelated textures, even
+     // when just one of a triangle's vertices has a nonzero finish weight.
+     const slot=i=>{const u=attr.getX(i),v=attr.getY(i);return u<.5?(v>.5?'panel':v>.25?'padding':u<.25?'rubber':'frame'):u<.75?'pedestal':v>.375?'overhead':'headliner';};
+     const index=mesh.geometry.index;
+     if(index)for(let i=0;i<index.count;i+=3){const a=index.getX(i),b=index.getX(i+1),c=index.getX(i+2);
+      if((slot(a)!==slot(b)||slot(a)!==slot(c))&&Math.max(attr.getZ(a),attr.getZ(b),attr.getZ(c))>0)crossingFaces++;
+     }
     });
-    return {finishes:c.authoredModel.userData.surfaceDetail,finishBytes,invalid,paddingInside,paddingOutside,screenFinishes,consoleFinish,
+    return {finishes:c.authoredModel.userData.surfaceDetail,finishBytes,invalid,paddingInside,paddingOutside,screenFinishes,consoleFinish,crossingFaces,
      eye:c.eyeLocal.toArray(),probes,assets:w.assetErrors};
    },{tier,view});
    assert.deepEqual(result.assets,[]);assert.deepEqual(result.finishes.errors,[]);
@@ -60,6 +67,7 @@ try {
     assert.equal(result.finishes.wearSize,tier==='high'?2048:1024);
     for(const region of ['pedestal','overhead','headliner'])assert.ok(result.finishes.regions[region]>100,`${region} has fitted finish coordinates`);
     assert.equal(result.invalid,0,'All part UVs and weights are finite and bounded');
+    assert.equal(result.crossingFaces,0,'No active face interpolates across separate atlas slots');
     assert.equal(result.consoleFinish,'trim','Both visible side consoles receive their verified liner finish');
     assert.equal(result.screenFinishes,0,'Live displays never receive a wear finish');
     assert.ok(result.paddingInside>0&&result.paddingOutside>0,'Shared fittings outside the glareshield keep their source finish');

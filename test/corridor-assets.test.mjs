@@ -35,6 +35,8 @@ assert.ok(sample(4100,-756)[0]>.8&&sample(4100,-711)[1]>.8,'Curved crop strips r
 assert.ok(sample(5774,-216)[2]>.8,'The upper woodland replaces flat photographic trees');
 assert.ok(sample(4740,-80)[2]>.8&&sample(4990,90)[2]>.8,'Wooded parcels continue across the approach crossing');
 assert.ok(sample(4510,-70)[0]>.8,'The pasture beside the crossing lane remains open');
+for(const [x,z] of [[3500,980],[3600,950],[3800,900],[3900,950]])assert.ok(sample(x,z)[2]>.9,'The omitted forest connects to the hillside');
+for(const [x,z] of [[3100,970],[3300,920],[3500,850]])assert.ok(sample(x,z)[2]<.1,'Gardens beside the lane remain outside the new woodland trace');
 for(const site of JSON.parse(await fs.readFile('assets/scenery/approach-sites.json')).sites)for(const tree of site.trees){
  const cover=sample(tree.x,tree.z);assert.ok(cover[0]+cover[1]<=.6,'Placed garden trees keep mapped fields open');
 }

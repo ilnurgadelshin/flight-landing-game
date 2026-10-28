@@ -1,0 +1,934 @@
+[
+  {
+    "tier": "high",
+    "joins": [
+      {
+        "name": "airport-north",
+        "axis": "x",
+        "edge": 2100,
+        "start": -2400,
+        "end": -1200,
+        "bands": [
+          {
+            "offset": [
+              -200,
+              -100
+            ],
+            "hectares": 8.665599999999307,
+            "count": 90,
+            "density": 10.385893648449871
+          },
+          {
+            "offset": [
+              -100,
+              0
+            ],
+            "hectares": 8.689599999999304,
+            "count": 94,
+            "density": 10.817529000184994
+          },
+          {
+            "offset": [
+              0,
+              100
+            ],
+            "hectares": 8.54239999999932,
+            "count": 165,
+            "density": 19.315414871700355
+          },
+          {
+            "offset": [
+              100,
+              200
+            ],
+            "hectares": 4.699199999999744,
+            "count": 105,
+            "density": 22.34422880490418
+          }
+        ],
+        "ratio": 1.785566266692702
+      },
+      {
+        "name": "airport-south",
+        "axis": "x",
+        "edge": 2100,
+        "start": 1500,
+        "end": 2400,
+        "bands": [
+          {
+            "offset": [
+              -200,
+              -100
+            ],
+            "hectares": 8.99999999999927,
+            "count": 104,
+            "density": 11.555555555556493
+          },
+          {
+            "offset": [
+              -100,
+              0
+            ],
+            "hectares": 8.99999999999927,
+            "count": 108,
+            "density": 12.000000000000973
+          },
+          {
+            "offset": [
+              0,
+              100
+            ],
+            "hectares": 8.99999999999927,
+            "count": 159,
+            "density": 17.6666666666681
+          },
+          {
+            "offset": [
+              100,
+              200
+            ],
+            "hectares": 8.529599999999322,
+            "count": 142,
+            "density": 16.647908459952554
+          }
+        ],
+        "ratio": 1.472222222222222
+      },
+      {
+        "name": "hills-north",
+        "axis": "x",
+        "edge": 5300,
+        "start": -2400,
+        "end": -1100,
+        "bands": [
+          {
+            "offset": [
+              -200,
+              -100
+            ],
+            "hectares": 5.00479999999971,
+            "count": 112,
+            "density": 22.378516624042216
+          },
+          {
+            "offset": [
+              -100,
+              0
+            ],
+            "hectares": 3.507199999999875,
+            "count": 80,
+            "density": 22.810218978103002
+          },
+          {
+            "offset": [
+              0,
+              100
+            ],
+            "hectares": 1.96640000000004,
+            "count": 33,
+            "density": 16.78193653376695
+          },
+          {
+            "offset": [
+              100,
+              200
+            ],
+            "hectares": 2.961599999999935,
+            "count": 40,
+            "density": 13.506212857914937
+          }
+        ],
+        "ratio": 0.7357200976403169
+      },
+      {
+        "name": "hills-south",
+        "axis": "x",
+        "edge": 5300,
+        "start": 1150,
+        "end": 2400,
+        "bands": [
+          {
+            "offset": [
+              -200,
+              -100
+            ],
+            "hectares": 12.479999999998887,
+            "count": 207,
+            "density": 16.58653846153994
+          },
+          {
+            "offset": [
+              -100,
+              0
+            ],
+            "hectares": 12.479999999998887,
+            "count": 230,
+            "density": 18.429487179488824
+          },
+          {
+            "offset": [
+              0,
+              100
+            ],
+            "hectares": 12.479999999998887,
+            "count": 114,
+            "density": 9.1346153846162
+          },
+          {
+            "offset": [
+              100,
+              200
+            ],
+            "hectares": 12.479999999998887,
+            "count": 109,
+            "density": 8.733974358975138
+          }
+        ],
+        "ratio": 0.4956521739130435
+      },
+      {
+        "name": "upper-south-west",
+        "axis": "z",
+        "edge": 1030,
+        "start": 6200,
+        "end": 7200,
+        "bands": [
+          {
+            "offset": [
+              -200,
+              -100
+            ],
+            "hectares": 9.934399999999167,
+            "count": 325,
+            "density": 32.71460782735014
+          },
+          {
+            "offset": [
+              -100,
+              0
+            ],
+            "hectares": 9.622399999999201,
+            "count": 311,
+            "density": 32.32041902228403
+          },
+          {
+            "offset": [
+              0,
+              100
+            ],
+            "hectares": 9.81119999999918,
+            "count": 147,
+            "density": 14.982876712330018
+          },
+          {
+            "offset": [
+              100,
+              200
+            ],
+            "hectares": 9.99999999999916,
+            "count": 107,
+            "density": 10.7000000000009
+          }
+        ],
+        "ratio": 0.46357309606659935
+      },
+      {
+        "name": "upper-south-east",
+        "axis": "z",
+        "edge": 1030,
+        "start": 7200,
+        "end": 8800,
+        "bands": [
+          {
+            "offset": [
+              -200,
+              -100
+            ],
+            "hectares": 15.999999999998499,
+            "count": 504,
+            "density": 31.500000000002956
+          },
+          {
+            "offset": [
+              -100,
+              0
+            ],
+            "hectares": 15.999999999998499,
+            "count": 531,
+            "density": 33.18750000000311
+          },
+          {
+            "offset": [
+              0,
+              100
+            ],
+            "hectares": 15.999999999998499,
+            "count": 269,
+            "density": 16.812500000001577
+          },
+          {
+            "offset": [
+              100,
+              200
+            ],
+            "hectares": 15.999999999998499,
+            "count": 201,
+            "density": 12.562500000001178
+          }
+        ],
+        "ratio": 0.5065913370998117
+      },
+      {
+        "name": "upper-north",
+        "axis": "z",
+        "edge": -1000,
+        "start": 6200,
+        "end": 8800,
+        "bands": [
+          {
+            "offset": [
+              -200,
+              -100
+            ],
+            "hectares": 19.331199999998134,
+            "count": 377,
+            "density": 19.502151961597644
+          },
+          {
+            "offset": [
+              -100,
+              0
+            ],
+            "hectares": 21.80959999999786,
+            "count": 619,
+            "density": 28.38199691879084
+          },
+          {
+            "offset": [
+              0,
+              100
+            ],
+            "hectares": 24.334399999997583,
+            "count": 820,
+            "density": 33.69715300151561
+          },
+          {
+            "offset": [
+              100,
+              200
+            ],
+            "hectares": 24.783999999997533,
+            "count": 809,
+            "density": 32.64202711427052
+          }
+        ],
+        "ratio": 1.1872720970949642
+      },
+      {
+        "name": "close-hill",
+        "axis": "z",
+        "edge": 1030,
+        "start": 3000,
+        "end": 3900,
+        "bands": [
+          {
+            "offset": [
+              -200,
+              -100
+            ],
+            "hectares": 0,
+            "count": 0,
+            "density": 0
+          },
+          {
+            "offset": [
+              -100,
+              0
+            ],
+            "hectares": 2.1552000000000238,
+            "count": 244,
+            "density": 113.21455085374782
+          },
+          {
+            "offset": [
+              0,
+              100
+            ],
+            "hectares": 8.99999999999927,
+            "count": 423,
+            "density": 47.000000000003816
+          },
+          {
+            "offset": [
+              100,
+              200
+            ],
+            "hectares": 8.99999999999927,
+            "count": 225,
+            "density": 25.00000000000203
+          }
+        ],
+        "ratio": 0.4151409836065957
+      }
+    ],
+    "trees": 70000,
+    "zones": [
+      13000,
+      5500,
+      3500,
+      18000,
+      700,
+      8000,
+      6000,
+      3500,
+      4500,
+      2000,
+      2000
+    ],
+    "limits": {
+      "count": 66777,
+      "total": 70000,
+      "limit": 70000,
+      "spacing": [
+        9.5,
+        12
+      ],
+      "zones": [
+        13000,
+        5500,
+        3500,
+        18000,
+        700,
+        8000,
+        6000,
+        3500,
+        4500,
+        2000,
+        2000
+      ]
+    },
+    "image": {
+      "kind": "HTMLCanvasElement",
+      "width": 3450,
+      "height": 1277
+    },
+    "gap": [
+      {
+        "x": 3000,
+        "woodland": [
+          0,
+          0,
+          0,
+          0.023529411764705882,
+          1,
+          1
+        ]
+      },
+      {
+        "x": 3200,
+        "woodland": [
+          0,
+          0,
+          0,
+          0.0196078431372549,
+          1,
+          1
+        ]
+      },
+      {
+        "x": 3400,
+        "woodland": [
+          0,
+          0,
+          0,
+          0.06666666666666667,
+          1,
+          1
+        ]
+      },
+      {
+        "x": 3600,
+        "woodland": [
+          0,
+          0,
+          0,
+          0.06666666666666667,
+          1,
+          1
+        ]
+      },
+      {
+        "x": 3800,
+        "woodland": [
+          0,
+          0,
+          0,
+          0.06666666666666667,
+          1,
+          1
+        ]
+      }
+    ],
+    "errors": []
+  },
+  {
+    "tier": "low",
+    "joins": [
+      {
+        "name": "airport-north",
+        "axis": "x",
+        "edge": 2100,
+        "start": -2400,
+        "end": -1200,
+        "bands": [
+          {
+            "offset": [
+              -200,
+              -100
+            ],
+            "hectares": 0,
+            "count": 0,
+            "density": 0
+          },
+          {
+            "offset": [
+              -100,
+              0
+            ],
+            "hectares": 0,
+            "count": 0,
+            "density": 0
+          },
+          {
+            "offset": [
+              0,
+              100
+            ],
+            "hectares": 0,
+            "count": 0,
+            "density": 0
+          },
+          {
+            "offset": [
+              100,
+              200
+            ],
+            "hectares": 0,
+            "count": 0,
+            "density": 0
+          }
+        ],
+        "ratio": null
+      },
+      {
+        "name": "airport-south",
+        "axis": "x",
+        "edge": 2100,
+        "start": 1500,
+        "end": 2400,
+        "bands": [
+          {
+            "offset": [
+              -200,
+              -100
+            ],
+            "hectares": 0,
+            "count": 0,
+            "density": 0
+          },
+          {
+            "offset": [
+              -100,
+              0
+            ],
+            "hectares": 0,
+            "count": 0,
+            "density": 0
+          },
+          {
+            "offset": [
+              0,
+              100
+            ],
+            "hectares": 0,
+            "count": 0,
+            "density": 0
+          },
+          {
+            "offset": [
+              100,
+              200
+            ],
+            "hectares": 0,
+            "count": 0,
+            "density": 0
+          }
+        ],
+        "ratio": null
+      },
+      {
+        "name": "hills-north",
+        "axis": "x",
+        "edge": 5300,
+        "start": -2400,
+        "end": -1100,
+        "bands": [
+          {
+            "offset": [
+              -200,
+              -100
+            ],
+            "hectares": 0,
+            "count": 0,
+            "density": 0
+          },
+          {
+            "offset": [
+              -100,
+              0
+            ],
+            "hectares": 0,
+            "count": 0,
+            "density": 0
+          },
+          {
+            "offset": [
+              0,
+              100
+            ],
+            "hectares": 0,
+            "count": 0,
+            "density": 0
+          },
+          {
+            "offset": [
+              100,
+              200
+            ],
+            "hectares": 0,
+            "count": 0,
+            "density": 0
+          }
+        ],
+        "ratio": null
+      },
+      {
+        "name": "hills-south",
+        "axis": "x",
+        "edge": 5300,
+        "start": 1150,
+        "end": 2400,
+        "bands": [
+          {
+            "offset": [
+              -200,
+              -100
+            ],
+            "hectares": 0,
+            "count": 0,
+            "density": 0
+          },
+          {
+            "offset": [
+              -100,
+              0
+            ],
+            "hectares": 0,
+            "count": 0,
+            "density": 0
+          },
+          {
+            "offset": [
+              0,
+              100
+            ],
+            "hectares": 0,
+            "count": 0,
+            "density": 0
+          },
+          {
+            "offset": [
+              100,
+              200
+            ],
+            "hectares": 0,
+            "count": 0,
+            "density": 0
+          }
+        ],
+        "ratio": null
+      },
+      {
+        "name": "upper-south-west",
+        "axis": "z",
+        "edge": 1030,
+        "start": 6200,
+        "end": 7200,
+        "bands": [
+          {
+            "offset": [
+              -200,
+              -100
+            ],
+            "hectares": 9.99999999999916,
+            "count": 47,
+            "density": 4.7000000000003945
+          },
+          {
+            "offset": [
+              -100,
+              0
+            ],
+            "hectares": 2.000000000000041,
+            "count": 5,
+            "density": 2.499999999999949
+          },
+          {
+            "offset": [
+              0,
+              100
+            ],
+            "hectares": 0,
+            "count": 0,
+            "density": 0
+          },
+          {
+            "offset": [
+              100,
+              200
+            ],
+            "hectares": 0,
+            "count": 0,
+            "density": 0
+          }
+        ],
+        "ratio": 0
+      },
+      {
+        "name": "upper-south-east",
+        "axis": "z",
+        "edge": 1030,
+        "start": 7200,
+        "end": 8800,
+        "bands": [
+          {
+            "offset": [
+              -200,
+              -100
+            ],
+            "hectares": 15.999999999998499,
+            "count": 79,
+            "density": 4.937500000000464
+          },
+          {
+            "offset": [
+              -100,
+              0
+            ],
+            "hectares": 3.1999999999999087,
+            "count": 16,
+            "density": 5.000000000000143
+          },
+          {
+            "offset": [
+              0,
+              100
+            ],
+            "hectares": 0,
+            "count": 0,
+            "density": 0
+          },
+          {
+            "offset": [
+              100,
+              200
+            ],
+            "hectares": 0,
+            "count": 0,
+            "density": 0
+          }
+        ],
+        "ratio": 0
+      },
+      {
+        "name": "upper-north",
+        "axis": "z",
+        "edge": -1000,
+        "start": 6200,
+        "end": 8800,
+        "bands": [
+          {
+            "offset": [
+              -200,
+              -100
+            ],
+            "hectares": 0,
+            "count": 0,
+            "density": 0
+          },
+          {
+            "offset": [
+              -100,
+              0
+            ],
+            "hectares": 0,
+            "count": 0,
+            "density": 0
+          },
+          {
+            "offset": [
+              0,
+              100
+            ],
+            "hectares": 4.857599999999726,
+            "count": 16,
+            "density": 3.293807641633914
+          },
+          {
+            "offset": [
+              100,
+              200
+            ],
+            "hectares": 24.767999999997535,
+            "count": 118,
+            "density": 4.764211886305383
+          }
+        ],
+        "ratio": null
+      },
+      {
+        "name": "close-hill",
+        "axis": "z",
+        "edge": 1030,
+        "start": 3000,
+        "end": 3900,
+        "bands": [
+          {
+            "offset": [
+              -200,
+              -100
+            ],
+            "hectares": 0,
+            "count": 0,
+            "density": 0
+          },
+          {
+            "offset": [
+              -100,
+              0
+            ],
+            "hectares": 0,
+            "count": 0,
+            "density": 0
+          },
+          {
+            "offset": [
+              0,
+              100
+            ],
+            "hectares": 0,
+            "count": 0,
+            "density": 0
+          },
+          {
+            "offset": [
+              100,
+              200
+            ],
+            "hectares": 0,
+            "count": 0,
+            "density": 0
+          }
+        ],
+        "ratio": null
+      }
+    ],
+    "trees": 14000,
+    "zones": [
+      5800,
+      2600,
+      1400,
+      2600,
+      300
+    ],
+    "limits": {
+      "count": 12777,
+      "total": 14000,
+      "limit": 14000,
+      "spacing": [
+        14,
+        18
+      ],
+      "zones": [
+        5800,
+        2600,
+        1400,
+        2600,
+        300
+      ]
+    },
+    "image": {
+      "kind": "HTMLCanvasElement",
+      "width": 2048,
+      "height": 603
+    },
+    "gap": [
+      {
+        "x": 3000,
+        "woodland": [
+          0,
+          0,
+          0,
+          0.00392156862745098,
+          0,
+          0
+        ]
+      },
+      {
+        "x": 3200,
+        "woodland": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      },
+      {
+        "x": 3400,
+        "woodland": [
+          0,
+          0,
+          0,
+          0.00392156862745098,
+          0,
+          0
+        ]
+      },
+      {
+        "x": 3600,
+        "woodland": [
+          0,
+          0,
+          0,
+          0.00392156862745098,
+          0,
+          0
+        ]
+      },
+      {
+        "x": 3800,
+        "woodland": [
+          0,
+          0,
+          0,
+          0.00392156862745098,
+          0,
+          0
+        ]
+      }
+    ],
+    "errors": []
+  }
+]

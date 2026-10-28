@@ -1,32 +1,38 @@
 # Visual improvement audit
 
-## Current status — 2026-10-27
+## Current status — 2026-10-28
 
 This section is the current checklist. The original September audit and dated work log
 below record how the scene evolved; their older counts, captures and priorities are not
 the remaining-work list. Update this section after each reviewed visual pass, including
 what changed, visible impact, measured cost, evidence and limitations.
 
-The latest pass extends the **fitted cockpit finishes to the pedestal, overhead and upper
-cabin liner**. Coating variation and shallow edge wear follow connected source panel
-faces; restrained contact wear follows small control bases. The liner gains molded grain
-and shallow authored joins. The source shape, paint colours, lettering, live displays and
-fitted eye remain. This is a modest material improvement, strongest while looking down or
-up from the pilot seat. These three regions are no longer untouched material work, but
-the result is **not a photographic aircraft texture set**.
+The latest pass corrects **woodland density joins, an omitted forest margin, retained
+land-cover canvases and cockpit atlas interpolation** after an independent review.
+High quality blends density across tile allocations while retaining the **70,000-tree
+ceiling**; low keeps **14,000** and its previous planting method. A source-checked forest
+margin adds **12.39 ha** without filling the lane's photographed gardens. Temporary
+map canvases are released after lossless image snapshots; decoded image and GPU memory
+are still required. Tiny cockpit faces that cross separate atlas slots now use neutral
+wear values, preventing unrelated textures from being smeared across them.
 
-The packed atlas grows to 2048×1024 high / 1024×512 low, adding **352,754 / 146,578 image
-bytes** behind the menu and approximately **5.33 / 1.33 MiB** of mipmapped RGBA8 texture
-storage. Source GLBs, triangle counts and draw calls are unchanged. Final high samples
-are **35.2 FPS forward / 52.5 overhead / 44.8 pedestal**, compared with **32.0 / 50.0 /
-42.1** before at 1440×900 and 1.5×; low stays near 60 FPS at 1×. These short runs show
-no observed regression, not a speedup. The preceding contact-shading and console finish
-remain in place. See the dated entry below for evidence and limitations.
+The preceding pedestal, overhead and upper-liner finish pass remains delivered. Its
+regions are no longer untouched material work; many knobs, metals, the floor and indirect
+lighting remain simplified. The cockpit GLBs and atlas images are unchanged by this fix.
+
+A cumulative comparison now covers historical `9c135d2`, published `421bf9e` and the
+working corrections. At 1440×900 / high 1.5× on M2 Pro, the three scenes measure
+**37.8 / 33.9 / 40.1 FPS historically**, **33.2 / 29.5 / 35.5 published**, and
+**34.7 / 30.1 / 36.2 after corrections** (captain / upper approach / storm). This
+confirms a cumulative cost across the intervening work, without isolating any single
+cause. The corrections show no observed regression, not a proven optimization. Low
+remains near 60 FPS on this Mac. Future visual work must report cumulative cost too.
 
 The preceding ridge-farm pass remains delivered: **84 complete buildings across eleven
-sites**, about **3074.79 ha** of connected landscape coverage, and unchanged **70,000 /
+sites**, about **3087.18 ha** of connected landscape coverage, and unchanged **70,000 /
 14,000** tree budgets. That farm changed under 0.005% of the ordinary forward pilot frame;
 further remote parcel work must demonstrate pilot visibility before taking more frame budget.
+The additional 12.39 ha repairs an existing coverage gap; it is not a new geographic extension.
 The broadleaf correction, transitions and 1.8M target / 2.4M hard near-tree triangle budgets
 also remain. Further geographic expansion is not the current priority.
 
@@ -53,6 +59,77 @@ separate cosmetic milestone. Current high-resolution scenes still fall below 60 
 the M2 Pro; retain adaptive quality and report costs. Physical phones, ordinary laptops
 and multiple GPU drivers need wider validation. Existing SwiftShader evidence in the log
 does not certify the latest pass on those devices.
+
+### Review corrections: woodland joins, canvas lifetime and cockpit atlas — 2026-10-28
+
+Baseline: published main `421bf9e`; cumulative performance anchor `9c135d2`.
+The review's central findings were reproduced, with two qualifications: high planting
+had grown to a bounded 70,000 rather than becoming unlimited, and low already released
+the full-size map canvas (it retained only the reduced upload canvas). The README's
+older 1348 ha / 52,000 / 324 KB summary was stale.
+
+- Independent map quotas did create density changes at straight allocation edges.
+  High now generates sufficient candidates on a common 9.5 m grid, blends expected
+  density within 350 m of each allocation edge, and deterministically selects the same
+  66,700 mapped trees. Eligible site and background trees still fill the 70,000 total;
+  an explicit hard ceiling guards future additions. Per-map counts may redistribute.
+  Selection runs once behind the menu and its module is loaded only on high.
+- The original sparse outer candidate grids capped achievable density at the join.
+  A first blending-only prototype exposed this; the common candidate grid corrects it.
+  A unit fixture protects continuity, determinism and the fixed allocation. Browser
+  checks measure tree counts per hectare of eligible woodland in four 100 m bands
+  at each of eight joins, including both sides and separate upper-approach strips.
+  Adjacent-band ratios must stay between 0.70 and 1/0.70; this tests the rendered
+  planting rather than asserting only total counts. Gradual density changes remain.
+- The photographed gap was real, but parts of the reported rectangle contain gardens.
+  The new trace follows the forest margin around them. It adds 12.39 ha of weighted
+  woodland, taking effective high coverage to about 3087.18 ha and close outlines to
+  91. Tests preserve three garden points and check four points in the missing stand.
+  Road, building and field exclusions remain; both-tier browser checks found no sampled
+  intrusions. High/low counts stay 70,000 / 14,000. Low receives the corrected outline,
+  so its imagery/planting is not claimed to be pixel-identical to the prior version.
+- The high 3450×1277 (17.62 MB RGBA8) and low 2048×603 (4.94 MB) edited canvases are
+  converted losslessly to decoded images, and canvas dimensions are cleared. The image
+  preserves re-upload data; this releases canvas backing stores, not all texture/image
+  RAM. CPU/GPU cover probes agree after the round trip. Peak browser memory and physical
+  iOS behaviour have not been measured; PNG snapshotting adds preparation work.
+- Exactly 70 high and 59 low cockpit faces were reproduced crossing atlas regions with
+  active wear weights. Simply moving the Z boundary still left crossings, including
+  ones with only one active vertex. A guard neutralizes all vertices of such faces;
+  source geometry and ordinary material grain remain. Rendered both-tier checks now
+  find zero active cross-slot faces. No new geometry, shader pass or texture is added.
+
+Trees/ha on the immediately adjacent 100 m strips (same sampling method before/after):
+
+| Join | Before, side A / B | After, side A / B |
+| --- | ---: | ---: |
+| airport-north | 10.8 / 19.3 | 15.9 / 18.5 |
+| airport-south | 12.0 / 17.7 | 13.4 / 13.7 |
+| hills-north | 22.8 / 16.8 | 20.2 / 17.8 |
+| hills-south | 18.4 / 9.1 | 14.8 / 13.5 |
+| upper-south-west | 32.3 / 15.0 | 27.4 / 20.4 |
+| upper-south-east | 33.2 / 16.8 | 26.1 / 23.3 |
+| upper-north | 28.4 / 33.7 | 29.9 / 32.4 |
+| close-hill | 113.2 / 47.0 | 88.4 / 70.6 |
+
+All **23 Node suites** pass. Both-tier join/cockpit captures, hillside edge checks,
+upper-slope and airport CPU/GPU sampling, field/building/road protection, finite cabin
+reflections, day/night/weather changes and missing-texture/invalid-capture fallbacks
+pass on Chromium ANGLE Metal. The review's 20 image loads, slider direction and 390 px
+layout pass. Full functional browser tests, physical phones and other drivers were not
+rerun. This pass does not solve temporal aliasing or the overall performance limitation.
+
+Startup transfer is **14,337,800 high / 8,773,701 low bytes**, up 1,949. Low retains
+**226,299 bytes** below its 9 MB test budget. Prepared flight is **68,139,100 /
+19,995,504 bytes**, up 8,232 / 5,148. Land-cover PNG/JSON totals **454,251 bytes**;
+atlas dimensions are unchanged. Delivery and automatic-low checks pass. The high-only
+allocation module loads behind the menu, not on low. No additional rendered trees,
+lights or render passes are introduced. See the cumulative performance table in
+`RENDER-PERFORMANCE.md`; frame-time results are bounded samples, not a guarantee.
+
+Evidence: [review comparison](output/woodland-joins-review.html),
+`benchmarks/2026-10-28-review-corrections-*.json`, `test/woodland-joins.mjs`,
+`test/woodland-density.test.mjs` and `test/cockpit-materials.test.mjs`.
 
 ### Pedestal, overhead and upper-liner finishes — 2026-10-27
 

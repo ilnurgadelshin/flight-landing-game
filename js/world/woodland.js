@@ -27,6 +27,9 @@ function crownGeometry() {
 
 export async function addWoodland(world,photo,approachPhoto) {
   const low=world.lowDetail||world.quality==='low';
+  // The high-only selection code is scenery preparation, outside menu startup
+  // and the low tier's download/memory budget.
+  const density=low?null:await import('./woodland-density.js');
   const response=await fetch(new URL('../../assets/scenery/tree-variety.json',import.meta.url));
   if(!response.ok)throw new Error(`Tree atlas: HTTP ${response.status}`);
   const atlas=await response.json();
@@ -141,23 +144,22 @@ export async function addWoodland(world,photo,approachPhoto) {
   const oppositeZones=corridor?.oppositeHills?.plantingZones||[];
   const upperZones=(corridor?.upperSlopes||[]).flatMap(t=>t.plantingZones);
   const airportZones=corridor?.airportCountryside?.plantingZones||[];
-  // The outer hills and airport countryside add bounded high-only allocations. Keep the older
-  // mapped stands and their remaining background allowance, rather than thinning
-  // the airport-side trees to populate another slope. Missing maps add no budget.
-  const limit=low?14000:52000+[...oppositeZones,...upperZones,...airportZones].reduce((n,z)=>n+z.highLimit,0);
+  // Missing maps add no budget; 70K is the absolute high-tier ceiling. Quotas are
+  // spatial density targets blended at joins, not visible per-map count cutoffs.
+  const limit=low?14000:Math.min(70000,52000+[...oppositeZones,...upperZones,...airportZones].reduce((n,z)=>n+z.highLimit,0));
   // In the reviewed corridor, plant continuous canopy from the same land-cover
   // boundaries used by the ground. Jittered spacing avoids clumps and bare gaps.
-  // Independent seeds and caps preserve the older stands' density.
+  // Low retains its original placement. High shares density across tile edges.
   if(corridor){
     // (the hillside's zone only where the corridor uses its tile: see loadApproachCorridor)
     const zones=[...(corridor.manifest.plantingZones||[{bounds:corridor.manifest.bounds,seed:94051,highLimit:10000,lowLimit:4800}]),...(corridor.hills?.plantingZones||[]),...oppositeZones,...upperZones,...airportZones];
-    const zoneCounts=[];
+    const zoneCounts=[],allocations=[];
     for(const zone of zones){
       const [x0,z0,width,depth]=zone.bounds,localRng=makeRng(zone.seed),zoneTrees=[],upperTrees=[];
-      // Keep the existing close canopy density. Higher parts of final can use
-      // wider stand spacing, conserving the same overall tree-instance budget.
+      // High needs enough candidates on both sides to realize the same blended
+      // density. Selection still keeps exactly the bounded total allocation.
       for(let xx=x0;xx<x0+width;){
-        const spacing=(low?zone.lowSpacing:zone.highSpacing)??(xx<4100?(low?14:9.5):(low?18:12));
+        const spacing=low?(zone.lowSpacing??(xx<4100?14:18)):density.WOODLAND_CANDIDATE_SPACING;
         for(let zz=z0;zz<z0+depth;zz+=spacing){
           const x=xx+(localRng()-.5)*spacing*.8,z=zz+(localRng()-.5)*spacing*.8;
           if(zone.strictBounds&&(x<x0||x>=x0+width||z<z0||z>=z0+depth))continue;
@@ -177,6 +179,7 @@ export async function addWoodland(world,photo,approachPhoto) {
       // Retain the close stand when the denser upper section reaches the cap.
       // Uniformly thin only the remaining upper allocation, not both together.
       const cap=low?zone.lowLimit:zone.highLimit;
+      if(!low){allocations.push({zone,close:zoneTrees,upper:upperTrees});continue;}
       for(const list of [zoneTrees,upperTrees])for(let i=list.length-1;i>0;i--){const j=Math.floor(localRng()*(i+1));[list[i],list[j]]=[list[j],list[i]];}
       if(zone.taper){
         // Density tapers away from the shared edge (north by default, south on the
@@ -192,6 +195,11 @@ export async function addWoodland(world,photo,approachPhoto) {
       }
       zoneTrees.length=Math.min(zoneTrees.length,cap);upperTrees.length=Math.min(upperTrees.length,cap-zoneTrees.length);
       localTrees.push(...zoneTrees,...upperTrees);zoneCounts.push(zoneTrees.length+upperTrees.length);
+    }
+    if(!low){
+      const blended=density.blendWoodlandAllocations(allocations);
+      localTrees.push(...blended.trees);zoneCounts.push(...blended.counts);
+      corridor.densityBlend={radius:blended.radius,target:blended.target,scale:blended.scale};
     }
     corridor.zoneCounts=zoneCounts;
   }

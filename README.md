@@ -683,24 +683,30 @@ The visual assets are bundled locally and need no map service, account or API ke
   their transition to 3D geometry. Settled near trees reuse their buffers.
   The distant views are baked from the delivered geometry, and selection hysteresis plus a
   common fade rate reduce visible detail changes.
-  Reviewed ground extends along 6.9 km of final, including the upper-valley woods.
-  Ninety close field/woodland boundaries and a coarser hillside tile guide both ground materials and tree
-  placement. Meadow, stubble and woodland-floor surfaces reduce photographic blur and baked
-  shadows across about 1348 hectares, including a coarser hill tile visible to the pilot's
-  left; mapped fields and six hillside clearings remain open and woodland gains a denser
-  canopy. The older upper stands use 12 m / 18 m high/low candidate spacing; the farther
-  extension uses 16 m / 30 m before thinning. All draw from the existing 52,000 / 14,000
-  tree budget, retaining the close mapped allocations. A separate allocation fills the wooded
-  parcels around the approach crossing. On high quality the hillside receives 8000 trees
-  from the same total budget, preserving the earlier mapped allocations; they thin over
-  200 m from the close map's woods, which continue into the hill tile without a seam. Low
-  quality keeps the hillside photograph and its background trees, with a 160 m fade in
-  the close map's ground treatment and planting where its coverage ends. Land-cover data totals about 324 KB after lossless
-  PNG compression; roads,
-  buildings and the protected airport area remain clear. These are interpretations of bundled
-  imagery, not surveyed land-use data. Open fields retain photographed soil and crop variation
-  at approach height, including the upper valley's curved crop strips. Unmapped areas retain
-  photographic surfaces and planting.
+  Reviewed ground extends along 6.9 km of final. **91 close field/woodland boundaries**,
+  both hillside maps, the upper approach slopes and airport countryside guide ground
+  materials and planting across about **3087 hectares** on high quality. Meadow,
+  stubble and woodland-floor treatments reduce photographic blur; mapped fields,
+  roads, gardens and the protected airport stay open. Land-cover PNGs and manifests
+  total about **454 KB**. These are interpretations of bundled public-domain imagery,
+  not surveyed land-use data.
+
+  High quality has a hard **70,000-tree** ceiling; low remains **14,000**. The high
+  ceiling grew from 52,000 during the hillside/upper-slope/airport coverage passes.
+  The current correction adds no trees. High uses a common 9.5 m candidate spacing,
+  then thins to the existing allocation with density blended over 350 m on either side
+  of map boundaries. Tile quotas are density targets, not abrupt count cutoffs. This
+  selection runs once during scenery preparation, not per frame. Low retains its
+  previous planting method and 160 m fade where the high-only hill map is absent.
+  The corrected close woodland follows the photographed margin around the hillside
+  lane's gardens, replacing a missing strip without filling those gardens with trees.
+
+  Runtime-edited land-cover maps are retained as lossless decoded images for GPU
+  re-upload; temporary canvases are released. This removes persistent canvas backing
+  stores, not the decoded-image or GPU texture memory. Open fields retain photographed
+  soil and crop variation, including the upper valley's curved crop strips. Unmapped
+  countryside retains photographic surfaces and planting.
+
 - **2,160 individual approach buildings** follow openly licensed Microsoft footprints,
   with pitched/flat roofs, twelve facade layouts, eaves, foundations and night windows.
   Houses have a principal entrance bay; nearby high-quality windows have beveled frames,

@@ -38,8 +38,10 @@ try{
    assert.equal(stats.trees,tier==='high'?70000:14000);assert.equal(stats.active,tier==='high'?2:0);
    assert.deepEqual(stats.mask,tier==='high'?[3450,1277]:[2048,603]);
    if(tier==='high'){
+    // Retain at least 80% of each nominal allocation while density crosses tile edges.
+    // The fixed total and per-edge density ratios are checked in woodland-joins.mjs.
     assert.equal(stats.fields,0);assert.equal(stats.intrusions,0);
-    assert.ok(stats.north>=3500&&stats.south>=4500);assert.ok(stats.oldNorth>=5900&&stats.oldSouth>=7900);
+    assert.ok(stats.north>=2800&&stats.south>=3600);assert.ok(stats.oldNorth>=4800&&stats.oldSouth>=6400);
     // Exercise the exact terrain GLSL against the uploaded data texture. Read
     // independent pixels across both joins, open fields, and the former corners.
     stats.profiles=await page.evaluate(async()=>{

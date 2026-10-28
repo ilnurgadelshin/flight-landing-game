@@ -1,0 +1,285 @@
+[
+  {
+    "tier": "high",
+    "trees": 70000,
+    "hills": 8420,
+    "intrusions": 0,
+    "clearingTrees": 0,
+    "airportSide": 5056,
+    "join": {
+      "close": 195,
+      "hill": 160
+    },
+    "edgeTrees": [
+      132,
+      136,
+      143,
+      172
+    ],
+    "edgeProfile": [
+      {
+        "z": 870,
+        "cpu": 1,
+        "gpu": 1
+      },
+      {
+        "z": 910,
+        "cpu": 1,
+        "gpu": 1
+      },
+      {
+        "z": 950,
+        "cpu": 1,
+        "gpu": 1
+      },
+      {
+        "z": 990,
+        "cpu": 1,
+        "gpu": 1
+      },
+      {
+        "z": 1004,
+        "cpu": 0.9176470588235294,
+        "gpu": 0.9176470588235294
+      },
+      {
+        "z": 1016,
+        "cpu": 1,
+        "gpu": 1
+      },
+      {
+        "z": 1028,
+        "cpu": 1,
+        "gpu": 1
+      }
+    ],
+    "hillsActive": true,
+    "lods": [
+      {
+        "distance": 715.5427358001143,
+        "nearTriangles": 47473,
+        "farTriangles": 42415,
+        "name": "Complete buildings valley detail levels",
+        "structuralSurfacesRetained": true,
+        "hysteresis": true
+      },
+      {
+        "distance": 608.6474223526662,
+        "nearTriangles": 5462,
+        "farTriangles": 3558,
+        "name": "Complete buildings north-farm detail levels",
+        "structuralSurfacesRetained": true,
+        "hysteresis": true
+      },
+      {
+        "distance": 593.5364865847566,
+        "nearTriangles": 5920,
+        "farTriangles": 3670,
+        "name": "Complete buildings ridge-hamlet detail levels",
+        "structuralSurfacesRetained": true,
+        "hysteresis": true
+      },
+      {
+        "distance": 619.5098511665171,
+        "nearTriangles": 12222,
+        "farTriangles": 9811,
+        "name": "Complete buildings contour-farm detail levels",
+        "structuralSurfacesRetained": true,
+        "hysteresis": true
+      },
+      {
+        "distance": 808.7367034646857,
+        "nearTriangles": 21298,
+        "farTriangles": 13212,
+        "name": "Complete buildings roadside-homes detail levels",
+        "structuralSurfacesRetained": true,
+        "hysteresis": true
+      },
+      {
+        "distance": 964.3229148831681,
+        "nearTriangles": 41212,
+        "farTriangles": 25584,
+        "name": "Complete buildings approach-crossing detail levels",
+        "structuralSurfacesRetained": true,
+        "hysteresis": true
+      },
+      {
+        "distance": 983.1378557674386,
+        "nearTriangles": 27362,
+        "farTriangles": 17024,
+        "name": "Complete buildings valley-lane detail levels",
+        "structuralSurfacesRetained": true,
+        "hysteresis": true
+      },
+      {
+        "distance": 682.687880756644,
+        "nearTriangles": 4618,
+        "farTriangles": 3324,
+        "name": "Complete buildings ridge-farm detail levels",
+        "structuralSurfacesRetained": true,
+        "hysteresis": true
+      }
+    ],
+    "farm": {
+      "buildings": 84,
+      "triangles": 165567,
+      "farTriangles": 118598,
+      "yardTriangles": 2924,
+      "batches": 120,
+      "sites": 11,
+      "siteTriangles": 377642,
+      "low": false
+    },
+    "errors": [],
+    "detailTransition": {
+      "mean": 0.005126543209876542,
+      "changedPercent": 0.01103395061728395
+    }
+  },
+  {
+    "tier": "low",
+    "trees": 14000,
+    "hills": 209,
+    "intrusions": 0,
+    "clearingTrees": 2,
+    "airportSide": 151,
+    "join": {
+      "close": 2,
+      "hill": 4
+    },
+    "edgeTrees": [
+      64,
+      58,
+      31,
+      2
+    ],
+    "edgeProfile": [
+      {
+        "z": 870,
+        "cpu": 1,
+        "gpu": 1
+      },
+      {
+        "z": 910,
+        "cpu": 0.8352941176470589,
+        "gpu": 0.8392156862745098
+      },
+      {
+        "z": 950,
+        "cpu": 0.49019607843137253,
+        "gpu": 0.49019607843137253
+      },
+      {
+        "z": 990,
+        "cpu": 0.14901960784313725,
+        "gpu": 0.14901960784313725
+      },
+      {
+        "z": 1004,
+        "cpu": 0.058823529411764705,
+        "gpu": 0.06274509803921569
+      },
+      {
+        "z": 1016,
+        "cpu": 0.0196078431372549,
+        "gpu": 0.023529411764705882
+      },
+      {
+        "z": 1028,
+        "cpu": 0,
+        "gpu": 0
+      }
+    ],
+    "hillsActive": false,
+    "lods": [
+      {
+        "distance": 715.5427358001143,
+        "nearTriangles": 47473,
+        "farTriangles": 42415,
+        "name": "Complete buildings valley detail levels",
+        "structuralSurfacesRetained": true,
+        "hysteresis": true
+      },
+      {
+        "distance": 608.6478394869856,
+        "nearTriangles": 5462,
+        "farTriangles": 3558,
+        "name": "Complete buildings north-farm detail levels",
+        "structuralSurfacesRetained": true,
+        "hysteresis": true
+      },
+      {
+        "distance": 593.5344455936533,
+        "nearTriangles": 5920,
+        "farTriangles": 3670,
+        "name": "Complete buildings ridge-hamlet detail levels",
+        "structuralSurfacesRetained": true,
+        "hysteresis": true
+      },
+      {
+        "distance": 619.5670599294947,
+        "nearTriangles": 12222,
+        "farTriangles": 9811,
+        "name": "Complete buildings contour-farm detail levels",
+        "structuralSurfacesRetained": true,
+        "hysteresis": true
+      },
+      {
+        "distance": 808.992655961127,
+        "nearTriangles": 21298,
+        "farTriangles": 13212,
+        "name": "Complete buildings roadside-homes detail levels",
+        "structuralSurfacesRetained": true,
+        "hysteresis": true
+      },
+      {
+        "distance": 964.3020266531976,
+        "nearTriangles": 41212,
+        "farTriangles": 25584,
+        "name": "Complete buildings approach-crossing detail levels",
+        "structuralSurfacesRetained": true,
+        "hysteresis": true
+      },
+      {
+        "distance": 983.1437584082723,
+        "nearTriangles": 27362,
+        "farTriangles": 17024,
+        "name": "Complete buildings valley-lane detail levels",
+        "structuralSurfacesRetained": true,
+        "hysteresis": true
+      },
+      {
+        "distance": 682.7196716635333,
+        "nearTriangles": 4618,
+        "farTriangles": 3324,
+        "name": "Complete buildings ridge-farm detail levels",
+        "structuralSurfacesRetained": true,
+        "hysteresis": true
+      }
+    ],
+    "farm": {
+      "buildings": 84,
+      "triangles": 165567,
+      "farTriangles": 118598,
+      "yardTriangles": 2924,
+      "batches": 120,
+      "sites": 11,
+      "siteTriangles": 377642,
+      "low": true
+    },
+    "errors": [],
+    "detailTransition": {
+      "mean": 0.002181584362139917,
+      "changedPercent": 0.007407407407407408
+    }
+  },
+  {
+    "invalidAtlas": {
+      "ready": 0,
+      "hills": 0,
+      "errors": [
+        "Error: Invalid hillside land-cover allocation"
+      ]
+    }
+  }
+]

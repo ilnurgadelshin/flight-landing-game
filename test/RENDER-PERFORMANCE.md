@@ -2947,3 +2947,51 @@ Menu budgets, preparation completion, zero further asset requests during the sho
 flight, automatic low selection and hidden-tab calibration all pass. The 22 Node
 suites, finite lighting/reflection/fallback checks and ten viewport layout cases pass.
 Reports are retained alongside the benchmark under `2026-10-27-cabin-textures-*`.
+
+
+## Cumulative review corrections — 2026-10-28
+
+The historical anchor `9c135d2` precedes the hillside work. The immediate baseline is
+`421bf9e`. All three builds use the current benchmark harness, matched camera/weather,
+Apple M2 Pro / Chromium ANGLE Metal, 1440×900, high 1.5×, four-second warm-up and
+twelve-second samples with paused physics. Runs are sequential, with no competing
+capture, bake or graphics test. This comparison includes all intervening scenery and
+cockpit changes; it does not isolate the cost of the 18,000 additional trees.
+
+| High scene | Historical FPS | Published FPS | Corrected FPS | Corrected p95 ms | Draw calls: historical / published / corrected |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Captain | 37.8 | 33.2 | 34.7 | 33.4 | 918 / 918 / 918 |
+| Upper approach (x=6500) | 33.9 | 29.5 | 30.1 | 33.4 | 1162 / 1201 / 1201 |
+| Storm | 40.1 | 35.5 | 36.2 | 33.4 | 873 / 873 / 873 |
+
+The published build is approximately 12–13% slower than the historical anchor in these
+samples. Corrected results remain below the historical measurements, while showing no
+observed regression against the immediate baseline. Small increases are within normal
+short-run variation, not a proven speedup. The published upper sample had a 49.9 ms p95;
+corrected p95 is 33.4 ms, which also requires longer runs before claiming an improvement.
+Low at 1× measures around 60 FPS in all three views, p95 16.7–16.8 ms, on this Mac.
+
+The corrections keep 70,000 / 14,000 trees. A shared high candidate grid and smoothed
+allocation replace hard per-map count boundaries. Candidate generation, selection and
+lossless map snapshots add preparation CPU/transient-memory work, not per-frame work;
+peak memory and preparation-time deltas were not separately profiled. The selected tree
+count, imagery dimensions, lights and render-pass count do not increase.
+
+Edited full high and reduced low canvases no longer persist as texture sources. Their
+17.62 / 4.94 MB backing stores are cleared after lossless PNG snapshots decode to images.
+Decoded pixels and GPU texture memory still exist, and context re-upload can use the
+images; this is a canvas-pool lifetime fix, not a claimed 17.62 MB total-memory saving.
+CPU/GPU sample checks verify that the snapshot preserves coverage and orientation.
+
+Startup is 14,337,800 / 8,773,701 bytes high / low (up 1,949). Low has 226,299 bytes left
+under the 9 MB startup test budget. Prepared transfer is 68,139,100 / 19,995,504 bytes
+(up 8,232 / 5,148). Land-cover data totals 454,251 bytes, including the airport mask.
+The high-only planting module loads behind the menu; low does not download it.
+Delivery budgets, preparation and automatic-low selection pass. Frame-rate tests alone
+do not certify physical phones, other GPUs or driver compatibility.
+
+Retained reports: `benchmarks/2026-10-28-review-corrections-benchmark-historical.json`,
+`-benchmark-before.json`, `-benchmark-after.json`, `-delivery.json` and `-joins-*.json`.
+[Matched review](output/woodland-joins-review.html) shows the visible correction and
+per-edge densities. All 23 Node suites and targeted cockpit/lighting/land-cover checks
+pass. The full functional browser suite was not rerun.

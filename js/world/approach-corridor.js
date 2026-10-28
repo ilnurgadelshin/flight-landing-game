@@ -4,6 +4,17 @@ import * as THREE from 'three';
 import {upperSlopeBlend,validateUpperSlopes} from './upper-slopes.js';
 import {airportCountryBlend,loadAirportCountryside} from './airport-countryside.js';
 
+// Keep edited pixels for GPU context restoration without occupying the browser's
+// canvas backing-store pool for the whole flight. PNG is lossless; the decoded
+// image still costs memory, but both temporary canvases can be released.
+async function retainEditedImage(canvas){
+ const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));
+ if(!blob)throw new Error('Unable to retain edited land-cover image');
+ const url=URL.createObjectURL(blob),image=new Image();
+ try{image.src=url;await image.decode();return image;}
+ finally{URL.revokeObjectURL(url);}
+}
+
 export function corridorUniforms(fallback){
  return {uAirportCountry:{value:fallback},uAirportCountryReady:{value:0},uAirportCountryRect:{value:new THREE.Vector4()},
   uCorridor:{value:fallback},uCorridorRect:{value:new THREE.Vector4(2100,180,2000,850)},uCorridorReady:{value:0},uCorridorInfluence:{value:1},
@@ -165,8 +176,11 @@ export async function loadApproachCorridor(world){
   reduced.getContext('2d').drawImage(canvas,0,0,manifest.width,rows,0,0,reduced.width,reduced.height);
   texture.image=reduced;texture.needsUpdate=true;
  }
- // Keep the joined high image alive; release temporary decoding canvases.
- if(texture.image!==canvas)canvas.width=canvas.height=0;
+ if(texture.image instanceof HTMLCanvasElement){
+  const edited=texture.image;texture.image=await retainEditedImage(edited);texture.needsUpdate=true;
+  edited.width=edited.height=0;
+ }
+ canvas.width=canvas.height=0;
  const [x0,z0,width,depth]=manifest.bounds;
  const baseSample=(x,z)=>{
   const i=Math.floor((x-x0)/width*manifest.width),j=Math.floor((z-z0)/depth*manifest.height);

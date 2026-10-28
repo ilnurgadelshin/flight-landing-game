@@ -35,3 +35,17 @@ export function finishCoordinates(kind,x,y,z,yokeCentre=0,normalY=1) {
  return [(rx+2+clamp((u-left)/(right-left))*(rw-4))/SURFACE_ATLAS[0],
   1-(ry+2+(1-clamp((v-bottom)/(top-bottom)))*(rh-4))/SURFACE_ATLAS[1],weight];
 }
+
+// A single interpolated UV cannot cross disjoint atlas slots. Leave the tiny
+// shared boundary faces neutral, including their shared vertices, rather than
+// dragging unrelated atlas contents across the panel/pedestal seam.
+export function guardFinishBoundaries(indices,regions,finish){
+ let guarded=0;
+ for(let i=0;i<indices.length;i+=3){
+  const a=indices[i],b=indices[i+1],c=indices[i+2];
+  if(regions[a]===regions[b]&&regions[a]===regions[c])continue;
+  if(Math.max(finish[a*3+2],finish[b*3+2],finish[c*3+2])>0)guarded++;
+  finish[a*3+2]=finish[b*3+2]=finish[c*3+2]=0;
+ }
+ return guarded;
+}

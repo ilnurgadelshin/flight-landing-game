@@ -65,7 +65,9 @@ try{
   if(!baseline){
    assert.equal(stats.trees,tier==='high'?70000:14000);
    if(tier==='high'){
-    assert.ok(stats.hills>=7900&&stats.hillsActive);
+    // Retain at least 80% of each nominal allocation while density crosses tile edges.
+    // The fixed total and per-edge density ratios are checked in woodland-joins.mjs.
+    assert.ok(stats.hills>=6400&&stats.hillsActive);
     // no gap or density step where the hillside continues the close map's woods
     assert.ok(stats.join.hill>=.7*stats.join.close,`Hill woods continue the close woods: ${JSON.stringify(stats.join)}`);
     assert.equal(stats.clearingTrees,0);

@@ -1,0 +1,197 @@
+{
+  "date": "2026-10-28T10:35:52.723Z",
+  "results": [
+    {
+      "tier": "high",
+      "view": "captain",
+      "finishes": {
+        "materials": 97,
+        "maps": 6,
+        "wearSize": 2048,
+        "regions": {
+          "padding": 352,
+          "overhead": 22737,
+          "panel": 3377,
+          "pedestal": 7898,
+          "frame": 458,
+          "headliner": 6033,
+          "rubber": 6228
+        },
+        "errors": []
+      },
+      "finishBytes": 889428,
+      "invalid": 0,
+      "paddingInside": 352,
+      "paddingOutside": 1449,
+      "screenFinishes": 0,
+      "consoleFinish": "trim",
+      "crossingFaces": 0,
+      "eye": [
+        -0.408,
+        0.029499999999999346,
+        -0.08499999999999988
+      ],
+      "assets": []
+    },
+    {
+      "tier": "high",
+      "view": "pedestal",
+      "finishes": {
+        "materials": 97,
+        "maps": 6,
+        "wearSize": 2048,
+        "regions": {
+          "padding": 352,
+          "overhead": 22737,
+          "panel": 3377,
+          "pedestal": 7898,
+          "frame": 458,
+          "headliner": 6033,
+          "rubber": 6228
+        },
+        "errors": []
+      },
+      "finishBytes": 889428,
+      "invalid": 0,
+      "paddingInside": 352,
+      "paddingOutside": 1449,
+      "screenFinishes": 0,
+      "consoleFinish": "trim",
+      "crossingFaces": 0,
+      "eye": [
+        -0.408,
+        0.029499999999999346,
+        -0.08499999999999988
+      ],
+      "assets": []
+    },
+    {
+      "tier": "high",
+      "view": "overhead",
+      "finishes": {
+        "materials": 97,
+        "maps": 6,
+        "wearSize": 2048,
+        "regions": {
+          "padding": 352,
+          "overhead": 22737,
+          "panel": 3377,
+          "pedestal": 7898,
+          "frame": 458,
+          "headliner": 6033,
+          "rubber": 6228
+        },
+        "errors": []
+      },
+      "finishBytes": 889428,
+      "invalid": 0,
+      "paddingInside": 352,
+      "paddingOutside": 1449,
+      "screenFinishes": 0,
+      "consoleFinish": "trim",
+      "crossingFaces": 0,
+      "eye": [
+        -0.408,
+        0.029499999999999346,
+        -0.08499999999999988
+      ],
+      "assets": []
+    },
+    {
+      "tier": "low",
+      "view": "captain",
+      "finishes": {
+        "materials": 96,
+        "maps": 0,
+        "wearSize": 1024,
+        "regions": {
+          "padding": 282,
+          "overhead": 13293,
+          "panel": 2426,
+          "pedestal": 4245,
+          "frame": 374,
+          "headliner": 3213,
+          "rubber": 4154
+        },
+        "errors": []
+      },
+      "finishBytes": 608304,
+      "invalid": 0,
+      "paddingInside": 282,
+      "paddingOutside": 1109,
+      "screenFinishes": 0,
+      "consoleFinish": "trim",
+      "crossingFaces": 0,
+      "eye": [
+        -0.408,
+        0.029499999999999346,
+        -0.08499999999999988
+      ],
+      "assets": []
+    },
+    {
+      "tier": "low",
+      "view": "pedestal",
+      "finishes": {
+        "materials": 96,
+        "maps": 0,
+        "wearSize": 1024,
+        "regions": {
+          "padding": 282,
+          "overhead": 13293,
+          "panel": 2426,
+          "pedestal": 4245,
+          "frame": 374,
+          "headliner": 3213,
+          "rubber": 4154
+        },
+        "errors": []
+      },
+      "finishBytes": 608304,
+      "invalid": 0,
+      "paddingInside": 282,
+      "paddingOutside": 1109,
+      "screenFinishes": 0,
+      "consoleFinish": "trim",
+      "crossingFaces": 0,
+      "eye": [
+        -0.408,
+        0.029499999999999346,
+        -0.08499999999999988
+      ],
+      "assets": []
+    },
+    {
+      "tier": "low",
+      "view": "overhead",
+      "finishes": {
+        "materials": 96,
+        "maps": 0,
+        "wearSize": 1024,
+        "regions": {
+          "padding": 282,
+          "overhead": 13293,
+          "panel": 2426,
+          "pedestal": 4245,
+          "frame": 374,
+          "headliner": 3213,
+          "rubber": 4154
+        },
+        "errors": []
+      },
+      "finishBytes": 608304,
+      "invalid": 0,
+      "paddingInside": 282,
+      "paddingOutside": 1109,
+      "screenFinishes": 0,
+      "consoleFinish": "trim",
+      "crossingFaces": 0,
+      "eye": [
+        -0.408,
+        0.029499999999999346,
+        -0.08499999999999988
+      ],
+      "assets": []
+    }
+  ]
+}

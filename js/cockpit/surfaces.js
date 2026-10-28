@@ -1,7 +1,7 @@
 // Surface finishes for verified parts of hakai315's cockpit. The source geometry
 // and lettering remain intact. See assets/README.md for the finish/colour changes.
 import * as THREE from 'three';
-import {finishCoordinates,finishRegion} from './surface-layout.js';
+import {finishCoordinates,finishRegion,guardFinishBoundaries} from './surface-layout.js';
 
 // These identities were checked against the original meshes in Blender. Do not
 // infer other part identities from the numeric material names (many are shared).
@@ -201,7 +201,7 @@ export async function applyCockpitSurfaces(model,{lowDetail=false}={}) {
       // Store coordinates before the model is attached to the moving aircraft.
       // The pattern then follows the object, including animated controls.
       const position=mesh.geometry.attributes.position,coords=kind&&!lowDetail?new Float32Array(position.count*3):null;
-      const finish=partWear?new Float32Array(position.count*3):null,p=new THREE.Vector3(),n=new THREE.Vector3();
+      const finish=partWear?new Float32Array(position.count*3):null,finishRegions=[],p=new THREE.Vector3(),n=new THREE.Vector3();
       const normals=mesh.geometry.attributes.normal,normalMatrix=new THREE.Matrix3().getNormalMatrix(mesh.matrixWorld);
       for(let i=0;i<position.count;i++){
         p.fromBufferAttribute(position,i).applyMatrix4(mesh.matrixWorld);
@@ -209,9 +209,11 @@ export async function applyCockpitSurfaces(model,{lowDetail=false}={}) {
         if(finish){
           n.fromBufferAttribute(normals,i).applyNormalMatrix(normalMatrix);
           const uv=finishCoordinates(wearKind,p.x,p.y,p.z,yokeCentre,n.y);finish.set(uv,i*3);
+          finishRegions.push(finishRegion(wearKind,p.x,p.y,p.z));
           if(uv[2]>.5){const region=finishRegion(wearKind,p.x,p.y,p.z);regions[region]=(regions[region]||0)+1;}
         }
       }
+      if(finish&&mesh.geometry.index)guardFinishBoundaries(mesh.geometry.index.array,finishRegions,finish);
       if(coords)mesh.geometry.setAttribute('deckPosition',new THREE.BufferAttribute(coords,3));
       if(finish)mesh.geometry.setAttribute('deckFinish',new THREE.BufferAttribute(finish,3));
     }
