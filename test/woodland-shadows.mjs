@@ -8,7 +8,7 @@ import assert from 'node:assert/strict';
 const label=(process.argv[2]||'woodland-shadow-check').replace(/[^a-z0-9_-]/gi,'-');
 const baseline=!!process.env.REVIEW_ROOT,{server,url}=await startServer(process.env.REVIEW_ROOT||process.cwd());
 const angle=process.env.VISUAL_GPU||'swiftshader';
-const browser=await launchBrowser();
+const browser=await launchBrowser({lowResolution:true});
 const report={baseline,results:[]};
 try{
  for(const tier of ['high','low']){

@@ -1017,7 +1017,7 @@ environment variables:
 | --- | --- |
 | `VISUAL_GPU` | The ANGLE backend: `swiftshader` (default) or `metal` on macOS hardware |
 | `TEST_TIMEOUT_SCALE` | How much explicit waits and page timeouts stretch (default 3 under SwiftShader, 1 on hardware); a single software-rendered frame of the full scenery can take over 30 s on a busy machine |
-| `RENDER_SCALE` | Under SwiftShader, the share of its pixel ratio at which the scenery placement suites draw the 3D view (default 0.5; `1` for full resolution). Page size and screenshot dimensions are unchanged |
+| `RENDER_SCALE` | Under SwiftShader, the share of its pixel ratio at which the scenery suites that opt in draw the 3D view: placement, joins, approach sites/scenery, authored scenery and tree shade (default 0.5; `1` for full resolution). Their image checks keep wide margins at 0.5. Page size and screenshot dimensions are unchanged |
 | `TEST_PROFILE=1` | Logs every page call taking a second or more, to find slow steps |
 
 Missing- and invalid-data fallback checks load only the scenery data

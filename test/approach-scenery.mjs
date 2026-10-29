@@ -20,7 +20,7 @@ for(const b of [...data.buildings,...infill.buildings]){
 }
 const {server,url}=await startServer(root);
 const angle=process.env.VISUAL_GPU||'swiftshader';
-const browser=await launchBrowser();
+const browser=await launchBrowser({lowResolution:true});
 try{
   for(const tier of ['high','low']){
     const page=await browser.newPage({viewport:{width:1440,height:900}}),errors=[],treeRequests=[];
