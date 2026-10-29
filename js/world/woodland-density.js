@@ -8,17 +8,24 @@ export const WOODLAND_CANDIDATE_SPACING=9.5;
 const smooth=t=>{t=Math.max(0,Math.min(1,t));return t*t*(3-2*t);};
 const taper=(zone,z)=>zone.taper?zone.taperFloor+(1-zone.taperFloor)*Math.max(0,Math.min(1,
   1-(zone.taperSide==='south'?zone.bounds[1]+zone.bounds[3]-z:z-zone.bounds[1])/zone.taper)):1;
-const spacing=()=>WOODLAND_CANDIDATE_SPACING;
-const solve=(weights,target)=>{
+const cellArea=WOODLAND_CANDIDATE_SPACING**2;
+const solve=async(weights,target,checkpoint)=>{
  if(!target)return 0;
  let lo=0,hi=1;
- const sum=k=>weights.reduce((n,w)=>n+Math.min(1,k*w),0);
- while(sum(hi)<target&&hi<1e6)hi*=2;
- for(let i=0;i<30;i++){const mid=(lo+hi)/2;if(sum(mid)<target)lo=mid;else hi=mid;}
+ const sum=async k=>{
+  let total=0;
+  for(let i=0;i<weights.length;i++){
+   total+=Math.min(1,k*weights[i]);
+   if((i&2047)===0){const pause=checkpoint();if(pause)await pause;}
+  }
+  return total;
+ };
+ while(await sum(hi)<target&&hi<1e6)hi*=2;
+ for(let i=0;i<30;i++){const mid=(lo+hi)/2;if(await sum(mid)<target)lo=mid;else hi=mid;}
  return hi;
 };
 
-export function blendWoodlandAllocations(allocations,radius=350){
+export async function blendWoodlandAllocations(allocations,radius=350,checkpoint=()=>null){
  const fields=[];let target=0;
  for(const [id,{zone,close,upper}] of allocations.entries()){
   let available=zone.highLimit;
@@ -33,7 +40,12 @@ export function blendWoodlandAllocations(allocations,radius=350){
    }
    // The previous taper applied only to the upper/uniform allocation.
    const profile=part===0?{...zone,taper:0}:zone;
-   fields.push({id,zone:profile,bounds,trees,multiplier:solve(trees.map(t=>taper(profile,t.z)),count)});
+   const weights=[];
+   for(let i=0;i<trees.length;i++){
+    weights.push(taper(profile,trees[i].z));
+    if((i&2047)===0){const pause=checkpoint();if(pause)await pause;}
+   }
+   fields.push({id,zone:profile,bounds,trees,multiplier:await solve(weights,count,checkpoint)});
   }
  }
  const density=(x,z)=>{
@@ -44,18 +56,28 @@ export function blendWoodlandAllocations(allocations,radius=350){
     smooth((z-z0+radius)/(2*radius))*smooth((z0+d-z+radius)/(2*radius));
    if(!blend)continue;
    // Evaluate a neighbour at its nearest point, not at an extrapolated taper.
-   const xx=Math.max(x0,Math.min(x0+w-1e-4,x)),zz=Math.max(z0,Math.min(z0+d-1e-4,z));
-   sum+=blend*Math.min(1,f.multiplier*taper(f.zone,zz))/spacing(f.zone,xx)**2;weight+=blend;
+   const zz=Math.max(z0,Math.min(z0+d-1e-4,z));
+   sum+=blend*Math.min(1,f.multiplier*taper(f.zone,zz))/cellArea;weight+=blend;
   }
   return weight?sum/weight:0;
  };
- const candidates=fields.flatMap(f=>f.trees.map(tree=>({tree,id:f.id,weight:density(tree.x,tree.z)*spacing(f.zone,tree.x)**2})));
- const scale=solve(candidates.map(c=>c.weight),target),rng=makeRng(281026);
- for(let i=candidates.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[candidates[i],candidates[j]]=[candidates[j],candidates[i]];}
+ const candidates=[],weights=[];
+ for(const f of fields)for(let i=0;i<f.trees.length;i++){
+  const tree=f.trees[i],weight=density(tree.x,tree.z)*cellArea;
+  candidates.push({tree,id:f.id,weight});weights.push(weight);
+  if((i&255)===0){const pause=checkpoint();if(pause)await pause;}
+ }
+ const scale=await solve(weights,target,checkpoint),rng=makeRng(281026);
+ for(let i=candidates.length-1;i>0;i--){
+  const j=Math.floor(rng()*(i+1));[candidates[i],candidates[j]]=[candidates[j],candidates[i]];
+  if((i&2047)===0){const pause=checkpoint();if(pause)await pause;}
+ }
  let accumulated=rng();const trees=[],counts=allocations.map(()=>0);
- for(const c of candidates){
+ for(let i=0;i<candidates.length;i++){
+  const c=candidates[i];
   accumulated+=Math.min(1,scale*c.weight);
   if(accumulated>=1&&trees.length<target){trees.push(c.tree);counts[c.id]++;accumulated-=1;}
+  if((i&2047)===0){const pause=checkpoint();if(pause)await pause;}
  }
  return {trees,counts,target,scale,radius};
 }

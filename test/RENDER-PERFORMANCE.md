@@ -2995,3 +2995,45 @@ Retained reports: `benchmarks/2026-10-28-review-corrections-benchmark-historical
 [Matched review](output/woodland-joins-review.html) shows the visible correction and
 per-edge densities. All 23 Node suites and targeted cockpit/lighting/land-cover checks
 pass. The full functional browser suite was not rerun.
+
+
+## Preparation responsiveness review — 2026-10-29
+
+The previous cumulative FPS measurements remain the rendering baseline. This pass
+changes scheduling during initial scenery preparation, not per-frame rendering.
+`test/woodland-preparation.mjs` instruments the published `3c3b960` and working code,
+disables 3D drawing and shader warm-up, and counts normal 8 ms timer callbacks during
+photo sampling, planting and initial canopy shade construction. This is a main-thread
+responsiveness probe, not a hardware FPS or end-to-end startup benchmark.
+
+| Tier | Baseline elapsed / callbacks | Sliced elapsed / callbacks | Longest callback gap before / after | New maximum work slice |
+| --- | ---: | ---: | ---: | ---: |
+| High | 1477 ms / 0 | 2015 ms / 167 | 1477 / 465 ms | 240 ms |
+| Low | 139 ms / 0 | 185 ms / 15 | 139 / 30 ms | 17 ms |
+
+High had 121 yielding boundaries; low had 15. The JavaScript batches target 8 ms;
+native canvas photo readback cannot be interrupted and remains the longest high-tier
+slice. Serving the menu between batches deliberately adds elapsed time. This does not
+claim faster loading or eliminate every loading stall. Initial shadow building yields;
+later sun-direction rebuilds still run synchronously. The geometry hashes before/after
+match: high `aa11f328`, low `115884f7`, covering every tree matrix/color and shadow
+position/UV/index. Budgets, selected trees, shader work and render counts are unchanged.
+
+The low 2048×603 land-cover PNG snapshot took 33 ms including decode in the same sample.
+It remains asynchronous, once during preparation; its purpose is releasing the canvas
+backing store while preserving re-upload pixels. No total-memory saving or phone timing
+is inferred from this measurement. The high snapshot took 80 ms in this run, with wall
+time varying when other preparation work competes. No new GPU benchmark is claimed.
+
+Validation: all 24 Node suites; the full `npm run test:corridor` (including the eight
+join profiles and missing-map fallback); canopy contribution, weather and sun-change
+checks; delivery and automatic-low selection pass on Metal. The default SwiftShader
+run was attempted but failed to create a WebGL context in this installed macOS browser
+(`BindToCurrentSequence failed`). No successful software-renderer run, physical-phone
+result, or full functional-suite run is claimed for this follow-up.
+
+Startup transfer: 14,339,711 high / 8,775,612 low bytes (+1,911 each). Prepared transfer:
+68,141,654 high / 19,997,415 low bytes (+2,554 / +1,911). Low retains 224,388 bytes of
+its startup guard; no new asset is delivered. Evidence is retained under
+`benchmarks/2026-10-29-preparation-*.json`. `test:woodland-preparation` is available
+for the responsiveness probe; its default renderer is also SwiftShader.

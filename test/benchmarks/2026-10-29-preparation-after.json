@@ -1,0 +1,62 @@
+[
+  {
+    "tier": "high",
+    "elapsedMs": 2015.4000000953674,
+    "inputTicks": 167,
+    "maxGapMs": 464.80000019073486,
+    "slices": {
+      "yields": 121,
+      "maxWorkMs": 239.5,
+      "workMs": 1437.9999985694885
+    },
+    "trees": 70000,
+    "geometryHash": "aa11f328",
+    "zones": [
+      12464,
+      5091,
+      3186,
+      17647,
+      792,
+      8483,
+      6038,
+      3681,
+      5033,
+      2251,
+      2034
+    ],
+    "snapshotKind": "HTMLImageElement",
+    "snapshot": {
+      "width": 3450,
+      "height": 1277,
+      "elapsedMs": 80.2999997138977
+    },
+    "errors": []
+  },
+  {
+    "tier": "low",
+    "elapsedMs": 185.19999980926514,
+    "inputTicks": 15,
+    "maxGapMs": 29.799999713897705,
+    "slices": {
+      "yields": 15,
+      "maxWorkMs": 16.5,
+      "workMs": 139.69999933242798
+    },
+    "trees": 14000,
+    "geometryHash": "115884f7",
+    "zones": [
+      5800,
+      2600,
+      1400,
+      2600,
+      300
+    ],
+    "snapshotKind": "HTMLImageElement",
+    "snapshot": {
+      "width": 2048,
+      "height": 603,
+      "elapsedMs": 33
+    },
+    "errors": []
+  }
+]

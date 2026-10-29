@@ -1,13 +1,21 @@
 # Visual improvement audit
 
-## Current status — 2026-10-28
+## Current status — 2026-10-29
 
 This section is the current checklist. The original September audit and dated work log
 below record how the scene evolved; their older counts, captures and priorities are not
 the remaining-work list. Update this section after each reviewed visual pass, including
 what changed, visible impact, measured cost, evidence and limitations.
 
-The latest pass corrects **woodland density joins, an omitted forest margin, retained
+The latest review follow-up **automates the join checks and slices scenery preparation**.
+`npm run test:corridor` now includes the eight density joins, defaults to SwiftShader,
+and guards at least 95% of the former close-map allocation. Planting and initial canopy
+shade construction yield between batches without changing their generated geometry.
+This improves opportunities for menu work; it is not a frame-rate optimization or a
+shorter-loading-time claim. Native photo readback still pauses the main thread, and
+later sun-direction changes still rebuild shade synchronously.
+
+The preceding pass corrected **woodland density joins, an omitted forest margin, retained
 land-cover canvases and cockpit atlas interpolation** after an independent review.
 High quality blends density across tile allocations while retaining the **70,000-tree
 ceiling**; low keeps **14,000** and its previous planting method. A source-checked forest
@@ -21,7 +29,7 @@ regions are no longer untouched material work; many knobs, metals, the floor and
 lighting remain simplified. The cockpit GLBs and atlas images are unchanged by this fix.
 
 A cumulative comparison now covers historical `9c135d2`, published `421bf9e` and the
-working corrections. At 1440×900 / high 1.5× on M2 Pro, the three scenes measure
+October 28 corrections. At 1440×900 / high 1.5× on M2 Pro, the three scenes measure
 **37.8 / 33.9 / 40.1 FPS historically**, **33.2 / 29.5 / 35.5 published**, and
 **34.7 / 30.1 / 36.2 after corrections** (captain / upper approach / storm). This
 confirms a cumulative cost across the intervening work, without isolating any single
@@ -59,6 +67,64 @@ separate cosmetic milestone. Current high-resolution scenes still fall below 60 
 the M2 Pro; retain adaptive quality and report costs. Physical phones, ordinary laptops
 and multiple GPU drivers need wider validation. Existing SwiftShader evidence in the log
 does not certify the latest pass on those devices.
+
+### Review follow-up: automatic checks and preparation responsiveness — 2026-10-29
+
+Baseline: published main `3c3b960`. The missing npm integration and long synchronous
+planting task were confirmed. The density statement is directionally correct: the
+five close allocations sum to 39,180, down 1,520 / 3.7% from their pre-blend 40,700.
+This does not establish a new visible defect. The blend remains unchanged, protecting
+smooth joins and the fixed 70,000 total; a new 95% close-allocation floor guards against
+further unintended thinning. A one-sided denser blend would require compensating
+thinning elsewhere or a larger budget, so it is not applied without visual evidence.
+
+- `test:corridor` now includes
+  `test/woodland-joins.mjs`. Its default is SwiftShader, with the same explicit
+  `VISUAL_GPU=metal` override as the other correctness tests. The independent density
+  unit fixture remains in `npm test`. No external CI workflow is claimed.
+- Candidate generation, weighted allocation, background planting, instance buffers and
+  initial terrain-following canopy shade now yield between batches, targeting 8 ms.
+  Timer tasks let normal menu progress run between slices. Native image readback can
+  exceed that target. Geometry is published after initial shade preparation; later
+  sun-direction rebuilds retain their existing synchronous behaviour.
+- The preparation test measures an 8 ms timer heartbeat while drawing and shader warm-up
+  are disabled to isolate planting. Baseline/new hashes match every generated tree
+  transform, tint and canopy shade position/UV/index on both tiers. Yield scheduling
+  does not change RNG order, selected trees, tile counts or render geometry.
+- The low-tier PNG snapshot measured **33 ms** including decode on this M2 Pro. It is
+  asynchronous, once behind the menu, and releases the reduced canvas backing store.
+  This is retained as a measured tradeoff; no alternative bitmap orientation or
+  pixel-filtering change is introduced. Phones have not been measured.
+- The comparison harness had an unrelated capture defect: its captain view retained
+  the previous exterior camera. It now restores the actual cockpit camera explicitly.
+
+Matched Chromium ANGLE Metal preparation samples (M2 Pro, no 3D drawing):
+
+| Tier | Before / after elapsed | Timer callbacks before / after | Longest timer gap before / after | Longest measured new work slice |
+| --- | ---: | ---: | ---: | ---: |
+| High | 1477 / 2015 ms | 0 / 167 | 1477 / 465 ms | 240 ms |
+| Low | 139 / 185 ms | 0 / 15 | 139 / 30 ms | 17 ms |
+
+Waiting to serve the menu increases elapsed preparation time. The two large photo
+readbacks remain the major high-tier pause; this pass does not promise stall-free
+loading. The earlier 12–13% cumulative rendering slowdown remains an open performance
+constraint. Render geometry and shaders are unchanged here, so this pass makes no
+new steady-frame-rate claim.
+
+All **24 Node suites**, the complete `npm run test:corridor`, both-tier canopy shade
+contribution/weather checks, and delivery/automatic-low checks pass on Metal. The
+SwiftShader default was attempted, but the installed macOS Chromium could not create
+any WebGL context (`BindToCurrentSequence failed`); that run timed out at startup.
+This is an unvalidated environment path, not a skipped assertion or claimed software
+renderer pass. Physical phones and the full functional browser suite were not tested.
+The corrected captain frames were visually compared: the density change is subtle
+from this eye, with no compelling reason to undo the continuous joins.
+
+Startup is **14,339,711 high / 8,775,612 low bytes**, up 1,911 on each tier; low keeps
+**224,388 bytes** below the 9 MB guard. Prepared flight totals **68,141,654 high /
+19,997,415 low bytes**, up 2,554 / 1,911. No asset file is added. Retained evidence:
+`benchmarks/2026-10-29-preparation-*.json`, `test/woodland-preparation.mjs`,
+`test/work-slices.test.mjs`, and the updated [review](output/woodland-joins-review.html).
 
 ### Review corrections: woodland joins, canvas lifetime and cockpit atlas — 2026-10-28
 

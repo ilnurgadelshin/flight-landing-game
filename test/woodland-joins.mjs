@@ -6,7 +6,9 @@ import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
 const label=process.argv[2]||'woodland-joins-after',baseline=!!process.env.REVIEW_ROOT;
 const {server,url}=await startServer(process.env.REVIEW_ROOT||process.cwd());
-const browser=await chromium.launch({headless:true,args:['--use-angle=metal']});
+const angle=process.env.VISUAL_GPU||'swiftshader';
+const browser=await chromium.launch({headless:true,args:[`--use-angle=${angle}`,...(angle==='swiftshader'?['--enable-unsafe-swiftshader','--ignore-gpu-blocklist']:[])]});
+await fs.mkdir('test/output',{recursive:true});
 const results=[];
 try{
  for(const tier of (process.env.REVIEW_TIERS||'high,low').split(',')){
@@ -41,13 +43,15 @@ try{
   if(!baseline){
    assert.equal(report.trees,tier==='high'?70000:14000);assert.deepEqual(report.errors,[]);
    assert.notEqual(report.image.kind,'HTMLCanvasElement','Decoded full-size map is not retained as a canvas');
+   if(tier==='high')assert.ok(report.zones.slice(0,5).reduce((n,v)=>n+v,0)>=40700*.95,'Close corridor keeps at least 95% of its pre-blend allocation');
    if(tier==='high')for(const j of report.joins){assert.ok(j.bands[1].hectares>1.5&&j.bands[2].hectares>1.5,`${j.name}: woodland on both sides`);assert.ok(j.ratio>.70&&j.ratio<1/.70,`${j.name}: density ratio ${j.ratio}`);}
   }
-  for(const view of ['airport-join','hills-join','upper-join','missing-woods','captain']){
+  for(const view of (process.env.REVIEW_VIEWS?.split(',')||['airport-join','hills-join','upper-join','missing-woods','captain'])){
    await page.evaluate(async view=>{
     const T=await import('/vendor/three.module.js'),{sceneryGroundHeight:g}=await import('/js/world/scenery-ground.js'),s=window.__sim,w=s.world;
     s.start({startId:'short',scenarioId:'clear',seed:5});s.setDrawing(false);s.setTimeScale(0);s.game.state='menu';
     if(view==='captain'){
+     w.camera=s.view.cockpit.camera;if(w.composer)w.composer.passes[0].camera=w.camera;
      s.game.sim.aircraft.place({x:4500,y:172,z:0,headingDeg:270,iasKts:147,flapIndex:4,gearDown:true,gammaDeg:-3});s.view.setMode('cockpit');s.view.look.yaw=s.view.look.pitch=0;for(let i=0;i<40;i++)s.view.update(1/60);
     }else{
      const c=new T.PerspectiveCamera(50,1440/900,.1,60000),positions={

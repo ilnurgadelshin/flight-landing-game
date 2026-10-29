@@ -1,0 +1,42 @@
+[
+  {
+    "tier": "high",
+    "elapsedMs": 1477,
+    "inputTicks": 0,
+    "maxGapMs": 1477,
+    "trees": 70000,
+    "geometryHash": "aa11f328",
+    "zones": [
+      12464,
+      5091,
+      3186,
+      17647,
+      792,
+      8483,
+      6038,
+      3681,
+      5033,
+      2251,
+      2034
+    ],
+    "snapshotKind": "HTMLImageElement",
+    "errors": []
+  },
+  {
+    "tier": "low",
+    "elapsedMs": 138.90000009536743,
+    "inputTicks": 0,
+    "maxGapMs": 138.90000009536743,
+    "trees": 14000,
+    "geometryHash": "115884f7",
+    "zones": [
+      5800,
+      2600,
+      1400,
+      2600,
+      300
+    ],
+    "snapshotKind": "HTMLImageElement",
+    "errors": []
+  }
+]

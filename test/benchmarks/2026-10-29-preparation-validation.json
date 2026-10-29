@@ -1,0 +1,21 @@
+{
+  "date": "2026-10-29",
+  "baseline": "3c3b960",
+  "unitSuites": 24,
+  "checks": {
+    "npmTestCorridor": "passed with VISUAL_GPU=metal; includes eight density joins and missing-mask fallback",
+    "joinDefaultRenderer": "swiftshader",
+    "closeCorridorTrees": 39180,
+    "closeCorridorFloor": 38665,
+    "preparationGeometryHashesMatch": true,
+    "shadowWeatherAndSunChange": "passed both tiers",
+    "deliveryAndAutomaticLow": "passed"
+  },
+  "limitations": [
+    "SwiftShader cannot create WebGL context in installed macOS Chromium (BindToCurrentSequence failed); default run did not pass",
+    "No physical phone or other GPU validation",
+    "Native photo readback still causes pauses; later sun-direction shadow rebuild remains synchronous",
+    "Preparation yields increase elapsed time; no new FPS improvement claimed",
+    "Cumulative rendering cost remains open"
+  ]
+}

@@ -435,6 +435,15 @@ Individual map counts may redistribute. Low keeps its original grid, selection a
 selection module loads during scenery preparation, outside menu startup and low-tier
 downloads. No extra rendered tree, mesh type, light or render pass is introduced.
 
+The 2026-10-29 follow-up keeps this exact planting: close-map counts total **39,180**,
+compared with **40,700** before blending (1,520 fewer, or 3.7%). This is a deliberate
+redistribution to smooth the joins, not an extra budget. Browser checks now guard all
+eight joins and a 95% close-allocation minimum in `npm run test:corridor`, with
+SwiftShader as the default renderer. Planting, allocation and initial shadow creation
+yield between batches; native photo readback and later sun-direction rebuilds remain
+synchronous. The low map still takes one asynchronous lossless image snapshot at
+preparation, retaining pixels for re-upload without a persistent canvas backing store.
+
 `scenery/approach-corridor.png` and `.json` describe meadow, stubble and woodland
 along 6.9 km of final. The close map spans 6.9 × 2.03 km; high-quality hillside
 extensions reach both sides out to z=−2500 / +2500 m. The original bilateral

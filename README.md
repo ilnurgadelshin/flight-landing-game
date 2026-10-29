@@ -696,10 +696,16 @@ The visual assets are bundled locally and need no map service, account or API ke
   The current correction adds no trees. High uses a common 9.5 m candidate spacing,
   then thins to the existing allocation with density blended over 350 m on either side
   of map boundaries. Tile quotas are density targets, not abrupt count cutoffs. This
-  selection runs once during scenery preparation, not per frame. Low retains its
+  selection runs once during scenery preparation, in yielding batches that let menu
+  tasks run between work slices. Initial shadow construction is sliced too; native
+  photo readback and later sun-direction rebuilds can still stall. Low retains its
   previous planting method and 160 m fade where the high-only hill map is absent.
   The corrected close woodland follows the photographed margin around the hillside
   lane's gardens, replacing a missing strip without filling those gardens with trees.
+  `npm run test:corridor` includes all eight density joins on SwiftShader by default
+  (`VISUAL_GPU=metal` selects hardware). It also protects at least 95% of the former
+  close-corridor allocation; blending currently retains 39,180 of its 40,700 trees.
+  `npm run test:woodland-preparation` checks yielding during actual planting.
 
   Runtime-edited land-cover maps are retained as lossless decoded images for GPU
   re-upload; temporary canvases are released. This removes persistent canvas backing

@@ -65,9 +65,11 @@ export function drapeCanopy(quad,low,emit){
   }
 }
 
-function shadowGeometry(trees,atlas,sun,low){
+function* shadowGeometry(trees,atlas,sun,low){
   const positions=[],uvs=[],indices=[];
-  for(const tree of trees){
+  for(let i=0;i<trees.length;i++){
+    if((i&63)===0)yield;
+    const tree=trees[i];
     const {quad,view,elevation}=canopyFootprint(tree,atlas.species[tree.row],sun);
     const vertices=new Map();
     drapeCanopy(quad,low,(...triangle)=>{
@@ -84,7 +86,7 @@ function shadowGeometry(trees,atlas,sun,low){
   g.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));g.setIndex(indices);g.computeBoundingSphere();return g;
 }
 
-export function addWoodlandShadows(world,patches,atlas,texture){
+export async function addWoodlandShadows(world,patches,atlas,texture,checkpoint=()=>null){
   const group=new THREE.Group();group.name='Terrain-following canopy shade';
   const material=new THREE.MeshBasicMaterial({map:texture,color:0x000000,transparent:true,opacity:.18,depthWrite:false,
     polygonOffset:true,polygonOffsetFactor:-1,polygonOffsetUnits:-1});
@@ -98,23 +100,34 @@ export function addWoodlandShadows(world,patches,atlas,texture){
   };
   let key='';
   const stats={trees:[...patches.values()].reduce((n,p)=>n+p.length,0),triangles:0,bytes:0,buildMs:0,builds:0};
-  function update(){
-    // Sun shade only: none at night, nor on ground below an overcast deck (even with
-    // the aircraft above it). Hiding keeps the sunlit geometry, so a change of weather
-    // never rebuilds it at Start; a rebuild is a synchronous 0.1–0.8 s.
-    group.visible=!world.night&&!world.hasDeck&&world.baseOvercast<=.5;if(!group.visible)return;
+  function visible(){
+    group.visible=!world.night&&!world.hasDeck&&world.baseOvercast<=.5;
     material.opacity=world.scenario?.timeOfDay==='dusk'?.14:.18;
-    const sun=world.lightDir,newKey=sun.toArray().map(v=>v.toFixed(3)).join(',');
-    if(newKey===key)return;key=newKey;
+    return group.visible;
+  }
+  function* build(){
+    const sun=world.lightDir.clone();key=sun.toArray().map(v=>v.toFixed(3)).join(',');
     const start=performance.now();stats.triangles=stats.bytes=0;stats.builds++;
     for(const child of [...group.children]){child.geometry.dispose();group.remove(child);}
     for(const trees of patches.values()){
-      const g=shadowGeometry(trees,atlas,sun,world.groundLowDetail),mesh=new THREE.Mesh(g,material);
+      const g=yield* shadowGeometry(trees,atlas,sun,world.groundLowDetail),mesh=new THREE.Mesh(g,material);
       mesh.name='Projected tree silhouettes';mesh.renderOrder=1;group.add(mesh);
       stats.triangles+=g.index.count/3;
       stats.bytes+=g.attributes.position.array.byteLength+g.attributes.uv.array.byteLength+g.index.array.byteLength;
     }
     stats.buildMs=performance.now()-start;
   }
-  world.scene.add(group);const shadows={group,material,stats,update};world.woodlandShadows=shadows;update();return shadows;
+  function update(){
+    // Weather changes keep the sunlit geometry. A new sun direction still rebuilds
+    // synchronously; initial preparation below yields without exposing partial shade.
+    if(!visible()||world.lightDir.toArray().map(v=>v.toFixed(3)).join(',')===key)return;
+    const task=build();while(!task.next().done){};
+  }
+  if(visible()){
+    const task=build();
+    while(!task.next().done){const pause=checkpoint();if(pause)await pause;}
+  }
+  world.scene.add(group);const shadows={group,material,stats,update};world.woodlandShadows=shadows;
+  update();return shadows;
+
 }

@@ -6,6 +6,7 @@ import { makeRng } from '../physics/atmosphere.js';
 import { sceneryGroundHeight,protectedScenery } from './scenery-ground.js';
 import { addNearTrees, treeFadeShader } from './near-trees.js';
 import { addWoodlandShadows } from './woodland-shadows.js';
+import {createWorkSlices} from './work-slices.js';
 
 function groveNoise(x,z) {
   const ix=Math.floor(x),iz=Math.floor(z),fx=x-ix,fz=z-iz;
@@ -134,11 +135,18 @@ export async function addWoodland(world,photo,approachPhoto) {
       `);
   };
   treeFadeShader(material,false);
+  const work=createWorkSlices(),checkpoint=work.checkpoint;
   const canvas=document.createElement('canvas');canvas.width=canvas.height=1024;
-  const context=canvas.getContext('2d',{willReadFrequently:true});context.drawImage(photo,0,0,1024,1024);
-  const airportPixels=context.getImageData(0,0,1024,1024).data;
-  context.drawImage(approachPhoto,0,0,1024,1024);
-  const approachPixels=context.getImageData(0,0,1024,1024).data;
+  const context=canvas.getContext('2d',{willReadFrequently:true});
+  // Preserve canvas filtering and give input a turn after each photo readback.
+  // Native image decoding/readback itself cannot be interrupted by JS slicing.
+  const pixels=async image=>{
+    context.drawImage(image,0,0,1024,1024);
+    const rgba=context.getImageData(0,0,1024,1024).data;
+    const pause=checkpoint();if(pause)await pause;
+    return rgba;
+  };
+  const airportPixels=await pixels(photo),approachPixels=await pixels(approachPhoto);
   const rng=makeRng(812),patches=new Map(),forms=Array(atlas.rows).fill(0);
   const corridor=world.approachCorridor,localTrees=[];
   const oppositeZones=corridor?.oppositeHills?.plantingZones||[];
@@ -175,6 +183,7 @@ export async function addWoodland(world,photo,approachPhoto) {
           (xx<4100&&!zone.uniform?zoneTrees:upperTrees).push({x,z,type:Math.floor(localRng()*4),row,h,w,yaw:localRng()*Math.PI});
         }
         xx+=spacing;
+        const pause=checkpoint();if(pause)await pause;
       }
       // Retain the close stand when the denser upper section reaches the cap.
       // Uniformly thin only the remaining upper allocation, not both together.
@@ -197,7 +206,7 @@ export async function addWoodland(world,photo,approachPhoto) {
       localTrees.push(...zoneTrees,...upperTrees);zoneCounts.push(zoneTrees.length+upperTrees.length);
     }
     if(!low){
-      const blended=density.blendWoodlandAllocations(allocations);
+      const blended=await density.blendWoodlandAllocations(allocations,350,checkpoint);
       localTrees.push(...blended.trees);zoneCounts.push(...blended.counts);
       corridor.densityBlend={radius:blended.radius,target:blended.target,scale:blended.scale};
     }
@@ -210,6 +219,7 @@ export async function addWoodland(world,photo,approachPhoto) {
   }
   let count=0;
   for(let k=0;k<limit*30&&count<limit-localTrees.length;k++){
+    if((k&255)===0){const pause=checkpoint();if(pause)await pause;}
     // Spend more of the fixed instance budget in the approach corridor. Dense
     // near stands read as woodland; distant photo coverage can carry fewer cards.
     const close=rng()<.65;
@@ -240,8 +250,9 @@ export async function addWoodland(world,photo,approachPhoto) {
     if(!patches.has(key))patches.set(key,[]);
     patches.get(key).push({x,z,type,row,h,w,yaw:rng()*Math.PI});forms[row]++;count++;
   }
-  for(const t of localTrees){
-    const key=`${Math.floor(t.x/(low?2000:1000))}:${Math.floor(t.z/(low?2000:1000))}`;
+  for(let i=0;i<localTrees.length;i++){
+    if((i&1023)===0){const pause=checkpoint();if(pause)await pause;}
+    const t=localTrees[i],key=`${Math.floor(t.x/(low?2000:1000))}:${Math.floor(t.z/(low?2000:1000))}`;
     if(!patches.has(key))patches.set(key,[]);patches.get(key).push(t);forms[t.row]++;count++;
   }
   if(corridor)corridor.trees={count:localTrees.length,total:count,limit,spacing:low?[14,18]:[9.5,12],zones:corridor.zoneCounts};
@@ -253,7 +264,9 @@ export async function addWoodland(world,photo,approachPhoto) {
     const fades=new THREE.InstancedBufferAttribute(new Float32Array(trees.length),1).setUsage(THREE.DynamicDrawUsage);
     crown.setAttribute('treeDetailFade',fades);
     const mesh=new THREE.InstancedMesh(crown,material,trees.length);
-    trees.forEach((t,i)=>{
+    for(let i=0;i<trees.length;i++){
+      if((i&127)===0){const pause=checkpoint();if(pause)await pause;}
+      const t=trees[i];
       offsets[i*2]=t.type;offsets[i*2+1]=t.row;yaws[i]=t.yaw;
       frames[i*2]=atlas.species[t.row].frameScale;frames[i*2+1]=atlas.species[t.row].aspect;
       q.setFromAxisAngle(up,t.yaw);
@@ -262,15 +275,17 @@ export async function addWoodland(world,photo,approachPhoto) {
       mesh.setMatrixAt(i,matrix);
       const tint=.83+rng()*.17,warm=rng(),color=new THREE.Color().setRGB(tint*(.94+warm*.1),tint,tint*(.88+warm*.1));mesh.setColorAt(i,color);
       if(!low)records.push({...t,id:records.length,y:y-.08,color,fade:fades,index:i});
-    });
+    }
     crown.setAttribute('treeUvOffset',new THREE.InstancedBufferAttribute(offsets,2));
     crown.setAttribute('treeYaw',new THREE.InstancedBufferAttribute(yaws,1));
     crown.setAttribute('treeFrame',new THREE.InstancedBufferAttribute(frames,2));
     mesh.computeBoundingSphere();group.add(mesh);
   }
   geometry.dispose();
+  await addWoodlandShadows(world,patches,atlas,texture,checkpoint);
   world.scene.add(group);world.woodland=group;world.woodlandMaterial=material;world.woodlandForms=forms;
-  addWoodlandShadows(world,patches,atlas,texture);
+  canvas.width=canvas.height=0;
+  world.woodlandPreparation=work.finish();
   if(!low){
     let pending;
     world.loadNearTrees=()=>pending??=addNearTrees(world,records,atlas).catch(error=>world.assetErrors.push(String(error)));

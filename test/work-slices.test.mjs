@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import {createWorkSlices} from '../js/world/work-slices.js';
+let time=0,yields=0;
+const work=createWorkSlices({budgetMs:8,now:()=>time,yieldTask:async()=>{yields++;time+=100;}});
+time=7;assert.equal(work.checkpoint(),null,'Small batches stay synchronous');
+time=9;await work.checkpoint();
+time+=4;assert.equal(work.checkpoint(),null,'Waiting time is outside the next work budget');
+assert.deepEqual(work.finish(),{yields:1,maxWorkMs:9,workMs:13});assert.equal(yields,1);
+let inputRan=false;setTimeout(()=>{inputRan=true;},0);
+const real=createWorkSlices({budgetMs:0});await real.checkpoint();
+assert.equal(inputRan,true,'A yield lets a pending browser-style input task run');
+console.log('Work slicing: time budget, wait exclusion and real task yielding passed');
