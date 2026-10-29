@@ -68,32 +68,74 @@ uses the original procedural finish. Exact source files and modifications are in
 The yoke's pure-black grip alone is given 2.2% neutral diffuse reflectance, so its shape remains
 visible; screens, lettering and other black parts keep their original colours.
 
-The 2026-10-18 finish pass adds `cockpit/service-wear.webp` (1024² high) and
-`service-wear-low.webp` (512² low). These are original, non-repeating material masks
-fitted to the source parts, with panel boundaries derived from the credited cockpit
-geometry above (CC BY 4.0). They are interpretations of light service wear, not
-photographs or a surveyed aircraft livery. R stores colour modulation / 2, G stores
-roughness modulation / 2, and B stores grain retention or the forward panel's shallow
-edge profile. All channels are linear and the WebP encoding is lossless.
+The fitted finish atlas introduced on 2026-10-18 was extended on 2026-10-27 to
+`cockpit/service-wear.webp` (2048×1024 high, 662,114 bytes) and
+`service-wear-low.webp` (1024×512 low, 279,710 bytes). These are original,
+non-repeating material masks fitted to source parts, with panel boundaries derived
+from the credited cockpit geometry above (CC BY 4.0). They interpret light service
+wear; they are not photographs or a surveyed aircraft livery. R stores colour
+modulation / 2, G stores roughness modulation / 2, and B stores grain retention or
+shallow edge relief. All channels are linear; WebP encoding is lossless.
 
-Panel rims follow 1,033 measured boundary segments, including display cutouts;
-coplanar tessellation edges, lettering and emissive screens are excluded. High quality
-adds a rolled paint edge under 0.6 mm through bump shading. Both tiers vary coating
-and roughness around measured controls, lower window rails and yoke grip locations.
-The forward glareshield reuses the CC0 leather grain on high, with the finish gated
-to its measured volume because its source material is shared with distant fittings.
-The UVs stay attached to animated controls. Low adds only the small colour/roughness
-mask, without grain or bump sampling. The mask is requested with the scenery, behind the
-menu, so it is not part of the startup download; until it arrives, or if it fails, the
+The original forward-panel, padding, grip and frame slots keep their texel density.
+The forward contour has 1,294 segments after contact-mesh subdivision, with the same
+physical outline as the earlier 1,033-segment version. New pedestal and overhead
+slots follow 53 / 101 connected coating islands, with 4,809 / 12,783 boundary
+segments and five / eight small control-contact footprints. Connected curved faces
+join before outlining, so tessellation and normal changes do not become false seams.
+Moving controls, source lettering and live displays do not contribute these outlines.
+The main panel's repeated material identities are gated by source-space position and
+orientation, preserving vertical casing faces and fittings outside each region.
+
+The original upper cabin liner (`Material.014`) and the fitted roof now share trim
+grain, gentle tonal variation and a shallow transverse join on each side of the
+overhead opening. These joins are an authored interpretation, not measured aircraft
+seams. High adds at most 0.65 mm panel-edge / 0.35 mm liner-join bump depth and reuses
+the existing six material maps. Low uses the packed colour/roughness masks and
+average grain roughness, without grain or bump sampling. The forward glareshield
+still reuses the CC0 leather grain within its measured volume; the grip finish
+continues to follow the animated yokes.
+
+The atlas is requested behind the menu. Until it arrives, or if it fails, the
 masked parts sample a neutral value (colour, roughness and relief unchanged).
-Reproduce these two maps with `node tools/prepare-cockpit-wear.mjs`; the measured
-layout is in `js/cockpit/surface-layout.js`. No model geometry, lettering, base material
-colours, camera position or lighting calibration is changed by this pass.
+The extension adds 352,754 high / 146,578 low image bytes. Assuming RGBA8 storage
+with mipmaps, the larger atlas adds approximately 5.33 / 1.33 MiB; driver allocation
+can vary. It adds no model triangles, material draw batches, light or render pass.
+Reproduce both maps with `node tools/prepare-cockpit-wear.mjs`; geometry-derived
+masks are in `tools/cockpit-panel-masks.mjs` and the shared measured layout in
+`js/cockpit/surface-layout.js`. Source geometry, lettering, base material colours,
+camera placement and lighting calibration are preserved. The floor, many knob and
+metal finishes, and fixed-eye indirect reflections remain simplified.
+
+The 2026-10-27 contact-shading pass adds the missing molded-trim finish to
+`Cube.1060` and `Cube.1061` / `Material.424`, verified in the saved original-source
+Blender scene and by ray picking the delivered cockpit. High reuses the existing
+liner scan; low uses its average roughness. No additional image request is made.
+
+Broad static panel, console and forward-floor faces now have finer shading samples.
+Linear subdivision preserves their silhouettes. A 128-ray, 22 cm contact bake replaces
+the interpolated coarse contact component while retaining the prior broad cabin
+shading; it still affects only indirect illumination. The selected source materials
+are `.103`, `.219` (floor), `.261`, `.354`, `.424` and `.457`, inside the forward
+cabin volume. Moving controls, source lettering and the window frame are excluded.
+Maximum shading edges are 9 cm high / 14 cm low. This adds 23,705 / 9,363 triangles,
+with no additional material batches, light or render pass. The resulting GLBs are
+8,279,228 / 3,622,368 bytes (increases of 79,784 / 51,572 bytes).
+
+`tools/prepare-cockpit.mjs` applies this refinement when rebuilding from the source.
+The current assets were derived from the already optimized models in main `13482b7`
+with `node tools/prepare-cabin-shading.mjs /path/to/unmodified/assets/models`.
+Always supply an unmodified baseline in a separate directory; this is an offline
+shading operation, not a runtime subdivision step. The original CC BY 4.0 credit
+continues to cover these adapted models. The finish is a material interpretation,
+not an aircraft-specific photographic texture set. Fixed-eye reflections, the
+floor and remaining control finishes are limitations; the subsequent fitted-material extension is documented above.
 
 The material assignments were checked in Blender against these source meshes:
 
 | Source material | Verified parts | Runtime finish |
 | --- | --- | --- |
+| `Material.424` | `Cube.1060`, `Cube.1061` left/right consoles | Molded trim |
 | `Material.014` | `Body.002`, `Body.006`, `Body.018` cabin liner | Molded trim |
 | `Material.008` | `Body.020` windshield frame | Coated frame |
 | `Material.457` | `Cube.008` main panel and side panels | Coated panel |
@@ -345,8 +387,66 @@ it is not a version-pinned mirror. The game never calls the Poly Haven API.
 
 ## Interpreted approach land cover — public-domain imagery / original mask
 
+The airport-side companion, `scenery/airport-countryside.png` and `.json`, interprets
+the already bundled public-domain `airport.webp` across x=−2100–2280 m,
+z=−2500–2500 m. Its original field, woodland and clearing outlines are recorded in
+`tools/airport-countryside.mjs`; reproduce with `node tools/bake-airport-countryside.mjs`.
+Like the approach map, it is original MIT project work and an artistic land-cover
+interpretation, not a land-use survey. No new source photograph or model is downloaded.
+
+The PNG/JSON pair is **39,791 bytes**, with a net **609.33 ha** of weighted coverage
+after subtracting prior cover in the overlap. Raw meadow/stubble/woodland areas are
+138.01 / 98.33 / 415.83 ha; raw totals include overlap and must not be added to the
+previous maps directly.
+
+This separate 640 × 768 linear RGB mask is loaded only on high quality, with scenery
+behind the menu. It adds 1.97 MB of RGBA8 GPU storage and about 0.98 MB of packed CPU
+coverage, plus mixed-pixel records. The earlier five baked maps and their atlas stay
+unchanged. CPU planting and the ground shader share a smooth 180 m overlap at
+x=2100–2280. The new sampler is read only inside its rectangle; the older map is
+also read inside the overlap. There is no extra terrain draw pass. If the optional
+airport data fails validation or cannot load, the older corridor still loads and the
+airport retains its photograph and previous tree budget.
+
+The airport pass originally added 2000 trees per side, for **70,000 high /
+14,000 low**. Since the 2026-10-28 correction, these allocations are density targets
+blended across joins, rather than fixed per-map counts; see the current rules below. The airfield and approach-light protection includes
+a 24 m clear margin and a further 110 m canopy/ground fade beside the earthworks.
+Roads, buildings, settlement clearings and mapped fields retain exclusions. The new
+outer boundaries fade over 180 m. The low tier requests neither airport mask file
+and retains its existing ground and tree allocations. This does not replace all
+farm buildings, remove photographic shadows or supply dense, detailed distant crowns.
+
+The 2026-10-28 join correction traces one missing woodland margin around the hillside
+lane, using the existing public-domain `final-approach.webp` crop at x=2700–4200,
+z=500–1300. The outline deliberately excludes photographed gardens beside the lane.
+It adds **12.39 ha** of weighted woodland, bringing the close map to **91 outlines**
+and **826.28 ha woodland**. Effective combined high coverage is approximately
+**3087.18 ha**. The corridor pair is 414,460 bytes; with the airport pair the land-cover
+download is **454,251 bytes**. Atlas dimensions and GPU allocations are unchanged.
+
+High planting now blends expected density within **350 m of each allocation edge**,
+using a common **9.5 m candidate grid** before deterministic selection. A sparse outer
+candidate grid cannot realize a dense neighbour's edge, so the denser candidates are
+needed even where most are rejected. The retained mapped allocation stays **66,700**,
+plus eligible site trees and background trees within the existing **70,000 hard cap**.
+Individual map counts may redistribute. Low keeps its original grid, selection and
+14,000 total cap; it does receive the corrected woodland outline. The high-only
+selection module loads during scenery preparation, outside menu startup and low-tier
+downloads. No extra rendered tree, mesh type, light or render pass is introduced.
+
+The 2026-10-29 follow-up keeps this exact planting: close-map counts total **39,180**,
+compared with **40,700** before blending (1,520 fewer, or 3.7%). This is a deliberate
+redistribution to smooth the joins, not an extra budget. Browser checks now guard all
+eight joins and a 95% close-allocation minimum in `npm run test:corridor`, with
+SwiftShader as the default renderer. Planting, allocation and initial shadow creation
+yield between batches; native photo readback and later sun-direction rebuilds remain
+synchronous. The low map still takes one asynchronous lossless image snapshot at
+preparation, retaining pixels for re-upload without a persistent canvas backing store.
+
 `scenery/approach-corridor.png` and `.json` describe meadow, stubble and woodland
-along 6.9 km of final, over combined bounds of 6.9 × 2.03 km. The original bilateral
+along 6.9 km of final. The close map spans 6.9 × 2.03 km; high-quality hillside
+extensions reach both sides out to z=−2500 / +2500 m. The original bilateral
 4 km coverage now continues another 2.9 km through the upper valley, including the
 woods beneath the early short-final view. Boundaries and clearing holes are original
 interpretations of bundled USDA NAIP / USGS `scenery/detail/2_0.webp` through `8_0.webp`
@@ -361,24 +461,54 @@ and middle final: x=2100–5300, z=1030–2500 m. It interprets the existing 2 m
 These holes carry explicit meadow coverage so the older photographic planting cannot
 fill them back in. Buildings and roads retain their clearance masks.
 
+The 2026-10-24 opposite extension covers x=2100–5300, z=−2500–−1000 m, using
+fourteen interpreted woodland/field polygons in `tools/opposite-hills.mjs`. The
+3.2 × 1.5 km crop follows the same public-domain photograph. Five wooded areas
+connect around open meadows, harvested strips, gardens and the road valley. It is
+high quality only. Its 1024 × 256 tile occupies previously unused atlas columns,
+separated from the older hill by a six-column repeated-edge gutter. Atlas dimensions
+and the number of texture samplers stay unchanged.
+
 Linear RGB stores meadow/stubble/woodland coverage. The original 3450 × 1015 pixels
-retain 2 m/px CPU planting precision and are unchanged except their last 15 rows
-(z=1000–1030) alongside the hill tile: there the close map takes up the hill tile's
+retain 2 m/px CPU planting precision. In addition to the corrected woodland margin,
+their last 15 rows
+(z=1000–1030) are adjusted alongside the hill tile: there the close map takes up the hill tile's
 woods and meadows, so neither map fades at their shared edge. A separately registered
 1024 × 256 hill tile is packed below them after a 6-row gutter that repeats each map's
-edge row, so bilinear filtering and downscaling cannot mix the two maps; unused space
-is left black. High uploads the combined 3450 × 1277 atlas. Low quality does not use
+edge row, so bilinear filtering and downscaling cannot mix the maps. The opposite
+hill occupies columns 1030–2053 in that lower strip. The two upper-slope tiles
+occupy columns 2060–2751 and 2758–3449, each with a six-column repeated-edge gutter. High uploads the combined 3450 × 1277 atlas. Low quality does not use
 the hill tile: it uploads only the close map, filtered to 2048 × 603 for ground colour,
-and keeps exact CPU samples of it. Upload dimensions also respect the renderer's maximum
-texture size. Each ground pixel selects one region and uses one land-cover lookup;
-there is no additional sampler or draw call. The RGBA8 texture uses 17.62 MB high /
+and keeps exact CPU samples of it. Before packing those samples or filtering the texture,
+the loader feathers the last 160 m beside the absent hill tile back to the photograph;
+the ends blend into neighbouring boundaries too. Ground colour and tree placement use
+the same edited pixels, avoiding an abrupt forest edge. This is a one-time low-tier
+decode operation; the baked close mask and older high-tier join remain unchanged.
+High quality joins the opposite tile into the close map's first 30 m during decoding,
+before CPU packing and GPU upload. Its trees and ground therefore share the same
+continuous north boundary. Low does not apply that join. Edited high and reduced low
+canvases are snapshotted losslessly into decoded images, then their backing stores are
+released. The image remains available for GPU re-upload; decoded-image and GPU memory
+are still required. The high image replaces the original texture upload source; the opposite tile adds
+another 0.52 MB of packed CPU samples, with no additional GPU texture storage.
+Upload dimensions also respect the renderer's maximum
+texture size. The upper slopes select one region and use one land-cover lookup away
+from their 180 m overlaps; those overlaps blend two lookups. There is no additional
+sampler or terrain draw call. The RGBA8 texture uses 17.62 MB high /
 4.94 MB low, against 14.01 / 4.94 MB without the hillside. On high the hill tile adds
 0.52 MB of packed CPU samples; the original 7 MB buffer and small mixed-pixel table remain.
 
-Coverage is approximately 76.27 ha meadow, 46.24 ha stubble and 813.89 ha woodland:
+Before the 2026-10-28 margin correction, baked high-tier coverage was approximately
+76.27 ha meadow, 46.24 ha stubble and 813.89 ha woodland:
 936.40 ha in the original corridor, 5.66 ha of it from the rows continuing the hill
-tile. The hillside adds 25.73 ha meadow and 385.63 ha woodland, for **1347.76 ha
-combined weighted coverage**. These totals account for
+tile. The left hillside adds 25.73 ha meadow and 385.63 ha woodland. The opposite
+hill adds 30.57 ha meadow, 21.48 ha stubble and 231.32 ha woodland, bringing the
+baked tiles to **1631.13 ha combined weighted coverage**. The high-only decoded
+north join adds a net 1.13 ha (about 1632.26 ha before the upper-slope pass).
+The 2026-10-25 overlays add a net **833.20 ha** (84.55 meadow, 16.64 stubble,
+732.02 woodland), bringing effective high coverage to about **2465.46 ha**.
+This net change is integrated on a 2 m grid after blending with the older maps;
+simply adding the new tiles’ raw areas would double-count their overlap. These totals account for
 feathered boundaries and clearances, rather than counting whole bounding rectangles.
 The 2026-10-22 crossing pass added 20.47 ha to the previous 910.27 ha.
 Clearing holes preserve the large
@@ -391,10 +521,10 @@ fills a separate central gap around x=4400–5300, with three wooded parcels and
 The three existing planting allocations remain 13,000 / 5,800, 5,500 / 2,600 and
 3,500 / 1,400 (high / low). The extension receives up to 18,000 / 2,600 at 16 / 30 m
 candidate spacing, uniformly thinned to its cap. These allocations replace wider
-photo-selected planting within the unchanged **52,000 / 14,000 total tree budgets**.
+photo-selected planting within the earlier **52,000 / 14,000 total tree budgets**.
 A fifth, non-overlapping central strip receives up to 700 / 300 at 12 / 18 m spacing;
 the existing four zones retain their bounds, seeds and allocations. The close spacing
-remains 9.5 / 14 m and the older upper stands 12 / 18 m. Sixty-six eligible
+remains 9.5 / 14 m and the older upper stands 12 / 18 m. Seventy-six eligible
 site trees remain individually placed. On high quality the separate hillside
 allocation receives 8000 trees from 13 m candidate spacing. Its density thins over
 200 m from the close map's woods at its north edge down to 30 % of that, so the two
@@ -403,28 +533,54 @@ keeps exactly the allocation. Low quality has no hillside allocation, so the hil
 keeps its photograph and the wider background keeps its low-tier trees.
 The previous five zones retain their bounds, seeds and caps. On high this consumes more
 of the same total budget, leaving fewer trees in the wider photo-selected background.
-Background positions/tints and some
-near-tree selections change when the fixed budget is redistributed.
+The opposite hill added a separate 6000-tree high allocation, reaching **58,000 / 14,000**
+total instances. Existing zone bounds, seeds and caps remain; high's wider background
+allowance is retained. At the new join, density tapers over 200 m from the close woods
+to 40% of that density. This adds rendering and footprint-shadow geometry; measured
+cost is recorded in `test/RENDER-PERFORMANCE.md`. Low retains its original positions,
+mask and 14,000 instances. On high, changed cover/exclusions and the planting sequence
+can change individual tree positions, tints and near-tree selections.
+
+The 2026-10-25 upper-slope pass covers x=5300–9000 m on both flanks, with
+180 m overlaps into the preceding hills and close map. It uses the same photograph:
+contour pastures and harvested strips on the north side, broad woodland and housing
+clearings on the south. Its original outlines remain in `tools/upper-slopes.mjs`;
+the delivered manifest contains only registration, planting and area metadata.
+Each new 692 × 256 tile contributes about 0.35 MB of packed CPU samples. Neither
+uploaded texture dimensions nor the low-tier decoded map change. CPU planting
+and the terrain shader apply the same smooth overlap; existing baked maps remain
+byte-identical. Missing or malformed optional data keeps the photographic fallback.
+
+The two new high-only zones add 3500 / 4500 instances, for **66,000 / 14,000 total**.
+Candidate spacing is 17 m, with a 240 m density taper from the close woods down to
+45% of that density. Earlier zone caps and seeds are retained; coverage changes
+inside overlaps can still change their accepted candidates and background placement.
+The added trees include terrain-following footprint shadows. Their measured cost,
+including an initially slow shader and its subsequent optimization, is recorded in
+`test/RENDER-PERFORMANCE.md`. No claim is made of full canopy density or high-detail
+coverage beyond x=9000 m / |z|=2500 m, or on the low tier.
 
 Open fields retain surveyed crop and soil variation. Nearby forest floors retain the
 existing scanned detail; distant floors now retain photographic light/shade between
 crowns instead of becoming uniform green surfaces. Tree cards, sparse low-tier canopy,
 photographic shadows and unmapped hills remain approximations.
 
-The PNG/JSON pair is 323,856 bytes, below a 450 KB budget, versus 303,681 before the
-hillside extension (+20,175 bytes). Lossless PNG compression limits transfer while the
+The PNG/JSON pair is **411,261 bytes**, below a 450 KB budget, versus 366,208 before
+the upper-slope extension (+45,053 bytes on both tiers). Lossless PNG compression limits transfer while the
 larger decoded atlas still carries the memory cost above. It loads behind the menu. Reproduce with
 `node tools/bake-corridor.mjs` (upper traces are in `tools/upper-valley-cover.mjs`, crossing
-traces in `tools/crossing-sites.mjs`, hill traces in `tools/approach-hills.mjs`);
-validate with `npm run test:corridor` and `node test/hills-scenery.mjs`. The bake indexes road/building clearance bounds;
+traces in `tools/crossing-sites.mjs`, hill traces in `tools/approach-hills.mjs` and
+`tools/opposite-hills.mjs`; upper-slope outlines are in `tools/upper-slopes.mjs`);
+validate with `npm run test:corridor`, `node test/hills-scenery.mjs` and
+`node test/opposite-hills-scenery.mjs`, `node test/upper-slopes-scenery.mjs`. The bake indexes road/building clearance bounds;
 its distance calculation and feathering are unchanged.
 
 ## Complete approach sites — original geometry / CC0 materials
 
-`scenery/valley-farm.glb` and its `-low` variant contain sixty-two complete building placements, originally
+`scenery/valley-farm.glb` and its `-low` variant contain eighty-one complete building placements, originally
 authored by `tools/prepare-farm.py` in Blender under the project's MIT license. The original
 two valley barns, two opposite-side barns and the detached residential garage use NAIP-traced infill outlines; the other
-fifty-seven placements retain their Microsoft footprints. The models include clapboard homes,
+seventy-six placements retain their Microsoft footprints. The models include clapboard homes,
 red-roofed working buildings, workshops, timber barns and three domed silos in two groups.
 Recessed openings, thick roof edges/ridge caps, gutters, door
 canopies, foundations and home chimneys are geometry. Fine clapboard laps and standing seams
@@ -466,19 +622,20 @@ Source URLs, authors, checksums, placements and exact delivered byte counts are 
 `scenery/farm-sources.json`. Wood textures use 1024 px high / 512 px low WebP. The gravel
 colour map follows those sizes; gravel normal and roughness maps use 512 px high / 256 px low.
 Meshes are Meshopt-compressed. Building meshes merge by material within each site; the three
-adjacent crossing sites share one bounded building group to save 20 material batches.
-The eight sites use 88 draw batches before subtracting replaced procedural
-facades: 55 building material batches, the original yard and four grounds/boundary batches per
-site. Buildings use 133,587 triangles; grounds/fences use 273,132 triangles, plus the original
+adjacent crossing sites share one bounded building group to save 20 material batches;
+the two valley lane sites also share one building group, saving ten batches.
+The eleven sites use 120 draw batches before subtracting replaced procedural
+facades: 75 building material batches, the original yard and four grounds/boundary batches per
+site. Buildings use 165,567 triangles; grounds/fences use 377,642 triangles, plus the original
 2,924-triangle yard. A distance detail level removes only painted/ironwork triangles smaller
 than 0.08 m² once the whole building group is more than 550 m away. Walls, roofs, glass
 and substantial trim retain their geometry and materials. At the far level, complete
-buildings total 98,250 triangles (26.5% fewer); 12% hysteresis prevents rapid switching.
+buildings total 118,598 triangles (28.4% fewer); 12% hysteresis prevents rapid switching.
 Both levels share vertex attributes and materials; the far level adds index buffers only.
-The original models and downloads are unchanged. Only referenced parcel-grid vertices are uploaded; narrow drives use
+The detail level adds no separate model downloads. Only referenced parcel-grid vertices are uploaded; narrow drives use
 feathered ribbons. Preparation happens behind the menu. Missing models or yard materials
 retain procedural buildings and imagery. Missing or invalid extension data keeps the original
-nine complete valley buildings and falls back for the other 53 placements.
+nine complete valley buildings and falls back for the other 75 placements.
 
 The 2026-10-19 residential frontage adds 13 models, including one previously missing garage,
 to the existing four sites. Twelve retain Microsoft footprints; the garage roof is traced from
@@ -503,11 +660,50 @@ unreviewed joins over 8 m are rejected. No footprint detections, external assets
 are added. Existing wall finishes and shingle/metal roofs are reused. Missing optional site
 data still selects fallback buildings before any shared material batching occurs.
 
-Models, grounds and gravel maps total 3,656,096 bytes high / 2,703,194 bytes low,
+In that crossing pass, models, grounds and gravel maps totaled 3,656,096 bytes high / 2,703,194 bytes low,
 excluding the shared manifest. Relative to `9c30fd6`, the whole crossing pass including
 land-cover changes adds **624,047 / 624,103 bytes** per tier. GLB delivery omits unused
 Blender child/mesh/accessor labels; building IDs, material names, geometry and texture
 precision remain. Both tiers retain the same complete-building geometry; low has smaller maps.
+
+The 2026-10-24 valley lane pass adds 19 buildings on registered footprints: six around the
+farm and thirteen at neighboring roadside parcels. `tools/valley-lane-sites.mjs` retains
+the world-metre interpretation of bundled public-domain `3_0` / `4_0` imagery. The farm's
+large placeholder becomes perpendicular barn wings; the concave garden house has three
+roof wings, leaving both courtyards open. Heights and uses are interpretations. Existing
+roof maps, siding and CC0 gravel materials are reused, with no new texture downloads.
+Ten lawn polygons, sixteen gravel areas, twelve drive/lane ribbons, nineteen access paths
+and eleven fence polylines complete the grounds. Nine additional main-road connections
+snap to the registered centerline; 76 eligible placed trees now serve the ten sites.
+The valley-lane building pass kept the land-cover map and then-current 52,000 / 14,000
+tree budgets unchanged; subsequent hillside extensions described above raise high to 66,000.
+
+After the valley-lane pass, models, grounds and gravel maps totaled **4,177,422 bytes high / 3,224,396 low**,
+excluding the shared manifest. Including that manifest, this pass adds **527,024 / 526,900
+bytes** relative to `07530bb`, prepared behind the menu. See the dated visual audit and
+render measurements for contact/roof tests, matched views, delivery and rendering costs.
+
+The 2026-10-27 ridge farm adds three complete buildings on existing registered footprints
+at x=5453–5683, z=−427…−483. `tools/ridge-farm-site.mjs` records the interpretation of
+the bundled public-domain `5_-1` imagery. Separate pitched wings replace the two compound
+roof placeholders; wall openings retain recessed panels and substantial frames. The store,
+house and workshop uses, finishes and 4.7 / 5.7 / 6.4 m heights are artistic estimates.
+The new models also carry local foundation polygons. At preparation time their concrete
+base walls extend from the level floor to the rendered terrain on each quality tier,
+closing downhill gaps of up to 3.6 m without stretching the walls or lowering the roofs.
+Four short ramps connect road-facing doorsteps to the yard. Bases and ramps merge into
+the existing concrete batch and introduce no extra material draws.
+Three lawn parcels, three gravel yards, one road-connected lane, three access paths and
+five timber boundary polylines complete the occupied margins. The lane snaps to the actual
+main road; fences leave it clear. The photographed pond and fields remain uncovered.
+Eight candidate planted trees are checked against existing clearance rules; 77 eligible
+placed trees now serve all eleven sites. The overall 70,000 high / 14,000 low budgets remain.
+
+Current models, grounds and gravel maps total **4,256,034 / 3,302,980 bytes** high / low,
+excluding the shared manifest. No new material images, services or source licences are
+introduced. The added geometry/parcel data is prepared behind the menu, with no changes
+to the streaming or quality-selection code. The forward pilot impact is very small;
+the exterior comparison shows the completed roofs and connected grounds more clearly.
 
 Reproduce (download cache and Blender source remain under ignored `test/output/farm-sources/`):
 
@@ -548,7 +744,7 @@ target, so this follows resolution changes automatically. Standard alpha-to-cove
 smoothing remains on multisampled targets, with a hard cutoff on single-sample targets.
 The coverage adjustment adds no texture sample or alpha-blending pass. These remain impostors: azimuth transitions, repeated
 species and extreme close-up silhouettes are less convincing than full 3D branches.
-The colour atlases are 1536×5184 (high, 1,823,326 bytes) and 768×2592 (low, 537,056 bytes).
+The colour atlases are 1536×5184 (high, 1,851,248 bytes) and 768×2592 (low, 545,816 bytes).
 High frames are 192 px and low frames 96 px. Eight directions reduce silhouette doubling
 between adjacent views; using the delivered geometry also avoids the fuller source model
 changing into a different simplified crown at close range. Texel count rises 12.5% over
@@ -566,7 +762,7 @@ each tree, evaluates the current sunlight direction/colour, and fades it under o
 and at night. Alpha-weighted blending uses the same four atlas views as colour; empty
 samples stay finite. Missing or incorrectly sized response data falls back to diffuse sky.
 
-The linear-data response atlases are 768×2592 (630,314 bytes) and 384×1296 (205,730 bytes),
+The linear-data response atlases are 768×2592 (645,168 bytes) and 384×1296 (213,202 bytes),
 96/48 pixels per view. They add four texture reads per surviving sunlit crown fragment, one sampler,
 and approximately 10.1/2.5 MiB including mipmaps. Net image transfer grows by 607,980/199,768
 bytes (high/low), including the smaller rebaked colour maps. Loading remains inside the
@@ -603,9 +799,30 @@ The five `scenery/*-near.glb` assets use the **same CC0 sources and nine forms**
 real nearby branches, trunks and leaf geometry on the high tier. They are normalized
 to unit height, simplified separately for foliage and wood, texture-packed and Meshopt
 compressed. The original broadleaf keeps about 159,000 triangles to retain its canopy; the added
-broadleaf forms use 50,288 and 27,871 triangles, and conifers use about 19,000–79,000.
-Files total **14,398,432 bytes** (14.40 MB decimal), including 2,729,492 bytes for the two additions. Exact sizes, triangle
+broadleaf forms use 74,288 and 51,871 triangles, and conifers use about 19,000–79,000.
+Files total **15,582,952 bytes** (15.58 MB decimal), including 3,914,012 bytes for the two additions. Exact sizes, triangle
 counts and source URLs are in `tree-geometry.json`.
+
+The 2026-10-26 canopy pass revises the jacaranda and island-tree reductions from the
+same downloaded sources. Foliage targets 48,000 triangles with a 0.5% geometric-error
+limit, rather than 24,000 / 1.2%; wood keeps the previous reduction. The masked leaf
+cutoff is 0.25 rather than 0.4, retaining filtered small clusters without alpha blending.
+The colour and directional-response atlases are rebaked from those delivered models.
+Tree locations, species assignments, heights and planting rules stay unchanged; the
+jacaranda's measured aspect increases from 1.32995 to 1.33952 as branches are retained.
+All instances still use the same total and near-camera budgets below. The two GLBs
+add **1,184,520 bytes**; the rebaked image pairs add **42,776 / 16,232 bytes** high / low.
+Texture dimensions, sampler count and the two-triangle distant representation are unchanged.
+The larger models add decoded geometry memory and can reduce the number of simultaneous
+near trees within the aggregate triangle cap. They do not add a new download to low quality.
+
+`test/broadleaf-source.mjs` compares twelve directions per species against the ignored
+full originals. Mean projected coverage is **73% → 111%** of the jacaranda source and
+**68% → 88%** of the island-tree source. The slightly fuller jacaranda reflects its lower
+mask cutoff; these area ratios do not measure all shape or lighting differences.
+Run after `fetch-authored-scenery.py`, optionally supplying `CANOPY_BASELINE` with an
+older checkout for the before images. Source models remain offline-only. The matched
+scenery/motion review and measured costs are recorded in `test/VISUAL-AUDIT.md`.
 
 At runtime, nearby trees transition between geometry and cards over 90–180 m using
 complementary dithering. A 14% selection preference retains existing trees when distances

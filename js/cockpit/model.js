@@ -20,6 +20,12 @@ export async function loadFlightDeck(cockpit) {
     return;
   }
   const c=cockpit, root=c.root;
+  // Add the fitted roof before assigning finishes so its grain and seams share
+  // the same source-space coordinates and load/fallback path as the cabin liner.
+  const {positions:roofPositions,indices:roofIndices}=headlinerData();
+  const roofGeometry=new THREE.BufferGeometry();roofGeometry.setAttribute('position',new THREE.Float32BufferAttribute(roofPositions,3));roofGeometry.setIndex(roofIndices);roofGeometry.computeVertexNormals();
+  const roofMaterial=new THREE.MeshStandardMaterial({color:0x626763,roughness:.96,side:THREE.DoubleSide});roofMaterial.name='FlightDeckHeadliner';
+  const roof=new THREE.Mesh(roofGeometry,roofMaterial);roof.name='Flight deck headliner';model.add(roof);
   await applyCockpitSurfaces(model,{lowDetail:c.lowDetail});
   // Keep the procedural deck only as a load-failure fallback. It is replaced as one unit,
   // rather than leaving another shell, another panel or overlapping seats underneath.
@@ -44,13 +50,6 @@ export async function loadFlightDeck(cockpit) {
   // Fit the eye to the original cabin, measured in source coordinates. The old
   // eye was above the useful glazing, which led to stretching the entire shell.
   c.eyeLocal.copy(point(.24,2.155,.95));
-  // The open source omits the roof. Close it with a curved headliner so looking up
-  // stays inside the cabin and sunlight enters through the glazing, not the ceiling.
-  const {positions:roofPositions,indices:roofIndices}=headlinerData();
-  const roofGeometry=new THREE.BufferGeometry();roofGeometry.setAttribute('position',new THREE.Float32BufferAttribute(roofPositions,3));roofGeometry.setIndex(roofIndices);roofGeometry.computeVertexNormals();
-  const roof=new THREE.Mesh(roofGeometry,new THREE.MeshStandardMaterial({color:0x626763,roughness:.96,side:THREE.DoubleSide}));
-  roof.name='Flight deck headliner';roof.castShadow=true;roof.receiveShadow=true;model.add(roof);
-
   const live=new THREE.Group();live.name='Live flight instruments';root.add(live);
   const screen=(tex,x,y,z,size=.102)=>{
     const mesh=new THREE.Mesh(new THREE.PlaneGeometry(size*1.7,size*1.7),new THREE.MeshBasicMaterial({map:tex,toneMapped:false}));

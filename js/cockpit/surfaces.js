@@ -1,18 +1,20 @@
 // Surface finishes for verified parts of hakai315's cockpit. The source geometry
 // and lettering remain intact. See assets/README.md for the finish/colour changes.
 import * as THREE from 'three';
-import {finishCoordinates} from './surface-layout.js';
+import {finishCoordinates,finishRegion,guardFinishBoundaries} from './surface-layout.js';
 
 // These identities were checked against the original meshes in Blender. Do not
 // infer other part identities from the numeric material names (many are shared).
 const FINISH = {
   'Material.014': 'trim',       // Body.002/006/018: cabin liner
+  'Material.424': 'trim',       // Cube.1060/1061: left/right molded side consoles
   'Material.008': 'frame',      // Body.020: windshield frame
   'Material.457': 'paint',      // Cube.008 and side panels
   'Material.103': 'paint',      // pedestal casing, instrument bezels and panels
   'Material.261': 'paint',      // overhead and MCP panel faces
   'Material.354': 'paint',      // overhead subpanels and switch bodies
   'Material.194': 'fabric',     // Cube.488/489/1088: seat cushions
+  FlightDeckHeadliner: 'trim',  // Fitted roof added by the simulator
 };
 const FINISHES = {
   // Tile width and relief in metres; microdetail should disappear at a distance.
@@ -74,6 +76,13 @@ export const COCKPIT_SURFACE_GLSL=/* glsl */`
     vec3 n=abs(cross(dFdx(p),dFdy(p)));
     n/=max(max(n.x,n.y),max(n.z,1e-20));
     vec3 w=pow(n,vec3(4.0)); w/=max(w.x+w.y+w.z,1e-20);
+    // Most panel/console faces align to a model axis. Avoid three texture
+    // lookups when only one contributes. Explicit gradients retain mip choice
+    // at triangle/branch boundaries; curved faces keep the blended projection.
+    vec3 dx=dFdx(p/deckTile),dy=dFdy(p/deckTile);
+    if(w.x>.9999)return textureGrad(deckSurface,p.yz/deckTile,dx.yz,dy.yz).rgb;
+    if(w.y>.9999)return textureGrad(deckSurface,p.xz/deckTile,dx.xz,dy.xz).rgb;
+    if(w.z>.9999)return textureGrad(deckSurface,p.xy/deckTile,dx.xy,dy.xy).rgb;
     return texture2D(deckSurface,p.yz/deckTile).rgb*w.x
          + texture2D(deckSurface,p.xz/deckTile).rgb*w.y
          + texture2D(deckSurface,p.xy/deckTile).rgb*w.z;
@@ -134,7 +143,7 @@ function finishMaterial(material, kind, texture, wear, wearKind) {
       roughness+=`vec3 deckTexel=deckSample(vDeckPosition);
         roughnessFactor*=mix(1.0,deckTexel.g,${scope});
         diffuseColor.rgb*=mix(1.0,deckTexel.b,${scope});\n`;
-      const rim=wear&&wearKind==='panel'?'+(deckWearTexel.b-1.0)*.00065*vDeckFinish.z':'';
+      const rim=wear&&['panel','overhead','headliner'].includes(wearKind)?`+(deckWearTexel.b-1.0)*${wearKind==='headliner'?'.00035':'.00065'}*vDeckFinish.z`:'';
       bump=`normal=deckBump(normal,deckTexel.r*deckRelief*${scope}${wear?'*mix(1.0,deckWearTexel.b,vDeckFinish.z)':''}${rim},faceDirection);`;
     }else if(kind==='padding')roughness+=`roughnessFactor*=mix(1.0,${FINISHES.padding.roughness},${scope});`;
     shader.vertexShader=shader.vertexShader
@@ -145,13 +154,13 @@ function finishMaterial(material, kind, texture, wear, wearKind) {
       .replace('#include <roughnessmap_fragment>','#include <roughnessmap_fragment>\n'+roughness)
       .replace('#include <normal_fragment_maps>','#include <normal_fragment_maps>\n'+bump);
   };
-  material.customProgramCacheKey=()=>`cockpit-surface-v4:${texture?kind:'occlusion'}:${wear?wearKind:'plain'}`;
+  material.customProgramCacheKey=()=>`cockpit-surface-v6:${texture?kind:'occlusion'}:${wear?wearKind:'plain'}`;
   material.userData.cockpitFinish=kind||'occlusion';
   material.needsUpdate=true;
 }
 
 export async function applyCockpitSurfaces(model,{lowDetail=false}={}) {
-  const maps=new Map(),materials=new Map(),geometries=new Set();
+  const maps=new Map(),materials=new Map(),geometries=new Set(),regions={};
   // The part-fitted atlas loads behind the menu (loadSurfaceWear). Until then, or if it
   // fails, all its materials share one exactly neutral texel: colour, roughness and relief ×1.
   const neutral=new THREE.DataTexture(new Float32Array([.5,.5,1,1]),1,1,THREE.RGBAFormat,THREE.FloatType);
@@ -180,6 +189,8 @@ export async function applyCockpitSurfaces(model,{lowDetail=false}={}) {
     // glareshield volume receives padding (deckFinish.z gates every channel).
     if(source.name==='Material.481')kind='padding';
     const wearKind=kind==='rubber'||kind==='frame'||kind==='padding'?kind:
+      ['Material.014','FlightDeckHeadliner'].includes(source.name)?'headliner':
+      source.name==='Material.354'?'overhead':
       ['Material.457','Material.103','Material.261'].includes(source.name)?'panel':null;
     const partWear=wearKind?wear:null;
     const key=source.uuid+':'+(kind||'occlusion');
@@ -190,12 +201,19 @@ export async function applyCockpitSurfaces(model,{lowDetail=false}={}) {
       // Store coordinates before the model is attached to the moving aircraft.
       // The pattern then follows the object, including animated controls.
       const position=mesh.geometry.attributes.position,coords=kind&&!lowDetail?new Float32Array(position.count*3):null;
-      const finish=partWear?new Float32Array(position.count*3):null,p=new THREE.Vector3();
+      const finish=partWear?new Float32Array(position.count*3):null,finishRegions=[],p=new THREE.Vector3(),n=new THREE.Vector3();
+      const normals=mesh.geometry.attributes.normal,normalMatrix=new THREE.Matrix3().getNormalMatrix(mesh.matrixWorld);
       for(let i=0;i<position.count;i++){
         p.fromBufferAttribute(position,i).applyMatrix4(mesh.matrixWorld);
         if(coords)p.toArray(coords,i*3);
-        if(finish)finish.set(finishCoordinates(wearKind,p.x,p.y,p.z,yokeCentre),i*3);
+        if(finish){
+          n.fromBufferAttribute(normals,i).applyNormalMatrix(normalMatrix);
+          const uv=finishCoordinates(wearKind,p.x,p.y,p.z,yokeCentre,n.y);finish.set(uv,i*3);
+          finishRegions.push(finishRegion(wearKind,p.x,p.y,p.z));
+          if(uv[2]>.5){const region=finishRegion(wearKind,p.x,p.y,p.z);regions[region]=(regions[region]||0)+1;}
+        }
       }
+      if(finish&&mesh.geometry.index)guardFinishBoundaries(mesh.geometry.index.array,finishRegions,finish);
       if(coords)mesh.geometry.setAttribute('deckPosition',new THREE.BufferAttribute(coords,3));
       if(finish)mesh.geometry.setAttribute('deckFinish',new THREE.BufferAttribute(finish,3));
     }
@@ -209,7 +227,7 @@ export async function applyCockpitSurfaces(model,{lowDetail=false}={}) {
     }
     mesh.material=materials.get(key);
   });
-  const detail=model.userData.surfaceDetail={materials:materials.size,maps:maps.size,wearSize:0,errors};
+  const detail=model.userData.surfaceDetail={materials:materials.size,maps:maps.size,wearSize:0,regions,errors};
   // A scenery job: requested after the menu appears, so it is outside the startup budget.
   // Replacing the shared uniform's texture needs no shader recompilation.
   let wearLoad;

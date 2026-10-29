@@ -7,6 +7,7 @@ import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {sceneryGroundHeight} from './scenery-ground.js';
 import {buildValleySite} from './valley-site.js';
 import {buildingDetailLOD} from './building-detail.js';
+import {farmFoundation} from './farm-foundation.js';
 
 const YARD=[[2474,283],[2498,278],[2507,284],[2513,302],[2508,320],[2500,345],[2480,348],[2472,330],[2458,318],[2457,300],[2468,291]];
 const DRIVE=[[2492,288],[2497,273],[2495,266],[2489,260],[2495,256],[2503,269],[2505,283],[2503,291]];
@@ -110,6 +111,15 @@ export async function loadValleyFarm(world,buildings){
     if(/glazing/.test(mat.name)){mat.emissive.set(0xffcf86);mat.emissiveIntensity=0;if(!glass.includes(mat))glass.push(mat);}
     if(!clusterBatches.has(mat))clusterBatches.set(mat,[]);clusterBatches.get(mat).push(g);
    });
+   if(placement.foundationPolygons){
+    const concrete=[...clusterBatches.keys()].find(m=>m.name==='Foundation concrete');
+    if(!concrete)throw new Error(`Valley farm foundation material missing: ${placement.id}`);
+    const parts=clusterBatches.get(concrete),foundation=farmFoundation(placement.foundationPolygons,b,floor,ground,placement.accessRamps);
+    // GLB packing drops unused UVs from untextured concrete. Match its layout
+    // so retaining walls can share the existing material batch on either tier.
+    if(!parts[0].hasAttribute('uv'))foundation.deleteAttribute('uv');
+    parts.push(foundation);
+   }
   }
   const group=new THREE.Group();group.name='Authored valley farm';let triangles=0,batchCount=0,farTriangles=0;
   for(const [cluster,clusterBatches] of batches){
