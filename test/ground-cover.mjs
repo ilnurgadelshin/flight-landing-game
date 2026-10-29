@@ -1,5 +1,5 @@
 // Matched ordinary landing and close runway views on both tiers; the grass is high-tier only.
-import {chromium} from 'playwright';
+import {launchBrowser,scaledTimeout} from './browser.mjs';
 import {startServer} from './server.mjs';
 import {completeScenery} from './scene-ready.mjs';
 import fs from 'node:fs/promises';
@@ -8,14 +8,14 @@ import sharp from 'sharp';
 const label=(process.argv[2]||'ground-cover').replace(/[^a-z0-9_-]/gi,'-'),baseline=!!process.env.REVIEW_ROOT;
 const {server,url}=await startServer(process.env.REVIEW_ROOT||process.cwd());
 const angle=process.env.VISUAL_GPU||'swiftshader';   // VISUAL_GPU=metal on macOS hardware
-const browser=await chromium.launch({headless:true,args:[`--use-angle=${angle}`,...(angle==='swiftshader'?['--enable-unsafe-swiftshader','--ignore-gpu-blocklist']:[])]});
+const browser=await launchBrowser();
 const reports=[];
 try{
  for(const tier of ['high','low']){
   const page=await browser.newPage({viewport:{width:1440,height:900}}),errors=[];
   page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
   const atlas=[];page.on('request',r=>{if(/\/grass-patches/.test(r.url()))atlas.push(r.url());});
-  await page.goto(url+'/?quality='+tier);await page.waitForFunction(()=>window.__sim,null,{timeout:120000});await completeScenery(page);
+  await page.goto(url+'/?quality='+tier);await page.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});await completeScenery(page);
   const report={tier,views:[]};reports.push(report);
   const grass=!baseline&&tier==='high';
   if(!baseline){
@@ -103,7 +103,7 @@ try{
  if(!baseline){
   const page=await browser.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.route('**/grass-patches.webp',route=>route.abort());
-  await page.goto(url+'/?quality=high');await page.waitForFunction(()=>window.__sim,null,{timeout:120000});await completeScenery(page);
+  await page.goto(url+'/?quality=high');await page.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});await completeScenery(page);
   const fallback=await page.evaluate(()=>{const s=window.__sim,w=s.world;s.start({startId:'short',scenarioId:'clear',seed:5});s.setTimeScale(0);w.render();return {grass:!!w.groundCover,terrain:!!w.groundUniforms.uGrass.value,errors:w.assetErrors};});
   assert.equal(fallback.grass,false);assert.equal(fallback.terrain,true);assert.equal(fallback.errors.length,1);assert.deepEqual(errors,[]);
   reports.push({fallback});await page.close();console.log('Missing grass atlas retains terrain');

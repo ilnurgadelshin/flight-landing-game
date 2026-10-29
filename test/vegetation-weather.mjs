@@ -1,6 +1,6 @@
 // Matched canopy/cloud views and rendered regressions, using the real materials.
 // REVIEW_ROOT can point at an archived revision for the before images.
-import {chromium} from 'playwright';
+import {launchBrowser,scaledTimeout} from './browser.mjs';
 import {startServer} from './server.mjs';
 import {completeScenery} from './scene-ready.mjs';
 import fs from 'node:fs/promises';
@@ -10,12 +10,11 @@ const label=(process.argv[2]||'current').replace(/[^a-z0-9_-]/gi,'-');
 const baseline=!!process.env.REVIEW_ROOT;
 const {server,url}=await startServer(process.env.REVIEW_ROOT||process.cwd());
 const angle=process.env.VISUAL_GPU||'swiftshader';   // VISUAL_GPU=metal on macOS hardware
-const browser=await chromium.launch({headless:true,args:[`--use-angle=${angle}`,
-  ...(angle==='swiftshader'?['--enable-unsafe-swiftshader','--ignore-gpu-blocklist']:[])]});
+const browser=await launchBrowser();
 try{
   const page=await browser.newPage({viewport:{width:1440,height:900}}),errors=[];
   page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
-  await page.goto(url+'/?quality=high');await page.waitForFunction(()=>window.__sim,null,{timeout:120000});
+  await page.goto(url+'/?quality=high');await page.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});
   await completeScenery(page);
   const views=await page.evaluate(async()=>{
     const T=await import('/vendor/three.module.js'),s=window.__sim,w=s.world;
@@ -87,20 +86,20 @@ try{
     const failure=await browser.newPage();failure.on('pageerror',e=>errors.push(e.message));
     failure.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
     await failure.route('**/weather/cumulus-density.bin.gz',r=>r.fulfill({body:'truncated',contentType:'application/octet-stream'}));
-    await failure.goto(url+'/?quality=high');await failure.waitForFunction(()=>window.__sim,null,{timeout:120000});
+    await failure.goto(url+'/?quality=high');await failure.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});
     const fallback=await failure.evaluate(()=>{const s=window.__sim;s.setDrawing(false);s.drawNow();return {error:s.world.cumulus.loadError,cached:!!s.world.cumulus.material.defines.CACHED_DENSITY};});
     assert.match(fallback.error,/dimensions/);assert.equal(fallback.cached,false);
     await failure.evaluate(()=>window.__sim.world.prepareScenery());   // not reloading in the middle of it
     await failure.unroute('**/weather/cumulus-density.bin.gz');
     await failure.addInitScript(()=>{window.DecompressionStream=undefined;});
-    await failure.reload();await failure.waitForFunction(()=>window.__sim,null,{timeout:120000});
+    await failure.reload();await failure.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});
     assert.ok(await failure.evaluate(()=>{const s=window.__sim;s.setDrawing(false);s.drawNow();return !!s.world.cumulus.loadError&&!s.world.cumulus.material.defines.CACHED_DENSITY;}),'Missing decompressor retains analytic clouds');
     // Some hosts already decode Content-Encoding: gzip. That body must not be
     // decompressed twice, and also works without DecompressionStream.
     const decoded=gunzipSync(await fs.readFile('assets/weather/cumulus-density.bin.gz'));
     await failure.evaluate(()=>window.__sim.world.prepareScenery());
     await failure.route('**/weather/cumulus-density.bin.gz',r=>r.fulfill({body:decoded,contentType:'application/octet-stream'}));
-    await failure.reload();await failure.waitForFunction(()=>window.__sim,null,{timeout:120000});
+    await failure.reload();await failure.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});
     assert.ok(await failure.evaluate(()=>{const s=window.__sim;s.setDrawing(false);s.drawNow();return !!s.world.cumulus.material.defines.CACHED_DENSITY&&!s.world.cumulus.loadError;}),'Host-decoded volume loads directly');
     assert.deepEqual(errors,[]);await failure.close();console.log('Corrupt/missing decompressor fallbacks and host-decoded volume passed');
   }

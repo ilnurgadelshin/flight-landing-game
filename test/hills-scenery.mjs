@@ -1,7 +1,7 @@
 // Pilot-visible hillside coverage, retained fields and distant building detail.
-import {chromium} from 'playwright';
+import {launchBrowser,scaledTimeout} from './browser.mjs';
 import {startServer} from './server.mjs';
-import {completeScenery} from './scene-ready.mjs';
+import {completeScenery,loadSceneryData} from './scene-ready.mjs';
 import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import sharp from 'sharp';
@@ -13,13 +13,13 @@ async function imageDifference(a,b){
 const label=process.argv[2]||'hills-current',baseline=!!process.env.REVIEW_ROOT;
 const {server,url}=await startServer(process.env.REVIEW_ROOT||process.cwd());
 const angle=process.env.VISUAL_GPU||'swiftshader';   // VISUAL_GPU=metal on macOS hardware
-const browser=await chromium.launch({headless:true,args:[`--use-angle=${angle}`,...(angle==='swiftshader'?['--enable-unsafe-swiftshader','--ignore-gpu-blocklist']:[])]});
+const browser=await launchBrowser({lowResolution:true});
 const reports=[];
 try{
  for(const tier of (process.env.REVIEW_TIERS||'high,low').split(',')){
   const page=await browser.newPage({viewport:{width:1440,height:900}}),errors=[];
   page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text())});
-  await page.goto(url+'/?quality='+tier);await page.waitForFunction(()=>window.__sim,null,{timeout:120000});await completeScenery(page);
+  await page.goto(url+'/?quality='+tier);await page.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});await completeScenery(page);
   const stats=await page.evaluate(async()=>{
    const T=await import('/vendor/three.module.js'),s=window.__sim,w=s.world;s.setDrawing(false);s.game.state='menu';
    const matrix=new T.Matrix4(),p=new T.Vector3();let trees=0,hills=0,intrusions=0,clearingTrees=0,airportSide=0;
@@ -134,7 +134,7 @@ try{
    const response=await route.fetch(),data=await response.json();data.hills.width=2048;
    await route.fulfill({response,json:data});
   });
-  await page.goto(url+'/?quality=low');await page.waitForFunction(()=>window.__sim,null,{timeout:120000});await completeScenery(page);
+  await page.goto(url+'/?quality=low');await page.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});await loadSceneryData(page);
   const fallback=await page.evaluate(()=>{const w=window.__sim.world;w.render();return {ready:w.groundUniforms.uCorridorReady.value,hills:w.groundUniforms.uHillsReady.value,errors:w.assetErrors}});
   assert.equal(fallback.ready,0);assert.equal(fallback.hills,0);assert.ok(fallback.errors.some(e=>e.includes('Invalid hillside')));reports.push({invalidAtlas:fallback});await page.close();
  }

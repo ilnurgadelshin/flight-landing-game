@@ -1,19 +1,18 @@
 // Actual browser requests: what the menu waits for (startup), then the full scenery that loads
 // and is prepared on the graphics card behind the menu, before any flight.
-import {chromium} from 'playwright';
+import {launchBrowser,scaledTimeout} from './browser.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import {startServer} from './server.mjs';
 const {server,url}=await startServer(process.cwd()),angle=process.env.VISUAL_GPU||'swiftshader';
-const browser=await chromium.launch({headless:true,args:[`--use-angle=${angle}`,
-  ...(angle==='swiftshader'?['--enable-unsafe-swiftshader','--ignore-gpu-blocklist']:[])]});
+const browser=await launchBrowser();
 const report=[];
 try{
   for(const tier of ['high','low']){
     const page=await browser.newPage({viewport:{width:1024,height:576}}),errors=[];
     page.on('pageerror',e=>errors.push(e.message));
     await page.addInitScript(()=>window.addEventListener('sim-ready',()=>{window.__menuAt=performance.now();window.__sim.setDrawing(false);}));
-    await page.goto(url+'/?quality='+tier);await page.waitForFunction(()=>window.__sim,null,{timeout:120000});
+    await page.goto(url+'/?quality='+tier);await page.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});
     const resources=()=>page.evaluate(()=>performance.getEntriesByType('resource').map(r=>({name:r.name,start:r.startTime,bytes:r.encodedBodySize})));
     const sum=list=>list.reduce((total,r)=>total+r.bytes,0);
     // requests made before the menu appeared
@@ -22,7 +21,7 @@ try{
     assert.ok(sum(startup)<(tier==='high'?15e6:9e6),`${tier} startup budget: ${sum(startup)}`);
     assert.ok(!startup.some(r=>/\/service-wear/.test(r.name)),'The cockpit wear mask loads behind the menu');
     // behind the menu: the scenery, the near trees on high, and the warm-up
-    await page.waitForFunction(()=>window.__sim.world.sceneryPrepared,null,{timeout:30000});
+    await page.waitForFunction(()=>window.__sim.world.sceneryPrepared,null,{timeout:scaledTimeout(30000)});
     await page.evaluate(async()=>{await window.__sim.world.sceneryPrepared;});
     const prepared=await resources(),progress=await page.evaluate(()=>window.__sim.world.sceneryProgress);
     const grass=prepared.filter(r=>/\/grass-patches.*\.webp$/.test(r.name));
@@ -48,10 +47,10 @@ try{
     window.__testVisibility=value=>{hidden=value;document.dispatchEvent(new Event('visibilitychange'));};
     window.requestAnimationFrame=fn=>raf(()=>setTimeout(()=>fn(performance.now()),40));});
   await auto.goto(url+'/');
-  await auto.waitForFunction(()=>document.getElementById('loading-msg')?.textContent.includes('Checking graphics'),null,{timeout:120000});
+  await auto.waitForFunction(()=>document.getElementById('loading-msg')?.textContent.includes('Checking graphics'),null,{timeout:scaledTimeout(120000)});
   assert.equal(await auto.evaluate(()=>!!window.__sim),false,'A hidden tab waits for foreground calibration');
   await auto.evaluate(()=>window.__testVisibility(false));
-  await auto.waitForFunction(()=>window.__sim,null,{timeout:120000});
+  await auto.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});
   const selected=await auto.evaluate(()=>{
     const s=window.__sim;s.setDrawing(false);const w=s.world;
     return {tier:w.quality,measurement:w.qualityMeasurement,composer:!!w.composer,shadows:w.renderer.shadowMap.enabled,adaptive:s.scaler.enabled,ceiling:s.scaler.ceiling};

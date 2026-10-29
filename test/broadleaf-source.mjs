@@ -1,7 +1,7 @@
 // Offline asset-quality check against downloaded CC0 originals. Run after
 // fetch-authored-scenery.py; source models stay ignored and are never delivered.
 // CANOPY_BASELINE=/path/to/archive also records the preceding reduction.
-import {chromium} from 'playwright';
+import {launchBrowser} from './browser.mjs';
 import {startServer} from './server.mjs';
 import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
@@ -9,7 +9,7 @@ import path from 'node:path';
 const names=['jacaranda_tree','island_tree_02'];
 for(const name of names)await fs.access(`test/output/authored-sources/${name}/source.gltf`);
 const {server,url}=await startServer(process.cwd());
-const browser=await chromium.launch({headless:true,args:[`--use-angle=${process.env.VISUAL_GPU||'metal'}`]});
+const browser=await launchBrowser({defaultAngle:'metal'});
 try{
  const page=await browser.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
  page.on('console',m=>{if(m.type()==='error')errors.push(m.text())});

@@ -1,7 +1,7 @@
 import {completeScenery} from './scene-ready.mjs';
 // Repeatable visual review of the actual game renderer, not an isolated model viewer.
 // PLAYWRIGHT_BROWSERS_PATH=... node test/visual-review.mjs
-import { chromium } from 'playwright';
+import {launchBrowser,scaledTimeout} from './browser.mjs';
 import { startServer } from './server.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -10,8 +10,7 @@ const root=path.resolve(new URL('..',import.meta.url).pathname),out=path.join(ro
 fs.mkdirSync(out,{recursive:true});
 const {server,url}=await startServer(root);
 const angle=process.env.VISUAL_GPU||'swiftshader';
-const browser=await chromium.launch({headless:true,args:[`--use-angle=${angle}`,
-  ...(angle==='swiftshader'?['--enable-unsafe-swiftshader','--ignore-gpu-blocklist']:[])]});
+const browser=await launchBrowser();
 // A compiled shader can still be wrong: missing shared haze uniforms made trees
 // black in fog, and the old cloud sheet cut a dark floor across the transition.
 // Compare actual horizon pixels, and the light contribution beyond visibility.
@@ -69,7 +68,7 @@ try{
   page.on('pageerror',e=>errors.push(e.message));
   page.on('console',m=>{if(['error','warning'].includes(m.type())&&!m.text().includes('GPU stall due to ReadPixels'))errors.push(m.text());});
   await page.goto(url+'/?quality=high');
-  await page.waitForFunction(()=>window.__sim,null,{timeout:120000});await completeScenery(page);
+  await page.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});await completeScenery(page);
   const assets=await page.evaluate(()=>{
     const s=window.__sim;s.setDrawing(false);s.start({startId:'short',seed:5});s.setTimeScale(0);
     return {cockpit:s.cockpit.modelLoaded,yokes:s.cockpit.yokes.length,errors:s.world.assetErrors,imagery:s.world.landscapeImages?.length,aircraft:s.world.parkedAircraft.children.length};
@@ -133,7 +132,7 @@ try{
   fallback.on('pageerror',e=>fallbackErrors.push(e.message));
   await fallback.route('**/737-cockpit*.glb',route=>route.abort());
   await fallback.goto(url+'/?quality=low');
-  await fallback.waitForFunction(()=>window.__sim,null,{timeout:120000});await completeScenery(fallback);
+  await fallback.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});await completeScenery(fallback);
   const recovery=await fallback.evaluate(()=>{
     const s=window.__sim;s.setDrawing(false);s.start({startId:'short',seed:5});s.setTimeScale(0);
     s.view.setNdView(true);for(let i=0;i<40;i++)s.view.update(1/60);s.drawNow();

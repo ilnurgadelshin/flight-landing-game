@@ -1,7 +1,7 @@
 // Real-time autoland through the actual Start handler, including menu preparation.
 // Archived builds without preparation retain their original deferred streaming.
 // Localhost transfer/decode/upload timing is not an Internet/mobile-network benchmark.
-import {chromium} from 'playwright';
+import {launchBrowser,scaledTimeout} from './browser.mjs';
 import {startServer} from './server.mjs';
 import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
@@ -10,13 +10,12 @@ const scenario=process.env.BENCHMARK_SCENARIO||'clear';
 const auto=process.env.BENCHMARK_AUTO==='1';
 const {server,url}=await startServer(process.env.BENCHMARK_ROOT||process.cwd());
 const angle=process.env.VISUAL_GPU||'swiftshader';   // VISUAL_GPU=metal on macOS hardware
-const browser=await chromium.launch({headless:true,args:[`--use-angle=${angle}`,
-  ...(angle==='swiftshader'?['--enable-unsafe-swiftshader','--ignore-gpu-blocklist']:[])]});
+const browser=await launchBrowser();
 try{
   const page=await browser.newPage({viewport:{width:1440,height:900},deviceScaleFactor:auto?2:1}),errors=[];
   page.on('pageerror',e=>errors.push(e.message));
   await page.addInitScript(()=>performance.setResourceTimingBufferSize(1000));
-  await page.goto(url+(auto?'/?drs=1':'/?quality=high&drs=0'));await page.waitForFunction(()=>window.__sim,null,{timeout:120000});
+  await page.goto(url+(auto?'/?drs=1':'/?quality=high&drs=0'));await page.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});
   await page.evaluate(({auto,scenario})=>{
     const s=window.__sim;if(!auto)s.world.setPixelRatio(1);s.setDrawing(true);s.setTimeScale(1);
     window.__flightFrames=[];window.__qualityHistory=[];let previous,lastQuality;

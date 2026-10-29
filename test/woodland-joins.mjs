@@ -1,5 +1,5 @@
 // Real planting and eligible woodland area on both sides of every map join.
-import {chromium} from 'playwright';
+import {launchBrowser,scaledTimeout} from './browser.mjs';
 import {startServer} from './server.mjs';
 import {completeScenery} from './scene-ready.mjs';
 import fs from 'node:fs/promises';
@@ -7,14 +7,14 @@ import assert from 'node:assert/strict';
 const label=process.argv[2]||'woodland-joins-after',baseline=!!process.env.REVIEW_ROOT;
 const {server,url}=await startServer(process.env.REVIEW_ROOT||process.cwd());
 const angle=process.env.VISUAL_GPU||'swiftshader';
-const browser=await chromium.launch({headless:true,args:[`--use-angle=${angle}`,...(angle==='swiftshader'?['--enable-unsafe-swiftshader','--ignore-gpu-blocklist']:[])]});
+const browser=await launchBrowser({lowResolution:true});
 await fs.mkdir('test/output',{recursive:true});
 const results=[];
 try{
  for(const tier of (process.env.REVIEW_TIERS||'high,low').split(',')){
   const page=await browser.newPage({viewport:{width:1440,height:900}}),errors=[];
   page.on('pageerror',e=>errors.push(e.message));
-  await page.goto(url+'/?quality='+tier+'&drs=0');await page.waitForFunction(()=>window.__sim,null,{timeout:120000});await completeScenery(page);
+  await page.goto(url+'/?quality='+tier+'&drs=0');await page.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});await completeScenery(page);
   const report=await page.evaluate(async()=>{
    const s=window.__sim,w=s.world,c=w.approachCorridor,T=await import('/vendor/three.module.js');
    const {protectedScenery}=await import('/js/world/scenery-ground.js');

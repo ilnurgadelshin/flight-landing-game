@@ -1,17 +1,17 @@
 // Actual shader/placement, matched pilot and wide views, both tiers, optional-data fallback.
-import {chromium} from 'playwright';
+import {launchBrowser,scaledTimeout} from './browser.mjs';
 import {startServer} from './server.mjs';
-import {completeScenery} from './scene-ready.mjs';
+import {completeScenery,loadSceneryData} from './scene-ready.mjs';
 import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import sharp from 'sharp';
 const label=process.argv[2]||'airport-countryside-after',baseline=!!process.env.REVIEW_ROOT;
 const {server,url}=await startServer(process.env.REVIEW_ROOT||process.cwd());
 const angle=process.env.VISUAL_GPU||'swiftshader',viewport=angle==='metal'?{width:1440,height:900}:{width:640,height:400};
-const browser=await chromium.launch({headless:true,args:[`--use-angle=${angle}`,...(angle==='swiftshader'?['--enable-unsafe-swiftshader','--ignore-gpu-blocklist']:[])]}),reports=[];
-const boot=async page=>{
- await page.waitForFunction(()=>window.__sim||document.getElementById('loading-msg')?.textContent.startsWith('Failed to start:'),null,{timeout:120000});
- assert.ok(await page.evaluate(()=>!!window.__sim),'WebGL/game startup failed');await completeScenery(page);
+const browser=await launchBrowser(),reports=[];
+const boot=async(page,load=completeScenery)=>{
+ await page.waitForFunction(()=>window.__sim||document.getElementById('loading-msg')?.textContent.startsWith('Failed to start:'),null,{timeout:scaledTimeout(120000)});
+ assert.ok(await page.evaluate(()=>!!window.__sim),'WebGL/game startup failed');await load(page);
 };
 try{
  for(const tier of (process.env.REVIEW_TIERS||'high,low').split(',')){
@@ -91,7 +91,7 @@ try{
   const page=await browser.newPage({viewport});await page.addInitScript(()=>window.addEventListener('sim-ready',()=>window.__sim.setDrawing(false),{once:true}));
   if(failure==='missing')await page.route('**/airport-countryside.png',route=>route.fulfill({status:404,body:'missing test mask'}));
   else await page.route('**/airport-countryside.json',async route=>{const response=await route.fetch(),data=await response.json();data.width=8192;await route.fulfill({response,json:data})});
-  await page.goto(url+'/?quality=high');await boot(page);
+  await page.goto(url+'/?quality=high');await boot(page,loadSceneryData);
   const fallback=await page.evaluate(()=>{const w=window.__sim.world;return {ready:w.groundUniforms.uCorridorReady.value,airport:w.groundUniforms.uAirportCountryReady.value,error:w.approachCorridor.airportError,trees:w.approachCorridor.trees.total}});
   assert.equal(fallback.ready,1);assert.equal(fallback.airport,0);assert.equal(fallback.trees,66000);assert.ok(fallback.error);if(failure==='invalid')assert.ok(fallback.error.includes('Invalid airport'));reports.push({failure,...fallback});await page.close();
  }

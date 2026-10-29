@@ -1,6 +1,6 @@
 // Matched full-scenery phone views, with projected windshield and instrument bounds.
 // REVIEW_ROOT captures a baseline without asserting the new layout.
-import {chromium} from 'playwright';
+import {launchBrowser,scaledTimeout} from './browser.mjs';
 import {startServer} from './server.mjs';
 import {completeScenery} from './scene-ready.mjs';
 import fs from 'node:fs/promises';
@@ -8,14 +8,14 @@ import assert from 'node:assert/strict';
 const label=(process.argv[2]||'phone-cockpit').replace(/[^a-z0-9_-]/gi,'-');
 const baseline=!!process.env.REVIEW_ROOT,angle=process.env.VISUAL_GPU||'swiftshader';
 const {server,url}=await startServer(process.env.REVIEW_ROOT||process.cwd());
-const browser=await chromium.launch({headless:true,args:[`--use-angle=${angle}`,...(angle==='swiftshader'?['--enable-unsafe-swiftshader','--ignore-gpu-blocklist']:[])]});
+const browser=await launchBrowser();
 const report={date:new Date().toISOString(),baseline,results:[]};
 await fs.mkdir('test/output',{recursive:true});
 try {
  for(const touch of [true,false]) {
   const page=await browser.newPage({viewport:{width:852,height:393},hasTouch:touch,isMobile:touch,deviceScaleFactor:1}),errors=[];
   page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
-  await page.goto(url+'/?quality=low&drs=0');await page.waitForFunction(()=>window.__sim,null,{timeout:120000});await completeScenery(page);
+  await page.goto(url+'/?quality=low&drs=0');await page.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});await completeScenery(page);
   const cases=touch?[
    ['phone',852,393,'cockpit',47,21],['storm',852,393,'storm',47,21],
    ['panel',852,393,'panel',47,21],['hud',852,393,'hud',47,21],['map',852,393,'nd',47,21],

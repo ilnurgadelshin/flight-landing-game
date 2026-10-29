@@ -1,6 +1,6 @@
-import {completeScenery} from './scene-ready.mjs';
+import {completeScenery,loadSceneryData} from './scene-ready.mjs';
 // Run against the actual world, with both rendering tiers and a missing-data fallback.
-import { chromium } from 'playwright';
+import {launchBrowser,scaledTimeout} from './browser.mjs';
 import { startServer } from './server.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -20,15 +20,14 @@ for(const b of [...data.buildings,...infill.buildings]){
 }
 const {server,url}=await startServer(root);
 const angle=process.env.VISUAL_GPU||'swiftshader';
-const browser=await chromium.launch({headless:true,args:[`--use-angle=${angle}`,
-  ...(angle==='swiftshader'?['--enable-unsafe-swiftshader','--ignore-gpu-blocklist']:[])]});
+const browser=await launchBrowser();
 try{
   for(const tier of ['high','low']){
     const page=await browser.newPage({viewport:{width:1440,height:900}}),errors=[],treeRequests=[];
     page.on('request',r=>{if(r.url().endsWith('-near.glb'))treeRequests.push(r.url());});
     page.on('pageerror',e=>errors.push(e.message));
     page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
-    await page.goto(url+'/?quality='+tier);await page.waitForFunction(()=>window.__sim,null,{timeout:120000});await completeScenery(page);
+    await page.goto(url+'/?quality='+tier);await page.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});await completeScenery(page);
     const stats=await page.evaluate(async()=>{
       const s=window.__sim,w=s.world,T=await import('/vendor/three.module.js');
       s.setDrawing(false);s.start({startId:'short',scenarioId:'clear',seed:5});s.setTimeScale(0);
@@ -178,18 +177,18 @@ try{
   }
   const page=await browser.newPage();
   await page.route('**/approach-*.json',r=>r.abort());
-  await page.goto(url+'/?quality=low');await page.waitForFunction(()=>window.__sim,null,{timeout:120000});await completeScenery(page);
+  await page.goto(url+'/?quality=low');await page.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});await loadSceneryData(page);
   const fallback=await page.evaluate(()=>({woodland:!!window.__sim.world.woodland,errors:window.__sim.world.assetErrors.length}));
   assert.deepEqual(fallback,{woodland:true,errors:4});await page.close(); // footprints, infill, roads and corridor manifest
   const missing=await browser.newPage();await missing.route('**/scenery/detail/*.webp',r=>r.abort());
-  await missing.goto(url+'/?quality=low');await missing.waitForFunction(()=>window.__sim,null,{timeout:120000});await completeScenery(missing);
+  await missing.goto(url+'/?quality=low');await missing.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});await loadSceneryData(missing);
   const groundFallback=await missing.evaluate(async()=>{
     const w=window.__sim.world;await w.groundDetail.ready;window.__sim.setDrawing(false);w.render();
     return {failed:w.groundDetail.errors.size,loaded:[...w.groundDetail.cache.values()].filter(e=>e.texture).length,ground:!!w.ground};
   });
   assert.ok(groundFallback.failed>0);assert.equal(groundFallback.loaded,0);assert.ok(groundFallback.ground);await missing.close();
   const treeFailure=await browser.newPage();await treeFailure.route('**/scenery/*-near.glb',r=>r.abort());
-  await treeFailure.goto(url+'/?quality=high');await treeFailure.waitForFunction(()=>window.__sim,null,{timeout:120000});await completeScenery(treeFailure);
+  await treeFailure.goto(url+'/?quality=high');await treeFailure.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});await completeScenery(treeFailure);
   const treesFallback=await treeFailure.evaluate(()=>{
     const w=window.__sim.world;window.__sim.setDrawing(false);
     return {woodland:!!w.woodland,near:!!w.nearWoodland,errors:w.assetErrors.length};

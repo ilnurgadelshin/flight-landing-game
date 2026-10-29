@@ -1,6 +1,6 @@
 // Actual flight views, including both material tiers and animated control poses.
 // REVIEW_ROOT can serve an archived baseline with the same camera and weather.
-import {chromium} from 'playwright';
+import {launchBrowser,scaledTimeout} from './browser.mjs';
 import {startServer} from './server.mjs';
 import {completeScenery} from './scene-ready.mjs';
 import assert from 'node:assert/strict';
@@ -8,13 +8,13 @@ import fs from 'node:fs/promises';
 const label=(process.argv[2]||'cockpit-surfaces').replace(/[^a-z0-9_-]/gi,'-');
 const angle=process.env.VISUAL_GPU||'swiftshader';
 const {server,url}=await startServer(process.env.REVIEW_ROOT||process.cwd());
-const browser=await chromium.launch({headless:true,args:[`--use-angle=${angle}`,...(angle==='swiftshader'?['--enable-unsafe-swiftshader','--ignore-gpu-blocklist']:[])]});
+const browser=await launchBrowser();
 const report={date:new Date().toISOString(),results:[]};
 try {
  for(const tier of (process.env.REVIEW_TIERS||'high,low').split(',')) {
   const page=await browser.newPage({viewport:{width:1440,height:900}}),errors=[];
   page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
-  await page.goto(url+'/?quality='+tier+'&drs=0');await page.waitForFunction(()=>window.__sim,null,{timeout:120000});await completeScenery(page);
+  await page.goto(url+'/?quality='+tier+'&drs=0');await page.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});await completeScenery(page);
   for(const view of (process.env.REVIEW_VIEWS||'captain,panel,side,night,storm').split(',')) {
    const result=await page.evaluate(async({tier,view})=>{
     const T=await import('/vendor/three.module.js'),s=window.__sim,w=s.world,c=s.cockpit;

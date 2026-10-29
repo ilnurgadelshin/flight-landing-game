@@ -1,6 +1,6 @@
 // Normal pilot camera descending through the hillside view. This is a visual
 // motion recording, not an FPS measurement (video encoding changes frame cost).
-import {chromium} from 'playwright';
+import {launchBrowser,scaledTimeout} from './browser.mjs';
 import {startServer} from './server.mjs';
 import {completeScenery} from './scene-ready.mjs';
 import fs from 'node:fs/promises';
@@ -9,13 +9,13 @@ const label=(process.argv[2]||'hills-motion').replace(/[^a-z0-9_-]/gi,'-');
 const fromX=Number(process.env.REVIEW_FROM_X||6800);
 const {server,url}=await startServer(process.env.REVIEW_ROOT||process.cwd());
 const angle=process.env.VISUAL_GPU||'swiftshader';   // VISUAL_GPU=metal on macOS hardware
-const browser=await chromium.launch({headless:true,args:[`--use-angle=${angle}`,...(angle==='swiftshader'?['--enable-unsafe-swiftshader','--ignore-gpu-blocklist']:[])]});
+const browser=await launchBrowser();
 // Software rendering draws only the three sampled frames; hardware records the video too.
 const record=angle!=='swiftshader'&&process.env.RECORD_VIDEO!=='0';
 try{
  const page=await browser.newPage({viewport:{width:1440,height:900}}),errors=[];
  page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text())});
- await page.goto(url+'/?quality=high');await page.waitForFunction(()=>window.__sim,null,{timeout:120000});await completeScenery(page);
+ await page.goto(url+'/?quality=high');await page.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});await completeScenery(page);
  const result=await page.evaluate(async ({record,fromX})=>{
   const T=await import('/vendor/three.module.js'),s=window.__sim,w=s.world;
   s.start({startId:'short',scenarioId:'clear',seed:5});s.setTimeScale(0);s.setDrawing(false);s.game.state='menu';

@@ -1,11 +1,11 @@
 // Exercise actual cloud integration independently of sky/terrain image brightness.
-import {chromium} from 'playwright';
+import {launchBrowser} from './browser.mjs';
 import {startServer} from './server.mjs';
 import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
 const angle=process.env.VISUAL_GPU||'swiftshader',label=(process.argv[2]||'cumulus-lighting').replace(/[^a-z0-9_-]/gi,'-');
 const {server,url}=await startServer(process.cwd());
-const browser=await chromium.launch({headless:true,args:[`--use-angle=${angle}`,...(angle==='swiftshader'?['--enable-unsafe-swiftshader','--ignore-gpu-blocklist']:[])]});
+const browser=await launchBrowser();
 try{
  const page=await browser.newPage({viewport:{width:640,height:480}}),errors=[];
  page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});

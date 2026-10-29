@@ -1,5 +1,5 @@
 // Manual screenshot helper: node test/screenshot.mjs <scenario> <start> [seconds to fly with the autopilot first]
-import { chromium } from 'playwright';
+import {launchBrowser,scaledTimeout} from './browser.mjs';
 import path from 'node:path';
 import fs from 'node:fs';
 import { startServer } from './server.mjs';
@@ -7,14 +7,14 @@ import { startServer } from './server.mjs';
 const root = path.resolve(new URL('..', import.meta.url).pathname);
 const out = path.join(root, 'test', 'output'); fs.mkdirSync(out, { recursive: true });
 const { server, url } = await startServer(root);
-const browser = await chromium.launch({ headless: true, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--autoplay-policy=no-user-gesture-required'] });
+const browser = await launchBrowser({args:['--autoplay-policy=no-user-gesture-required']});
 const page = await browser.newPage({ viewport: { width: 1280, height: 720 } });
 const logs = [];
 page.on('console', (m) => { logs.push(`[${m.type()}] ${m.text()}`); });
 page.on('pageerror', (e) => logs.push(`[pageerror] ${e.message}`));
 const t0 = Date.now();
 await page.goto(url + '/?lowdetail', { waitUntil: 'load' });
-await page.waitForFunction(() => window.__sim, null, { timeout: 60000 });
+await page.waitForFunction(() => window.__sim, null, { timeout: scaledTimeout(60000) });
 console.log('ready in', Date.now() - t0, 'ms');
 await page.screenshot({ path: path.join(out, 'menu.png') });
 const scenario = process.argv[2] || 'clear';

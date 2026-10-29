@@ -1,5 +1,5 @@
 // Isolated delivered-geometry/card comparisons plus a deterministic moving approach.
-import {chromium} from 'playwright';
+import {launchBrowser,scaledTimeout} from './browser.mjs';
 import {startServer} from './server.mjs';
 import {completeScenery} from './scene-ready.mjs';
 import fs from 'node:fs/promises';
@@ -11,12 +11,11 @@ const angle=process.env.VISUAL_GPU||'swiftshader';
 // The videos are for review: software rendering cannot draw them in reasonable time, so they
 // are recorded on a GPU only (RECORD_VIDEO=1 or 0 overrides). Every check runs either way.
 const record=process.env.RECORD_VIDEO?process.env.RECORD_VIDEO==='1':angle!=='swiftshader';
-const browser=await chromium.launch({headless:true,args:[`--use-angle=${angle}`,
- ...(angle==='swiftshader'?['--enable-unsafe-swiftshader','--ignore-gpu-blocklist']:[])]});
+const browser=await launchBrowser();
 try{
  const page=await browser.newPage({viewport:{width:1440,height:900}}),errors=[];
  page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
- await page.goto(url+'/?quality=high');await page.waitForFunction(()=>window.__sim,null,{timeout:120000});await completeScenery(page);
+ await page.goto(url+'/?quality=high');await page.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});await completeScenery(page);
  const report=await page.evaluate(async record=>{
   const T=await import('/vendor/three.module.js'),s=window.__sim,w=s.world;
   s.start({startId:'short',scenarioId:'clear',seed:5});s.setTimeScale(0);s.setDrawing(false);s.game.state='menu';

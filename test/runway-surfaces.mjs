@@ -1,5 +1,5 @@
 // Matched ordinary landing and close runway views on both tiers.
-import {chromium} from 'playwright';
+import {launchBrowser,scaledTimeout} from './browser.mjs';
 import {startServer} from './server.mjs';
 import {completeScenery} from './scene-ready.mjs';
 import fs from 'node:fs/promises';
@@ -7,13 +7,13 @@ import assert from 'node:assert/strict';
 const label=(process.argv[2]||'runway-current').replace(/[^a-z0-9_-]/gi,'-'),baseline=!!process.env.REVIEW_ROOT;
 const {server,url}=await startServer(process.env.REVIEW_ROOT||process.cwd());
 const angle=process.env.VISUAL_GPU||'swiftshader';   // VISUAL_GPU=metal on macOS hardware
-const browser=await chromium.launch({headless:true,args:[`--use-angle=${angle}`,...(angle==='swiftshader'?['--enable-unsafe-swiftshader','--ignore-gpu-blocklist']:[])]});
+const browser=await launchBrowser();
 const reports=[];
 try{
  for(const tier of ['high','low']){
   const page=await browser.newPage({viewport:{width:1440,height:900}}),errors=[];
   page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
-  await page.goto(url+'/?quality='+tier);await page.waitForFunction(()=>window.__sim,null,{timeout:120000});await completeScenery(page);
+  await page.goto(url+'/?quality='+tier);await page.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});await completeScenery(page);
   const report={tier,views:[]};reports.push(report);
   for(const view of ['shoulder','touchdown','rollout','flare','final','storm','night']){
    const stats=await page.evaluate(async view=>{
@@ -45,7 +45,7 @@ try{
   // Optional surface scans can fail without hiding or breaking the runway edge.
   const page=await browser.newPage();
   await page.route('**/asphalt-normal.jpg',r=>r.fulfill({status:503,body:'Unavailable'}));
-  await page.goto(url+'/?quality=low');await page.waitForFunction(()=>window.__sim,null,{timeout:120000});await completeScenery(page);
+  await page.goto(url+'/?quality=low');await page.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});await completeScenery(page);
   const fallback=await page.evaluate(()=>{const s=window.__sim,w=s.world;s.setDrawing(false);w.render();return {ready:w.runwayShoulders.uniforms.uShoulderReady.value,visible:w.runwayShoulders.mesh.visible,errors:w.assetErrors};});
   assert.equal(fallback.ready,0);assert.equal(fallback.visible,true);assert.equal(fallback.errors.length,1);reports.push({fallback});await page.close();
  }

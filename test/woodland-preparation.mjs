@@ -1,13 +1,13 @@
 // Isolate actual planting CPU work from shader warm-up and rendering. Route-only
 // instrumentation also measures archived builds without production test hooks.
-import {chromium} from 'playwright';
+import {launchBrowser,scaledTimeout} from './browser.mjs';
 import {startServer} from './server.mjs';
 import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
 const label=process.argv[2]||'woodland-preparation',baseline=!!process.env.REVIEW_ROOT;
 const angle=process.env.VISUAL_GPU||'swiftshader';
 const {server,url}=await startServer(process.env.REVIEW_ROOT||process.cwd());
-const browser=await chromium.launch({headless:true,args:[`--use-angle=${angle}`,...(angle==='swiftshader'?['--enable-unsafe-swiftshader','--ignore-gpu-blocklist']:[])]});
+const browser=await launchBrowser();
 const report=[];await fs.mkdir('test/output',{recursive:true});
 try{
  for(const tier of ['high','low']){
@@ -36,7 +36,7 @@ try{
    },{once:true});
   });
   await page.goto(url+'/?quality='+tier);
-  await page.waitForFunction(()=>window.__plantingEnd,null,{timeout:180000});
+  await page.waitForFunction(()=>window.__plantingEnd,null,{timeout:scaledTimeout(180000)});
   const result=await page.evaluate(()=>{
    clearInterval(window.__plantingTimer);
    const w=window.__sim.world,times=[window.__plantingStart,...window.__plantingTicks,window.__plantingEnd];

@@ -1,5 +1,5 @@
 // Retain filtered leaf coverage at distance and between atlas views, on both tiers.
-import {chromium} from 'playwright';
+import {launchBrowser,scaledTimeout} from './browser.mjs';
 import {startServer} from './server.mjs';
 import {completeScenery} from './scene-ready.mjs';
 import fs from 'node:fs/promises';
@@ -8,13 +8,13 @@ const label=(process.argv[2]||'woodland-coverage').replace(/[^a-z0-9_-]/gi,'-');
 await fs.mkdir('test/output',{recursive:true});
 const {server,url}=await startServer(process.cwd());
 const angle=process.env.VISUAL_GPU||'swiftshader';
-const browser=await chromium.launch({headless:true,args:[`--use-angle=${angle}`,...(angle==='swiftshader'?['--enable-unsafe-swiftshader','--ignore-gpu-blocklist']:[])]});
+const browser=await launchBrowser();
 const reports=[];
 try{
  for(const tier of ['high','low']){
   const page=await browser.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
   page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
-  await page.goto(url+'/?quality='+tier);await page.waitForFunction(()=>window.__sim,null,{timeout:120000});await completeScenery(page);
+  await page.goto(url+'/?quality='+tier);await page.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});await completeScenery(page);
   const result=await page.evaluate(async tier=>{
    const T=await import('/vendor/three.module.js'),s=window.__sim,w=s.world;s.setDrawing(false);s.game.state='menu';
    const atlas=await(await fetch('/assets/scenery/tree-variety.json')).json(),base=w.woodland.children.find(m=>m.material===w.woodlandMaterial),mat=w.woodlandMaterial;

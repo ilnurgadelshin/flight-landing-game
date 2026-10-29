@@ -10,6 +10,16 @@ export async function completeScenery(page) {
   });
 }
 
+// Missing/invalid-data fallback checks only need the scenery data loaders to finish:
+// not the near-tree models nor the shader warm-up, which the menu may still be running
+// when such a page is closed. Software rendering spends much of a page load on those.
+export async function loadSceneryData(page) {
+  await page.evaluate(async()=>{
+    const s=window.__sim;s.setDrawing(false);
+    await s.world.assetsReady;await s.world.loadScenery();
+  });
+}
+
 export async function functionalScene(page) {
   await page.addInitScript(()=>window.addEventListener('sim-ready',()=>{
     const s=window.__sim,w=s.world;s.setDrawing(false);

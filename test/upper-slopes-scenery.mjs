@@ -1,17 +1,17 @@
 // Actual shader/placement, matched pilot and wide views, both tiers, optional-data fallback.
-import {chromium} from 'playwright';
+import {launchBrowser,scaledTimeout} from './browser.mjs';
 import {startServer} from './server.mjs';
-import {completeScenery} from './scene-ready.mjs';
+import {completeScenery,loadSceneryData} from './scene-ready.mjs';
 import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import sharp from 'sharp';
 const label=process.argv[2]||'upper-slopes-after',baseline=!!process.env.REVIEW_ROOT;
 const {server,url}=await startServer(process.env.REVIEW_ROOT||process.cwd());
 const angle=process.env.VISUAL_GPU||'swiftshader',viewport=angle==='metal'?{width:1440,height:900}:{width:640,height:400};
-const browser=await chromium.launch({headless:true,args:[`--use-angle=${angle}`,...(angle==='swiftshader'?['--enable-unsafe-swiftshader','--ignore-gpu-blocklist']:[])]}),reports=[];
-const boot=async page=>{
- await page.waitForFunction(()=>window.__sim||document.getElementById('loading-msg')?.textContent.startsWith('Failed to start:'),null,{timeout:120000});
- assert.ok(await page.evaluate(()=>!!window.__sim),'WebGL/game startup failed');await completeScenery(page);
+const browser=await launchBrowser(),reports=[];
+const boot=async(page,load=completeScenery)=>{
+ await page.waitForFunction(()=>window.__sim||document.getElementById('loading-msg')?.textContent.startsWith('Failed to start:'),null,{timeout:scaledTimeout(120000)});
+ assert.ok(await page.evaluate(()=>!!window.__sim),'WebGL/game startup failed');await load(page);
 };
 try{
  for(const tier of (process.env.REVIEW_TIERS||'high,low').split(',')){
@@ -90,7 +90,7 @@ try{
  if(!baseline&&!process.env.REVIEW_VIEWS){
   const page=await browser.newPage({viewport});await page.addInitScript(()=>window.addEventListener('sim-ready',()=>window.__sim.setDrawing(false),{once:true}));
   await page.route('**/approach-corridor.json',async route=>{const response=await route.fetch(),data=await response.json();data.upperSlopes[1].atlas[0]=data.upperSlopes[0].atlas[0];await route.fulfill({response,json:data})});
-  await page.goto(url+'/?quality=high');await boot(page);
+  await page.goto(url+'/?quality=high');await boot(page,loadSceneryData);
   const fallback=await page.evaluate(()=>({ready:window.__sim.world.groundUniforms.uCorridorReady.value,errors:window.__sim.world.assetErrors}));
   assert.equal(fallback.ready,0);assert.ok(fallback.errors.some(e=>e.includes('Invalid upper slope')));reports.push({invalidAtlas:fallback});await page.close();
  }

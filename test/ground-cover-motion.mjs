@@ -1,13 +1,13 @@
 // Short repeatable grass-transition recordings. Uses the normal two-tile update budget,
 // including 55 m/s runway motion; only the initial position is settled for the recording.
-import {chromium} from 'playwright';
+import {launchBrowser,scaledTimeout} from './browser.mjs';
 import {startServer} from './server.mjs';
 import {completeScenery} from './scene-ready.mjs';
 import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
 const {server,url}=await startServer(process.cwd());
 const angle=process.env.VISUAL_GPU||'swiftshader';   // VISUAL_GPU=metal on macOS hardware
-const browser=await chromium.launch({headless:true,args:[`--use-angle=${angle}`,...(angle==='swiftshader'?['--enable-unsafe-swiftshader','--ignore-gpu-blocklist']:[])]});
+const browser=await launchBrowser();
 // Software rendering draws a frame every 9-20 s, so it cannot record motion: without a GPU the
 // same 8 s path is stepped at 30 updates per second and rendered once (RECORD_VIDEO=1 or 0 overrides).
 const record=process.env.RECORD_VIDEO?process.env.RECORD_VIDEO==='1':angle!=='swiftshader';
@@ -16,7 +16,7 @@ try{
  for(const tier of ['high']){   // the low tier has no near-ground grass
   const context=await browser.newContext({viewport:{width:1280,height:800},...(record?{recordVideo:{dir:'test/output',size:{width:1280,height:800}}}:{})});
   const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.goto(url+'/?quality='+tier);await page.waitForFunction(()=>window.__sim,null,{timeout:120000});await completeScenery(page);
+  await page.goto(url+'/?quality='+tier);await page.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});await completeScenery(page);
   for(const pose of ['pasture','shoulder']){
    await page.evaluate(async pose=>{
     const T=await import('/vendor/three.module.js'),{sceneryGroundHeight}=await import('/js/world/scenery-ground.js'),s=window.__sim,w=s.world;

@@ -1,5 +1,5 @@
 // Matched complete-site views and captain-eye descent, including both quality tiers.
-import {chromium} from 'playwright';
+import {launchBrowser,scaledTimeout} from './browser.mjs';
 import {startServer} from './server.mjs';
 import {completeScenery} from './scene-ready.mjs';
 import fs from 'node:fs/promises';
@@ -11,13 +11,13 @@ const angle=process.env.VISUAL_GPU||'swiftshader';
 // The videos are for review: software rendering cannot draw them in reasonable time, so they
 // are recorded on a GPU only (RECORD_VIDEO=1 or 0 overrides). Every check runs either way.
 const record=process.env.RECORD_VIDEO?process.env.RECORD_VIDEO==='1':angle!=='swiftshader';
-const browser=await chromium.launch({headless:true,args:[`--use-angle=${angle}`,...(angle==='swiftshader'?['--enable-unsafe-swiftshader','--ignore-gpu-blocklist']:[])]});
+const browser=await launchBrowser();
 const reports=[];
 try{
  for(const tier of ['high','low']){
   const page=await browser.newPage({viewport:{width:1440,height:900}}),errors=[];
   page.on('pageerror',e=>errors.push(e.message));
-  await page.goto(url+'/?quality='+tier);await page.waitForFunction(()=>window.__sim,null,{timeout:120000});await completeScenery(page);
+  await page.goto(url+'/?quality='+tier);await page.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});await completeScenery(page);
   const stats=await page.evaluate(async baseline=>{
    const s=window.__sim,w=s.world;s.setDrawing(false);s.game.state='menu';
    const farm=w.approachBuildings.group.getObjectByName('Authored valley farm'),site=farm?.getObjectByName('Valley roadside grounds');

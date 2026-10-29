@@ -1,20 +1,20 @@
 // Complete approach sites: rendered registration/contact, planting, and optional-data fallback.
-import {chromium} from 'playwright';
+import {launchBrowser,scaledTimeout} from './browser.mjs';
 import {startServer} from './server.mjs';
-import {completeScenery} from './scene-ready.mjs';
+import {completeScenery,loadSceneryData} from './scene-ready.mjs';
 import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
 const label=(process.argv[2]||'approach-sites').replace(/[^a-z0-9_-]/gi,'-'),baseline=!!process.env.REVIEW_ROOT;
 await fs.mkdir('test/output',{recursive:true});
 const {server,url}=await startServer(process.env.REVIEW_ROOT||process.cwd());
 const angle=process.env.VISUAL_GPU||'swiftshader';   // VISUAL_GPU=metal on macOS hardware
-const browser=await chromium.launch({headless:true,args:[`--use-angle=${angle}`,...(angle==='swiftshader'?['--enable-unsafe-swiftshader','--ignore-gpu-blocklist']:[])]});
+const browser=await launchBrowser({lowResolution:true});
 const report=[];
 try{
  for(const tier of process.env.REVIEW_TIERS?.split(',')||['high','low']){
   const page=await browser.newPage({viewport:{width:1440,height:900}}),errors=[];
   page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
-  await page.goto(url+'/?quality='+tier);await page.waitForFunction(()=>window.__sim,null,{timeout:120000});await completeScenery(page);
+  await page.goto(url+'/?quality='+tier);await page.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});await completeScenery(page);
   const stats=await page.evaluate(async baseline=>{
    const s=window.__sim,w=s.world,T=await import('/vendor/three.module.js');s.setDrawing(false);s.game.state='menu';
    const result={...w.approachBuildings.farm,groundError:0,roofs:0,roofSamples:0,foundations:0,ramps:0,roadConnections:0,mainRoadConnections:0,trees:0,unplanned:0,intrusions:0,errors:w.assetErrors};
@@ -129,7 +129,7 @@ try{
   const page=await browser.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.route('**/approach-sites.json',r=>r.fulfill(failure==='unavailable'?{status:503,body:'Unavailable'}:
    {status:200,contentType:'application/json',body:'{"sites":{}}'}));
-  await page.goto(url+'/?quality=low');await page.waitForFunction(()=>window.__sim,null,{timeout:120000});await completeScenery(page);
+  await page.goto(url+'/?quality=low');await page.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});await loadSceneryData(page);
   const fallback=await page.evaluate(()=>{const s=window.__sim,w=s.world;s.setDrawing(false);w.render();return {farm:w.approachBuildings.farm,errors:w.assetErrors};});
   assert.equal(fallback.farm.buildings,9);assert.equal(fallback.farm.sites,1);assert.equal(fallback.errors.length,1);assert.deepEqual(errors,[]);report.push({failure,fallback});await page.close();
  }

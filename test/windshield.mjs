@@ -1,5 +1,5 @@
 // Actual fitted panes, wet refraction and wiper clearing in the game renderer.
-import {chromium} from 'playwright';
+import {launchBrowser,scaledTimeout} from './browser.mjs';
 import {startServer} from './server.mjs';
 import {completeScenery} from './scene-ready.mjs';
 import fs from 'node:fs/promises';
@@ -7,13 +7,13 @@ import assert from 'node:assert/strict';
 const label=(process.argv[2]||'windshield').replace(/[^a-z0-9_-]/gi,'-'),baseline=!!process.env.REVIEW_ROOT;
 await fs.mkdir('test/output',{recursive:true});
 const {server,url}=await startServer(process.env.REVIEW_ROOT||process.cwd()),angle=process.env.VISUAL_GPU||'swiftshader';
-const browser=await chromium.launch({headless:true,args:[`--use-angle=${angle}`,...(angle==='swiftshader'?['--enable-unsafe-swiftshader','--ignore-gpu-blocklist']:[])]});
+const browser=await launchBrowser();
 const reports=[];
 try{
  for(const tier of ['high','low']){
   const page=await browser.newPage({viewport:{width:1440,height:900}}),errors=[];
   page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
-  await page.goto(url+'/?quality='+tier);await page.waitForFunction(()=>window.__sim,null,{timeout:120000});await completeScenery(page);
+  await page.goto(url+'/?quality='+tier);await page.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});await completeScenery(page);
   for(const view of ['clear','storm','side','night']){
    const stats=await page.evaluate(view=>{
     const s=window.__sim,w=s.world,c=s.cockpit;
@@ -92,7 +92,7 @@ try{
   }
   if(tier==='low'){
    const phone=await browser.newPage({viewport:{width:844,height:390},isMobile:true,hasTouch:true,deviceScaleFactor:1});
-   phone.on('pageerror',e=>errors.push(e.message));await phone.goto(url+'/?quality=low');await phone.waitForFunction(()=>window.__sim,null,{timeout:120000});await completeScenery(phone);
+   phone.on('pageerror',e=>errors.push(e.message));await phone.goto(url+'/?quality=low');await phone.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});await completeScenery(phone);
    await phone.evaluate(()=>{const s=window.__sim;s.start({scenarioId:'storm',startId:'short',seed:5});s.setTimeScale(0);s.setDrawing(false);s.game.state='menu';s.game.sim.aircraft.place({x:2700,y:78,z:0,headingDeg:270,iasKts:147,flapIndex:4,gearDown:true,gammaDeg:-3});s.view.setMode('cockpit');for(let i=0;i<240;i++)s.view.update(1/60);s.presentation.frame(0,0);s.world.render();const gl=s.world.renderer.getContext();gl.readPixels(0,0,1,1,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array(4));});
    await phone.screenshot({path:`test/output/${label}-phone.png`});await phone.close();
   }

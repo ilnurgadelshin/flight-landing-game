@@ -4,15 +4,14 @@
 // ffmpeg -ss FIRST_CAPTION_SECONDS -i test/output/cloud-boundary-motion-high-raw.webm -an -c:v libvpx -deadline realtime -cpu-used 8 -b:v 1800k -crf 12 test/output/cloud-boundary-motion-high.webm
 // Repeat for low. Choose the first caption timestamp from each recording; video
 // timestamps may differ from the RAF clock. Preserve the full entry and exit.
-import {chromium} from 'playwright';
+import {launchBrowser,scaledTimeout} from './browser.mjs';
 import {startServer} from './server.mjs';
 import {completeScenery} from './scene-ready.mjs';
 import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
 const {server,url}=await startServer(process.cwd());
 const angle=process.env.VISUAL_GPU||'swiftshader'; // VISUAL_GPU=metal on macOS hardware
-const browser=await chromium.launch({headless:true,args:[`--use-angle=${angle}`,
- ...(angle==='swiftshader'?['--enable-unsafe-swiftshader','--ignore-gpu-blocklist']:[])]});
+const browser=await launchBrowser();
 // Slow software rendering cannot record continuous motion. Step the same path at
 // 30 Hz, rendering representative positions; do not report those updates as FPS.
 const record=process.env.RECORD_VIDEO?process.env.RECORD_VIDEO==='1':angle!=='swiftshader';
@@ -21,7 +20,7 @@ try{
  for(const tier of ['high','low']){
   const context=await browser.newContext({viewport:{width:1280,height:800},...(record?{recordVideo:{dir:'test/output',size:{width:1280,height:800}}}:{})});
   const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.goto(url+'/?quality='+tier);await page.waitForFunction(()=>window.__sim,null,{timeout:120000});await completeScenery(page);
+  await page.goto(url+'/?quality='+tier);await page.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});await completeScenery(page);
   for(const cockpit of [false,true]){
    await page.evaluate(async cockpit=>{
     const T=await import('/vendor/three.module.js'),s=window.__sim,w=s.world;

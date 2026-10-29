@@ -1,19 +1,18 @@
 // Ground detail tiles during a flight: a new tile is copied to the graphics card in strips under a
 // per-frame budget, the tiles on screen stay until the new set is complete, the cache stays at four,
 // and the copy holds exactly the image's pixels (row 0 = the north edge). Both tiers.
-import {chromium} from 'playwright';
+import {launchBrowser,scaledTimeout} from './browser.mjs';
 import {startServer} from './server.mjs';
 import {completeScenery} from './scene-ready.mjs';
 import assert from 'node:assert/strict';
 const {server,url}=await startServer(process.cwd()),angle=process.env.VISUAL_GPU||'swiftshader';
-const browser=await chromium.launch({headless:true,args:[`--use-angle=${angle}`,
-  ...(angle==='swiftshader'?['--enable-unsafe-swiftshader','--ignore-gpu-blocklist']:[])]});
+const browser=await launchBrowser();
 try{
   for(const tier of ['high','low']){
     const page=await browser.newPage({viewport:{width:320,height:200}}),errors=[];
     page.on('pageerror',e=>errors.push(e.message));
     page.on('console',m=>{if(m.type()==='error'||m.type()==='warning')errors.push(m.text());});
-    await page.goto(url+'/?quality='+tier);await page.waitForFunction(()=>window.__sim,null,{timeout:120000});
+    await page.goto(url+'/?quality='+tier);await page.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});
     await completeScenery(page);
     const r=await page.evaluate(async()=>{
       const T=await import('/vendor/three.module.js'),s=window.__sim,w=s.world,d=w.groundDetail,R=w.renderer;

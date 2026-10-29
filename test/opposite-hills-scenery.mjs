@@ -1,7 +1,7 @@
 // Matched pilot views and the opposite hillside; real assets and shared mask/planting.
-import {chromium} from 'playwright';
+import {launchBrowser,scaledTimeout} from './browser.mjs';
 import {startServer} from './server.mjs';
-import {completeScenery} from './scene-ready.mjs';
+import {completeScenery,loadSceneryData} from './scene-ready.mjs';
 import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
 import sharp from 'sharp';
@@ -11,7 +11,7 @@ const angle=process.env.VISUAL_GPU||'swiftshader';
 // Software rendering verifies the same real shaders/assets at a smaller raster;
 // full-resolution captures and FPS measurements use the hardware renderer.
 const viewport=angle==='swiftshader'?{width:640,height:400}:{width:1440,height:900};
-const browser=await chromium.launch({headless:true,args:[`--use-angle=${angle}`,...(angle==='swiftshader'?['--enable-unsafe-swiftshader','--ignore-gpu-blocklist']:[])]});
+const browser=await launchBrowser();
 const reports=[];
 try{
  for(const tier of (process.env.REVIEW_TIERS||'high,low').split(',')){
@@ -21,7 +21,7 @@ try{
   // monopolize the page before waitForFunction gets its next animation tick.
   await page.addInitScript(()=>window.addEventListener('sim-ready',()=>window.__sim.setDrawing(false),{once:true}));
   await page.goto(url+'/?quality='+tier);
-  await page.waitForFunction(()=>window.__sim||document.getElementById('loading-msg')?.textContent.startsWith('Failed to start:'),null,{timeout:120000});
+  await page.waitForFunction(()=>window.__sim||document.getElementById('loading-msg')?.textContent.startsWith('Failed to start:'),null,{timeout:scaledTimeout(120000)});
   assert.ok(await page.evaluate(()=>!!window.__sim),`Game startup failed: ${errors.join('\n')}`);
   await completeScenery(page);
   const stats=await page.evaluate(async()=>{
@@ -89,7 +89,7 @@ try{
   const page=await browser.newPage({viewport});
   await page.addInitScript(()=>window.addEventListener('sim-ready',()=>window.__sim.setDrawing(false),{once:true}));
   await page.route('**/approach-corridor.json',async route=>{const response=await route.fetch(),data=await response.json();data.oppositeHills.atlas[0]=0;await route.fulfill({response,json:data})});
-  await page.goto(url+'/?quality=high');await page.waitForFunction(()=>window.__sim,null,{timeout:120000});await completeScenery(page);
+  await page.goto(url+'/?quality=high');await page.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});await loadSceneryData(page);
   const fallback=await page.evaluate(()=>({ready:window.__sim.world.groundUniforms.uCorridorReady.value,errors:window.__sim.world.assetErrors}));
   assert.equal(fallback.ready,0);assert.ok(fallback.errors.some(e=>e.includes('Invalid opposite hillside')));reports.push({invalidAtlas:fallback});await page.close();
  }

@@ -1,5 +1,5 @@
 // Real-material directional response and matched scenery. REVIEW_ROOT loads a baseline.
-import {chromium} from 'playwright';
+import {launchBrowser,scaledTimeout} from './browser.mjs';
 import {startServer} from './server.mjs';
 import {completeScenery} from './scene-ready.mjs';
 import fs from 'node:fs/promises';
@@ -8,13 +8,13 @@ const label=(process.argv[2]||'woodland-light').replace(/[^a-z0-9_-]/gi,'-');
 const baseline=!!process.env.REVIEW_ROOT;
 const {server,url}=await startServer(process.env.REVIEW_ROOT||process.cwd());
 const angle=process.env.VISUAL_GPU||'swiftshader';
-const browser=await chromium.launch({headless:true,args:[`--use-angle=${angle}`,...(angle==='swiftshader'?['--enable-unsafe-swiftshader','--ignore-gpu-blocklist']:[])]});
+const browser=await launchBrowser();
 const report={baseline,results:[],lighting:[]};
 try{
  for(const tier of (process.env.REVIEW_TIERS||'high,low').split(',')){
   const page=await browser.newPage({viewport:{width:1440,height:900}}),errors=[];
   page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
-  await page.goto(url+'/?quality='+tier);await page.waitForFunction(()=>window.__sim,null,{timeout:120000});await completeScenery(page);
+  await page.goto(url+'/?quality='+tier);await page.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});await completeScenery(page);
   for(const view of (process.env.REVIEW_VIEWS||'captain-5500,captain-3400,canopy,hillside,dusk,overcast,night').split(',')){
    const stats=await page.evaluate(async view=>{
     const T=await import('/vendor/three.module.js'),s=window.__sim,w=s.world;
@@ -93,7 +93,7 @@ try{
    page.on('pageerror',e=>errors.push(e.message));
    page.on('console',m=>{if(m.type()==='error'&&!m.text().includes('net::ERR_FAILED'))errors.push(m.text());});
    await page.route('**/tree-light-response*.webp',r=>failure==='missing'?r.abort():r.fulfill({contentType:'image/png',body:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=','base64')}));
-   await page.goto(url+'/?quality='+tier);await page.waitForFunction(()=>window.__sim,null,{timeout:120000});await completeScenery(page);
+   await page.goto(url+'/?quality='+tier);await page.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});await completeScenery(page);
    const result=await page.evaluate(()=>{
     const s=window.__sim,w=s.world;s.start({startId:'short',seed:5});s.setDrawing(false);s.setTimeScale(0);s.drawNow();
     return {normal:!!w.woodlandLighting.responseMap,error:!!w.woodlandLighting.error,crowns:w.woodlandForms.reduce((a,b)=>a+b,0),shader:!!w.woodlandMaterial.defines?.TREE_DIRECTIONAL,errors:w.assetErrors};

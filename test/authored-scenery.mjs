@@ -1,5 +1,5 @@
 // Matched before/after views of architecture and canopy variety, plus integration checks.
-import {chromium} from 'playwright';
+import {launchBrowser,scaledTimeout} from './browser.mjs';
 import {startServer} from './server.mjs';
 import {completeScenery} from './scene-ready.mjs';
 import fs from 'node:fs/promises';
@@ -7,14 +7,13 @@ import assert from 'node:assert/strict';
 const label=(process.argv[2]||'current').replace(/[^a-z0-9_-]/gi,'-');
 const {server,url}=await startServer(process.env.REVIEW_ROOT||process.cwd());
 const angle=process.env.VISUAL_GPU||'swiftshader';   // VISUAL_GPU=metal on macOS hardware
-const browser=await chromium.launch({headless:true,args:[`--use-angle=${angle}`,
-  ...(angle==='swiftshader'?['--enable-unsafe-swiftshader','--ignore-gpu-blocklist']:[])]});
+const browser=await launchBrowser({lowResolution:true});
 const reports=[];
 try{
   for(const tier of ['high','low']){
     const page=await browser.newPage({viewport:{width:1440,height:900}}),errors=[];
     page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
-    await page.goto(`${url}/?quality=${tier}`);await page.waitForFunction(()=>window.__sim,null,{timeout:120000});
+    await page.goto(`${url}/?quality=${tier}`);await page.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});
     await completeScenery(page);
     const status=await page.evaluate(async()=>{
       const s=window.__sim;s.setDrawing(false);s.game.state='menu';
@@ -91,7 +90,7 @@ try{
   if(!process.env.REVIEW_ROOT){
     const page=await browser.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
     await page.route('**/modular_urban_apartments_facade.glb',r=>r.fulfill({status:503,body:'Unavailable'}));
-    await page.goto(url+'/?quality=high');await page.waitForFunction(()=>window.__sim,null,{timeout:120000});
+    await page.goto(url+'/?quality=high');await page.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});
     const fallback=await page.evaluate(async()=>{
       const s=window.__sim;s.setDrawing(false);await s.world.loadScenery();s.drawNow();
       return {count:s.world.approachBuildings.count,authored:s.world.approachBuildings.authored,errors:s.world.assetErrors};
@@ -102,7 +101,7 @@ try{
     for(const unavailable of ['valley-farm.glb','farm-gravel-normal.webp','valley-site.json']){
       const page=await browser.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
       await page.route('**/'+unavailable,r=>r.fulfill({status:503,body:'Unavailable'}));
-      await page.goto(url+'/?quality=high');await page.waitForFunction(()=>window.__sim,null,{timeout:120000});
+      await page.goto(url+'/?quality=high');await page.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});
       const fallback=await page.evaluate(async()=>{
         const s=window.__sim;s.setDrawing(false);await s.world.loadScenery();s.drawNow();
         const b=s.world.approachBuildings;

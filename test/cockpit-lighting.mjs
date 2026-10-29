@@ -1,14 +1,13 @@
 // Rendered regressions: loading and shader compilation alone did not catch a
 // black cabin after a day/night change. VISUAL_GPU=metal selects macOS hardware.
-import {chromium} from 'playwright';
+import {launchBrowser,scaledTimeout} from './browser.mjs';
 import {startServer} from './server.mjs';
 import {completeScenery} from './scene-ready.mjs';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 const {server,url}=await startServer(process.cwd());
 const angle=process.env.VISUAL_GPU||'swiftshader';
-const browser=await chromium.launch({headless:true,args:[`--use-angle=${angle}`,
-  ...(angle==='swiftshader'?['--enable-unsafe-swiftshader','--ignore-gpu-blocklist']:[])]});
+const browser=await launchBrowser();
 try{
   await fs.mkdir('test/output',{recursive:true});
   for(const tier of ['high','low']){
@@ -16,7 +15,7 @@ try{
     page.on('pageerror',e=>errors.push(e.message));
     page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
     await page.goto(url+'/?quality='+tier);
-    try{await page.waitForFunction(()=>window.__sim,null,{timeout:120000});}
+    try{await page.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});}
     catch(error){throw new Error(`${tier} failed to initialize: ${errors.join('\n')||error.message}`);}
     await completeScenery(page); // Match normal Start; do not probe captures during background warm-up.
     if(tier==='high'){
@@ -105,7 +104,7 @@ try{
   }
   const fallback=await browser.newPage({viewport:{width:1024,height:576}});
   await fallback.route('**/assets/cockpit/*.webp',route=>route.abort());
-  await fallback.goto(url+'/?quality=high');await fallback.waitForFunction(()=>window.__sim,null,{timeout:120000});
+  await fallback.goto(url+'/?quality=high');await fallback.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});
   await completeScenery(fallback);
   const recovered=await fallback.evaluate(()=>{
     const s=window.__sim;s.setDrawing(false);s.drawNow();

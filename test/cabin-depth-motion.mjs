@@ -1,5 +1,5 @@
 // Matched pilot head movement. Encoded video is visual evidence, not an FPS test.
-import {chromium} from 'playwright';
+import {launchBrowser,scaledTimeout} from './browser.mjs';
 import {startServer} from './server.mjs';
 import {completeScenery} from './scene-ready.mjs';
 import assert from 'node:assert/strict';
@@ -7,11 +7,11 @@ import fs from 'node:fs/promises';
 const label=(process.argv[2]||'cabin-depth-motion').replace(/[^a-z0-9_-]/gi,'-');
 const motionPath=process.env.MOTION_PATH||'console';
 const {server,url}=await startServer(process.env.REVIEW_ROOT||process.cwd());
-const browser=await chromium.launch({headless:true,args:[`--use-angle=${process.env.VISUAL_GPU||'metal'}`]});
+const browser=await launchBrowser({defaultAngle:'metal'});
 try{
  const page=await browser.newPage({viewport:{width:1440,height:900}}),errors=[];
  page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
- await page.goto(url+'/?quality=high&drs=0');await page.waitForFunction(()=>window.__sim,null,{timeout:120000});await completeScenery(page);
+ await page.goto(url+'/?quality=high&drs=0');await page.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});await completeScenery(page);
  const result=await page.evaluate(async(motionPath)=>{
   const s=window.__sim,w=s.world,T=await import('/vendor/three.module.js');
   s.start({startId:'short',scenarioId:'clear',seed:5});s.setTimeScale(0);s.setDrawing(false);s.game.state='paused';

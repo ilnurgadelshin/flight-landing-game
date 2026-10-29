@@ -8,7 +8,7 @@ import {functionalScene,completeScenery} from './scene-ready.mjs';
 // fast 'low' tier and real cockpit, without optional scenery/reflection rebakes;
 // E16 restores full assets and explicitly selects high. VISUAL_GPU=metal enables
 // Mac hardware validation. Each group reports how long it took.
-import { chromium } from 'playwright';
+import {launchBrowser} from './browser.mjs';
 import path from 'node:path';
 import fs from 'node:fs';
 import { startServer } from './server.mjs';
@@ -35,7 +35,7 @@ const section = (id, title) => {
 
 const { server, url } = await startServer(root);
 const angle=process.env.VISUAL_GPU||'swiftshader';
-const browser = await chromium.launch({ headless: true, args: [`--use-angle=${angle}`, ...(angle==='swiftshader'?['--enable-unsafe-swiftshader','--ignore-gpu-blocklist']:[]), '--autoplay-policy=no-user-gesture-required'] });
+const browser = await launchBrowser({args:['--autoplay-policy=no-user-gesture-required']});
 const page = await browser.newPage({ viewport: { width: 1024, height: 576 } });
 await functionalScene(page);
 const VW = 1024, VH = 576;

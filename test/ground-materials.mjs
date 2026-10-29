@@ -1,5 +1,5 @@
 // Matched game views, real shader contribution, distance fade, delivery and fallback.
-import {chromium} from 'playwright';
+import {launchBrowser,scaledTimeout} from './browser.mjs';
 import {startServer} from './server.mjs';
 import {completeScenery} from './scene-ready.mjs';
 import fs from 'node:fs/promises';
@@ -7,13 +7,13 @@ import assert from 'node:assert/strict';
 const label=(process.argv[2]||'ground-materials').replace(/[^a-z0-9_-]/gi,'-'),baseline=!!process.env.REVIEW_ROOT;
 const {server,url}=await startServer(process.env.REVIEW_ROOT||process.cwd());
 const angle=process.env.VISUAL_GPU||'swiftshader';
-const browser=await chromium.launch({headless:true,args:[`--use-angle=${angle}`,...(angle==='swiftshader'?['--enable-unsafe-swiftshader','--ignore-gpu-blocklist']:[])]});
+const browser=await launchBrowser();
 const reports=[];
 try{
  for(const tier of (process.env.REVIEW_TIERS||'high,low').split(',')){
   const page=await browser.newPage({viewport:{width:1440,height:900}}),errors=[];
   page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error'){errors.push(m.text());console.error(m.text());}});
-  await page.goto(url+'/?quality='+tier);await page.waitForFunction(()=>window.__sim,null,{timeout:120000});
+  await page.goto(url+'/?quality='+tier);await page.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});
   const startup=await page.evaluate(()=>performance.getEntriesByType('resource').filter(r=>/ground-(color|surface)/.test(r.name)).length);
   assert.equal(startup,0,'New ground maps must not delay the menu');
   await completeScenery(page);
@@ -101,7 +101,7 @@ try{
  if(!baseline&&!process.env.REVIEW_VIEWS){
   const page=await browser.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.route('**/ground-surface-low.webp',r=>r.fulfill({status:503,body:'Unavailable'}));
-  await page.goto(url+'/?quality=low');await page.waitForFunction(()=>window.__sim,null,{timeout:120000});await completeScenery(page);
+  await page.goto(url+'/?quality=low');await page.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});await completeScenery(page);
   const fallback=await page.evaluate(()=>{
    const s=window.__sim,w=s.world;s.start({startId:'short',scenarioId:'clear',seed:5});s.setTimeScale(0);s.drawNow();
    return {ready:w.groundUniforms.uGroundMaterialsReady.value,errors:w.assetErrors,terrain:!!w.ground};

@@ -1,14 +1,13 @@
 // Interactions between cached airport shadows, fading tree geometry, and menu warm-up.
-import {chromium} from 'playwright';
+import {launchBrowser,scaledTimeout} from './browser.mjs';
 import {startServer} from './server.mjs';
 import {completeScenery} from './scene-ready.mjs';
 import assert from 'node:assert/strict';
 const {server,url}=await startServer(process.cwd()),angle=process.env.VISUAL_GPU||'swiftshader';
-const browser=await chromium.launch({headless:true,args:[`--use-angle=${angle}`,
-  ...(angle==='swiftshader'?['--enable-unsafe-swiftshader','--ignore-gpu-blocklist']:[])]});
+const browser=await launchBrowser();
 try{
   const page=await browser.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
-  await page.goto(url+'/?quality=high');await page.waitForFunction(()=>window.__sim,null,{timeout:120000});await completeScenery(page);
+  await page.goto(url+'/?quality=high');await page.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});await completeScenery(page);
   const result=await page.evaluate(async()=>{
     const s=window.__sim,w=s.world,T=await import('/vendor/three.module.js');s.setDrawing(false);s.game.state='menu';
     const near=w.nearWoodland,eye=new T.Vector3(2530,18,352),far=new T.Vector3(0,9000,0);
@@ -57,10 +56,10 @@ try{
   });
   let release;const held=new Promise(resolve=>{release=resolve;});
   await slow.route('**/approach-buildings.json',async route=>{await held;await route.continue();});
-  await slow.goto(url+'/?quality=high');await slow.waitForFunction(()=>window.__sim,null,{timeout:120000});
+  await slow.goto(url+'/?quality=high');await slow.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});
   await slow.evaluate(()=>{const start=()=>window.__sim.ui.onStart({mode:'game',startId:'short',scenarioId:'clear',sound:false,skipSchool:true});start();start();});
   // The first flight frame makes the cabin reflection capture: over 10 s with software rendering.
-  await slow.waitForFunction(()=>window.__sim.game.state==='flying',null,{timeout:60000});
+  await slow.waitForFunction(()=>window.__sim.game.state==='flying',null,{timeout:scaledTimeout(60000)});
   assert.deepEqual(await slow.evaluate(()=>({starts:window.__starts,loading:!document.getElementById('loading').classList.contains('hidden')})),{starts:1,loading:false});
   release();await slow.evaluate(()=>window.__sim.world.sceneryPrepared);
   assert.equal(await slow.evaluate(()=>window.__warmCalls),0,'Delayed scenery must not begin warm-up in the timed-out flight');
