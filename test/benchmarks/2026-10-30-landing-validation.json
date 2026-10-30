@@ -1,0 +1,44 @@
+{
+  "date": "2026-10-30",
+  "baseline": "774b561",
+  "renderer": "Chromium 141 / ANGLE Metal / Apple M2 Pro",
+  "nodeSuites": 24,
+  "selectedBrowserChecks": {
+    "passed": 110,
+    "failed": 0,
+    "groups": [
+      "E1",
+      "E3",
+      "E17",
+      "E10"
+    ]
+  },
+  "fullSceneLayouts": 14,
+  "nativePfdInteractions": {
+    "passed": true,
+    "devicePixelRatio": 2,
+    "actualTouchCycle": true,
+    "liveAircraftValues": true,
+    "map": true,
+    "resize": true,
+    "tablet": true,
+    "flightSchool": true
+  },
+  "comparison": {
+    "images": 16,
+    "videos": 2,
+    "slider": true,
+    "narrowLayout": true,
+    "errors": []
+  },
+  "landingRecordings": {
+    "before": "2026-10-29-landing-experience-before.json",
+    "after": "2026-10-29-landing-experience-after.json"
+  },
+  "notValidated": [
+    "Physical phones",
+    "Software renderer",
+    "Full functional browser suite"
+  ],
+  "note": "Forward landing recordings and selected browser checks were completed October 29; final framing, native PFD interactions, pacing, delivery and comparison verification completed October 30."
+}

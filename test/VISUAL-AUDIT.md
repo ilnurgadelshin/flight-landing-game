@@ -1,13 +1,29 @@
 # Visual improvement audit
 
-## Current status — 2026-10-29
+## Current status — 2026-10-30
 
 This section is the current checklist. The original September audit and dated work log
 below record how the scene evolved; their older counts, captures and priorities are not
 the remaining-work list. Update this section after each reviewed visual pass, including
 what changed, visible impact, measured cost, evidence and limitations.
 
-The latest review follow-up **automates the join checks and slices scenery preparation**.
+The latest visual pass **prioritizes the phone landing view and readable instruments**.
+The short-touch forward lens changes from 48° to 40° and its downward gaze from 11°
+to 7°, keeping the fitted pilot eye and source cockpit geometry. At 852×393 the central
+windshield grows from 126 to 150 CSS px (about 19%). The lower physical displays are
+cropped more; the existing PANEL view now deliberately enlarges the captain's PFD.
+It provides a 238 px square display, or 184 px on the short 812×265 viewport,
+with a native-resolution redraw up to device ratio 3. The same drawing code, flight
+state, flight director and mode annunciations feed both displays. Forward radio
+altitude is larger. No new button, asset, tree, scenery geometry or 3D render pass is added.
+
+Further geographic expansion is paused. Priority now follows the landing experience:
+readability and a stable moving image, then runway detail visible in the pilot's final
+approach, flare and rollout. Fine cockpit finishes and remote scenery no longer outrank
+these. This phone pass does not solve thin-detail shimmer or damaged model lettering;
+physical-device usability and performance still require validation.
+
+The preceding review follow-up **automates the join checks and slices scenery preparation**.
 `npm run test:corridor` now includes the eight density joins, defaults to SwiftShader,
 and guards at least 95% of the former close-map allocation. Planting and initial canopy
 shade construction yield between batches without changing their generated geometry.
@@ -55,18 +71,70 @@ should not be presented again as untouched tasks. Their broader quality limitati
 
 | Rank | Remaining work | Importance | Current limit / next acceptance evidence |
 | --- | --- | --- | --- |
-| 1 | Complete cockpit material and lighting detail | High | Fitted coatings now cover the front panels, pedestal and overhead; padding, grips, consoles and upper liner also have finishes. Remaining knobs/metal, floor and some shell surfaces are simple. Local light and fixed-eye reflections are approximations. Any further material pass needs visible pilot-seat value; do not repeat the completed pedestal/overhead/liner scope. |
-| 2 | Temporal stability of fine detail | Medium–high | Thin labels, branches, roof details and shadow edges can shimmer in motion. Low-detail overhead lettering also loses shape. Next recommended pass: inspect pilot head/flight movement and protect small lettering while measuring GPU cost; static screenshots alone are insufficient. |
-| 3 | Further canopy form and grouping | Medium–high | Lost broadleaf foliage is corrected. Repeated species, sparse spacing and blended image-plane silhouettes remain. Further work needs better form variation or representation, checked in motion within existing budgets. |
-| 4 | Other rural building groups | Medium in the forward cockpit; high in close exterior views | Eleven sites are complete; basic houses, isolated roofs and flat yards remain elsewhere. Select further sites only after a pilot-view visibility check. No further geographic extension is proposed. Untraced parcels and countryside beyond x=−2100–9000 / absolute z=2500 remain photographic. |
-| 5 | Finer cloud and wet-weather rendering | Medium overall; high in weather scenarios | Fair-weather clouds retain repeated forms; overcast uses bounded resolution/steps and a simplified deep interior. Water films and blade contact remain approximate. Preserve the corrected rain timing and cloud-entry visibility. |
-| 6 | Airport ground-level detail and local shadows | Medium | Terminal glass and architecture improved, but wear, drainage, service clutter and shadows on raised surfaces remain sparse. Concentrate on details visible during flare/rollout. |
+| 1 | Temporal stability and small lettering | High | Thin runway markings, labels, branches and shadow edges can shimmer in motion. Low-detail source lettering also loses shape; anti-aliasing cannot restore removed geometry. Next pass: inspect continuous pilot movement and landing, identify the dominant causes, and measure GPU cost. Native phone PFD rendering is delivered; broader temporal stability is not. |
+| 2 | Airport ground detail and local shadows during landing | High where visible from the pilot eye | Pavement, shoulders and terminal architecture already improved. Remaining ground transitions, wear and shadows need selection using the final approach, flare and rollout. Reject decoration with no useful pilot-seat contribution; retain runway clearances and markings. |
+| 3 | Phone landing readability and usability validation | High on phones | Closer forward framing, larger radio altitude and native-resolution PANEL/PFD are delivered. Smaller labels and the short screen's limited space remain. Validate on real devices, including touch steering, orientation and browser toolbars; desktop emulation does not certify readability, FPS or battery use. |
+| 4 | Remaining cockpit materials and lighting | Medium | Remaining knobs/metal, floor and some shell surfaces are simple; indirect light/reflections remain approximations. Require visible benefit during normal flight. Completed panel, pedestal, overhead and liner finishes are not new scope. |
+| 5 | Finer cloud and wet-weather rendering | Medium overall; high in weather scenarios | Repeated fair-weather forms and simplified deep cloud interiors remain. Preserve corrected rain timing and cloud-entry visibility. |
+| 6 | Canopy form and grouping | Medium | Repeated species and image-plane silhouettes remain. Improve representation within existing budgets after the landing priorities above. |
+| 7 | Other rural building groups and geographic coverage | Deferred | Eleven complete sites and about 3087 ha are delivered. Further geographic expansion is paused. Remote parcels must demonstrate meaningful normal pilot-view value before receiving frame or download budget. |
 
 Performance and compatibility are acceptance requirements for every item, rather than a
 separate cosmetic milestone. Current high-resolution scenes still fall below 60 FPS on
 the M2 Pro; retain adaptive quality and report costs. Physical phones, ordinary laptops
 and multiple GPU drivers need wider validation. Existing SwiftShader evidence in the log
 does not certify the latest pass on those devices.
+
+### Phone landing view and instrument readability — 2026-10-30
+
+Baseline: published `774b561`. A player-experience review confirmed diminishing
+returns from distant scenery. This pass changes the existing short-touch cockpit
+and PANEL views, with no automatic camera changes at touchdown. Desktop, tablet,
+MAP, head-up and Flight School keep their own existing views.
+
+- Forward framing keeps the source pilot eye; it changes lens/gaze rather than
+  stretching the cockpit. The central windshield occupies about 38% of screen
+  height instead of 32%. The tradeoff is cropping more of the physical panel at
+  the bottom; essential forward speed/altitude readouts remain, with larger radio
+  altitude, and PANEL is the deliberate instrument inspection view.
+- PANEL leans into the captain's PFD and redraws it at native device resolution
+  (capped at 3×), retaining the same actual state, guidance and annunciations. Its
+  three main numerical values use larger type within their existing boxes. The
+  852×393 case provides a 238 px square; the 812×265 case provides 184 px, and
+  667×265 provides 173 px. Controls, including MAP, and the active stick area remain
+  clear. Tapping MAP temporarily overrides this view;
+  leaving MAP restores it. VIEW retains cockpit → PANEL → head-up → cockpit.
+- No asset, tree, light, model triangle or additional 3D pass is introduced. The
+  native PFD adds one 2D redraw only while open and does not raise world resolution.
+- The capture harness now waits for the resized camera aspect and CSS backdrop
+  fades. Previously it could capture an old aspect or a half-faded backdrop after
+  advancing only simulated camera time. Baseline captures use the corrected harness.
+- Separate matched phone-viewport samples on M2 Pro remain at 60 FPS, p95
+  16.7–16.8 ms, for forward, PANEL and rollout. These are capped desktop emulation
+  results, not a zero-cost claim or a physical-phone measurement. The historical
+  high-tier performance deficit remains; no cumulative speedup is claimed.
+- Matched full-scenery autolands, recorded in real time from 400 ft through rollout,
+  both finish 100/A with identical touchdown and stopping results. Camera mode stays
+  cockpit throughout. Video includes the actual touch controls and DOM readouts;
+  recording overhead means these videos are not FPS benchmarks.
+- Validation: all 24 Node suites, 110 selected keyboard/navigation/mobile browser
+  checks, 14 full-scene framing cases and the native-resolution PFD interaction
+  test pass. Actual taps exercise PANEL → MAP → PANEL → HUD → cockpit; resize,
+  tablet and Flight School transitions pass. The comparison page's 16 images,
+  two videos, slider direction and narrow layout pass. The full browser suite,
+  physical phones and software rendering were not validated for this pass.
+- Delivery: high startup/prepared bytes are 14,343,411 / 68,145,354; low is
+  8,779,312 / 20,001,115. Both startup guards pass; low retains 220,688 bytes below
+  its 9 MB guard. No new asset downloads are introduced.
+
+Remaining: motion shimmer, simplified source-model lettering, physical-phone
+validation and runway-level details visible in normal flight. This pass does not
+claim to complete all mobile usability or anti-aliasing work. Evidence:
+`test/phone-cockpit.mjs`, `test/landing-instruments.mjs`,
+`test/landing-experience.mjs`, `test/landing-benchmark.mjs`, retained
+`benchmarks/2026-10-29-landing-*.json` (baseline and flight recordings),
+`benchmarks/2026-10-30-landing-*.json` (final framing, pacing, delivery and validation), and the
+[comparison and flight recordings](output/landing-view-review.html).
 
 ### Review follow-up: automatic checks and preparation responsiveness — 2026-10-29
 

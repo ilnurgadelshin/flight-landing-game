@@ -1,0 +1,138 @@
+{
+  "method": "852×393, full scenery, actual autoland; real time from 400 ft through rollout. Video/capture overhead is not an FPS benchmark.",
+  "stages": [
+    {
+      "name": "final",
+      "time": 80.27500000000995,
+      "agl": 91.43624469968304,
+      "ias": 147.59232711601558,
+      "onGround": false,
+      "view": "cockpit",
+      "fov": 48,
+      "errors": []
+    },
+    {
+      "name": "flare",
+      "time": 100.94166666669307,
+      "agl": 12.153217030553662,
+      "ias": 146.62682957366013,
+      "onGround": false,
+      "view": "cockpit",
+      "fov": 48,
+      "errors": []
+    },
+    {
+      "name": "rollout",
+      "time": 118.59166666670711,
+      "agl": 0.05258010830638726,
+      "ias": 90.95205082472306,
+      "onGround": true,
+      "view": "cockpit",
+      "fov": 48,
+      "errors": []
+    },
+    {
+      "name": "stopped",
+      "time": 137.84166666670563,
+      "agl": 0.03691187895328518,
+      "ias": 3.5076504226974916,
+      "onGround": true,
+      "view": "cockpit",
+      "fov": 48,
+      "errors": []
+    }
+  ],
+  "realTimeStart": 16143,
+  "result": {
+    "outcome": "success",
+    "headline": "Excellent landing, Captain",
+    "score": 100,
+    "grade": "A",
+    "items": [
+      {
+        "label": "Vertical speed at touchdown",
+        "value": "157 fpm",
+        "points": 25,
+        "max": 25,
+        "note": "Greaser! Textbook touchdown.",
+        "ok": true
+      },
+      {
+        "label": "Touchdown point",
+        "value": "485 m past the threshold",
+        "points": 20,
+        "max": 20,
+        "note": "In the aiming zone.",
+        "ok": true
+      },
+      {
+        "label": "Centreline",
+        "value": "0.0 m left",
+        "points": 15,
+        "max": 15,
+        "note": "On the centreline.",
+        "ok": true
+      },
+      {
+        "label": "Airspeed at touchdown",
+        "value": "139 kts (Vref 142)",
+        "points": 15,
+        "max": 15,
+        "note": "Speed on target.",
+        "ok": true
+      },
+      {
+        "label": "Alignment",
+        "value": "0.1° crab, 0.1° bank",
+        "points": 15,
+        "max": 15,
+        "note": "Aligned with the runway, wings level.",
+        "ok": true
+      },
+      {
+        "label": "Configuration",
+        "value": "Flaps 30, gear down",
+        "points": 5,
+        "max": 5,
+        "note": "Landing flaps set.",
+        "ok": true
+      },
+      {
+        "label": "Stopping",
+        "value": "1087 m roll-out",
+        "points": 5,
+        "max": 5,
+        "note": "Stopped after a 1087 m roll-out using reversers, speedbrakes, brakes.",
+        "ok": true
+      }
+    ],
+    "failures": [],
+    "notes": [],
+    "touchdown": {
+      "t": 107.3500000000315,
+      "sink": 0.7987201587369153,
+      "ias": 139.28577915566015,
+      "groundSpeed": 70.02044128712393,
+      "alongRunway": 484.907669896912,
+      "distFromThreshold": 484.907669896912,
+      "lateralOffset": -0.029820059412548873,
+      "bank": -0.0014171908306868065,
+      "pitch": 0.06317049671450733,
+      "crabDeg": -0.09541841611567684,
+      "gearDown": true,
+      "flapIndex": 4,
+      "flapDeg": 30,
+      "surface": "runway",
+      "onRunway": true,
+      "direction": "27",
+      "x": 1006.3476639388577,
+      "z": 0.02748500682627869,
+      "gLoad": 1.198398164701466,
+      "speedbrakeArmed": true,
+      "hull": false
+    },
+    "rollDistance": 1086.5574193129605,
+    "success": true
+  },
+  "errors": []
+}

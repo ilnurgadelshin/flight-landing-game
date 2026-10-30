@@ -154,6 +154,7 @@ export class Presentation {
     if (this.gpws) this.ui.setCaption(this.gpws.caption, this.gpws.captionKind);
     this.ui.setChecklist(g.state === 'flying' ? g.checklist() : null);
     this.navDisplay(frameDt);
+    this.flightDisplay();
     if (this.chart.open) { this.chart.wait -= frameDt; if (this.chart.wait <= 0) { this.chart.wait = CHART_PERIOD; this.drawChart(); } }
   }
 
@@ -163,6 +164,16 @@ export class Presentation {
     if (!!on === this.view.ndView) return;
     this.view.setNdView(on);
     this.audio.play('click');
+  }
+
+  /** PANEL on a short touch screen: a readable, native-resolution PFD. */
+  flightDisplay() {
+    const v = this.view, on = !!v.pfdView;
+    if (on) v.pfdFrame = this.ui.pfdFrame();
+    const el = v.world.renderer.domElement;
+    const ready = on && v.cockpit.focusDisplay === 'pfd' && v.cockpit.focus >= 1;
+    const rect = ready ? v.cockpit.displayScreenRect(v.cockpit.pfdScreen,el.clientWidth,el.clientHeight) : null;
+    v.cockpit.pfdTarget = this.ui.setPfdView(on,rect);
   }
 
   /**

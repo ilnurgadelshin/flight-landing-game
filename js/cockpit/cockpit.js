@@ -317,12 +317,12 @@ export class Cockpit {
     this.camera.position.y -= clamp((st.gLoad - 1) * 0.02, -0.04, 0.04);
     const base = extra.viewPitch === undefined ? this.basePitch : extra.viewPitch;
     this.camera.rotation.set(base - this.lookDown * (extra.panelTilt ?? 40 * DEG) + this.lookPitch, this.lookYaw, 0, 'YXZ');
-    // the instrument view: from the eye's pose to one square in front of the ND in 0.45 s, eased
+    // The instrument view: ease from the eye to the selected display in 0.45 s.
     const step = Math.min(dt, 0.1) / 0.45;
     this.focus = extra.focus ? Math.min(1, this.focus + step) : Math.max(0, this.focus - step);
     if (this.focus === 0) { this.camRig.position.copy(this.eyeLocal); return; }
     const s = this.focus * this.focus * (3 - 2 * this.focus);
-    const p = this.ndFocusPose(extra.focusFov || 30, extra.focusFrame || { h: 0.7, cx: 0.5, cy: 0.5 });
+    const p = this.displayFocusPose(extra.focusFov || 30, extra.focusFrame || { h: 0.7, cx: 0.5, cy: 0.5 });
     this.camRig.position.lerpVectors(this.eyeLocal, p.pos, s);
     this._qLook.copy(this.camera.quaternion);
     this.camera.quaternion.slerpQuaternions(this._qLook, p.quat, s);
@@ -330,12 +330,12 @@ export class Cockpit {
   }
 
   /**
-   * The camera's pose (in the flight deck's frame) looking square at the captain's ND so that its
+   * The camera's pose (in the flight deck's frame) looking square at the selected display so its
    * screen fills `frame.h` of the view's height, centred `frame.cx` of the way across and `frame.cy`
    * of the way down, at a vertical field of view of `fovDeg`.
    */
-  ndFocusPose(fovDeg, frame) {
-    const screen = this.ndScreen;
+  displayFocusPose(fovDeg, frame) {
+    const screen = this.focusDisplay === 'pfd' ? this.pfdScreen : this.ndScreen;
     screen.updateWorldMatrix(true, false); this.root.updateWorldMatrix(true, false);
     const transform = this.root.matrixWorld.clone().invert().multiply(screen.matrixWorld);
     const c = new THREE.Vector3(), q = new THREE.Quaternion(), scale = new THREE.Vector3();
@@ -351,9 +351,11 @@ export class Cockpit {
     return { pos, quat };
   }
 
-  /** The captain's ND screen on the page (CSS px): its bounding box as the camera sees it now. */
-  ndScreenRect(width, height) {
-    const m = this.ndScreen; if (!m) return null;
+  ndScreenRect(width, height) { return this.displayScreenRect(this.ndScreen,width,height); }
+
+  /** A fitted display's projected bounds in CSS pixels. */
+  displayScreenRect(m, width, height) {
+    if (!m) return null;
     m.updateWorldMatrix(true, false);
     let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
     const h = m.geometry.parameters.height / 2, w = m.geometry.parameters.width / 2;
@@ -411,6 +413,13 @@ export class Cockpit {
     this.pfd.fdEnabled = !!extra.fd;
     if (extra.fd) this.pfd.fd = extra.fd;
     this.pfd.draw(st, extra);
+    // Native-resolution vector redraw only while the phone's PANEL view is open.
+    // Reuse exactly the same state, FD and annunciations as the fitted 3D display.
+    if (this.pfdTarget) {
+      const {g,scale} = this.pfdTarget;
+      g.setTransform(scale,0,0,scale,0,0);
+      this.pfd.draw(st,extra,g);
+    }
     this.frame = (this.frame || 0) + 1;
     if (this.frame % 3 === 0) this.standby.draw(st);
     // MCP windows: what the autoland has selected; flown by hand, the speed for the flap setting,

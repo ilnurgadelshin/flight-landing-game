@@ -226,11 +226,38 @@ export class UI {
       || { x: W / 2 - 60, y: px('--sat') + 34, size: 120 };
     return { h: L.size / H, cx: (L.x + L.size / 2) / W, cy: (L.y + L.size / 2) / H };
   }
-  /** The touch controls on screen now (except the stick's open area and MAP, which the ND view hides), as rects. */
-  touchObstacles() {
+  /** Fit the phone's PFD between the controls, including the active stick area. */
+  pfdFrame() {
+    const W=innerWidth,H=innerHeight,css=getComputedStyle(document.documentElement);
+    const px=v=>parseFloat(css.getPropertyValue(v))||0,obstacles=this.touchObstacles(true);
+    const stick=$('t-stick-zone').getBoundingClientRect();
+    obstacles.push({l:stick.left,t:stick.top,r:stick.right,b:stick.bottom});
+    const L=ndViewLayout({W,top:px('--sat')+42,bottom:H-px('--sab')-18,maxSize:.82*H,
+      obstacles,gap:10,left:px('--sal')+22,right:W-px('--sar')-22})
+      || {x:W/2-60,y:px('--sat')+42,size:120};
+    return {h:L.size/H,cx:(L.x+L.size/2)/W,cy:(L.y+L.size/2)/H};
+  }
+
+  setPfdView(on,rect) {
+    if(on!==this._pfdOn){this._pfdOn=on;document.body.classList.toggle('pfd-view',on);}
+    if(!!rect!==this._pfdReady){this._pfdReady=!!rect;document.body.classList.toggle('pfd-ready',!!rect);}
+    if(!rect){this._pfdKey='';return null;}
+    const c=$('pfd-view'),dpr=Math.min(window.devicePixelRatio||1,3);
+    const key=[rect.x,rect.y,rect.w,rect.h,dpr].map(v=>v.toFixed(2)).join(',');
+    if(key!==this._pfdKey){
+      this._pfdKey=key;
+      Object.assign(c.style,{left:`${rect.x}px`,top:`${rect.y}px`,width:`${rect.w}px`,height:`${rect.h}px`});
+      const w=Math.round(rect.w*dpr),h=Math.round(rect.h*dpr);
+      if(c.width!==w||c.height!==h){c.width=w;c.height=h;}
+    }
+    return {g:c.getContext('2d'),scale:c.width/512};
+  }
+
+  /** The controls that an instrument view must leave accessible. */
+  touchObstacles(includeMap = false) {
     const out = [];
     for (const e of document.querySelectorAll('#touch .tbtn, #t-lever-body, #t-rudder')) {
-      if (e.id === 't-map') continue;
+      if (e.id === 't-map' && !includeMap) continue;
       const r = e.getBoundingClientRect();
       if (r.width > 0 && r.height > 0) out.push({ l: r.left, t: r.top, r: r.right, b: r.bottom });
     }

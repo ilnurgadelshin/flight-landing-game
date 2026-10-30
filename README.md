@@ -108,11 +108,17 @@ deployment" in the Actions tab).
 
 ### Views
 
-Both views are first-person, from the captain's eye point, so the runway
-looks the same in each. The choice is remembered on the device.
+Both views are first-person, from the captain's eye point, with different
+framing for the cockpit and head-up display. The choice is remembered on the device.
 
 - **Cockpit**: the 737 flight deck around you, with its displays and levers.
-  The panel look tilts down to the displays and the pedestal.
+  The panel look tilts down to the displays and the pedestal on a computer or tablet.
+  On a short landscape touch screen, the forward view uses a closer lens and higher
+  gaze for landing. Tap **VIEW** once for **PANEL**: it enlarges the captain's primary
+  flight display between the touch controls, drawing its live instruments at the
+  screen's resolution. Tap again for head-up, then again to return to the cockpit.
+  The radio-altitude readout is emphasized in the forward phone view. Views never
+  change automatically during the flare.
 - **Head-up** (`C`, **VIEW**, or the controller's right stick press): the
   flight deck is hidden and a head-up display is drawn over the outside world,
   like X-Plane's "forward with HUD" or a 737 flown on its head-up guidance
@@ -1025,6 +1031,13 @@ Missing- and invalid-data fallback checks load only the scenery data
 warm-up.
 
 ### Automated suites
+
+`npm run test:phone-cockpit` checks full-scene phone/tablet/desktop framing and
+instrument-view interactions, including native-resolution PFD rendering, control
+clearance and transitions through MAP and Flight School. `npm run test:landing-experience`
+flies the full-scene phone autoland through flare and rollout; `RECORD=1` also records
+the visible controls and instruments (requires Playwright's ffmpeg download). These
+are browser emulations, not physical-phone usability or performance measurements.
 
 | Command | What it checks | Time |
 | --- | --- | --- |

@@ -1,0 +1,32 @@
+{
+  "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M2 Pro, Unspecified Version)",
+  "viewport": [
+    852,
+    393
+  ],
+  "worldPixelRatio": 1,
+  "devicePixelRatio": 2,
+  "warmup": 4,
+  "sample": 12,
+  "method": "Actual application RAF, UI, instrument updates and rendering; frozen flight physics; M2 phone viewport emulation, not a physical phone.",
+  "results": [
+    {
+      "mode": "forward",
+      "fps": 60.00233018758011,
+      "p95Ms": 16.700000000000728,
+      "p99Ms": 16.80000000000109
+    },
+    {
+      "mode": "panel",
+      "fps": 60.0028295370378,
+      "p95Ms": 16.700000000004366,
+      "p99Ms": 16.80000000000291
+    },
+    {
+      "mode": "rollout",
+      "fps": 59.919109202576536,
+      "p95Ms": 16.799999999995634,
+      "p99Ms": 16.80000000000291
+    }
+  ]
+}

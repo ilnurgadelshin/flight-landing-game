@@ -13,17 +13,20 @@ const report={date:new Date().toISOString(),baseline,results:[]};
 await fs.mkdir('test/output',{recursive:true});
 try {
  for(const touch of [true,false]) {
-  const page=await browser.newPage({viewport:{width:852,height:393},hasTouch:touch,isMobile:touch,deviceScaleFactor:1}),errors=[];
+  const page=await browser.newPage({viewport:{width:852,height:393},hasTouch:touch,isMobile:touch,deviceScaleFactor:Number(process.env.PHONE_DPR||1)}),errors=[];
   page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
   await page.goto(url+'/?quality=low&drs=0');await page.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});await completeScenery(page);
   const cases=touch?[
    ['phone',852,393,'cockpit',47,21],['storm',852,393,'storm',47,21],
    ['panel',852,393,'panel',47,21],['hud',852,393,'hud',47,21],['map',852,393,'nd',47,21],
-   ['mini',812,265,'cockpit',50,21],['se',667,375,'cockpit',0,0],['android',640,360,'cockpit',0,0],
+   ['mini',812,265,'cockpit',50,21],['mini-panel',812,265,'panel',50,21],
+   ['se',667,375,'cockpit',0,0],['se-short-panel',667,265,'panel',0,0],
+   ['android',640,360,'cockpit',0,0],['android-panel',640,360,'panel',0,0],['android-short-panel',640,304,'panel',0,0],
    ['tablet',1024,768,'cockpit',0,0],
   ]:[['desktop',1440,900,'cockpit',0,0]];
   for(const [name,width,height,mode,side,bottom] of cases) {
    await page.setViewportSize({width,height});
+   await page.waitForFunction(({width,height})=>innerWidth===width&&innerHeight===height&&Math.abs(window.__sim.world.camera.aspect-width/height)<.001,{width,height});
    await page.evaluate(({side,bottom})=>{const css=document.documentElement.style;css.setProperty('--sal',side+'px');css.setProperty('--sar',side+'px');css.setProperty('--sab',bottom+'px');},{side,bottom});
    const stats=await page.evaluate(async({mode})=>{
     const T=await import('/vendor/three.module.js'),{panePoint}=await import('/js/cockpit/glazing.js'),s=window.__sim,w=s.world,c=s.cockpit;
@@ -45,7 +48,8 @@ try {
     const gl=w.renderer.getContext(),ext=gl.getExtension('WEBGL_debug_renderer_info');
     return {gpu:ext?gl.getParameter(ext.UNMASKED_RENDERER_WEBGL):gl.getParameter(gl.RENDERER),fov:w.camera.fov,pitch:w.camera.rotation.x*180/Math.PI,
      windshieldHeight:foot.y-top.y,windshieldTop:top.y,windshieldBottom:foot.y,mcp:project(c.anchors.mcp),pfd:screen(c.pfdScreen),nd:screen(c.ndScreen),
-     hgs:rect('hgs'),speed:rect('g-spd'),altitude:rect('g-alt'),loc:rect('g-loc'),gs:rect('g-gs'),map:rect('nd-view'),mapButton:rect('t-map'),viewLabel:document.getElementById('t-view-mode').textContent,
+     hgs:rect('hgs'),speed:rect('g-spd'),altitude:rect('g-alt'),loc:rect('g-loc'),gs:rect('g-gs'),map:rect('nd-view'),mapButton:rect('t-map'),
+     flight:document.getElementById('pfd-view')?rect('pfd-view'):null,stick:rect('t-stick-zone'),obstacles:s.ui.touchObstacles(),viewLabel:document.getElementById('t-view-mode').textContent,
      eye:c.eyeLocal.toArray(),errors:w.assetErrors,drawCockpit:w.drawCockpit};
    },{mode});
    report.results.push({name,width,height,mode,...stats});
@@ -53,23 +57,28 @@ try {
    if(!baseline) {
     const compact=touch&&height<=600;
     if(mode==='cockpit'||mode==='storm') {
-     assert.ok(Math.abs(stats.fov-(compact?48:58))<.01);
-     assert.ok(Math.abs(stats.pitch+(compact?11:14))<.1);
-     for(const points of [stats.pfd,stats.nd])assert.ok(points.every(p=>p.x>0&&p.x<width&&p.y>0&&p.y<height),'Primary displays stay on screen');
+     assert.ok(Math.abs(stats.fov-(width/height<1.35?70:compact?40:58))<.01,`${name}: field of view ${stats.fov}`);
+     assert.ok(Math.abs(stats.pitch+(compact?7:14))<.1);
+     if(!compact)for(const points of [stats.pfd,stats.nd])assert.ok(points.every(p=>p.x>0&&p.x<width&&p.y>0&&p.y<height),'Desktop/tablet displays stay on screen');
      if(compact){
-      assert.ok(stats.windshieldHeight/height>.27,'Useful forward windshield band');
+      assert.ok(stats.windshieldHeight/height>.38,'Forward windshield uses at least 38% of the short screen');
       assert.ok(stats.speed.b<stats.mcp.y-12&&stats.altitude.b<stats.mcp.y-12,'Readout columns clear the MCP');
       for(const r of [stats.speed,stats.altitude])assert.ok(r.visible&&r.l>=side&&r.r<=width-side&&r.t>=0&&r.b<=height-bottom);
       for(const points of [stats.pfd,stats.nd])assert.ok(stats.mapButton.r<Math.min(...points.map(p=>p.x)),'MAP clears the captain displays');
      }
     }
     if(mode==='panel'){
-     assert.ok(Math.abs(stats.fov-58)<.01);assert.ok(!stats.hgs.visible);assert.equal(stats.viewLabel,'PANEL');
-     for(const points of [stats.pfd,stats.nd])assert.ok(points.every(p=>p.y>height*.15&&p.y<height*.7),'PANEL frames instruments, not the floor');
+     assert.ok(!stats.hgs.visible);assert.equal(stats.viewLabel,'PANEL');
+     assert.ok(stats.flight.visible&&stats.flight.h>=170,'PANEL gives the primary display at least 170 CSS pixels');
+     assert.ok(stats.flight.l>=side&&stats.flight.r<=width-side&&stats.flight.t>=0&&stats.flight.b<=height-bottom,'PFD respects safe areas');
+     assert.ok(stats.mapButton.visible,'MAP stays directly accessible from PANEL');
+     for(const o of [...stats.obstacles,stats.stick,stats.mapButton])assert.ok(stats.flight.r<=o.l+1||stats.flight.l>=o.r-1||stats.flight.b<=o.t+1||stats.flight.t>=o.b-1,'PFD leaves the controls and stick area clear');
     }
     if(mode==='nd'){assert.ok(stats.map.visible&&stats.hgs.visible);assert.ok(stats.speed.r<=stats.map.l&&stats.altitude.l>=stats.map.r);}
     if(mode==='hud'){assert.equal(stats.drawCockpit,false);assert.ok(stats.hgs.visible);}
    }
+   // Camera settling above advances simulation time; CSS backdrop fades use wall time.
+   await page.waitForTimeout(500);await page.evaluate(()=>window.__sim.drawNow());
    await page.screenshot({path:`test/output/${label}-${name}.png`});
   }
   assert.deepEqual(errors,[]);await page.close();

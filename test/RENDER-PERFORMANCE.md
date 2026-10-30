@@ -3037,3 +3037,35 @@ Startup transfer: 14,339,711 high / 8,775,612 low bytes (+1,911 each). Prepared 
 its startup guard; no new asset is delivered. Evidence is retained under
 `benchmarks/2026-10-29-preparation-*.json`. `test:woodland-preparation` is available
 for the responsiveness probe; its default renderer is also SwiftShader.
+
+## Phone landing view and enlarged instruments — 2026-10-30
+
+Baseline: `774b561`. Sequential runs on Apple M2 Pro / Chromium 141 / ANGLE Metal,
+852×393 touch viewport, forced low at world ratio 1 and device ratio 2. Four-second
+warm-up and twelve-second samples include the actual application RAF, presentation,
+instrument redraws and renderer, with flight physics frozen. Video recording was off.
+
+| View | Before / after FPS | Before / after p95 ms |
+| --- | ---: | ---: |
+| Forward cockpit | 60.0 / 60.0 | 16.7 / 16.7 |
+| PANEL | 60.0 / 60.0 | 16.7 / 16.7 |
+| Rollout | 60.0 / 59.9 | 16.8 / 16.8 |
+
+All samples are display-capped. This establishes no observed pacing regression on
+this Mac, not zero added work or physical-phone performance. PANEL adds a second
+2D vector draw of the same PFD only while open. Its backing canvas follows device
+resolution up to 3×; it does not raise world pixel ratio. There is no new asset,
+scenery geometry, tree, light or 3D rendering pass. The closer forward lens changes
+which existing objects are visible, so this is an experience comparison, not an
+isolated GPU microbenchmark.
+
+The preceding cumulative high-tier comparison (34.7 / 30.1 / 36.2 FPS, captain /
+upper approach / storm at 1440×900 and 1.5×) remains relevant and is not replaced by
+these smaller low-tier samples. No new high-tier optimization is claimed. Physical
+phones, battery cost and other GPU drivers remain unmeasured.
+
+Evidence: `test/landing-benchmark.mjs`, retained
+`benchmarks/2026-10-29-landing-benchmark-before.json` and
+`benchmarks/2026-10-30-landing-benchmark-after.json`. Separate
+`test/landing-experience.mjs` recordings exercise the actual autoland and full scenery
+through flare and rollout; video and screenshot overhead exclude them from FPS claims.

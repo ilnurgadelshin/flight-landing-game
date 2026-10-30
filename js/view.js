@@ -3,8 +3,8 @@
 // It reads the game and never changes it.
 //
 // Two first-person views from the captain's eye point:
-//   cockpit   the flight deck around the eye, looking 14° down (11° on short touch screens);
-//             PANEL tilts further down to the instruments
+//   cockpit   the flight deck around the eye, looking 14° down (7° on short touch screens);
+//             PANEL tilts down on desktop, or enlarges the PFD on a short touch screen
 //   head-up   the flight deck hidden and a head-up display over the outside world (js/hud.js), like
 //             X-Plane's "forward with HUD" or a 737 flown on its head-up guidance system. The eye
 //             looks 6° below the nose, so on the approach the runway is near the middle of the
@@ -75,7 +75,13 @@ export class GameView {
   /** Lean in to the navigation display, or back to the view chosen. */
   setNdView(on) { this.ndView = !!on && this.game.state !== 'school'; }
   /** The camera is in front of the ND (the move has finished). */
-  get ndSettled() { return this.ndView && this.cockpit.focus >= 1; }
+  get ndSettled() { return this.ndView && this.cockpit.focusDisplay === 'nd' && this.cockpit.focus >= 1; }
+
+  /** Short touch screens use PANEL to read the captain's primary flight display. */
+  get pfdView() {
+    return !this.ndView && this.mode === 'cockpit' && this.look.down && this.compactCockpit()
+      && (this.game.state === 'flying' || this.game.state === 'paused');
+  }
 
   setMode(mode) {
     if (mode !== 'cockpit' && mode !== 'hud') return;
@@ -122,6 +128,11 @@ export class GameView {
     const at = g.controls.autothrottle, atSpd = at.engaged && !st.onGround ? commandSpeed(inp, st) : null;
     // the flight deck is drawn while the camera leans in to the ND or back out of it, and the field
     // of view narrows with the move (it eases: cockpit.focus)
+    const focusDisplay = this.ndView ? 'nd' : this.pfdView ? 'pfd' : null;
+    if (focusDisplay && focusDisplay !== this.cockpit.focusDisplay) {
+      this.cockpit.focus = 0;
+      this.cockpit.focusDisplay = focusDisplay;
+    }
     const f = this.cockpit.focus, s = f * f * (3 - 2 * f);
     const hud = this.shown === 'hud' && f === 0, cam = this.world.camera;
     const headUp = this.mode === 'hud' && this.game.state !== 'school';
@@ -129,11 +140,11 @@ export class GameView {
     // 100-degree wide-angle lens that shrinks the runway and exaggerates pillars.
     // On a phone the wide desktop lens makes both the windshield and instruments tiny.
     // A narrower lens and a slightly higher gaze use the same source-model eye point.
-    // PANEL widens the lens and tilts to the instruments, rather than down to the
-    // floor. School keeps its original camera for highlights; MAP frames itself.
+    // PANEL frames the primary display on a phone. School keeps its original
+    // camera for highlights; desktop PANEL and MAP retain their framing.
     const compact = this.compactCockpit() && g.state !== 'school';
-    const deckFov = cam.aspect < 1.35 ? 70 : COCKPIT_FOV - (compact ? 10 * (1 - this.cockpit.lookDown) : 0);
-    const deckPitch = COCKPIT_PITCH + (compact ? 3 * DEG : 0);
+    const deckFov = cam.aspect < 1.35 ? 70 : compact ? 40 : COCKPIT_FOV;
+    const deckPitch = COCKPIT_PITCH + (compact ? 7 * DEG : 0);
     const fov = (headUp ? hudFov(cam.aspect) : deckFov) * (1 - s) + ND_FOV * s;
     if (Math.abs(cam.fov - fov) > 1e-3) { cam.fov = fov; cam.updateProjectionMatrix(); }
     this.world.drawCockpit = !hud;
@@ -144,8 +155,8 @@ export class GameView {
       rollMode: fma ? fma.roll : (g.mode === 'training' ? 'FD' : ''), pitchMode: fma ? fma.pitch : (g.mode === 'training' ? 'FD' : ''),
       mcp, efis: g.efis, nd: g.ndOpts(),
       hidden: hud, viewPitch: headUp ? HUD_PITCH : deckPitch,
-      panelTilt: (compact && !headUp ? 16 : 40) * DEG,
-      focus: this.ndView, focusFov: ND_FOV, focusFrame: this.ndFrame,
+      panelTilt: (compact && !headUp ? 0 : 40) * DEG,
+      focus: !!focusDisplay, focusFov: ND_FOV, focusFrame: this.pfdView ? this.pfdFrame : this.ndFrame,
     });
     // the speed trend for the display's acceleration caret (kt per simulated second, smoothed)
     const tr = this.speedTrend;
