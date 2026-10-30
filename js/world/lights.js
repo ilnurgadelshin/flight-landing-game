@@ -13,6 +13,7 @@ const VERT = /* glsl */`
   attribute float bright;
   varying vec3 vColor;
   varying float vBright;
+  varying float vCoverage;
   varying float vDepth;
   varying vec3 vCloudDir;
   uniform float uPixelRatio;
@@ -33,7 +34,13 @@ const VERT = /* glsl */`
     float signal = smoothstep(2.0, 3.4, size);
     float minSize = mix(3.0, mix(0.65, 1.8, signal), uDaylight);
     s *= mix(1.0, mix(0.62, 0.95, signal), uDaylight);
-    gl_PointSize = clamp(s, minSize * uPixelRatio, 26.0 * uPixelRatio) * (bright > 0.01 ? 1.0 : 0.0);
+    s = clamp(s, minSize * uPixelRatio, 26.0 * uPixelRatio);
+    // Sample even subpixel lamps with a four-framebuffer-pixel soft footprint.
+    // Scale opacity by area so the filter does not make distant lamps brighter.
+    // Retaining Points keeps the existing one-vertex, one-draw-call budget.
+    float footprint = max(s, 4.0);
+    vCoverage = s * s / (footprint * footprint);
+    gl_PointSize = footprint * (bright > 0.01 ? 1.0 : 0.0);
     gl_Position = projectionMatrix * mvPosition;
     #include <logdepthbuf_vertex>
   }
@@ -42,6 +49,7 @@ const FRAG = /* glsl */`
   ${CLOUD_LAYER_GLSL}
   varying vec3 vColor;
   varying float vBright;
+  varying float vCoverage;
   varying float vDepth;
   varying vec3 vCloudDir;
   uniform float uFogDensity;
@@ -54,9 +62,9 @@ const FRAG = /* glsl */`
     vec2 c = gl_PointCoord - 0.5;
     float r = length(c) * 2.0;
     if (r > 1.0) discard;
-    float core = smoothstep(1.0, 0.15, r);
-    float halo = smoothstep(1.0, 0.0, r) * 0.35;
-    float a = (core + halo) * vBright;
+    float core = (1.0 - smoothstep(0.15, 1.0, r));
+    float halo = (1.0 - smoothstep(0.0, 1.0, r)) * 0.35;
+    float a = (core + halo) * vBright * vCoverage;
     // lights punch through fog better than terrain (Koschmieder-ish) but still fade
     float fog = exp(-uFogDensity * uFogDensity * vDepth * vDepth * 0.55);
     // No visibility floor: it made the whole runway glow through opaque cloud.

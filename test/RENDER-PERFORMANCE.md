@@ -3069,3 +3069,45 @@ Evidence: `test/landing-benchmark.mjs`, retained
 `benchmarks/2026-10-30-landing-benchmark-after.json`. Separate
 `test/landing-experience.mjs` recordings exercise the actual autoland and full scenery
 through flare and rollout; video and screenshot overhead exclude them from FPS claims.
+
+## Filtered airfield lights — 2026-10-30
+
+Baseline: `877e462`. The light shader now filters subpixel lamps across at least
+four framebuffer pixels, with opacity weighted by the original footprint area.
+It retains the existing point draw, vertices, scene geometry, asset downloads and
+rendering passes. This adds fragment work; counts alone do not establish zero cost.
+
+Sequential Apple M2 Pro / Chromium 141 / ANGLE Metal runs: 1440×900, high at 1.5×,
+low at 1×, 4 s warm-up plus 12 s samples, without video. The existing benchmark
+freezes physics and measures rendering/scenery updates. Low is desktop rendering
+at the low tier, not a physical-phone measurement.
+
+| Tier / scene | Before / after FPS | Before / after p95 ms |
+| --- | ---: | ---: |
+| High / captain | 35.4 / 36.9 | 33.4 / 33.4 |
+| High / upper approach | 32.4 / 33.1 | 33.4 / 33.4 |
+| High / storm | 40.2 / 38.8 | 33.4 / 33.4 |
+| High / rollout | 38.6 / 38.7 | 33.4 / 33.4 |
+| Low / captain | 60.0 / 60.0 | 16.8 / 16.7 |
+| Low / upper approach | 58.0 / 59.8 | 16.8 / 16.8 |
+| Low / storm | 60.0 / 58.6 | 16.8 / 16.8 |
+| Low / rollout | 60.0 / 46.9 | 16.7 / 33.4 |
+| Low / rollout, isolated repeat | 60.0 / 60.0 | 16.7 / 16.7 |
+
+The slow low-tier rollout sample was investigated with a separate paired repeat;
+it did not reproduce. Both results are retained. High results move in both
+directions, and low is mostly display-capped. No speedup or zero-cost claim is
+supported. Draw and triangle counts match within each paired scene.
+
+The October 28 cumulative comparison remains the evidence for the cost of scenery
+expansion: historical 37.8 / 33.9 / 40.1 versus corrected 34.7 / 30.1 / 36.2 FPS
+for captain / upper approach / storm. These differently dated runs cannot show
+that cost has disappeared. This shader pass adds no geographic coverage or trees.
+Physical phones, power consumption and other graphics drivers remain unmeasured.
+
+Delivery grows by 423 source bytes. High startup/prepared is 14,343,834 / 68,145,777;
+low is 8,779,735 / 20,001,538, leaving 220,265 bytes below the 9 MB startup guard.
+Evidence is in `benchmarks/2026-10-30-landing-lights-benchmark-*.json`,
+`benchmarks/2026-10-30-landing-lights-rollout-*.json`, and
+`benchmarks/2026-10-30-landing-lights-delivery.json`. Separate sampling tests,
+matched videos and cloud/graphics checks are documented in `VISUAL-AUDIT.md`.

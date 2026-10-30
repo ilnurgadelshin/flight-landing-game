@@ -589,6 +589,11 @@ edge, centreline and touchdown-zone lights, a PAPI computed from the pilot's
 eye position, taxiways, terminal buildings, photographed countryside, woodland, clouds, rain, fog and
 lightning.
 
+Airfield lights use a small, opacity-weighted pixel footprint so distant steady
+lamps remain visible between pixels as the camera moves. Daytime runway lamps are
+more subdued; PAPI colours and intentional flash sequences retain their behaviour.
+The filter keeps the existing single point draw and adds no asset downloads.
+
 The airport's original architecture (`js/world/airport-architecture.js`) connects five
 stepped departure halls with glazed galleries, recessed fronts and structural braces.
 Pitched hangars and an eight-sided control cab replace the basic boxes/cylinders.
@@ -1039,6 +1044,13 @@ flies the full-scene phone autoland through flare and rollout; `RECORD=1` also r
 the visible controls and instruments (requires Playwright's ffmpeg download). These
 are browser emulations, not physical-phone usability or performance measurements.
 
+`npm run test:landing-lights` checks steady-lamp brightness and position during
+subpixel motion, depth/cloud occlusion and PAPI colours, then captures full-scene
+final/flare/night/storm views on both tiers. `RECORD_VIDEO=1` records their matched
+camera paths. These checks default to SwiftShader; hardware pacing is measured
+separately by `test/render-benchmark.mjs`.
+The isolated light-sampling regression also runs in `npm run test:all`.
+
 | Command | What it checks | Time |
 | --- | --- | --- |
 | `npm test` | Node, no browser: physics (71 checks in 13 groups), the flight model against published data (22 checks in 7 groups), phone features (59 checks in 7 groups), game controllers (40 checks in 6 groups), the sky model (12 checks in 3 groups), the head-up display (23 checks in 5 groups), navigation (57 checks in 4 groups) and the game's rules (99 checks in 10 groups), below | ~10 s |
@@ -1046,7 +1058,7 @@ are browser emulations, not physical-phone usability or performance measurements
 | `npm run test:e2e:quick` | The same without the four landings flown in real time (E9, E11, E13, E15) | ~6 min |
 | `node test/e2e.mjs only=<groups>` | E1 plus the groups listed, in one process, comma-separated: `menu`, `keys`, `school`, `land`, `fail`, `ga`, `maps`, `fps`, `keyboard`, `mobile`, `touchland`, `tilt`, `tiltland`, `gamepad`, `padland`, `graphics` (e.g. `only=tilt,tiltland`) | 10 s – 3 min each |
 | `npm run test:e2e:serial` | All browser groups in one process | ~25 min |
-| `npm run test:all` | The Node suites, then the browser suite in parallel | ~13–17 min |
+| `npm run test:all` | The Node suites, light-sampling regression, then the browser suite in parallel | ~13–17 min |
 | `node test/robustness.mjs` | 18 short-final autolands, crosswind and storm with 9 gust seeds each; prints each result as a report, not pass/fail | under a minute |
 
 **What to run when.** After any change, run `npm test` (seconds). While working on one area,

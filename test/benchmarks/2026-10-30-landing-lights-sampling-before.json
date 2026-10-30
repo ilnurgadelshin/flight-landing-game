@@ -1,0 +1,669 @@
+{
+  "date": "2026-10-30",
+  "baseline": "877e462",
+  "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M2 Pro, Unspecified Version)",
+  "lights": 1052,
+  "placementHash": "549fe6b5",
+  "results": [
+    {
+      "dpr": 1,
+      "samples": 0,
+      "night": false,
+      "size": 0.75,
+      "distance": 1400,
+      "meanFlux": 76.18181818181819,
+      "fluxRange": 2.0083532219570404,
+      "centerError": 128
+    },
+    {
+      "dpr": 1,
+      "samples": 0,
+      "night": false,
+      "size": 0.75,
+      "distance": 4000,
+      "meanFlux": 76.18181818181819,
+      "fluxRange": 2.0083532219570404,
+      "centerError": 128,
+      "frames": [
+        {
+          "shift": 0,
+          "flux": 0,
+          "centroid": null
+        },
+        {
+          "shift": 0.0625,
+          "flux": 5,
+          "centroid": 64.5
+        },
+        {
+          "shift": 0.125,
+          "flux": 23,
+          "centroid": 64.5
+        },
+        {
+          "shift": 0.1875,
+          "flux": 50,
+          "centroid": 64.5
+        },
+        {
+          "shift": 0.25,
+          "flux": 81,
+          "centroid": 64.5
+        },
+        {
+          "shift": 0.3125,
+          "flux": 111,
+          "centroid": 64.5
+        },
+        {
+          "shift": 0.375,
+          "flux": 134,
+          "centroid": 64.5
+        },
+        {
+          "shift": 0.4375,
+          "flux": 148,
+          "centroid": 64.5
+        },
+        {
+          "shift": 0.5,
+          "flux": 153,
+          "centroid": 64.5
+        },
+        {
+          "shift": 0.5625,
+          "flux": 148,
+          "centroid": 64.5
+        },
+        {
+          "shift": 0.625,
+          "flux": 134,
+          "centroid": 64.5
+        },
+        {
+          "shift": 0.6875,
+          "flux": 111,
+          "centroid": 64.5
+        },
+        {
+          "shift": 0.75,
+          "flux": 81,
+          "centroid": 64.5
+        },
+        {
+          "shift": 0.8125,
+          "flux": 50,
+          "centroid": 64.5
+        },
+        {
+          "shift": 0.875,
+          "flux": 23,
+          "centroid": 64.5
+        },
+        {
+          "shift": 0.9375,
+          "flux": 5,
+          "centroid": 64.5
+        },
+        {
+          "shift": 1,
+          "flux": 0,
+          "centroid": null
+        },
+        {
+          "shift": 1.0625,
+          "flux": 5,
+          "centroid": 65.5
+        },
+        {
+          "shift": 1.125,
+          "flux": 23,
+          "centroid": 65.5
+        },
+        {
+          "shift": 1.1875,
+          "flux": 50,
+          "centroid": 65.5
+        },
+        {
+          "shift": 1.25,
+          "flux": 81,
+          "centroid": 65.5
+        },
+        {
+          "shift": 1.3125,
+          "flux": 111,
+          "centroid": 65.5
+        },
+        {
+          "shift": 1.375,
+          "flux": 134,
+          "centroid": 65.5
+        },
+        {
+          "shift": 1.4375,
+          "flux": 148,
+          "centroid": 65.5
+        },
+        {
+          "shift": 1.5,
+          "flux": 153,
+          "centroid": 65.5
+        },
+        {
+          "shift": 1.5625,
+          "flux": 148,
+          "centroid": 65.5
+        },
+        {
+          "shift": 1.625,
+          "flux": 134,
+          "centroid": 65.5
+        },
+        {
+          "shift": 1.6875,
+          "flux": 111,
+          "centroid": 65.5
+        },
+        {
+          "shift": 1.75,
+          "flux": 81,
+          "centroid": 65.5
+        },
+        {
+          "shift": 1.8125,
+          "flux": 50,
+          "centroid": 65.5
+        },
+        {
+          "shift": 1.875,
+          "flux": 23,
+          "centroid": 65.5
+        },
+        {
+          "shift": 1.9375,
+          "flux": 5,
+          "centroid": 65.5
+        },
+        {
+          "shift": 2,
+          "flux": 0,
+          "centroid": null
+        }
+      ]
+    },
+    {
+      "dpr": 1,
+      "samples": 0,
+      "night": false,
+      "size": 1.1,
+      "distance": 1400,
+      "meanFlux": 76.18181818181819,
+      "fluxRange": 2.0083532219570404,
+      "centerError": 128
+    },
+    {
+      "dpr": 1,
+      "samples": 0,
+      "night": false,
+      "size": 1.1,
+      "distance": 4000,
+      "meanFlux": 76.18181818181819,
+      "fluxRange": 2.0083532219570404,
+      "centerError": 128
+    },
+    {
+      "dpr": 1,
+      "samples": 0,
+      "night": false,
+      "size": 3.4,
+      "distance": 1400,
+      "meanFlux": 479.06060606060606,
+      "fluxRange": 0.02713644126763236,
+      "centerError": 0.04583333333333428
+    },
+    {
+      "dpr": 1,
+      "samples": 0,
+      "night": false,
+      "size": 3.4,
+      "distance": 4000,
+      "meanFlux": 155.6060606060606,
+      "fluxRange": 0.08354430379746836,
+      "centerError": 0.2048387096774178
+    },
+    {
+      "dpr": 1,
+      "samples": 0,
+      "night": true,
+      "size": 0.75,
+      "distance": 1400,
+      "meanFlux": 764.060606060606,
+      "fluxRange": 0.09685095581819625,
+      "centerError": 0.06716537966538283
+    },
+    {
+      "dpr": 1,
+      "samples": 0,
+      "night": true,
+      "size": 0.75,
+      "distance": 4000,
+      "meanFlux": 764.060606060606,
+      "fluxRange": 0.09685095581819625,
+      "centerError": 0.06716537966538283
+    },
+    {
+      "dpr": 1,
+      "samples": 0,
+      "night": true,
+      "size": 1.1,
+      "distance": 1400,
+      "meanFlux": 764.060606060606,
+      "fluxRange": 0.09685095581819625,
+      "centerError": 0.06716537966538283
+    },
+    {
+      "dpr": 1,
+      "samples": 0,
+      "night": true,
+      "size": 1.1,
+      "distance": 4000,
+      "meanFlux": 764.060606060606,
+      "fluxRange": 0.09685095581819625,
+      "centerError": 0.06716537966538283
+    },
+    {
+      "dpr": 1,
+      "samples": 0,
+      "night": true,
+      "size": 3.4,
+      "distance": 1400,
+      "meanFlux": 994.1212121212121,
+      "fluxRange": 0.016094616838383223,
+      "centerError": 0.06100000000000705
+    },
+    {
+      "dpr": 1,
+      "samples": 0,
+      "night": true,
+      "size": 3.4,
+      "distance": 4000,
+      "meanFlux": 764.060606060606,
+      "fluxRange": 0.09685095581819625,
+      "centerError": 0.06716537966538283
+    },
+    {
+      "dpr": 1,
+      "samples": 4,
+      "night": false,
+      "size": 0.75,
+      "distance": 1400,
+      "meanFlux": 46.72727272727273,
+      "fluxRange": 2.4610894941634243,
+      "centerError": 128
+    },
+    {
+      "dpr": 1,
+      "samples": 4,
+      "night": false,
+      "size": 0.75,
+      "distance": 4000,
+      "meanFlux": 46.72727272727273,
+      "fluxRange": 2.4610894941634243,
+      "centerError": 128
+    },
+    {
+      "dpr": 1,
+      "samples": 4,
+      "night": false,
+      "size": 1.1,
+      "distance": 1400,
+      "meanFlux": 46.72727272727273,
+      "fluxRange": 2.4610894941634243,
+      "centerError": 128
+    },
+    {
+      "dpr": 1,
+      "samples": 4,
+      "night": false,
+      "size": 1.1,
+      "distance": 4000,
+      "meanFlux": 46.72727272727273,
+      "fluxRange": 2.4610894941634243,
+      "centerError": 128
+    },
+    {
+      "dpr": 1,
+      "samples": 4,
+      "night": false,
+      "size": 3.4,
+      "distance": 1400,
+      "meanFlux": 477.42424242424244,
+      "fluxRange": 0.023040304665185654,
+      "centerError": 0.062236286919826966
+    },
+    {
+      "dpr": 1,
+      "samples": 4,
+      "night": false,
+      "size": 3.4,
+      "distance": 4000,
+      "meanFlux": 150.06060606060606,
+      "fluxRange": 0.19325525040387723,
+      "centerError": 0.22368421052631504
+    },
+    {
+      "dpr": 1,
+      "samples": 4,
+      "night": true,
+      "size": 0.75,
+      "distance": 1400,
+      "meanFlux": 742.6060606060606,
+      "fluxRange": 0.1090753284909818,
+      "centerError": 0.08446652719665337
+    },
+    {
+      "dpr": 1,
+      "samples": 4,
+      "night": true,
+      "size": 0.75,
+      "distance": 4000,
+      "meanFlux": 742.6060606060606,
+      "fluxRange": 0.1090753284909818,
+      "centerError": 0.08446652719665337
+    },
+    {
+      "dpr": 1,
+      "samples": 4,
+      "night": true,
+      "size": 1.1,
+      "distance": 1400,
+      "meanFlux": 742.6060606060606,
+      "fluxRange": 0.1090753284909818,
+      "centerError": 0.08446652719665337
+    },
+    {
+      "dpr": 1,
+      "samples": 4,
+      "night": true,
+      "size": 1.1,
+      "distance": 4000,
+      "meanFlux": 742.6060606060606,
+      "fluxRange": 0.1090753284909818,
+      "centerError": 0.08446652719665337
+    },
+    {
+      "dpr": 1,
+      "samples": 4,
+      "night": true,
+      "size": 3.4,
+      "distance": 1400,
+      "meanFlux": 990.4545454545455,
+      "fluxRange": 0.020192748967416244,
+      "centerError": 0.07498738647829839
+    },
+    {
+      "dpr": 1,
+      "samples": 4,
+      "night": true,
+      "size": 3.4,
+      "distance": 4000,
+      "meanFlux": 742.6060606060606,
+      "fluxRange": 0.1090753284909818,
+      "centerError": 0.08446652719665337
+    },
+    {
+      "dpr": 1.5,
+      "samples": 0,
+      "night": false,
+      "size": 0.75,
+      "distance": 1400,
+      "meanFlux": 76.18181818181819,
+      "fluxRange": 2.0083532219570404,
+      "centerError": 128
+    },
+    {
+      "dpr": 1.5,
+      "samples": 0,
+      "night": false,
+      "size": 0.75,
+      "distance": 4000,
+      "meanFlux": 76.18181818181819,
+      "fluxRange": 2.0083532219570404,
+      "centerError": 128
+    },
+    {
+      "dpr": 1.5,
+      "samples": 0,
+      "night": false,
+      "size": 1.1,
+      "distance": 1400,
+      "meanFlux": 78.48484848484848,
+      "fluxRange": 1.9876447876447876,
+      "centerError": 128
+    },
+    {
+      "dpr": 1.5,
+      "samples": 0,
+      "night": false,
+      "size": 1.1,
+      "distance": 4000,
+      "meanFlux": 76.18181818181819,
+      "fluxRange": 2.0083532219570404,
+      "centerError": 128
+    },
+    {
+      "dpr": 1.5,
+      "samples": 0,
+      "night": false,
+      "size": 3.4,
+      "distance": 1400,
+      "meanFlux": 1074.3030303030303,
+      "fluxRange": 0.018616721200496445,
+      "centerError": 0.029189879294335697
+    },
+    {
+      "dpr": 1.5,
+      "samples": 0,
+      "night": false,
+      "size": 3.4,
+      "distance": 4000,
+      "meanFlux": 334.3333333333333,
+      "fluxRange": 0.0897308075772682,
+      "centerError": 0.06098484848484986
+    },
+    {
+      "dpr": 1.5,
+      "samples": 0,
+      "night": true,
+      "size": 0.75,
+      "distance": 1400,
+      "meanFlux": 1781.1515151515152,
+      "fluxRange": 0.003930041852393752,
+      "centerError": 0.008738068500846907
+    },
+    {
+      "dpr": 1.5,
+      "samples": 0,
+      "night": true,
+      "size": 0.75,
+      "distance": 4000,
+      "meanFlux": 1781.1515151515152,
+      "fluxRange": 0.003930041852393752,
+      "centerError": 0.008738068500846907
+    },
+    {
+      "dpr": 1.5,
+      "samples": 0,
+      "night": true,
+      "size": 1.1,
+      "distance": 1400,
+      "meanFlux": 1781.1515151515152,
+      "fluxRange": 0.003930041852393752,
+      "centerError": 0.008738068500846907
+    },
+    {
+      "dpr": 1.5,
+      "samples": 0,
+      "night": true,
+      "size": 1.1,
+      "distance": 4000,
+      "meanFlux": 1781.1515151515152,
+      "fluxRange": 0.003930041852393752,
+      "centerError": 0.008738068500846907
+    },
+    {
+      "dpr": 1.5,
+      "samples": 0,
+      "night": true,
+      "size": 3.4,
+      "distance": 1400,
+      "meanFlux": 2316.242424242424,
+      "fluxRange": 0.011225077188759225,
+      "centerError": 0.025595238095235118
+    },
+    {
+      "dpr": 1.5,
+      "samples": 0,
+      "night": true,
+      "size": 3.4,
+      "distance": 4000,
+      "meanFlux": 1781.1515151515152,
+      "fluxRange": 0.003930041852393752,
+      "centerError": 0.008738068500846907
+    },
+    {
+      "dpr": 1.5,
+      "samples": 4,
+      "night": false,
+      "size": 0.75,
+      "distance": 1400,
+      "meanFlux": 46.72727272727273,
+      "fluxRange": 2.4610894941634243,
+      "centerError": 128
+    },
+    {
+      "dpr": 1.5,
+      "samples": 4,
+      "night": false,
+      "size": 0.75,
+      "distance": 4000,
+      "meanFlux": 46.72727272727273,
+      "fluxRange": 2.4610894941634243,
+      "centerError": 128
+    },
+    {
+      "dpr": 1.5,
+      "samples": 4,
+      "night": false,
+      "size": 1.1,
+      "distance": 1400,
+      "meanFlux": 67.63636363636364,
+      "fluxRange": 2.3064516129032255,
+      "centerError": 128
+    },
+    {
+      "dpr": 1.5,
+      "samples": 4,
+      "night": false,
+      "size": 1.1,
+      "distance": 4000,
+      "meanFlux": 46.72727272727273,
+      "fluxRange": 2.4610894941634243,
+      "centerError": 128
+    },
+    {
+      "dpr": 1.5,
+      "samples": 4,
+      "night": false,
+      "size": 3.4,
+      "distance": 1400,
+      "meanFlux": 1071.090909090909,
+      "fluxRange": 0.019606178916992022,
+      "centerError": 0.031045751633982377
+    },
+    {
+      "dpr": 1.5,
+      "samples": 4,
+      "night": false,
+      "size": 3.4,
+      "distance": 4000,
+      "meanFlux": 329.6060606060606,
+      "fluxRange": 0.11832306702215684,
+      "centerError": 0.07096153846153186
+    },
+    {
+      "dpr": 1.5,
+      "samples": 4,
+      "night": true,
+      "size": 0.75,
+      "distance": 1400,
+      "meanFlux": 1777.939393939394,
+      "fluxRange": 0.005624488682847014,
+      "centerError": 0.012005649717508504
+    },
+    {
+      "dpr": 1.5,
+      "samples": 4,
+      "night": true,
+      "size": 0.75,
+      "distance": 4000,
+      "meanFlux": 1777.939393939394,
+      "fluxRange": 0.005624488682847014,
+      "centerError": 0.012005649717508504
+    },
+    {
+      "dpr": 1.5,
+      "samples": 4,
+      "night": true,
+      "size": 1.1,
+      "distance": 1400,
+      "meanFlux": 1777.939393939394,
+      "fluxRange": 0.005624488682847014,
+      "centerError": 0.012005649717508504
+    },
+    {
+      "dpr": 1.5,
+      "samples": 4,
+      "night": true,
+      "size": 1.1,
+      "distance": 4000,
+      "meanFlux": 1777.939393939394,
+      "fluxRange": 0.005624488682847014,
+      "centerError": 0.012005649717508504
+    },
+    {
+      "dpr": 1.5,
+      "samples": 4,
+      "night": true,
+      "size": 3.4,
+      "distance": 1400,
+      "meanFlux": 2314.4848484848485,
+      "fluxRange": 0.01296184765246537,
+      "centerError": 0.03053207628956045
+    },
+    {
+      "dpr": 1.5,
+      "samples": 4,
+      "night": true,
+      "size": 3.4,
+      "distance": 4000,
+      "meanFlux": 1777.939393939394,
+      "fluxRange": 0.005624488682847014,
+      "centerError": 0.012005649717508504
+    }
+  ],
+  "visibility": {
+    "visible": 2242,
+    "off": 0,
+    "behind": 0,
+    "occluded": 0,
+    "fog": 0,
+    "cloud": 0
+  },
+  "papi": [
+    4,
+    2,
+    0
+  ]
+}

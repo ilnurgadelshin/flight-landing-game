@@ -1,0 +1,98 @@
+[
+  {
+    "tier": "high",
+    "view": "final",
+    "frames": 120,
+    "travelM": 142.8,
+    "visualTime": 2.666666666666662,
+    "lightTime": 2.666666666666662,
+    "lights": 1081,
+    "papi": 2,
+    "recorded": true,
+    "errors": []
+  },
+  {
+    "tier": "high",
+    "view": "flare",
+    "frames": 120,
+    "travelM": 142.8,
+    "visualTime": 2.666666666666662,
+    "lightTime": 2.666666666666662,
+    "lights": 1081,
+    "papi": 0,
+    "recorded": true,
+    "errors": []
+  },
+  {
+    "tier": "high",
+    "view": "night",
+    "frames": 120,
+    "travelM": 142.8,
+    "visualTime": 2.666666666666662,
+    "lightTime": 2.666666666666662,
+    "lights": 1081,
+    "papi": 2,
+    "recorded": true,
+    "errors": []
+  },
+  {
+    "tier": "high",
+    "view": "storm",
+    "frames": 120,
+    "travelM": 142.8,
+    "visualTime": 2.666666666666662,
+    "lightTime": 2.666666666666662,
+    "lights": 1081,
+    "papi": 2,
+    "recorded": true,
+    "errors": []
+  },
+  {
+    "tier": "low",
+    "view": "final",
+    "frames": 120,
+    "travelM": 142.8,
+    "visualTime": 2.666666666666662,
+    "lightTime": 2.666666666666662,
+    "lights": 1081,
+    "papi": 2,
+    "recorded": true,
+    "errors": []
+  },
+  {
+    "tier": "low",
+    "view": "flare",
+    "frames": 120,
+    "travelM": 142.8,
+    "visualTime": 2.666666666666662,
+    "lightTime": 2.666666666666662,
+    "lights": 1081,
+    "papi": 0,
+    "recorded": true,
+    "errors": []
+  },
+  {
+    "tier": "low",
+    "view": "night",
+    "frames": 120,
+    "travelM": 142.8,
+    "visualTime": 2.666666666666662,
+    "lightTime": 2.666666666666662,
+    "lights": 1081,
+    "papi": 2,
+    "recorded": true,
+    "errors": []
+  },
+  {
+    "tier": "low",
+    "view": "storm",
+    "frames": 120,
+    "travelM": 142.8,
+    "visualTime": 2.666666666666662,
+    "lightTime": 2.666666666666662,
+    "lights": 1081,
+    "papi": 2,
+    "recorded": true,
+    "errors": []
+  }
+]

@@ -7,7 +7,14 @@ below record how the scene evolved; their older counts, captures and priorities 
 the remaining-work list. Update this section after each reviewed visual pass, including
 what changed, visible impact, measured cost, evidence and limitations.
 
-The latest visual pass **prioritizes the phone landing view and readable instruments**.
+The latest visual pass **reduces steady runway-light sparkle during landing**.
+Small daytime point sprites could disappear between pixel centres. A four-pixel
+minimum filter footprint, weighted by the original light area, keeps them sampled
+without giving a distant lamp a large lamp's opacity. The existing point draw,
+light positions, flash timing, PAPI and atmospheric extinction remain. Daytime
+runway lamps are more subdued; broad anti-aliasing is still unfinished.
+
+The preceding visual pass **prioritizes the phone landing view and readable instruments**.
 The short-touch forward lens changes from 48° to 40° and its downward gaze from 11°
 to 7°, keeping the fitted pilot eye and source cockpit geometry. At 852×393 the central
 windshield grows from 126 to 150 CSS px (about 19%). The lower physical displays are
@@ -71,7 +78,7 @@ should not be presented again as untouched tasks. Their broader quality limitati
 
 | Rank | Remaining work | Importance | Current limit / next acceptance evidence |
 | --- | --- | --- | --- |
-| 1 | Temporal stability and small lettering | High | Thin runway markings, labels, branches and shadow edges can shimmer in motion. Low-detail source lettering also loses shape; anti-aliasing cannot restore removed geometry. Next pass: inspect continuous pilot movement and landing, identify the dominant causes, and measure GPU cost. Native phone PFD rendering is delivered; broader temporal stability is not. |
+| 1 | Temporal stability and small lettering | High | Steady airfield lights now use filtered pixel coverage; native phone PFD rendering is also delivered. Thin runway markings, labels, branches and shadow edges can still shimmer in motion. Low-detail source lettering also loses shape; anti-aliasing cannot restore removed geometry. Next pass: isolate the remaining dominant sources in continuous pilot movement and landing, and measure GPU cost. |
 | 2 | Airport ground detail and local shadows during landing | High where visible from the pilot eye | Pavement, shoulders and terminal architecture already improved. Remaining ground transitions, wear and shadows need selection using the final approach, flare and rollout. Reject decoration with no useful pilot-seat contribution; retain runway clearances and markings. |
 | 3 | Phone landing readability and usability validation | High on phones | Closer forward framing, larger radio altitude and native-resolution PANEL/PFD are delivered. Smaller labels and the short screen's limited space remain. Validate on real devices, including touch steering, orientation and browser toolbars; desktop emulation does not certify readability, FPS or battery use. |
 | 4 | Remaining cockpit materials and lighting | Medium | Remaining knobs/metal, floor and some shell surfaces are simple; indirect light/reflections remain approximations. Require visible benefit during normal flight. Completed panel, pedestal, overhead and liner finishes are not new scope. |
@@ -84,6 +91,58 @@ separate cosmetic milestone. Current high-resolution scenes still fall below 60 
 the M2 Pro; retain adaptive quality and report costs. Physical phones, ordinary laptops
 and multiple GPU drivers need wider validation. Existing SwiftShader evidence in the log
 does not certify the latest pass on those devices.
+
+### Steady airfield lights during landing — 2026-10-30
+
+Baseline: published `877e462`. The ordinary pilot-view captures show bright,
+isolated daytime runway specks. A controlled subpixel sweep confirms that the
+steady light shader undersamples small cores, independently of intentional ALSF,
+REIL or beacon flashing. This pass targets that specific source of shimmer.
+
+- Keep the existing `THREE.Points` draw. Footprints below four framebuffer pixels
+  widen to four, with opacity multiplied by original area / filtered area. It
+  adds no geometry, textures, draw calls, history buffers or whole-screen blur.
+  The larger footprint adds fragment work; unchanged vertex counts do not imply
+  zero GPU cost. Defined, increasing-edge `smoothstep` calls replace reversed
+  endpoints in the core/halo profile.
+- In the 1× daytime centreline-lamp probe at 4 km, brightness range / mean falls
+  from **201% to 10.7%**; the lamp no longer vanishes in any of the 33 positions
+  (three vanished before). Across 48 combinations of lamp size, distance, day/night,
+  1×/1.5× and 0×/4× MSAA, filtered variation stays below **14%**, and the measured
+  centre is within **0.084 px** of the intended position. These isolate raster
+  sampling; they are not a whole-frame shimmer score or photometric calibration.
+- Distant daytime lamps are deliberately more subdued once their small area is
+  respected. Night cores become more even at 1×; larger cores retain their prior
+  profile. Light placement hashes match. Rendered checks preserve off states,
+  depth occlusion, behind-camera clipping, fog and cloud extinction; PAPI tests
+  retain four/two/zero whites for high/on/low approaches.
+- Matched full-scene final, flare, night and storm captures retain the same 1,081
+  airfield/road lights on both tiers. Each moving capture follows 120 pilot camera
+  positions over 142.8 m. The harness owns the visual clock so both sides have the
+  same flasher phase. Capture pacing is not used for performance claims.
+- High at 1440×900 / 1.5× measures **35.4 → 36.9**, **32.4 → 33.1**,
+  **40.2 → 38.8** and **38.6 → 38.7 FPS** (captain / upper approach / storm /
+  rollout); p95 remains 33.4 ms. Low stays near 60 except an initial rollout sample
+  of **60.0 → 46.9**. An isolated repeat gives **60.0 → 60.0**, p95 16.7 ms both.
+  Retain the outlier; it was not reproduced, and these samples establish neither
+  a speedup nor zero added cost. Matched draw/triangle counts are unchanged.
+- All 24 Node suites, 23 browser graphics checks, both-tier cloud-boundary checks,
+  and startup/prepared-flight delivery checks pass on Chromium / ANGLE Metal.
+  Physical phones, SwiftShader and the full functional flight suite were not run
+  for this pass. The new `test:landing-lights` script defaults to SwiftShader for
+  other environments and includes both the isolated and full-scene checks.
+  The isolated regression is also included in `test:all`.
+- The review page validates all 48 images, 16 video metadata loads, paired playback,
+  slider direction and a narrow phone layout.
+- Delivery adds 423 source bytes: high startup/prepared **14,343,834 / 68,145,777**;
+  low **8,779,735 / 20,001,538**. Low retains 220,265 bytes below the 9 MB startup
+  guard. There are no new downloaded assets.
+
+Frame pacing and the cumulative comparison are recorded in `RENDER-PERFORMANCE.md`.
+Evidence: `test/light-stability.mjs`, `test/landing-light-motion.mjs`,
+`benchmarks/2026-10-30-landing-lights-*.json`, and the
+[moving comparison](output/landing-lights-review.html). Remaining: geometry/label,
+vegetation and shadow shimmer; ordinary-pilot runway detail; physical-phone validation.
 
 ### Phone landing view and instrument readability — 2026-10-30
 

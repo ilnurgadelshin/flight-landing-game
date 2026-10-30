@@ -1,0 +1,49 @@
+{
+  "date": "2026-10-30",
+  "baseline": "877e462",
+  "renderer": "Chromium 141 / ANGLE Metal / Apple M2 Pro",
+  "nodeSuites": 24,
+  "graphics": {
+    "passed": 23,
+    "failed": 0,
+    "groups": [
+      "E1",
+      "E16"
+    ]
+  },
+  "lightSamplingCases": 48,
+  "lightVisibilityChecks": [
+    "off",
+    "behind camera",
+    "depth occlusion",
+    "fog",
+    "cloud"
+  ],
+  "papiWhites": [
+    4,
+    2,
+    0
+  ],
+  "cloudBoundary": [
+    "high",
+    "low"
+  ],
+  "movingViews": 8,
+  "framesPerView": 120,
+  "matchedAnimationClock": true,
+  "review": {
+    "images": 48,
+    "videos": 16,
+    "slider": true,
+    "playback": true,
+    "narrowLayout": true,
+    "errors": []
+  },
+  "deliveryPassed": true,
+  "notValidated": [
+    "Physical phones",
+    "SwiftShader",
+    "Full functional flight suite"
+  ],
+  "performance": "Initial low-tier rollout 60.0 to 46.9 FPS; isolated repeat 60.0 to 60.0. Both retained; no speedup or zero-cost claim."
+}
