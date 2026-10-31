@@ -3111,3 +3111,58 @@ Evidence is in `benchmarks/2026-10-30-landing-lights-benchmark-*.json`,
 `benchmarks/2026-10-30-landing-lights-rollout-*.json`, and
 `benchmarks/2026-10-30-landing-lights-delivery.json`. Separate sampling tests,
 matched videos and cloud/graphics checks are documented in `VISUAL-AUDIT.md`.
+
+
+## Live instrument texture filtering — 2026-10-31
+
+Baseline: `31d18e5`. Sequential Apple M2 Pro / Chromium 141 / ANGLE Metal runs.
+High is 1440×900 at world ratio 1.5; low is 852×393 touch emulation at world ratio
+1 and device ratio 2. Each has four seconds of warm-up and twelve seconds sampled.
+The actual application RAF, presentation, canvas redraws, texture uploads and
+rendering run throughout, with flight physics frozen. PFD texture version changes
+confirm an update on every sampled frame. No recording or pixel readback runs
+with these measurements. The earlier scenery-only benchmark freezes display
+uploads and would miss the mip-generation cost, so it is not used for this pass.
+
+| Tier / view | Before / after FPS | Before / after p95 ms |
+| --- | ---: | ---: |
+| high / forward | 38.8 / 38.7 | 33.4 / 33.4 |
+| high / panel | 52.3 / 51.4 | 33.4 / 33.4 |
+| high / storm | 41.1 / 40.7 | 33.4 / 33.4 |
+| high / rollout | 36.9 / 36.6 | 33.4 / 33.4 |
+| low / forward | 60.0 / 60.0 | 16.8 / 16.8 |
+| low / panel | 60.0 / 60.0 | 16.8 / 16.7 |
+| low / storm | 60.0 / 60.0 | 16.8 / 16.7 |
+| low / rollout | 60.0 / 60.0 | 16.7 / 16.7 |
+
+High samples are 0.2–1.6% slower, with unchanged p95 pacing. Low samples are all
+display-capped at 60 FPS. These short measurements show a small possible cost;
+they do not establish zero overhead, a speedup or physical-phone performance.
+High remains below 60 FPS. Adaptive quality stays necessary.
+
+The four existing 512² RGBA display textures gain mip chains: approximately
+1.33 MiB of additional GPU storage. Hardware regenerates a chain when that
+texture uploads (PFD every frame; the other displays at their existing cadence).
+A half-level negative mip bias retains more small text detail than unbiased
+trilinear filtering. The six display surfaces share the same four textures.
+This adds no asset downloads, geometry, draw calls, history buffers or render
+passes; the shader changes only their map lookup. Native 2D phone PANEL/MAP
+redraws and the standby/MCP textures are unchanged.
+
+The October 28 cumulative scenery figures remain the historical comparison:
+37.8 / 33.9 / 40.1 FPS before expansion versus 34.7 / 30.1 / 36.2 after corrections
+(captain / upper approach / storm). The new benchmark uses live instruments and
+a different forward position, so it cannot be compared directly with those
+numbers or used to claim that scenery cost has disappeared. No new geographic
+coverage, trees or assets are added here. Ordinary laptops, physical phones,
+power consumption and other GPU drivers remain unmeasured.
+
+Evidence: `test/instrument-benchmark.mjs`, retained
+`benchmarks/2026-10-31-instrument-benchmark-before.json` and
+`benchmarks/2026-10-31-instrument-benchmark-after.json`. Separate pixel probes,
+paired moving views and functional checks are recorded in `VISUAL-AUDIT.md`.
+
+Delivery checks pass: high startup/prepared 14,344,740 / 68,146,683 bytes;
+low 8,780,641 / 20,002,444, leaving 219,359 bytes below the startup guard.
+The 906-byte increase is source code, with no changed asset requests. Evidence:
+`benchmarks/2026-10-31-instrument-delivery.json`.

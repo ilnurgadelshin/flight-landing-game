@@ -5,7 +5,7 @@
 // at the captain's design eye point.
 import * as THREE from 'three';
 import { AIRCRAFT as AC, DEG } from '../config.js';
-import { PFD, ND, UpperDU, LowerDU, makeMCPTexture, makePanelTexture, makeOverheadTexture } from './instruments.js';
+import { PFD, ND, UpperDU, LowerDU, displayMaterial, makeMCPTexture, makePanelTexture, makeOverheadTexture } from './instruments.js';
 import { surfaceGrain, rounded, detailFlightDeck } from './finish.js';
 import { ND_RANGES } from '../nd.js';
 import { loadFlightDeck } from './model.js';
@@ -169,7 +169,7 @@ export class Cockpit {
       bezel.position.set(x, y, 0.025); this.panelGroup.add(bezel);
       const inset = new THREE.Mesh(rounded(size + 0.012, size + 0.012, 0.008, 0.003), this.mat.grey);
       inset.position.set(x, y, 0.034); this.panelGroup.add(inset);
-      const screen = new THREE.Mesh(new THREE.PlaneGeometry(size, size), new THREE.MeshBasicMaterial({ map: tex, toneMapped: false }));
+      const screen = new THREE.Mesh(new THREE.PlaneGeometry(size, size), displayMaterial(tex));
       screen.position.set(x, y, 0.039); this.panelGroup.add(screen);
       return screen;
     };

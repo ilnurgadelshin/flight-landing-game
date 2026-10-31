@@ -1,13 +1,20 @@
 # Visual improvement audit
 
-## Current status — 2026-10-30
+## Current status — 2026-10-31
 
 This section is the current checklist. The original September audit and dated work log
 below record how the scene evolved; their older counts, captures and priorities are not
 the remaining-work list. Update this section after each reviewed visual pass, including
 what changed, visible impact, measured cost, evidence and limitations.
 
-The latest visual pass **reduces steady runway-light sparkle during landing**.
+The latest visual pass **stabilizes the live cockpit display textures**. PFD, ND,
+engine and systems canvases now use mipmaps with a half-level detail bias. This
+reduces undersampling when a 512 px display occupies much less screen space,
+without the unnecessary softness of unbiased trilinear filtering. Native phone
+PANEL/MAP redraws remain separate. This does not restore source-model lettering
+or stabilize thin runway, foliage or shadow geometry.
+
+The preceding pass **reduces steady runway-light sparkle during landing**.
 Small daytime point sprites could disappear between pixel centres. A four-pixel
 minimum filter footprint, weighted by the original light area, keeps them sampled
 without giving a distant lamp a large lamp's opacity. The existing point draw,
@@ -78,7 +85,7 @@ should not be presented again as untouched tasks. Their broader quality limitati
 
 | Rank | Remaining work | Importance | Current limit / next acceptance evidence |
 | --- | --- | --- | --- |
-| 1 | Temporal stability and small lettering | High | Steady airfield lights now use filtered pixel coverage; native phone PFD rendering is also delivered. Thin runway markings, labels, branches and shadow edges can still shimmer in motion. Low-detail source lettering also loses shape; anti-aliasing cannot restore removed geometry. Next pass: isolate the remaining dominant sources in continuous pilot movement and landing, and measure GPU cost. |
+| 1 | Temporal stability and small lettering | High | Steady airfield lights and small live display textures now use filtered sampling; native phone PFD rendering is also delivered. Thin runway markings, labels, branches and shadow edges can still shimmer in motion. Low-detail source lettering also loses shape; anti-aliasing cannot restore removed geometry. Next pass: isolate the remaining dominant sources in continuous pilot movement and landing, and measure GPU cost. |
 | 2 | Airport ground detail and local shadows during landing | High where visible from the pilot eye | Pavement, shoulders and terminal architecture already improved. Remaining ground transitions, wear and shadows need selection using the final approach, flare and rollout. Reject decoration with no useful pilot-seat contribution; retain runway clearances and markings. |
 | 3 | Phone landing readability and usability validation | High on phones | Closer forward framing, larger radio altitude and native-resolution PANEL/PFD are delivered. Smaller labels and the short screen's limited space remain. Validate on real devices, including touch steering, orientation and browser toolbars; desktop emulation does not certify readability, FPS or battery use. |
 | 4 | Remaining cockpit materials and lighting | Medium | Remaining knobs/metal, floor and some shell surfaces are simple; indirect light/reflections remain approximations. Require visible benefit during normal flight. Completed panel, pedestal, overhead and liner finishes are not new scope. |
@@ -89,8 +96,68 @@ should not be presented again as untouched tasks. Their broader quality limitati
 Performance and compatibility are acceptance requirements for every item, rather than a
 separate cosmetic milestone. Current high-resolution scenes still fall below 60 FPS on
 the M2 Pro; retain adaptive quality and report costs. Physical phones, ordinary laptops
-and multiple GPU drivers need wider validation. Existing SwiftShader evidence in the log
-does not certify the latest pass on those devices.
+and multiple GPU drivers need wider validation. The latest isolated display-sampling
+probe passes SwiftShader too; full-scene checks for this pass used Metal. Neither
+establishes physical-phone or ordinary-laptop performance.
+
+### Live cockpit display filtering — 2026-10-31
+
+Baseline: `31d18e5`. The four 512² live canvases previously had no mipmaps. At
+84–160 screen pixels their thin ticks, text and arcs were undersampled; the
+matched pilot views show broken markings and small digits. PFD, ND, engine and
+systems textures now use trilinear mip filtering with a half-level detail bias.
+The first unbiased experiment was too soft and was rejected. The selected bias
+keeps small readouts clearer while retaining substantial motion stability.
+
+The same material helper serves authored and fallback displays. Standby/MCP
+textures keep their existing settings. Native phone PANEL and MAP vector redraws
+are independent; this pass changes no fonts, flight data, camera framing or touch
+controls. Full-size frontal display pixels match the previous filter exactly.
+It does not repair geometry-based lettering or stabilize runway markings,
+branches and shadow edges; those remain in the current checklist.
+
+Validation completed on Chromium 141 / ANGLE Metal / Apple M2 Pro, plus the
+isolated sampling probe on SwiftShader:
+
+- The new `test/instrument-sampling.mjs` tests all four actual display canvases
+  at 84, 160, 256 and 512 px, frontally and at 45°: **32 cases**, each traversing
+  17 subpixel positions. Both the old linear-filter control and current material
+  are compared with an independently supersampled texture reference averaged in
+  linear light. At 84/160 px, motion residual falls **62–84%**, and reference
+  error falls **38–74%**. These are isolated sampling metrics, not a whole-frame
+  shimmer score or proof that tiny labels are readable. Full-size output remains
+  unchanged. The regression runs in `test:instruments` and `test:all`; software
+  rendering is its default. All 32 cases also pass on SwiftShader (Google Vulkan
+  software renderer); the earlier local initialization failure did not recur.
+- Four paired day/night motion paths, on high desktop and low phone framing,
+  use the same 180 pilot poses and controlled visual clock. The head movement
+  exposes PFD/ND/engine/system displays without replacing the pilot camera.
+  The 24 stills and eight videos are visual evidence, not timing measurements.
+  All images, sampling references, paired playback, comparison controls and the
+  390 px review layout pass the review-page checks.
+- Native Retina PFD values, touch view cycle, MAP, resize, tablet framing and
+  Flight School checks pass, along with all **24 Node suites**, **23 browser
+  graphics checks**, and startup/prepared-flight delivery checks. This pass did
+  not rerun full keyboard/controller landings or claim physical-phone validation.
+- Actual-application performance samples include the live display redraws and
+  texture uploads. At 1440×900 / high 1.5×, forward, panel, storm and rollout
+  measure **38.8 → 38.7**, **52.3 → 51.4**, **41.1 → 40.7** and **36.9 → 36.6 FPS**.
+  P95 remains 33.4 ms. Low phone emulation at 852×393 remains near **60 FPS**.
+  This is a small possible cost, not a zero-overhead or speedup claim. See
+  [the performance record](RENDER-PERFORMANCE.md#live-instrument-texture-filtering--2026-10-31).
+
+The four mip chains add about **1.33 MiB GPU texture storage**, regenerated on
+texture upload at the existing display cadence. There are no new asset downloads,
+draw calls, geometry or render passes. Source transfer grows **906 bytes**:
+high startup/prepared is **14,344,740 / 68,146,683**, low is **8,780,641 / 20,002,444**.
+Low retains **219,359 bytes** below its 9 MB startup guard. Ordinary laptop and
+physical-phone GPU/power costs remain unmeasured. The older cumulative scenery
+comparison is still applicable; these live-display timings use a different method.
+
+Evidence: `test/instrument-sampling.mjs`, `test/instrument-motion.mjs`,
+`test/instrument-benchmark.mjs`, `benchmarks/2026-10-31-instrument-*.json`, and the
+[local before/after review](output/instrument-review.html). The review includes
+matching stills, paired playback, sampling references and separate timing tables.
 
 ### Steady airfield lights during landing — 2026-10-30
 

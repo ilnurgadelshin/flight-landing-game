@@ -583,6 +583,13 @@ sample every half second) in three views:
 The approaches are blue, a go-around and its circuit amber, the roll-out
 green.
 
+The live PFD, navigation, engine and systems displays use mipmapped filtering when
+projected smaller than their 512 px canvases. A half-level detail bias keeps small
+digits clearer than ordinary trilinear filtering while reducing sampling shimmer.
+Native phone PANEL/MAP redraws are separate. Four mip chains add about 1.33 MiB of
+GPU texture storage and regeneration on upload, with no new asset downloads. This
+does not restore simplified model lettering or stabilize other thin geometry.
+
 **World** (`js/world/`): terrain, an airport with a 3000 m × 45 m runway with
 ICAO markings, ALSF-2 approach lights with sequenced flashers, threshold,
 edge, centreline and touchdown-zone lights, a PAPI computed from the pilot's
@@ -1036,6 +1043,12 @@ Missing- and invalid-data fallback checks load only the scenery data
 warm-up.
 
 ### Automated suites
+
+`npm run test:instruments` compares the live cockpit displays against a supersampled
+reference during subpixel motion, then exercises the native phone PANEL/MAP controls.
+The sampling regression also runs in `test:all` and defaults to SwiftShader.
+`test/instrument-benchmark.mjs` separately measures the actual application RAF and live
+display uploads on hardware; the scenery-only benchmark does not include that work.
 
 `npm run test:phone-cockpit` checks full-scene phone/tablet/desktop framing and
 instrument-view interactions, including native-resolution PFD rendering, control

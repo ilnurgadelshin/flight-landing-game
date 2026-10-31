@@ -1,0 +1,457 @@
+{
+  "date": "2026-10-31T11:41:01.266Z",
+  "browser": "141.0.7390.37",
+  "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M2 Pro, Unspecified Version)",
+  "method": "Frozen actual PFD/ND/engine/systems textures; 17 subpixel positions, four sizes and two angles. Linear-filter control and current material compared with supersampled box reference in linear light.",
+  "reports": [
+    {
+      "name": "pfd",
+      "size": 84,
+      "angle": 0,
+      "factor": 8,
+      "control": {
+        "referenceError": 5.567585416666667,
+        "motionResidual": 2.190278515625
+      },
+      "current": {
+        "referenceError": 1.813744056372549,
+        "motionResidual": 0.5219950520833333
+      }
+    },
+    {
+      "name": "pfd",
+      "size": 160,
+      "angle": 0,
+      "factor": 4,
+      "control": {
+        "referenceError": 3.0513436319452882,
+        "motionResidual": 1.0711834699982783
+      },
+      "current": {
+        "referenceError": 1.6101120902583657,
+        "motionResidual": 0.4029678891184573
+      }
+    },
+    {
+      "name": "pfd",
+      "size": 256,
+      "angle": 0,
+      "factor": 2,
+      "control": {
+        "referenceError": 2.0817485974709955,
+        "motionResidual": 0.6899543595011534
+      },
+      "current": {
+        "referenceError": 0.8494163019879232,
+        "motionResidual": 0.3950704994773645
+      }
+    },
+    {
+      "name": "pfd",
+      "size": 512,
+      "angle": 0,
+      "factor": 1,
+      "control": {
+        "referenceError": 0,
+        "motionResidual": 0
+      },
+      "current": {
+        "referenceError": 0,
+        "motionResidual": 0
+      }
+    },
+    {
+      "name": "pfd",
+      "size": 84,
+      "angle": 45,
+      "factor": 16,
+      "control": {
+        "referenceError": 4.29214921875,
+        "motionResidual": 2.1416255533854165
+      },
+      "current": {
+        "referenceError": 1.6998018075980392,
+        "motionResidual": 0.4392244954427083
+      }
+    },
+    {
+      "name": "pfd",
+      "size": 160,
+      "angle": 45,
+      "factor": 8,
+      "control": {
+        "referenceError": 2.684640783329409,
+        "motionResidual": 1.226320229942805
+      },
+      "current": {
+        "referenceError": 1.6678431487280476,
+        "motionResidual": 0.3431020058876227
+      }
+    },
+    {
+      "name": "pfd",
+      "size": 256,
+      "angle": 45,
+      "factor": 4,
+      "control": {
+        "referenceError": 1.851530150000636,
+        "motionResidual": 0.6754837828111484
+      },
+      "current": {
+        "referenceError": 1.0596162783209089,
+        "motionResidual": 0.31022448688229887
+      }
+    },
+    {
+      "name": "pfd",
+      "size": 512,
+      "angle": 45,
+      "factor": 2,
+      "control": {
+        "referenceError": 0.48117546059975874,
+        "motionResidual": 0.22418554777175162
+      },
+      "current": {
+        "referenceError": 0.48117546059975874,
+        "motionResidual": 0.22418554777175162
+      }
+    },
+    {
+      "name": "nd",
+      "size": 84,
+      "angle": 0,
+      "factor": 8,
+      "control": {
+        "referenceError": 2.7534969975490196,
+        "motionResidual": 1.570844140625
+      },
+      "current": {
+        "referenceError": 0.7457512254901961,
+        "motionResidual": 0.3646770833333333
+      }
+    },
+    {
+      "name": "nd",
+      "size": 160,
+      "angle": 0,
+      "factor": 4,
+      "control": {
+        "referenceError": 1.5780965545115258,
+        "motionResidual": 0.7540182318569215
+      },
+      "current": {
+        "referenceError": 0.6140643910908888,
+        "motionResidual": 0.2897612936897383
+      }
+    },
+    {
+      "name": "nd",
+      "size": 256,
+      "angle": 0,
+      "factor": 2,
+      "control": {
+        "referenceError": 0.9046249798578601,
+        "motionResidual": 0.49900203647635527
+      },
+      "current": {
+        "referenceError": 0.424140063140308,
+        "motionResidual": 0.2854845867574971
+      }
+    },
+    {
+      "name": "nd",
+      "size": 512,
+      "angle": 0,
+      "factor": 1,
+      "control": {
+        "referenceError": 0,
+        "motionResidual": 0
+      },
+      "current": {
+        "referenceError": 0,
+        "motionResidual": 0
+      }
+    },
+    {
+      "name": "nd",
+      "size": 84,
+      "angle": 45,
+      "factor": 16,
+      "control": {
+        "referenceError": 2.1810739200367646,
+        "motionResidual": 1.54053583984375
+      },
+      "current": {
+        "referenceError": 0.6831576669730393,
+        "motionResidual": 0.3079916015625
+      }
+    },
+    {
+      "name": "nd",
+      "size": 160,
+      "angle": 45,
+      "factor": 8,
+      "control": {
+        "referenceError": 1.471736024600956,
+        "motionResidual": 0.8636996897127346
+      },
+      "current": {
+        "referenceError": 0.628857864975794,
+        "motionResidual": 0.24344162113410384
+      }
+    },
+    {
+      "name": "nd",
+      "size": 256,
+      "angle": 45,
+      "factor": 4,
+      "control": {
+        "referenceError": 0.9246369743696571,
+        "motionResidual": 0.48302494035872623
+      },
+      "current": {
+        "referenceError": 0.4291583878496251,
+        "motionResidual": 0.22148517753838667
+      }
+    },
+    {
+      "name": "nd",
+      "size": 512,
+      "angle": 45,
+      "factor": 2,
+      "control": {
+        "referenceError": 0.25869486841453754,
+        "motionResidual": 0.16013170142475897
+      },
+      "current": {
+        "referenceError": 0.25869486841453754,
+        "motionResidual": 0.16013170142475897
+      }
+    },
+    {
+      "name": "upper",
+      "size": 84,
+      "angle": 0,
+      "factor": 8,
+      "control": {
+        "referenceError": 3.5495917279411766,
+        "motionResidual": 1.945612890625
+      },
+      "current": {
+        "referenceError": 1.0084568014705881,
+        "motionResidual": 0.47592369791666667
+      }
+    },
+    {
+      "name": "upper",
+      "size": 160,
+      "angle": 0,
+      "factor": 4,
+      "control": {
+        "referenceError": 2.1315104562292375,
+        "motionResidual": 0.9326619129863981
+      },
+      "current": {
+        "referenceError": 0.8309956205816521,
+        "motionResidual": 0.3551955209947486
+      }
+    },
+    {
+      "name": "upper",
+      "size": 256,
+      "angle": 0,
+      "factor": 2,
+      "control": {
+        "referenceError": 1.1879090047026597,
+        "motionResidual": 0.611294615502451
+      },
+      "current": {
+        "referenceError": 0.5431496979739128,
+        "motionResidual": 0.3510209977833045
+      }
+    },
+    {
+      "name": "upper",
+      "size": 512,
+      "angle": 0,
+      "factor": 1,
+      "control": {
+        "referenceError": 0,
+        "motionResidual": 0
+      },
+      "current": {
+        "referenceError": 0,
+        "motionResidual": 0
+      }
+    },
+    {
+      "name": "upper",
+      "size": 84,
+      "angle": 45,
+      "factor": 16,
+      "control": {
+        "referenceError": 2.9073261871936276,
+        "motionResidual": 1.9712232096354168
+      },
+      "current": {
+        "referenceError": 1.0017448912377451,
+        "motionResidual": 0.42438927408854166
+      }
+    },
+    {
+      "name": "upper",
+      "size": 160,
+      "angle": 45,
+      "factor": 8,
+      "control": {
+        "referenceError": 1.9850704605431404,
+        "motionResidual": 1.0825775398695765
+      },
+      "current": {
+        "referenceError": 0.8674612235373875,
+        "motionResidual": 0.3090200923362711
+      }
+    },
+    {
+      "name": "upper",
+      "size": 256,
+      "angle": 45,
+      "factor": 4,
+      "control": {
+        "referenceError": 1.187658221809485,
+        "motionResidual": 0.5868310983343246
+      },
+      "current": {
+        "referenceError": 0.5805042571472794,
+        "motionResidual": 0.2734000130095696
+      }
+    },
+    {
+      "name": "upper",
+      "size": 512,
+      "angle": 45,
+      "factor": 2,
+      "control": {
+        "referenceError": 0.3288186989097751,
+        "motionResidual": 0.19868987205745905
+      },
+      "current": {
+        "referenceError": 0.3288186989097751,
+        "motionResidual": 0.19868987205745905
+      }
+    },
+    {
+      "name": "lower",
+      "size": 84,
+      "angle": 0,
+      "factor": 8,
+      "control": {
+        "referenceError": 2.0705832107843136,
+        "motionResidual": 1.2746756510416666
+      },
+      "current": {
+        "referenceError": 0.5439601715686274,
+        "motionResidual": 0.24774401041666666
+      }
+    },
+    {
+      "name": "lower",
+      "size": 160,
+      "angle": 0,
+      "factor": 4,
+      "control": {
+        "referenceError": 1.42361753343512,
+        "motionResidual": 0.6696926989174414
+      },
+      "current": {
+        "referenceError": 0.4916338218203087,
+        "motionResidual": 0.2395984660167011
+      }
+    },
+    {
+      "name": "lower",
+      "size": 256,
+      "angle": 0,
+      "factor": 2,
+      "control": {
+        "referenceError": 0.8461827597063912,
+        "motionResidual": 0.4428654619016724
+      },
+      "current": {
+        "referenceError": 0.39307167368461227,
+        "motionResidual": 0.24729981031934833
+      }
+    },
+    {
+      "name": "lower",
+      "size": 512,
+      "angle": 0,
+      "factor": 1,
+      "control": {
+        "referenceError": 0,
+        "motionResidual": 0
+      },
+      "current": {
+        "referenceError": 0,
+        "motionResidual": 0
+      }
+    },
+    {
+      "name": "lower",
+      "size": 84,
+      "angle": 45,
+      "factor": 16,
+      "control": {
+        "referenceError": 1.5480260876225491,
+        "motionResidual": 1.1655901529947916
+      },
+      "current": {
+        "referenceError": 0.5613340379901961,
+        "motionResidual": 0.18453751627604167
+      }
+    },
+    {
+      "name": "lower",
+      "size": 160,
+      "angle": 45,
+      "factor": 8,
+      "control": {
+        "referenceError": 1.2578001960404512,
+        "motionResidual": 0.7641517492036846
+      },
+      "current": {
+        "referenceError": 0.439499215395094,
+        "motionResidual": 0.18127664192977358
+      }
+    },
+    {
+      "name": "lower",
+      "size": 256,
+      "angle": 45,
+      "factor": 4,
+      "control": {
+        "referenceError": 0.8193993123579449,
+        "motionResidual": 0.41853566593227365
+      },
+      "current": {
+        "referenceError": 0.36848034047637224,
+        "motionResidual": 0.18222140935878028
+      }
+    },
+    {
+      "name": "lower",
+      "size": 512,
+      "angle": 45,
+      "factor": 2,
+      "control": {
+        "referenceError": 0.2357716466694575,
+        "motionResidual": 0.14490138422578053
+      },
+      "current": {
+        "referenceError": 0.2357716466694575,
+        "motionResidual": 0.14490138422578053
+      }
+    }
+  ],
+  "errors": []
+}

@@ -13,8 +13,27 @@ function mkCanvas() {
   const c = document.createElement('canvas'); c.width = S; c.height = S;
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
-  tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter; tex.generateMipmaps = false;
+  // The fitted displays often cover far fewer pixels than their 512px canvases.
+  // Filter their small text/lines across that footprint. Native-resolution
+  // PANEL/MAP redraws remain independent.
+  tex.minFilter = THREE.LinearMipmapLinearFilter; tex.magFilter = THREE.LinearFilter;
+  tex.generateMipmaps = true;
+  tex.userData.liveDisplay = true;
   return { canvas: c, ctx: c.getContext('2d'), tex };
+}
+
+export function displayMaterial(tex) {
+  const material = new THREE.MeshBasicMaterial({ map: tex, toneMapped: false });
+  if (tex.userData.liveDisplay) {
+    // A half-level bias retains small digits while still filtering their footprint.
+    // Magnified displays clamp to level zero; native 2D focus views bypass this.
+    material.onBeforeCompile = shader => {
+      shader.fragmentShader = shader.fragmentShader.replace('#include <map_fragment>',
+        THREE.ShaderChunk.map_fragment.replace('texture2D( map, vMapUv )', 'texture2D( map, vMapUv, -0.5 )'));
+    };
+    material.customProgramCacheKey = () => 'live-display-filter-v1';
+  }
+  return material;
 }
 
 const FONT = 'bold 15px "DejaVu Sans Mono", Consolas, monospace';

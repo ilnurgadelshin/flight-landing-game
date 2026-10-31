@@ -1,0 +1,42 @@
+[
+  {
+    "tier": "high",
+    "scene": "day",
+    "frames": 180,
+    "recorded": true,
+    "worldRatio": 1,
+    "visualTime": 3.9999999999999907,
+    "lightTime": 3.9999999999999907,
+    "errors": []
+  },
+  {
+    "tier": "high",
+    "scene": "night",
+    "frames": 180,
+    "recorded": true,
+    "worldRatio": 1,
+    "visualTime": 3.9999999999999907,
+    "lightTime": 3.9999999999999907,
+    "errors": []
+  },
+  {
+    "tier": "low",
+    "scene": "day",
+    "frames": 180,
+    "recorded": true,
+    "worldRatio": 1,
+    "visualTime": 3.9999999999999907,
+    "lightTime": 3.9999999999999907,
+    "errors": []
+  },
+  {
+    "tier": "low",
+    "scene": "night",
+    "frames": 180,
+    "recorded": true,
+    "worldRatio": 1,
+    "visualTime": 3.9999999999999907,
+    "lightTime": 3.9999999999999907,
+    "errors": []
+  }
+]

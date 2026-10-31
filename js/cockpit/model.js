@@ -1,6 +1,7 @@
 // Authored 737 flight deck, with the simulator's live instruments and controls.
 // Coordinates below are measured on the source model, then converted by prepare-cockpit.mjs.
 import * as THREE from 'three';
+import { displayMaterial } from './instruments.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { applyCockpitSurfaces } from './surfaces.js';
@@ -52,7 +53,7 @@ export async function loadFlightDeck(cockpit) {
   c.eyeLocal.copy(point(.24,2.155,.95));
   const live=new THREE.Group();live.name='Live flight instruments';root.add(live);
   const screen=(tex,x,y,z,size=.102)=>{
-    const mesh=new THREE.Mesh(new THREE.PlaneGeometry(size*1.7,size*1.7),new THREE.MeshBasicMaterial({map:tex,toneMapped:false}));
+    const mesh=new THREE.Mesh(new THREE.PlaneGeometry(size*1.7,size*1.7),displayMaterial(tex));
     mesh.position.copy(point(x,y,z));live.add(mesh);return mesh;
   };
   const pfd=c.pfdScreen=screen(c.pfd.tex,.3223,1.8788,1.4555);

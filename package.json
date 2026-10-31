@@ -14,7 +14,7 @@
     "test:visual": "node test/visual-review.mjs",
     "test:lighting": "node test/cockpit-lighting.mjs",
     "test:delivery": "node test/delivery.mjs",
-    "test:all": "npm test && node test/light-stability.mjs && node test/e2e-parallel.mjs",
+    "test:all": "npm test && node test/light-stability.mjs && node test/instrument-sampling.mjs && node test/e2e-parallel.mjs",
     "test:vegetation": "node test/vegetation-weather.mjs && node test/woodland-coverage.mjs",
     "test:woodland-preparation": "node test/woodland-preparation.mjs",
     "test:woodland-lighting": "node test/woodland-lighting.mjs",
@@ -30,7 +30,8 @@
     "test:cockpit-surfaces": "node test/cockpit-surfaces.mjs",
     "test:scenery": "node test/authored-scenery.mjs",
     "test:tiles": "node test/ground-tiles.mjs",
-    "test:ground-materials": "node test/ground-materials.mjs && node test/ground-material-motion.mjs"
+    "test:ground-materials": "node test/ground-materials.mjs && node test/ground-material-motion.mjs",
+    "test:instruments": "node test/instrument-sampling.mjs && node test/landing-instruments.mjs"
   },
   "license": "MIT",
   "dependencies": {
