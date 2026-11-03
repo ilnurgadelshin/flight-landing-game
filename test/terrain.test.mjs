@@ -28,4 +28,16 @@ for(let i=0;i<120;i++)sim.stepOnce();
 assert.ok(!sim.aircraft.damage.destroyed&&!sim.state.onGround,'Flight below airport datum has no phantom collision');
 assert.ok(sim.state.alt<0&&sim.state.agl>60,'Radar altitude measures the valley below');
 assert.equal(sim.aircraft.groundBody.position.y,-100);
+
+// Hangar access is paved all the way from the parallel taxiway to the doors;
+// the surrounding grass must retain its different rolling/braking behaviour.
+for(const x of [710,810,920,970])for(const z of [155,205,260,335]){
+  assert.equal(TERRAIN.surfaceAt(x,z),'taxiway');assert.equal(TERRAIN.heightAt(x,z),0);
+}
+for(const [x,z]of [[990,205],[810,350],[920,110]])assert.equal(TERRAIN.surfaceAt(x,z),'grass');
+const apronSim=new Simulation({scenarioId:'clear',startId:'short',seed:5});
+apronSim.aircraft.place({x:850,y:2.5,z:205,headingDeg:270,iasKts:15,flapIndex:0,gearDown:true,gammaDeg:0,onGround:true});
+for(let i=0;i<60;i++)apronSim.stepOnce();
+assert.equal(apronSim.state.surface,'taxiway','Wheel query uses the rendered forecourt surface');
+assert.ok(apronSim.state.onGround&&!apronSim.state.destroyed);
 console.log('Survey registration, continuous relief, and flight below the airport datum passed');

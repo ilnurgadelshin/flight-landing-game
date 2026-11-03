@@ -1,0 +1,230 @@
+[
+  {
+    "tier": "high",
+    "frames": [
+      {
+        "frame": 0,
+        "elapsed": 0.03333333333335986,
+        "agl": 119.78856986031748,
+        "onGround": false
+      },
+      {
+        "frame": 150,
+        "elapsed": 5.033333333337339,
+        "agl": 99.54776853058938,
+        "onGround": false
+      },
+      {
+        "frame": 300,
+        "elapsed": 10.033333333341318,
+        "agl": 79.9195212638535,
+        "onGround": false
+      },
+      {
+        "frame": 450,
+        "elapsed": 15.033333333345297,
+        "agl": 60.55552391221276,
+        "onGround": false
+      },
+      {
+        "frame": 600,
+        "elapsed": 20.033333333349276,
+        "agl": 41.33543592537959,
+        "onGround": false
+      },
+      {
+        "frame": 750,
+        "elapsed": 25.033333333353255,
+        "agl": 22.260996527134456,
+        "onGround": false
+      },
+      {
+        "frame": 900,
+        "elapsed": 30.033333333357234,
+        "agl": 4.066966664198628,
+        "onGround": false
+      },
+      {
+        "frame": 1050,
+        "elapsed": 35.03333333336121,
+        "agl": 0.10372518498563599,
+        "onGround": true
+      },
+      {
+        "frame": 1200,
+        "elapsed": 40.03333333336519,
+        "agl": 0.061459555175433334,
+        "onGround": true
+      },
+      {
+        "frame": 1350,
+        "elapsed": 45.03333333336917,
+        "agl": 0.05308638648060704,
+        "onGround": true
+      },
+      {
+        "frame": 1500,
+        "elapsed": 50.03333333337315,
+        "agl": 0.04691611978263133,
+        "onGround": true
+      },
+      {
+        "frame": 1650,
+        "elapsed": 55.03333333337672,
+        "agl": 0.04294713727212285,
+        "onGround": true
+      },
+      {
+        "frame": 1800,
+        "elapsed": 60.03333333337217,
+        "agl": 0.04196650544436675,
+        "onGround": true
+      }
+    ],
+    "video": true,
+    "frameCount": 1892,
+    "start": 73.20000000000432,
+    "end": 136.26666666670707,
+    "touchdown": {
+      "t": 107.3500000000315,
+      "sink": 0.7987201587369153,
+      "ias": 139.28577915566015,
+      "groundSpeed": 70.02044128712393,
+      "alongRunway": 484.907669896912,
+      "distFromThreshold": 484.907669896912,
+      "lateralOffset": -0.029820059412548873,
+      "bank": -0.0014171908306868065,
+      "pitch": 0.06317049671450733,
+      "crabDeg": -0.09541841611567684,
+      "gearDown": true,
+      "flapIndex": 4,
+      "flapDeg": 30,
+      "surface": "runway",
+      "onRunway": true,
+      "direction": "27",
+      "x": 1006.3476639388577,
+      "z": 0.02748500682627869,
+      "gLoad": 1.198398164701466,
+      "speedbrakeArmed": true,
+      "hull": false
+    },
+    "stopped": true,
+    "destroyed": false,
+    "trajectoryHash": "8db70716",
+    "errors": []
+  },
+  {
+    "tier": "low",
+    "frames": [
+      {
+        "frame": 0,
+        "elapsed": 0.03333333333335986,
+        "agl": 119.78856986031748,
+        "onGround": false
+      },
+      {
+        "frame": 150,
+        "elapsed": 5.033333333337339,
+        "agl": 99.54776853058938,
+        "onGround": false
+      },
+      {
+        "frame": 300,
+        "elapsed": 10.033333333341318,
+        "agl": 79.9195212638535,
+        "onGround": false
+      },
+      {
+        "frame": 450,
+        "elapsed": 15.033333333345297,
+        "agl": 60.55552391221276,
+        "onGround": false
+      },
+      {
+        "frame": 600,
+        "elapsed": 20.033333333349276,
+        "agl": 41.33543592537959,
+        "onGround": false
+      },
+      {
+        "frame": 750,
+        "elapsed": 25.033333333353255,
+        "agl": 22.260996527134456,
+        "onGround": false
+      },
+      {
+        "frame": 900,
+        "elapsed": 30.033333333357234,
+        "agl": 4.066966664198628,
+        "onGround": false
+      },
+      {
+        "frame": 1050,
+        "elapsed": 35.03333333336121,
+        "agl": 0.10372518498563599,
+        "onGround": true
+      },
+      {
+        "frame": 1200,
+        "elapsed": 40.03333333336519,
+        "agl": 0.061459555175433334,
+        "onGround": true
+      },
+      {
+        "frame": 1350,
+        "elapsed": 45.03333333336917,
+        "agl": 0.05308638648060704,
+        "onGround": true
+      },
+      {
+        "frame": 1500,
+        "elapsed": 50.03333333337315,
+        "agl": 0.04691611978263133,
+        "onGround": true
+      },
+      {
+        "frame": 1650,
+        "elapsed": 55.03333333337672,
+        "agl": 0.04294713727212285,
+        "onGround": true
+      },
+      {
+        "frame": 1800,
+        "elapsed": 60.03333333337217,
+        "agl": 0.04196650544436675,
+        "onGround": true
+      }
+    ],
+    "video": true,
+    "frameCount": 1892,
+    "start": 73.20000000000432,
+    "end": 136.26666666670707,
+    "touchdown": {
+      "t": 107.3500000000315,
+      "sink": 0.7987201587369153,
+      "ias": 139.28577915566015,
+      "groundSpeed": 70.02044128712393,
+      "alongRunway": 484.907669896912,
+      "distFromThreshold": 484.907669896912,
+      "lateralOffset": -0.029820059412548873,
+      "bank": -0.0014171908306868065,
+      "pitch": 0.06317049671450733,
+      "crabDeg": -0.09541841611567684,
+      "gearDown": true,
+      "flapIndex": 4,
+      "flapDeg": 30,
+      "surface": "runway",
+      "onRunway": true,
+      "direction": "27",
+      "x": 1006.3476639388577,
+      "z": 0.02748500682627869,
+      "gLoad": 1.198398164701466,
+      "speedbrakeArmed": true,
+      "hull": false
+    },
+    "stopped": true,
+    "destroyed": false,
+    "trajectoryHash": "8db70716",
+    "errors": []
+  }
+]

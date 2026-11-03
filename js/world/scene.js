@@ -14,6 +14,8 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RUNWAY, DEG } from '../config.js';
+import {TAXIWAY_CONNECTORS,HANGAR_APRON} from '../airport-layout.js';
+import {applyTaxiwayMarkings} from './airport-ground.js';
 import { makeRng } from '../physics/atmosphere.js';
 import { makeRunwayTexture, makeTaxiwayTexture, makeDetailTexture, makeCloudTexture } from './textures.js';
 import { AirfieldLights } from './lights.js';
@@ -372,20 +374,29 @@ export class World {
     const padMat = std({ color: 0x4a4a4c, roughness: 1 });
     for (const sx of [-1, 1]) { const p = new THREE.Mesh(new THREE.PlaneGeometry(60, W), padMat); p.rotation.x = -Math.PI / 2; p.position.set(sx * (halfL + 30), 0.01, 0); add(p, false); }
     // parallel taxiway (z 120..150) and connectors, apron
-    const twTex = makeTaxiwayTexture(aniso, L, 30);
+    const twTex = makeTaxiwayTexture(aniso, L, 30, false);
     const tw = new THREE.Mesh(new THREE.PlaneGeometry(L, 30), std({ map: twTex, roughness: 1 }));
     tw.rotation.x = -Math.PI / 2; tw.position.set(0, 0.015, 135); add(tw, false);
-    const conTex = makeTaxiwayTexture(aniso, 120, 30);
+    applyTaxiwayMarkings(tw.material);
+    const connectorLength=150-W/2,connectorCentre=(150+W/2)/2;
+    const conTex = makeTaxiwayTexture(aniso, connectorLength, 30, false);
     const conMat = std({ map: conTex, roughness: 1 });
-    for (const cx of [-1450, -700, 0, 700, 1450]) {
-      const c = new THREE.Mesh(new THREE.PlaneGeometry(30, 100), conMat);
-      c.rotation.x = -Math.PI / 2; c.rotation.z = Math.PI / 2; c.position.set(cx, 0.012, 72); add(c, false);
+    applyTaxiwayMarkings(conMat);
+    for (const cx of TAXIWAY_CONNECTORS) {
+      const c = new THREE.Mesh(new THREE.PlaneGeometry(connectorLength, 30), conMat);
+      c.name='Taxiway connector';
+      c.rotation.x = -Math.PI / 2; c.rotation.z = Math.PI / 2; c.position.set(cx, 0.012, connectorCentre); add(c, false);
     }
     this.pavementMats = [padMat, tw.material, conMat];
     this.texturedPavement = [tw.material, conMat];
     const apron = new THREE.Mesh(new THREE.PlaneGeometry(1400, 270), std({ color: 0x55565a, roughness: 1 }));
     apron.rotation.x = -Math.PI / 2; apron.position.set(0, 0.014, 285); add(apron, false);
+    apron.name='Terminal apron';
     this.pavementMats.push(apron.material);
+    const ha=HANGAR_APRON;
+    const hangarApron=new THREE.Mesh(new THREE.PlaneGeometry(ha.xMax-ha.xMin,ha.zMax-ha.zMin),apron.material);
+    hangarApron.name='Hangar forecourt';hangarApron.rotation.x=-Math.PI/2;
+    hangarApron.position.set((ha.xMin+ha.xMax)/2,.014,(ha.zMin+ha.zMax)/2);add(hangarApron,false);
 
     this.airportArchitecture=buildAirportArchitecture(this.scene,this.quality==='low',aniso);
     // jet bridges + parked aircraft on the apron

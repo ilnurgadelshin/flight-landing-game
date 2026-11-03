@@ -3222,3 +3222,62 @@ Delivery checks pass: high startup/prepared **14,347,103 / 68,149,046 bytes**;
 low **8,783,004 / 20,004,807**, leaving **216,996 bytes** under its 9 MB startup
 limit. The 2,363-byte growth is source code; asset downloads are unchanged.
 Evidence: `benchmarks/2026-11-03-runway-delivery.json`.
+
+
+## Connected airport pavement and verges — 2026-11-03
+
+Baseline: `da71c83`. Sequential Apple M2 Pro / Chromium 141 / ANGLE Metal
+measurements, without other GPU tests or recording. The actual application RAF,
+presentation and live cockpit texture updates run with frozen flight physics.
+Each scene warms for four seconds and samples twelve. High is 1440×900 at world
+ratio 1.5; low is 852×393 touch emulation at world ratio 1 and device ratio 2.
+
+| Tier / view | Before / after FPS | Before / after p95 ms |
+| --- | ---: | ---: |
+| high / forward | 39.4 / 39.3 | 33.4 / 33.4 |
+| high / flare | 39.1 / 38.7 | 33.4 / 33.4 |
+| high / storm | 41.6 / 41.4 | 33.4 / 33.4 |
+| high / rollout | 37.3 / 36.4 | 33.4 / 33.4 |
+| low / forward | 60.0 / 60.0 | 16.7 / 16.7 |
+| low / flare | 60.0 / 60.0 | 16.7 / 16.7 |
+| low / storm | 60.0 / 60.0 | 16.8 / 16.7 |
+| low / rollout | 60.0 / 60.0 | 16.8 / 16.7 |
+
+High samples are about **0.3–2.4% slower**, with unchanged p95 of 33.4 ms.
+Low stays near the 60 Hz ceiling, which can hide extra work. This is a small
+measured cost, not a speedup or a zero-overhead claim. Physical-phone/laptop
+performance, power use and loading-stall distributions remain unmeasured.
+
+Five existing connector quads are resized/reoriented to match the physical
+pavement. A **280×190 m forecourt** adds one draw and two triangles, using the
+existing apron material and surface scans. Its geometry adds 140 bytes of
+vertex/index storage. The connector's generated texture grows from 240×64 to
+255×64 (about 4,960 additional mipmapped GPU bytes); its old yellow stripe is
+removed. Filtered 0.30 m centerlines use analytic coverage in the two existing
+taxiway materials, including their overlapping junctions. No paint atlas,
+shadow map, render target, new downloaded asset or extra render pass is added.
+Turf variation uses bounded distance/noise calculations in the existing ground
+shader. The fixed grass pool is retained; obsolete exclusion patches at the
+former sideways slabs are removed.
+
+The original airport shadow settings remain. A smaller normal-bias experiment
+changed under 0.18% of the tested normal pilot frames above a five-level mean
+RGB threshold and did not give a convincing visible improvement, so it was
+not retained. This is not a completed contact-shadow solution.
+
+The October 28 cumulative scenery comparison remains the historical reference:
+37.8 / 33.9 / 40.1 FPS before expansion versus 34.7 / 30.1 / 36.2 after corrections
+(captain / upper approach / storm). The live-instrument method and camera
+positions here differ; these numbers cannot show that earlier cost disappeared.
+This pass adds no geographic landscape coverage or trees.
+
+Evidence: `benchmarks/2026-11-03-airport-ground-benchmark-{before,after}.json`.
+The visual audit records pavement-to-physics checks, software compatibility,
+matched landing paths, delivery budgets and the comparison-page checks.
+
+Final delivery bodies are **14,352,670 / 68,154,613 bytes** high and
+**8,788,571 / 20,010,374 bytes** low (startup / prepared flight), each **5,567 bytes**
+above `da71c83` from source changes. No asset download is added. Low has
+**211,429 bytes** of headroom under its 9 MB startup budget. The slow-frame
+automatic-quality check still selects low and disables the composer and shadows.
+Evidence: `benchmarks/2026-11-03-airport-ground-delivery.json`.

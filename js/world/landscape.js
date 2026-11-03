@@ -11,6 +11,7 @@ import { GROUND_DETAIL_GLSL, groundDetailUniforms, loadGroundDetail } from './gr
 import {addGroundCover} from './ground-cover.js';
 import {CORRIDOR_GLSL,corridorUniforms,loadApproachCorridor} from './approach-corridor.js';
 import {GROUND_MATERIAL_GLSL,groundMaterialUniforms,loadGroundMaterials} from './ground-materials.js';
+import {AIRPORT_GROUND_GLSL,HANGAR_APRON_GLSL} from './airport-ground.js';
 
 const source = (name) => new URL(`../../assets/scenery/${name}.${/^(region|approach|airport|final-approach)(-low|-preview)?$/.test(name)?'webp':'jpg'}`, import.meta.url).href;
 
@@ -41,6 +42,7 @@ export function buildLandscape(world) {
       ${GROUND_DETAIL_GLSL}
       ${CORRIDOR_GLSL}
       ${GROUND_MATERIAL_GLSL}
+      ${AIRPORT_GROUND_GLSL}
       vec2 aerialUV(vec2 center, float span) { return (vGroundXZ-center)*vec2(1.0,-1.0)/span+0.5; }
       float coverage(vec2 uv) { return 1.0-smoothstep(0.43,0.49,max(abs(uv.x-0.5),abs(uv.y-0.5))); }
     `).replace('#include <map_fragment>', `
@@ -100,7 +102,7 @@ export function buildLandscape(world) {
       }
       surfaceMask=max(surfaceMask,coverTotal);
       vec3 turf = mix(vec3(0.13,0.155,0.065),grass*vec3(0.75,0.9,0.65),nearGround*0.72);
-      turf *= 0.97+0.03*sin(vGroundXZ.y*0.21);
+      if(airfield>.001)turf=airportTurf(turf,vGroundXZ,1.-smoothstep(1000.,2200.,length(vViewPosition)));
       land = mix(land,turf,airfield*uReady);
       // Only reviewed land cover and maintained turf receive classified scans.
       // Missing/failed scans retain the original photographic surface intact.
@@ -231,7 +233,7 @@ function detailPavement(mat, textures) {
     Object.assign(sh.uniforms,{uAsphalt:{value:textures.color},uAsphaltRough:{value:textures.rough}});
     sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec2 vPavement;')
       .replace('#include <begin_vertex>','#include <begin_vertex>\nvPavement=(modelMatrix*vec4(position,1.0)).xz;');
-    sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying vec2 vPavement; uniform sampler2D uAsphalt, uAsphaltRough;')
+    sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying vec2 vPavement; uniform sampler2D uAsphalt, uAsphaltRough;\n'+HANGAR_APRON_GLSL)
       // Runway filtering owns its map lookup; grain still follows its base colour.
       .replace('#include <color_fragment>',`#include <color_fragment>
         vec3 aggregate=texture2D(uAsphalt,vPavement/7.0).rgb;
@@ -240,6 +242,7 @@ function detailPavement(mat, textures) {
         float variation=fract(sin(dot(slab,vec2(12.9898,78.233)))*43758.5453);
         // Concrete apron slabs and expansion joints; retain the painted stand lines above.
         float apron=step(abs(vPavement.x),699.0)*step(151.0,vPavement.y)*step(vPavement.y,419.0);
+        apron=max(apron,hangarApronMask(vPavement));
         vec2 seam=abs(fract(vPavement/6.0)-.5);
         float joint=smoothstep(.485,.497,max(seam.x,seam.y));
         diffuseColor.rgb*=mix(1.0,(.96+variation*.08)*(1.0-joint*.15),apron);`)

@@ -7,7 +7,15 @@ below record how the scene evolved; their older counts, captures and priorities 
 the remaining-work list. Update this section after each reviewed visual pass, including
 what changed, visible impact, measured cost, evidence and limitations.
 
-The latest visual pass **stabilizes runway paint and the pavement boundary during
+The latest visual pass **repairs the airport pavement layout visible during landing**.
+Five sideways connector slabs now match the continuous taxiways in the wheel query;
+a small forecourt joins the hangars to the taxiway and original apron. Turf variation
+follows pavement margins, and filtered 0.30 m taxiway lines replace oversized texture
+stripes. The forecourt changes that area from grass to pavement in the wheel query.
+No additional geographic scenery, trees or downloaded assets are introduced. Finer
+local shadows remain unresolved; the existing shadow-map settings are retained.
+
+The preceding pass **stabilizes runway paint and the pavement boundary during
 landing**. Four subpixel paint samples retain more continuous markings at grazing
 angles, while pixel coverage softens the outer edge without enlarging the physical
 runway. The original central rectangle is retained; 16 margin triangles provide
@@ -41,9 +49,10 @@ altitude is larger. No new button, asset, tree, scenery geometry or 3D render pa
 
 Further geographic expansion is paused. Priority follows the landing experience.
 Phone framing, live-display sampling, steady runway lights and runway paint/edge
-filtering are delivered. Next is airport ground detail and local shadows visible in
-the pilot's final approach, flare and rollout, followed by remaining thin details and
-printed cockpit lettering. Fine finishes and remote scenery no longer outrank these.
+filtering are delivered. Connected airport ground and taxiway paint are now also
+delivered. Local shadows, remaining thin details and printed cockpit lettering
+still need work in the pilot's final approach, flare and rollout. Fine finishes
+and remote scenery no longer outrank these.
 Physical-device usability and performance still require validation.
 
 The preceding review follow-up **automates the join checks and slices scenery preparation**.
@@ -94,8 +103,8 @@ should not be presented again as untouched tasks. Their broader quality limitati
 
 | Rank | Remaining work | Importance | Current limit / next acceptance evidence |
 | --- | --- | --- | --- |
-| 1 | Airport ground detail and local shadows during landing | High where visible from the pilot eye | Pavement, shoulders and terminal architecture already improved; the latest pass stabilizes runway paint/edges. Next, select remaining ground transitions, wear and shadows using the last 30 seconds, flare and rollout. Reject decoration with no useful pilot-seat contribution; retain runway clearances and markings. |
-| 2 | Remaining temporal stability and small lettering | High | Steady airfield lights, live display textures and runway paint/edges now use local filtering; native phone PFD rendering is delivered. Thin taxiway details, printed labels, branches and shadow edges remain. Low-detail source lettering also loses shape; anti-aliasing cannot restore removed geometry. Validate in continuous pilot motion and measure GPU cost. |
+| 1 | Local airport shadows during landing | High where visible from the pilot eye | Connected exits, the hangar forecourt, maintained verges, filtered runway/taxiway paint and terminal architecture are delivered. The ground-layout milestone is complete. Finer object contact shadows and coarse shadow edges remain a separate task, selected using the last 30 seconds, flare and rollout. Reject decoration with no useful pilot-seat contribution; retain runway clearances and markings. |
+| 2 | Remaining temporal stability and small lettering | High | Steady airfield lights, live display textures and runway paint/edges now use local filtering; native phone PFD rendering is delivered. Taxiway centerline sampling is also delivered; pavement silhouettes, more complete markings, printed labels, branches and shadow edges remain. Low-detail source lettering also loses shape; anti-aliasing cannot restore removed geometry. Validate in continuous pilot motion and measure GPU cost. |
 | 3 | Phone landing readability and usability validation | High on phones | Closer forward framing, larger radio altitude and native-resolution PANEL/PFD are delivered. Smaller labels and the short screen's limited space remain. Validate on real devices, including touch steering, orientation and browser toolbars; desktop emulation does not certify readability, FPS or battery use. |
 | 4 | Remaining cockpit materials and lighting | Medium | Remaining knobs/metal, floor and some shell surfaces are simple; indirect light/reflections remain approximations. Require visible benefit during normal flight. Completed panel, pedestal, overhead and liner finishes are not new scope. |
 | 5 | Finer cloud and wet-weather rendering | Medium overall; high in weather scenarios | Repeated fair-weather forms and simplified deep cloud interiors remain. Preserve corrected rain timing and cloud-entry visibility. |
@@ -105,9 +114,90 @@ should not be presented again as untouched tasks. Their broader quality limitati
 Performance and compatibility are acceptance requirements for every item, rather than a
 separate cosmetic milestone. Current high-resolution scenes still fall below 60 FPS on
 the M2 Pro; retain adaptive quality and report costs. Physical phones, ordinary laptops
-and multiple GPU drivers need wider validation. The isolated display and runway sampling
-probes pass SwiftShader too; full-scene checks use Metal. Neither
-establishes physical-phone or ordinary-laptop performance.
+and multiple GPU drivers need wider validation. The isolated display, runway and taxiway
+sampling probes pass SwiftShader too. The latest airport pass also checks full-scene
+flare/junction views on both tiers in SwiftShader; the wider captures use Metal.
+Neither establishes physical-phone or ordinary-laptop performance.
+
+### Connected airport pavement and maintained verges — 2026-11-03
+
+Baseline: `da71c83`. The airport's five connector planes were rotated into
+100×30 m sideways strips centred at z=72, while the wheel query already described
+continuous 30 m-wide links from runway edge z=22.5 to the parallel taxiway. Only
+**5 of 30** sampled centreline positions hit rendered connector pavement. The
+corrected **127.5×30 m** planes now cover all thirty points and retain the original
+runway, terrain heights and physical connector definition.
+
+A **280×190 m hangar forecourt** joins the original apron and parallel taxiway.
+Previously the outer hangars had no paved access. Its bounds are shared between
+rendering and the wheel query: this **5.32 ha** area changes from grass to pavement
+friction/rolling behaviour. It is within the existing graded airport; it adds no
+geographic landscape coverage or trees. Fifteen rendered forecourt/join samples
+also match the wheel surface. The forecourt uses the existing apron material,
+aggregate scan and world-space slab joints; it adds one draw and two triangles.
+
+Taxiway paint now uses world-space, pixel-integrated **0.30 m centerlines**, within
+the [FAA AIM 2-3-4 width range](https://www.faa.gov/air_traffic/publications/atpubs/aim_html/chap2_section_3.html).
+The previous three-texel stripe was 1.41 m wide on the parallel taxiway and 4.69 m
+on the wrongly rotated connectors. Lines join across the overlapping slabs and
+remain sampled below one pixel without a larger paint atlas. Surface repairs are
+now sparse, restrained and sized in metres; the old fixed count made each short
+connector much blotchier than the 3 km parallel taxiway. Turf colour variation and
+subdued mowing follow the pavement union, with filtered dry margins. Obsolete
+near-grass exclusions at the sideways slab positions are removed.
+
+This is most visible during flare. In the matched stills, **1.32% high / 1.86% low**
+of the full pilot frame changes by over five mean RGB levels; the distant final
+view changes under 0.09%. These figures describe image differences, not a quality
+score, and include the whole cockpit frame. Ground detail is intentionally a local
+improvement, not a new countryside pass. The [comparison](output/airport-ground-review.html)
+includes normal final/flare/rollout views, wet/night rollout, layout inspection,
+verges, the hangar forecourt and matched continuous landings.
+
+Validation:
+
+- All **24 Node suites** pass, including forecourt wheel contact, surrounding grass
+  classification, unchanged terrain heights and corrected grass-card exclusions.
+- **45 rendered pavement samples on each tier** match the wheel query. The same
+  guard is in the browser graphics group and therefore the ordinary full browser
+  suite, without an extra scenery load. The graphics group passes **24 checks**.
+- The actual taxiway material helper passes Metal and SwiftShader probes at
+  **2.56, 0.64 and 0.16 pixels** of line width, each swept through seventeen
+  subpixel positions. Integrated paint area is within **1.36%** of the intended
+  stripe; brightness variation stays below **0.83%**. Six point samples check
+  the connector line reaching the parallel centerline and stopping beyond it.
+  This is an isolated coverage test, not a whole-frame motion score.
+  It runs in `test:all` and `test:airport-ground` by default on SwiftShader.
+- Eighteen Metal full-scene views and four SwiftShader flare/junction views
+  render without page, shader or asset errors. Both-tier cloud-boundary checks
+  and startup/prepared-flight delivery checks also pass.
+- Before/after high and low autolands use **1,892 fixed steps**, identical
+  trajectory hash **`8db70716`**, successful touchdown and rollout to a stop.
+  These are the 3D pilot views at world ratio 1; they omit DOM touch controls,
+  and capture pacing is not FPS evidence. The full keyboard/controller suites
+  and physical-phone usability have not been rerun for this pass.
+- The review page verifies **88 comparison images and four videos**, slider
+  direction, zoom, paired playback and a 390 px-wide layout without page errors.
+
+The final paired M2 Pro measurements show high quality **0.3–2.4% slower** in
+the four sampled pilot views, with unchanged 33.4 ms p95; low stays near the
+60 Hz display ceiling. Delivery checks measure **14,352,670 / 68,154,613 bytes**
+high and **8,788,571 / 20,010,374 bytes** low for startup / prepared flight.
+That is **5,567 additional source bytes**, with no new asset downloads and
+**211,429 bytes** remaining below the low-tier 9 MB startup limit.
+
+Shadow work remains separate. Lowering the existing airport normal bias from
+0.6 to 0.15 changed under 0.18% of the sampled pilot frames above the same RGB
+threshold and did not produce a convincing improvement. It was not retained.
+Existing coarse shadow maps and the low tier's lack of world shadow maps remain.
+Other limits include squared pavement junctions, simplified taxiway markings,
+sparse ground equipment and repeated ground textures. The completed ground-layout
+milestone should not be listed again as an untouched task.
+
+The [performance record](RENDER-PERFORMANCE.md#connected-airport-pavement-and-verges--2026-11-03)
+reports paired live-application timing and resource costs. No new downloaded assets,
+shadow maps or render targets are introduced. Physical phones and ordinary laptops
+remain unbenchmarked; the older cumulative scenery cost has not disappeared.
 
 ### Runway paint and pavement boundary — 2026-11-03
 

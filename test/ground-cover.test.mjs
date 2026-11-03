@@ -24,7 +24,8 @@ const empty={};assert.equal(groundCoverKind(empty,1200,-55),1);assert.equal(grou
 for(let x=-1680;x<=1680;x+=13.1)for(let z=-100;z<110;z+=3.7)if(groundCoverKind(empty,x,z)){
  for(const dx of [-.65,.65])for(const dz of [-.65,.65])assert.equal(TERRAIN.surfaceAt(x+dx,z+dz),'grass','Whole blade cards remain off pavement');
 }
-for(const x of [-1450,-700,0,700,1450])for(const dx of [-50,0,50])assert.equal(groundCoverKind(empty,x+dx,72),0,'Rendered connector extent stays clear');
+for(const x of [-1450,-700,0,700,1450])for(const z of [35,72,105])for(const dx of [-14,0,14])assert.equal(groundCoverKind(empty,x+dx,z),0,'Connected taxiway pavement stays clear');
+for(const x of [-1450,-700,0,700,1450])for(const dx of [-50,50])assert.equal(groundCoverKind(empty,x+dx,72),1,'Former sideways connector no longer cuts a bare hole in grass');
 const field={approachCorridor:{sample:()=>[1,0,0]}};assert.equal(groundCoverKind(field,2350,330),2);
 for(const name of ['approachSiteExcludes','approachBuildingExcludes','approachRoadExcludes'])assert.equal(groundCoverKind({...field,[name]:()=>true},2350,330),0);
 for(const rgb of [[0,1,0],[0,0,1],[.5,.5,0],[0,0,0]])assert.equal(groundCoverKind({approachCorridor:{sample:()=>rgb}},2350,330),0,'Only strongly mapped meadow receives grass');

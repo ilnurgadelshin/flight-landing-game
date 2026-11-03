@@ -1,0 +1,17 @@
+[
+  {
+    "view": "flare",
+    "meanDelta": 0.01068955761317103,
+    "changedFraction": 0.0005362654320987655
+  },
+  {
+    "view": "rollout",
+    "meanDelta": 0.030781635802490374,
+    "changedFraction": 0.0017044753086419753
+  },
+  {
+    "view": "shadow",
+    "meanDelta": 0.01633410493827151,
+    "changedFraction": 0.001128858024691358
+  }
+]

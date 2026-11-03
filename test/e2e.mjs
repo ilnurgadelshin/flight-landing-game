@@ -1335,6 +1335,18 @@ if (want('graphics')) {
   });
   check('explicit high tier: 4× MSAA floating-point frame, bloom, sun shadows outside and in the flight deck', hi.q === 'high' && hi.composer && hi.samples === 4 && hi.bloom && hi.shadows && hi.sun && hi.cockpitSun && hi.casters > 40, JSON.stringify(hi));
   check('the sky lights every surface (environment map)', hi.env);
+  const pavement = await gp.evaluate(async()=>{
+    const T=await import('/vendor/three.module.js'),{TERRAIN}=await import('/js/physics/terrain.js'),w=window.__sim.world;
+    w.scene.updateMatrixWorld(true);const ray=new T.Raycaster();let matched=0;
+    const sample=(x,z,mat)=>{ray.set(new T.Vector3(x,10,z),new T.Vector3(0,-1,0));
+      const meshes=w.scene.children.filter(m=>m.isMesh&&m.material===mat);
+      if(ray.intersectObjects(meshes,false).length&&TERRAIN.surfaceAt(x,z)==='taxiway')matched++;
+    };
+    for(const x of [-1450,-700,0,700,1450])for(const z of [23,45,72,99,121,149])sample(x,z,w.pavementMats[2]);
+    for(const x of [699.9,700.1,810,920,979])for(const z of [151,205,260])sample(x,z,w.pavementMats[3]);
+    return matched;
+  });
+  check('five continuous taxiway connectors and hangar access match the wheel surfaces',pavement===45,`${pavement}/45 rendered samples`);
   await gp.evaluate(() => { window.__sim.start({ scenarioId: 'clear', startId: 'short', mode: 'game', sound: false, seed: 5 }); window.__sim.setTimeScale(0); document.getElementById('hud').style.visibility = 'hidden'; });
   await gf(3);
   // read the frame back (a 96×54 thumbnail) right after drawing it, in the same task

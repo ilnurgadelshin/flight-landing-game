@@ -128,7 +128,12 @@ export function makeTaxiwayTexture(anisotropy, lengthM, widthM, centreline = tru
   const c = canvas(W, H); const g = c.getContext('2d');
   g.fillStyle = '#5e5e60'; g.fillRect(0, 0, W, H);
   const rng = makeRng(9);
-  for (let i = 0; i < 400; i++) { g.fillStyle = `rgba(0,0,0,${rng() * 0.15})`; g.fillRect(rng() * W, rng() * H, 2 + rng() * 6, 2 + rng() * 6); }
+  // Repairs have a metric size and spacing. A fixed 400 marks made a short
+  // connector far more blotchy than the 3 km parallel taxiway. Scans supply grain.
+  for (let i = 0; i < Math.ceil(lengthM/80); i++) {
+    g.fillStyle = `rgba(0,0,0,${.015+rng()*.04})`;
+    g.fillRect(rng()*W,rng()*H,(2+rng()*12)*W/lengthM,(1.2+rng()*3)*H/widthM);
+  }
   if (centreline) { g.fillStyle = '#e0c020'; g.fillRect(0, H / 2 - 1.5, W, 3); }
   return makeTexture(c, { anisotropy });
 }

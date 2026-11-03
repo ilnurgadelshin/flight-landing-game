@@ -609,6 +609,17 @@ The existing paint, rubber deposits, scanned aggregate, wetness and atmospheric
 lighting remain. There are no new assets, textures or draw calls; the additional
 texture reads, 16 margin triangles and discarded fringe pixels require GPU time.
 
+Five 30 m-wide taxiway connectors now join the runway and parallel taxiway, matching
+the wheel-surface query. The hangars have a 280 × 190 m forecourt adjoining the
+existing apron, classified as pavement for rolling/braking. This adds one draw and
+two triangles within the existing airport. Turf variation follows the pavement
+union, with restrained worn margins instead of uniform mowing stripes everywhere.
+Taxiway centerlines use filtered 0.30 m coverage in world space, following the upper
+width in [FAA AIM 2-3-4](https://www.faa.gov/air_traffic/publications/atpubs/aim_html/chap2_section_3.html).
+They remain sampled when narrower than a pixel and join across overlapping slabs.
+No new assets are downloaded. Airport shadow maps are unchanged; finer contact
+shading and more complete taxiway markings remain separate improvements.
+
 The airport's original architecture (`js/world/airport-architecture.js`) connects five
 stepped departure halls with glazed galleries, recessed fronts and structural braces.
 Pitched hangars and an eight-sided control cab replace the basic boxes/cylinders.
@@ -1080,6 +1091,15 @@ records identical fixed-step autoland paths on desktop and phone framing, starti
 about 34 seconds before touchdown and continuing to a stop. Capture pacing is not
 performance evidence. `BENCHMARK_MODES=forward,flare,storm,rollout` selects landing
 views in `test/instrument-benchmark.mjs`, including live cockpit updates.
+
+`npm run test:airport-ground` checks metric taxiway paint during subpixel motion,
+then captures pilot and airport views on both tiers and ray-checks 45 pavement joins
+against the wheel surfaces. `AIRPORT_VIEWS=flare,junction` limits the full-scene
+captures for slower renderers. The paint probe runs in `test:all`; the graphics
+group also guards the pavement joins without adding a second scenery load. Use
+`RECORD_VIDEO=1 node test/runway-motion.mjs airport-ground-motion-after` for a matched
+landing recording and `node test/airport-ground-review.mjs --verify` to assemble and
+verify the local review once its before/after captures and benchmarks are available.
 
 | Command | What it checks | Time |
 | --- | --- | --- |

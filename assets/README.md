@@ -959,6 +959,17 @@ are MIT-licensed; no downloaded building, image, font or network service is used
 The gate locations and aircraft/jet-bridge placements are retained. Architecture
 remains visual scenery and does not change the runway, taxiways or flight physics.
 
+The November 3 airport-ground follow-up uses original project code and the existing
+surface scans; it adds no downloaded assets. It corrects the five connector slabs
+to match their existing wheel-surface layout and adds a 280 × 190 m hangar forecourt
+adjoining the main apron. Unlike the architecture-only pass, that forecourt is also
+classified as pavement by the wheel query. `js/airport-layout.js` shares its bounds
+between rendering and terrain classification. Turf variation follows the pavement
+union, and analytic coverage renders 0.30 m taxiway centerlines without a new paint
+texture. Width reference: [FAA AIM 2-3-4](https://www.faa.gov/air_traffic/publications/atpubs/aim_html/chap2_section_3.html).
+The forecourt shares the apron material and scanned aggregate; it adds one draw and
+two triangles. This does not add geographic coverage, trees or shadow maps.
+
 Five stepped curved roofs, recessed curtain walls, mezzanine bands and V-shaped
 supports connect through four glazed galleries and solid stair cores. The end wings
 have continuous shaded glazing. Hangars have pitched roofs, glazed sliding doors,
@@ -978,7 +989,7 @@ unoccupied rooms. Derivative filtering softens thin floor joints and ceiling lig
 All ray divisions are epsilon-guarded, including axis-aligned and grazing views. Rooms
 remain opaque and share the usual atmosphere and shadows, avoiding transparent sorting.
 
-No image downloads, render passes, triangles or draw calls are added. The two old generated
+The glass pass adds no image downloads, render passes, triangles or draw calls. The two old generated
 facade maps are removed, saving about **1.33 MiB high / 0.33 MiB low** of mipmapped GPU texture
 storage, plus their CPU canvases. Static per-pane attributes add **182,424 bytes** on either
 tier. The remaining sign canvas uses about **0.67 MiB high / 0.17 MiB low** on the GPU. Room
