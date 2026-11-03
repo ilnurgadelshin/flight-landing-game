@@ -1,0 +1,565 @@
+{
+  "date": "2026-11-01T08:51:22.722Z",
+  "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M2 Pro, Unspecified Version)",
+  "reports": [
+    {
+      "view": "far",
+      "ratio": 1,
+      "samples": 0,
+      "control": {
+        "error": null,
+        "motion": null,
+        "n": 0
+      },
+      "current": {
+        "error": null,
+        "motion": null,
+        "n": 0
+      },
+      "surfaceControl": {
+        "error": 3.790619180633147,
+        "motion": 2.9603174603174605,
+        "n": 537
+      },
+      "surfaceCurrent": {
+        "error": 1.591596834264432,
+        "motion": 1.1436011904761905,
+        "n": 537
+      }
+    },
+    {
+      "view": "far",
+      "ratio": 1,
+      "samples": 4,
+      "control": {
+        "error": null,
+        "motion": null,
+        "n": 0
+      },
+      "current": {
+        "error": null,
+        "motion": null,
+        "n": 0
+      },
+      "surfaceControl": {
+        "error": 2.5722765363128492,
+        "motion": 1.632936507936508,
+        "n": 537
+      },
+      "surfaceCurrent": {
+        "error": 1.591596834264432,
+        "motion": 1.1436011904761905,
+        "n": 537
+      }
+    },
+    {
+      "view": "final",
+      "ratio": 1,
+      "samples": 0,
+      "control": {
+        "error": 17.118827160493826,
+        "motion": 5.632858187134503,
+        "n": 729
+      },
+      "current": {
+        "error": 9.48045267489712,
+        "motion": 3.2107090643274856,
+        "n": 729
+      },
+      "surfaceControl": {
+        "error": 8.528745737425405,
+        "motion": 3.450220488466757,
+        "n": 4692
+      },
+      "surfaceCurrent": {
+        "error": 3.7644927536231885,
+        "motion": 2.0084803256445047,
+        "n": 4692
+      }
+    },
+    {
+      "view": "final",
+      "ratio": 1,
+      "samples": 4,
+      "control": {
+        "error": 9.678326474622772,
+        "motion": 4.858187134502924,
+        "n": 729
+      },
+      "current": {
+        "error": 9.482510288065845,
+        "motion": 3.2107090643274856,
+        "n": 729
+      },
+      "surfaceControl": {
+        "error": 6.923140451832907,
+        "motion": 3.036013116236997,
+        "n": 4692
+      },
+      "surfaceCurrent": {
+        "error": 3.7648124467178175,
+        "motion": 2.00856512890095,
+        "n": 4692
+      }
+    },
+    {
+      "view": "banked",
+      "ratio": 1,
+      "samples": 0,
+      "control": {
+        "error": 13.006150793650793,
+        "motion": 6.893920068027211,
+        "n": 630
+      },
+      "current": {
+        "error": 6.016269841269842,
+        "motion": 3.652848639455782,
+        "n": 630
+      },
+      "surfaceControl": {
+        "error": 7.685037754432042,
+        "motion": 3.768767458100559,
+        "n": 4569
+      },
+      "surfaceCurrent": {
+        "error": 3.1220589844604945,
+        "motion": 2.1779562383612663,
+        "n": 4569
+      }
+    },
+    {
+      "view": "banked",
+      "ratio": 1,
+      "samples": 4,
+      "control": {
+        "error": 9.44484126984127,
+        "motion": 5.379676870748299,
+        "n": 630
+      },
+      "current": {
+        "error": 6.011507936507937,
+        "motion": 3.654549319727891,
+        "n": 630
+      },
+      "surfaceControl": {
+        "error": 6.548957649376231,
+        "motion": 3.2596892458100557,
+        "n": 4569
+      },
+      "surfaceCurrent": {
+        "error": 3.1051515648938497,
+        "motion": 2.1782472067039107,
+        "n": 4569
+      }
+    },
+    {
+      "view": "flare",
+      "ratio": 1,
+      "samples": 0,
+      "control": {
+        "error": 9.965979968813722,
+        "motion": 4.426570306923626,
+        "n": 41685
+      },
+      "current": {
+        "error": 2.989780496581504,
+        "motion": 1.386127256041603,
+        "n": 41685
+      },
+      "surfaceControl": {
+        "error": 5.09296575627395,
+        "motion": 2.052891275709672,
+        "n": 125001
+      },
+      "surfaceCurrent": {
+        "error": 1.748406512747898,
+        "motion": 0.800629462009179,
+        "n": 125001
+      }
+    },
+    {
+      "view": "flare",
+      "ratio": 1,
+      "samples": 4,
+      "control": {
+        "error": 6.983807124865059,
+        "motion": 3.4977790098908943,
+        "n": 41685
+      },
+      "current": {
+        "error": 2.9902452920714886,
+        "motion": 1.3862897675130008,
+        "n": 41685
+      },
+      "surfaceControl": {
+        "error": 4.079914860681114,
+        "motion": 1.7627958737038927,
+        "n": 125001
+      },
+      "surfaceCurrent": {
+        "error": 1.748627510979912,
+        "motion": 0.8006995792962774,
+        "n": 125001
+      }
+    },
+    {
+      "view": "rollout",
+      "ratio": 1,
+      "samples": 0,
+      "control": {
+        "error": 10.045101154746492,
+        "motion": 2.637153645833333,
+        "n": 76467
+      },
+      "current": {
+        "error": 2.1086236546484103,
+        "motion": 1.4501657986111112,
+        "n": 76467
+      },
+      "surfaceControl": {
+        "error": 0.7145729547916458,
+        "motion": 0.38481294917053044,
+        "n": 2310657
+      },
+      "surfaceCurrent": {
+        "error": 0.350981127878348,
+        "motion": 0.31952426377303017,
+        "n": 2310657
+      }
+    },
+    {
+      "view": "rollout",
+      "ratio": 1,
+      "samples": 4,
+      "control": {
+        "error": 3.593344187688807,
+        "motion": 2.0323220486111113,
+        "n": 76467
+      },
+      "current": {
+        "error": 2.1086089424196057,
+        "motion": 1.4502387152777778,
+        "n": 76467
+      },
+      "surfaceControl": {
+        "error": 0.4972943301407349,
+        "motion": 0.3668182505841027,
+        "n": 2310657
+      },
+      "surfaceCurrent": {
+        "error": 0.35107249799515894,
+        "motion": 0.31952161973382115,
+        "n": 2310657
+      }
+    },
+    {
+      "view": "far",
+      "ratio": 1.5,
+      "samples": 0,
+      "control": {
+        "error": null,
+        "motion": null,
+        "n": 0
+      },
+      "current": {
+        "error": null,
+        "motion": null,
+        "n": 0
+      },
+      "surfaceControl": {
+        "error": 4.61361183074266,
+        "motion": 2.4930555555555554,
+        "n": 1158
+      },
+      "surfaceCurrent": {
+        "error": 2.8132016407599307,
+        "motion": 1.7108796296296296,
+        "n": 1158
+      }
+    },
+    {
+      "view": "far",
+      "ratio": 1.5,
+      "samples": 4,
+      "control": {
+        "error": null,
+        "motion": null,
+        "n": 0
+      },
+      "current": {
+        "error": null,
+        "motion": null,
+        "n": 0
+      },
+      "surfaceControl": {
+        "error": 3.3990177029360966,
+        "motion": 1.8923611111111112,
+        "n": 1158
+      },
+      "surfaceCurrent": {
+        "error": 2.8132016407599307,
+        "motion": 1.7118055555555556,
+        "n": 1158
+      }
+    },
+    {
+      "view": "final",
+      "ratio": 1.5,
+      "samples": 0,
+      "control": {
+        "error": 13.604915577342048,
+        "motion": 6.748987268518518,
+        "n": 1836
+      },
+      "current": {
+        "error": 4.5039488017429194,
+        "motion": 3.9186921296296298,
+        "n": 1836
+      },
+      "surfaceControl": {
+        "error": 7.415506139562743,
+        "motion": 3.1503790288379983,
+        "n": 10017
+      },
+      "surfaceCurrent": {
+        "error": 2.4975416791454528,
+        "motion": 1.855624469889737,
+        "n": 10017
+      }
+    },
+    {
+      "view": "final",
+      "ratio": 1.5,
+      "samples": 4,
+      "control": {
+        "error": 12.688657407407407,
+        "motion": 5.565755208333333,
+        "n": 1836
+      },
+      "current": {
+        "error": 4.500953159041394,
+        "motion": 3.9152199074074074,
+        "n": 1836
+      },
+      "surfaceControl": {
+        "error": 7.101240391334731,
+        "motion": 2.763743108566582,
+        "n": 10017
+      },
+      "surfaceCurrent": {
+        "error": 2.5066137566137567,
+        "motion": 1.8512510602205259,
+        "n": 10017
+      }
+    },
+    {
+      "view": "banked",
+      "ratio": 1.5,
+      "samples": 0,
+      "control": {
+        "error": 14.478627292340885,
+        "motion": 8.278529495990837,
+        "n": 1854
+      },
+      "current": {
+        "error": 6.717974649406688,
+        "motion": 5.147014604810996,
+        "n": 1854
+      },
+      "surfaceControl": {
+        "error": 8.061956195619562,
+        "motion": 3.6409068003394864,
+        "n": 9999
+      },
+      "surfaceCurrent": {
+        "error": 3.303780378037804,
+        "motion": 2.202942658603862,
+        "n": 9999
+      }
+    },
+    {
+      "view": "banked",
+      "ratio": 1.5,
+      "samples": 4,
+      "control": {
+        "error": 12.27831715210356,
+        "motion": 5.7546892898052695,
+        "n": 1854
+      },
+      "current": {
+        "error": 6.719053398058253,
+        "motion": 5.151596506300114,
+        "n": 1854
+      },
+      "surfaceControl": {
+        "error": 7.227872787278728,
+        "motion": 2.9809370358582643,
+        "n": 9999
+      },
+      "surfaceCurrent": {
+        "error": 3.3038803880388037,
+        "motion": 2.2036852853808613,
+        "n": 9999
+      }
+    },
+    {
+      "view": "flare",
+      "ratio": 1.5,
+      "samples": 0,
+      "control": {
+        "error": 7.971794389635227,
+        "motion": 3.5377322556670383,
+        "n": 85752
+      },
+      "current": {
+        "error": 2.3569005679167834,
+        "motion": 1.074605165366035,
+        "n": 85752
+      },
+      "surfaceControl": {
+        "error": 3.780339556650595,
+        "motion": 1.5246107412839895,
+        "n": 282486
+      },
+      "surfaceCurrent": {
+        "error": 1.251642559277274,
+        "motion": 0.6135967881454737,
+        "n": 282486
+      }
+    },
+    {
+      "view": "flare",
+      "ratio": 1.5,
+      "samples": 4,
+      "control": {
+        "error": 5.44799611087788,
+        "motion": 2.8017001114827202,
+        "n": 85752
+      },
+      "current": {
+        "error": 2.3569690794383806,
+        "motion": 1.0743651678434287,
+        "n": 85752
+      },
+      "surfaceControl": {
+        "error": 2.878071391148588,
+        "motion": 1.3172764112979052,
+        "n": 282486
+      },
+      "surfaceCurrent": {
+        "error": 1.2516757467626713,
+        "motion": 0.6134797284591372,
+        "n": 282486
+      }
+    },
+    {
+      "view": "rollout",
+      "ratio": 1.5,
+      "samples": 0,
+      "control": {
+        "error": 7.258922440483854,
+        "motion": 1.9339601978869478,
+        "n": 163107
+      },
+      "current": {
+        "error": 1.580131830638783,
+        "motion": 1.1596371366970206,
+        "n": 163107
+      },
+      "surfaceControl": {
+        "error": 0.5570767756966489,
+        "motion": 0.31475306835533945,
+        "n": 5190132
+      },
+      "surfaceCurrent": {
+        "error": 0.30651508478011735,
+        "motion": 0.2721358476927225,
+        "n": 5190132
+      }
+    },
+    {
+      "view": "rollout",
+      "ratio": 1.5,
+      "samples": 4,
+      "control": {
+        "error": 2.4999367746326033,
+        "motion": 1.5064986614296323,
+        "n": 163107
+      },
+      "current": {
+        "error": 1.5800590256702656,
+        "motion": 1.1595239607352692,
+        "n": 163107
+      },
+      "surfaceControl": {
+        "error": 0.4059023209814317,
+        "motion": 0.3028199384701429,
+        "n": 5190132
+      },
+      "surfaceCurrent": {
+        "error": 0.3065150366117856,
+        "motion": 0.2721375110214722,
+        "n": 5190132
+      }
+    }
+  ],
+  "boundaries": [
+    {
+      "x": 1500,
+      "z": 0,
+      "inside": [
+        255,
+        255,
+        255
+      ],
+      "outside": [
+        255,
+        0,
+        0
+      ]
+    },
+    {
+      "x": -1500,
+      "z": 0,
+      "inside": [
+        255,
+        255,
+        255
+      ],
+      "outside": [
+        255,
+        0,
+        0
+      ]
+    },
+    {
+      "x": 0,
+      "z": 22.5,
+      "inside": [
+        255,
+        255,
+        255
+      ],
+      "outside": [
+        255,
+        0,
+        0
+      ]
+    },
+    {
+      "x": 0,
+      "z": -22.5,
+      "inside": [
+        255,
+        255,
+        255
+      ],
+      "outside": [
+        255,
+        0,
+        0
+      ]
+    }
+  ],
+  "errors": []
+}

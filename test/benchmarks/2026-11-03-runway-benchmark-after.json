@@ -1,0 +1,138 @@
+{
+  "date": "2026-11-01T08:54:57.690Z",
+  "browser": "141.0.7390.37",
+  "warmup": 4,
+  "sample": 12,
+  "method": "Actual application RAF, presentation, live instrument redraws/uploads and rendering; frozen flight physics. Display-capped Mac timing, not physical-phone performance.",
+  "results": [
+    {
+      "tier": "high",
+      "mode": "forward",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "devicePixelRatio": 1,
+      "fps": 40.778282651753464,
+      "p95Ms": 33.400000000001455,
+      "p99Ms": 33.400000000001455,
+      "frames": 490,
+      "pfdUpdates": 489,
+      "pixelRatio": 1.5,
+      "errors": []
+    },
+    {
+      "tier": "high",
+      "mode": "flare",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "devicePixelRatio": 1,
+      "fps": 41.61049250178926,
+      "p95Ms": 33.400000000001455,
+      "p99Ms": 33.400000000001455,
+      "frames": 500,
+      "pfdUpdates": 499,
+      "pixelRatio": 1.5,
+      "errors": []
+    },
+    {
+      "tier": "high",
+      "mode": "storm",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "devicePixelRatio": 1,
+      "fps": 43.13174712662782,
+      "p95Ms": 33.400000000001455,
+      "p99Ms": 33.400000000001455,
+      "frames": 519,
+      "pfdUpdates": 518,
+      "pixelRatio": 1.5,
+      "errors": []
+    },
+    {
+      "tier": "high",
+      "mode": "rollout",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "devicePixelRatio": 1,
+      "fps": 38.614858398315576,
+      "p95Ms": 33.40000000000873,
+      "p99Ms": 33.40000000000873,
+      "frames": 464,
+      "pfdUpdates": 463,
+      "pixelRatio": 1.5,
+      "errors": []
+    },
+    {
+      "tier": "low",
+      "mode": "forward",
+      "viewport": {
+        "width": 852,
+        "height": 393
+      },
+      "devicePixelRatio": 2,
+      "fps": 60.002829537037805,
+      "p95Ms": 16.700000000000728,
+      "p99Ms": 16.80000000000109,
+      "frames": 721,
+      "pfdUpdates": 720,
+      "pixelRatio": 1,
+      "errors": []
+    },
+    {
+      "tier": "low",
+      "mode": "flare",
+      "viewport": {
+        "width": 852,
+        "height": 393
+      },
+      "devicePixelRatio": 2,
+      "fps": 60.00282953703781,
+      "p95Ms": 16.799999999995634,
+      "p99Ms": 16.80000000000291,
+      "frames": 721,
+      "pfdUpdates": 720,
+      "pixelRatio": 1,
+      "errors": []
+    },
+    {
+      "tier": "low",
+      "mode": "storm",
+      "viewport": {
+        "width": 852,
+        "height": 393
+      },
+      "devicePixelRatio": 2,
+      "fps": 60.00282953703781,
+      "p95Ms": 16.700000000004366,
+      "p99Ms": 16.80000000000291,
+      "frames": 721,
+      "pfdUpdates": 720,
+      "pixelRatio": 1,
+      "errors": []
+    },
+    {
+      "tier": "low",
+      "mode": "rollout",
+      "viewport": {
+        "width": 852,
+        "height": 393
+      },
+      "devicePixelRatio": 2,
+      "fps": 60.00183084643358,
+      "p95Ms": 16.70000000001164,
+      "p99Ms": 16.80000000000291,
+      "frames": 721,
+      "pfdUpdates": 720,
+      "pixelRatio": 1,
+      "errors": []
+    }
+  ],
+  "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M2 Pro, Unspecified Version)"
+}

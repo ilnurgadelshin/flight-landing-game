@@ -1,18 +1,26 @@
 # Visual improvement audit
 
-## Current status — 2026-10-31
+## Current status — 2026-11-03
 
 This section is the current checklist. The original September audit and dated work log
 below record how the scene evolved; their older counts, captures and priorities are not
 the remaining-work list. Update this section after each reviewed visual pass, including
 what changed, visible impact, measured cost, evidence and limitations.
 
-The latest visual pass **stabilizes the live cockpit display textures**. PFD, ND,
+The latest visual pass **stabilizes runway paint and the pavement boundary during
+landing**. Four subpixel paint samples retain more continuous markings at grazing
+angles, while pixel coverage softens the outer edge without enlarging the physical
+runway. The original central rectangle is retained; 16 margin triangles provide
+raster support within the same draw. This is local filtering, not temporal
+anti-aliasing for the whole scene. Matched final-approach/flare/rollout evidence and
+both-renderer sampling checks are recorded below. Scenery expansion remains paused.
+
+The preceding pass **stabilizes the live cockpit display textures**. PFD, ND,
 engine and systems canvases now use mipmaps with a half-level detail bias. This
 reduces undersampling when a 512 px display occupies much less screen space,
 without the unnecessary softness of unbiased trilinear filtering. Native phone
 PANEL/MAP redraws remain separate. This does not restore source-model lettering
-or stabilize thin runway, foliage or shadow geometry.
+or stabilize foliage or shadow geometry.
 
 The preceding pass **reduces steady runway-light sparkle during landing**.
 Small daytime point sprites could disappear between pixel centres. A four-pixel
@@ -31,11 +39,12 @@ with a native-resolution redraw up to device ratio 3. The same drawing code, fli
 state, flight director and mode annunciations feed both displays. Forward radio
 altitude is larger. No new button, asset, tree, scenery geometry or 3D render pass is added.
 
-Further geographic expansion is paused. Priority now follows the landing experience:
-readability and a stable moving image, then runway detail visible in the pilot's final
-approach, flare and rollout. Fine cockpit finishes and remote scenery no longer outrank
-these. This phone pass does not solve thin-detail shimmer or damaged model lettering;
-physical-device usability and performance still require validation.
+Further geographic expansion is paused. Priority follows the landing experience.
+Phone framing, live-display sampling, steady runway lights and runway paint/edge
+filtering are delivered. Next is airport ground detail and local shadows visible in
+the pilot's final approach, flare and rollout, followed by remaining thin details and
+printed cockpit lettering. Fine finishes and remote scenery no longer outrank these.
+Physical-device usability and performance still require validation.
 
 The preceding review follow-up **automates the join checks and slices scenery preparation**.
 `npm run test:corridor` now includes the eight density joins, defaults to SwiftShader,
@@ -85,8 +94,8 @@ should not be presented again as untouched tasks. Their broader quality limitati
 
 | Rank | Remaining work | Importance | Current limit / next acceptance evidence |
 | --- | --- | --- | --- |
-| 1 | Temporal stability and small lettering | High | Steady airfield lights and small live display textures now use filtered sampling; native phone PFD rendering is also delivered. Thin runway markings, labels, branches and shadow edges can still shimmer in motion. Low-detail source lettering also loses shape; anti-aliasing cannot restore removed geometry. Next pass: isolate the remaining dominant sources in continuous pilot movement and landing, and measure GPU cost. |
-| 2 | Airport ground detail and local shadows during landing | High where visible from the pilot eye | Pavement, shoulders and terminal architecture already improved. Remaining ground transitions, wear and shadows need selection using the final approach, flare and rollout. Reject decoration with no useful pilot-seat contribution; retain runway clearances and markings. |
+| 1 | Airport ground detail and local shadows during landing | High where visible from the pilot eye | Pavement, shoulders and terminal architecture already improved; the latest pass stabilizes runway paint/edges. Next, select remaining ground transitions, wear and shadows using the last 30 seconds, flare and rollout. Reject decoration with no useful pilot-seat contribution; retain runway clearances and markings. |
+| 2 | Remaining temporal stability and small lettering | High | Steady airfield lights, live display textures and runway paint/edges now use local filtering; native phone PFD rendering is delivered. Thin taxiway details, printed labels, branches and shadow edges remain. Low-detail source lettering also loses shape; anti-aliasing cannot restore removed geometry. Validate in continuous pilot motion and measure GPU cost. |
 | 3 | Phone landing readability and usability validation | High on phones | Closer forward framing, larger radio altitude and native-resolution PANEL/PFD are delivered. Smaller labels and the short screen's limited space remain. Validate on real devices, including touch steering, orientation and browser toolbars; desktop emulation does not certify readability, FPS or battery use. |
 | 4 | Remaining cockpit materials and lighting | Medium | Remaining knobs/metal, floor and some shell surfaces are simple; indirect light/reflections remain approximations. Require visible benefit during normal flight. Completed panel, pedestal, overhead and liner finishes are not new scope. |
 | 5 | Finer cloud and wet-weather rendering | Medium overall; high in weather scenarios | Repeated fair-weather forms and simplified deep cloud interiors remain. Preserve corrected rain timing and cloud-entry visibility. |
@@ -96,9 +105,76 @@ should not be presented again as untouched tasks. Their broader quality limitati
 Performance and compatibility are acceptance requirements for every item, rather than a
 separate cosmetic milestone. Current high-resolution scenes still fall below 60 FPS on
 the M2 Pro; retain adaptive quality and report costs. Physical phones, ordinary laptops
-and multiple GPU drivers need wider validation. The latest isolated display-sampling
-probe passes SwiftShader too; full-scene checks for this pass used Metal. Neither
+and multiple GPU drivers need wider validation. The isolated display and runway sampling
+probes pass SwiftShader too; full-scene checks use Metal. Neither
 establishes physical-phone or ordinary-laptop performance.
+
+### Runway paint and pavement boundary — 2026-11-03
+
+Baseline: `5d2cdb9`. This pass focuses on what moves through the windshield in
+the last roughly 34 seconds before touchdown and the rollout. The runway's
+existing 8192×512 paint texture was already mipmapped and anisotropic; increasing
+its resolution alone would not address the undersampled boundary. The material
+now averages four positions inside each pixel and computes fractional coverage
+at the original 3000×45 m perimeter. It preserves the paint layout, rubber,
+scanned aggregate, wetness, atmosphere and physical landing area. The aggregate
+shader is composed after the filtered base colour so its detail is retained.
+
+The original central quad remains, with 16 extra margin triangles in the same
+draw. An earlier stretched two-triangle prototype was rejected after SwiftShader
+exposed a substantial interpolation error during shallow rollout. Exterior
+fragments are discarded; interior depth writes remain. There are no new assets,
+textures, render targets or render passes. The margin adds 480 bytes of vertex/
+index storage, while four texture reads, coverage calculations and rasterized
+margin pixels add GPU work. This is local spatial filtering, not whole-scene
+history-based anti-aliasing. Printed labels, taxiway details, foliage and shadow
+edges remain separate work.
+
+Validation and evidence:
+
+- `test/runway-sampling.mjs` passes **20 cases and four boundary/depth checks**
+  on both Metal and SwiftShader: far/final/banked/flare/rollout views, ratios
+  1 and 1.5, and zero/four-sample targets. Each case crosses 17 subpixel positions
+  and compares with an independent 4× supersampled reference in linear light.
+  Bright-paint motion residual falls **10–70% on Metal**, **14–70% on SwiftShader**.
+  These are isolated sampling metrics, not whole-frame flicker or legibility scores.
+  The far view has no bright-paint samples and is checked using pavement error.
+  The test runs in `test:runway` and `test:all`, defaulting to SwiftShader.
+- Metal's pavement reference error improves in every case. SwiftShader has a
+  rollout tradeoff: pavement error rises by at most **0.16 on a 0–255 scale**.
+  Within its bright paint pixels, the MSAA rollout error is **12.3 → 17.1** at
+  ratio 1 and **23.5 → 28.4** at ratio 1.5, while motion residual falls 19% / 17%.
+  This is not an every-pixel sharpness improvement. The static guard allows
+  half an 8-bit level around its relative tolerance; every moving-paint case
+  still must improve. Both renderer reports are retained for future comparisons.
+- Matched high-desktop and low-phone-framed autolands have **1,892 fixed steps**,
+  identical trajectory hash **`8db70716`**, successful touchdown and rollout to
+  a stop. The 52 before/after stills and four clips show the 3D pilot view at
+  world ratio 1. They do not include the DOM touch controls or measure FPS.
+- All **24 Node suites**, **23 browser graphics checks**, fourteen full-scene
+  runway views plus missing-scan fallback, both-tier cloud-boundary checks and
+  startup/prepared-flight download checks pass. Full-scene browser checks use
+  Metal. Full keyboard/controller suites, other GPU drivers and physical phones
+  were not rerun for this material change.
+- The [landing comparison](output/runway-stability-review.html) passes **83 image
+  loads**, four video metadata checks, paired playback, comparison/zoom controls
+  and a 390 px layout. It includes both quality tiers, the continuous landing,
+  wet/night shoulder views and isolated sampling references. Still-image changes
+  are restrained; moving paint and perimeter stability are the purpose.
+
+The November 1 paired M2 Pro measurements show high forward/flare/storm/rollout
+at **39.3 → 40.8 / 41.9 → 41.6 / 41.7 → 43.1 / 36.4 → 38.6 FPS**; p95 remains
+33.4 ms. Low phone emulation stays near 60 FPS. These short samples show no
+consistent regression, not a speedup or zero cost. See the
+[performance record](RENDER-PERFORMANCE.md#runway-paint-and-boundary-filtering--2026-11-03).
+The earlier cumulative scenery cost remains relevant; physical-device cost is
+unmeasured. Source transfer grows **2,363 bytes**, with no changed asset downloads:
+high startup/prepared **14,347,103 / 68,149,046**, low **8,783,004 / 20,004,807**.
+Low retains **216,996 bytes** below its 9 MB startup guard.
+
+Next: airport ground transitions, wear and local shadows that are visible during
+final approach, flare and rollout. Keep geographic expansion paused and measure
+pilot-seat benefit before adding detail.
 
 ### Live cockpit display filtering — 2026-10-31
 

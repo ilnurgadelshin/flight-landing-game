@@ -3166,3 +3166,59 @@ Delivery checks pass: high startup/prepared 14,344,740 / 68,146,683 bytes;
 low 8,780,641 / 20,002,444, leaving 219,359 bytes below the startup guard.
 The 906-byte increase is source code, with no changed asset requests. Evidence:
 `benchmarks/2026-10-31-instrument-delivery.json`.
+
+
+## Runway paint and boundary filtering — 2026-11-03
+
+Baseline: `5d2cdb9`. The paired measurements were collected November 1 on
+Apple M2 Pro / Chromium 141 / ANGLE Metal, sequentially without recording or
+other GPU tests. High uses 1440×900 at world ratio 1.5; low uses 852×393 touch
+emulation, world ratio 1 and device ratio 2. Each scene warms for four seconds
+and samples twelve seconds. The actual application RAF, presentation and live
+instrument redraws/uploads run with flight physics frozen; the new `flare`
+benchmark position joins the existing forward, storm and rollout positions.
+
+| Tier / view | Before / after FPS | Before / after p95 ms |
+| --- | ---: | ---: |
+| high / forward | 39.3 / 40.8 | 33.4 / 33.4 |
+| high / flare | 41.9 / 41.6 | 33.4 / 33.4 |
+| high / storm | 41.7 / 43.1 | 33.4 / 33.4 |
+| high / rollout | 36.4 / 38.6 | 33.4 / 33.4 |
+| low / forward | 60.0 / 60.0 | 16.7 / 16.7 |
+| low / flare | 60.0 / 60.0 | 16.7 / 16.8 |
+| low / storm | 60.0 / 60.0 | 16.8 / 16.7 |
+| low / rollout | 60.0 / 60.0 | 16.8 / 16.7 |
+
+The results show no consistent regression: high flare is about 0.8% slower,
+while the other high samples are 3.5–6.2% faster. These short, display-paced
+measurements are not evidence of an optimization or zero cost. Low remains
+near the 60 Hz ceiling, which can hide extra work. High still falls below 60 FPS;
+adaptive quality remains necessary. Physical-phone, ordinary-laptop and power
+costs are unmeasured.
+
+The runway takes four anisotropic texture samples per fragment in place of one,
+plus derivatives and partial-pixel coverage. It retains the original central
+quad and adds a 16-triangle margin within the same draw. The margin is discarded
+outside the original UV rectangle except for the fractional boundary pixel.
+The early two-triangle stretched prototype was rejected: its interpolation
+substantially worsened shallow rollout on SwiftShader. The selected mesh passes
+both renderer probes. It adds 480 bytes of vertex/index data, no new texture,
+asset download, render target, draw call or render pass. Extra fragment work
+and rasterized margin pixels still consume GPU time. The runway changes from
+opaque to coverage-blended rendering while retaining depth writes inside its
+bounds; transparent-depth checks guard against invisible exterior occlusion.
+
+The October 28 cumulative scenery comparison remains relevant: historical
+37.8 / 33.9 / 40.1 FPS versus corrected 34.7 / 30.1 / 36.2 (captain / upper
+approach / storm). Different camera positions and live-instrument updates make
+those figures unsuitable for direct comparison with this benchmark. This pass
+adds no coverage or trees and does not erase the earlier cumulative cost.
+
+Evidence: `benchmarks/2026-11-03-runway-benchmark-{before,after}.json`.
+The visual audit records isolated sampling, matched landing recordings and
+compatibility checks separately; recorded video cadence is not an FPS result.
+
+Delivery checks pass: high startup/prepared **14,347,103 / 68,149,046 bytes**;
+low **8,783,004 / 20,004,807**, leaving **216,996 bytes** under its 9 MB startup
+limit. The 2,363-byte growth is source code; asset downloads are unchanged.
+Evidence: `benchmarks/2026-11-03-runway-delivery.json`.

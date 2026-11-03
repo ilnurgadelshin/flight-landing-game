@@ -601,6 +601,14 @@ lamps remain visible between pixels as the camera moves. Daytime runway lamps ar
 more subdued; PAPI colours and intentional flash sequences retain their behaviour.
 The filter keeps the existing single point draw and adds no asset downloads.
 
+The runway filters its paint at four positions within each screen pixel and blends
+partial coverage at its outer boundary. This reduces grazing-angle shimmer on both
+tiers, including low without whole-scene MSAA. Extra raster support is transparent
+outside the original 3000 × 45 m pavement; it does not extend the physical runway.
+The existing paint, rubber deposits, scanned aggregate, wetness and atmospheric
+lighting remain. There are no new assets, textures or draw calls; the additional
+texture reads, 16 margin triangles and discarded fringe pixels require GPU time.
+
 The airport's original architecture (`js/world/airport-architecture.js`) connects five
 stepped departure halls with glazed galleries, recessed fronts and structural braces.
 Pitched hangars and an eight-sided control cab replace the basic boxes/cylinders.
@@ -1063,6 +1071,15 @@ final/flare/night/storm views on both tiers. `RECORD_VIDEO=1` records their matc
 camera paths. These checks default to SwiftShader; hardware pacing is measured
 separately by `test/render-benchmark.mjs`.
 The isolated light-sampling regression also runs in `npm run test:all`.
+
+`npm run test:runway` checks the actual runway shader against a supersampled
+reference at approach/flare/rollout angles and checks its depth/coverage boundary,
+then exercises full-scene runway surfaces and the missing-scan fallback. The
+sampling regression is also in `test:all`. `RECORD_VIDEO=1 node test/runway-motion.mjs`
+records identical fixed-step autoland paths on desktop and phone framing, starting
+about 34 seconds before touchdown and continuing to a stop. Capture pacing is not
+performance evidence. `BENCHMARK_MODES=forward,flare,storm,rollout` selects landing
+views in `test/instrument-benchmark.mjs`, including live cockpit updates.
 
 | Command | What it checks | Time |
 | --- | --- | --- |

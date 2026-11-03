@@ -232,7 +232,8 @@ function detailPavement(mat, textures) {
     sh.vertexShader=sh.vertexShader.replace('#include <common>','#include <common>\nvarying vec2 vPavement;')
       .replace('#include <begin_vertex>','#include <begin_vertex>\nvPavement=(modelMatrix*vec4(position,1.0)).xz;');
     sh.fragmentShader=sh.fragmentShader.replace('#include <common>','#include <common>\nvarying vec2 vPavement; uniform sampler2D uAsphalt, uAsphaltRough;')
-      .replace('#include <map_fragment>',`#include <map_fragment>
+      // Runway filtering owns its map lookup; grain still follows its base colour.
+      .replace('#include <color_fragment>',`#include <color_fragment>
         vec3 aggregate=texture2D(uAsphalt,vPavement/7.0).rgb;
         diffuseColor.rgb*=mix(vec3(0.65),vec3(1.18),clamp(aggregate*1.8,0.0,1.0));
         vec2 slab=floor(vPavement/6.0);

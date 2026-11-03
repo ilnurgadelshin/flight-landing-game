@@ -17,10 +17,10 @@ try {
   await page.goto(url+'/?quality='+tier+'&drs=0');await page.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});await completeScenery(page);
   const gpu=await page.evaluate(()=>{const gl=window.__sim.world.renderer.getContext();return gl.getParameter(gl.getExtension('WEBGL_debug_renderer_info').UNMASKED_RENDERER_WEBGL);});
   assert.ok(/Apple|AMD|Intel|NVIDIA/.test(gpu)&&!/SwiftShader|llvmpipe/.test(gpu));report.gpu=gpu;
-  for(const mode of ['forward','panel','storm','rollout']) {
+  for(const mode of (process.env.BENCHMARK_MODES||'forward,panel,storm,rollout').split(',')) {
    await page.evaluate(({mode,ratio})=>{const s=window.__sim;
     s.start({startId:'short',scenarioId:mode==='storm'?'storm':'clear',seed:11,mode:'game',sound:false,skipSchool:true});s.setTimeScale(0);s.setDrawing(true);s.world.setPixelRatio(ratio);
-    s.game.sim.aircraft.place({x:mode==='rollout'?1000:2700,y:mode==='rollout'?2.5:78,z:0,headingDeg:270,iasKts:mode==='rollout'?85:147,flapIndex:4,gearDown:true,gammaDeg:-3,onGround:mode==='rollout'});
+    s.game.sim.aircraft.place({x:mode==='rollout'?1000:mode==='flare'?1750:2700,y:mode==='rollout'?2.5:mode==='flare'?15:78,z:0,headingDeg:270,iasKts:mode==='rollout'?85:147,flapIndex:4,gearDown:true,gammaDeg:mode==='flare'?-1.5:-3,onGround:mode==='rollout'});
     s.view.setMode('cockpit');Object.assign(s.view.look,{yaw:0,pitch:0,down:mode==='panel'});
    },{mode,ratio});
    const sample=await page.evaluate(()=>new Promise(resolve=>{let start,last,firstVersion;const intervals=[];
