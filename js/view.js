@@ -158,6 +158,8 @@ export class GameView {
       panelTilt: (compact && !headUp ? 0 : 40) * DEG,
       focus: !!focusDisplay, focusFov: ND_FOV, focusFrame: this.pfdView ? this.pfdFrame : this.ndFrame,
     });
+    // The focused PANEL/MAP view prioritizes its existing native display sampling.
+    this.world.displayFocused=this.cockpit.focus>0;
     // the speed trend for the display's acceleration caret (kt per simulated second, smoothed)
     const tr = this.speedTrend;
     if (tr.t < 0 || st.time < tr.t) { tr.ias = st.ias; tr.t = st.time; tr.rate = 0; }

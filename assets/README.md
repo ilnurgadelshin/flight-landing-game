@@ -896,6 +896,9 @@ python3 tools/fetch-scenery.py
 ## Libraries
 
 The vendored Three.js glTF loader and geometry utilities are MIT licensed (`vendor/addons/LICENSE`).
+The phone display-space edge filter uses the matching vendored Three.js FXAA shader,
+also under that MIT license. It adds no image, model or scenery asset; see the visual
+audit for its display-preservation rules, reusable framebuffer storage and measured cost.
 The bundled Meshopt decoder is MIT licensed (`vendor/addons/libs/meshoptimizer-LICENSE.md`).
 
 

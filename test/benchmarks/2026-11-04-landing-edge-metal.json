@@ -1,0 +1,246 @@
+{
+  "date": "2026-11-04T19:08:53.554Z",
+  "results": [
+    {
+      "view": "flare",
+      "protectedSamples": 819,
+      "protectedMaxDifference": 0,
+      "regions": {
+        "whole": {
+          "before": {
+            "referenceError": 1.4773568530840748,
+            "motionResidual": 0.9098854862280839
+          },
+          "after": {
+            "referenceError": 1.3218315168553494,
+            "motionResidual": 0.79629480302795
+          }
+        },
+        "windshield": {
+          "before": {
+            "referenceError": 1.2336477346248325,
+            "motionResidual": 0.6480514148058117
+          },
+          "after": {
+            "referenceError": 1.0284885347681754,
+            "motionResidual": 0.5326672386263435
+          }
+        },
+        "mcp": {
+          "before": {
+            "referenceError": 2.566848765432099,
+            "motionResidual": 1.8765439814814815
+          },
+          "after": {
+            "referenceError": 2.4975257201646093,
+            "motionResidual": 1.6924097222222223
+          }
+        },
+        "instruments": {
+          "before": {
+            "referenceError": 2.6585549291584702,
+            "motionResidual": 1.7686630716920893
+          },
+          "after": {
+            "referenceError": 2.54102342250239,
+            "motionResidual": 1.6133155470080636
+          }
+        }
+      },
+      "assetErrors": []
+    },
+    {
+      "view": "rollout",
+      "protectedSamples": 819,
+      "protectedMaxDifference": 0,
+      "regions": {
+        "whole": {
+          "before": {
+            "referenceError": 1.5404645856478993,
+            "motionResidual": 0.9581226580574769
+          },
+          "after": {
+            "referenceError": 1.3866270851003675,
+            "motionResidual": 0.8536772479661685
+          }
+        },
+        "windshield": {
+          "before": {
+            "referenceError": 1.4000215808859549,
+            "motionResidual": 0.7641058562315801
+          },
+          "after": {
+            "referenceError": 1.2141439537771845,
+            "motionResidual": 0.6726707537951908
+          }
+        },
+        "mcp": {
+          "before": {
+            "referenceError": 2.584388888888889,
+            "motionResidual": 1.8898368055555557
+          },
+          "after": {
+            "referenceError": 2.516793209876543,
+            "motionResidual": 1.7052928240740741
+          }
+        },
+        "instruments": {
+          "before": {
+            "referenceError": 2.6452944450380205,
+            "motionResidual": 1.7463461042919723
+          },
+          "after": {
+            "referenceError": 2.5244542768535454,
+            "motionResidual": 1.590028344991861
+          }
+        }
+      },
+      "assetErrors": []
+    },
+    {
+      "view": "panel",
+      "protectedSamples": 288,
+      "protectedMaxDifference": 0,
+      "regions": {
+        "whole": {
+          "before": {
+            "referenceError": 0.7383038374120575,
+            "motionResidual": 0.4589017708171563
+          },
+          "after": {
+            "referenceError": 0.7383038374120575,
+            "motionResidual": 0.4589017708171563
+          }
+        },
+        "windshield": {
+          "before": {
+            "referenceError": 0.9229171797092008,
+            "motionResidual": 0.5706948614983754
+          },
+          "after": {
+            "referenceError": 0.9229171797092008,
+            "motionResidual": 0.5706948614983754
+          }
+        },
+        "mcp": {
+          "before": {
+            "referenceError": 0.6797716049382716,
+            "motionResidual": 0.4549641203703704
+          },
+          "after": {
+            "referenceError": 0.6797716049382716,
+            "motionResidual": 0.4549641203703704
+          }
+        },
+        "instruments": {
+          "before": {
+            "referenceError": 0.38878518769915343,
+            "motionResidual": 0.2207680487207044
+          },
+          "after": {
+            "referenceError": 0.38878518769915343,
+            "motionResidual": 0.2207680487207044
+          }
+        }
+      },
+      "assetErrors": []
+    },
+    {
+      "view": "night",
+      "protectedSamples": 819,
+      "protectedMaxDifference": 0,
+      "regions": {
+        "whole": {
+          "before": {
+            "referenceError": 1.2066632509535902,
+            "motionResidual": 0.6270272362191242
+          },
+          "after": {
+            "referenceError": 1.1177319311211724,
+            "motionResidual": 0.5656830259191564
+          }
+        },
+        "windshield": {
+          "before": {
+            "referenceError": 1.0740303827098707,
+            "motionResidual": 0.3416523180254681
+          },
+          "after": {
+            "referenceError": 0.9771533884638911,
+            "motionResidual": 0.3098663540748155
+          }
+        },
+        "mcp": {
+          "before": {
+            "referenceError": 2.056317901234568,
+            "motionResidual": 1.4832905092592592
+          },
+          "after": {
+            "referenceError": 2.0507232510288067,
+            "motionResidual": 1.340849537037037
+          }
+        },
+        "instruments": {
+          "before": {
+            "referenceError": 2.115050359672039,
+            "motionResidual": 1.4499241095838753
+          },
+          "after": {
+            "referenceError": 2.0288736235151004,
+            "motionResidual": 1.3335171672605917
+          }
+        }
+      },
+      "assetErrors": []
+    },
+    {
+      "view": "storm",
+      "protectedSamples": 819,
+      "protectedMaxDifference": 0,
+      "regions": {
+        "whole": {
+          "before": {
+            "referenceError": 1.1255426094720555,
+            "motionResidual": 0.6812736931910945
+          },
+          "after": {
+            "referenceError": 1.018316097698243,
+            "motionResidual": 0.5973018632006912
+          }
+        },
+        "windshield": {
+          "before": {
+            "referenceError": 0.8120373238995293,
+            "motionResidual": 0.39285164597284783
+          },
+          "after": {
+            "referenceError": 0.6827673757024821,
+            "motionResidual": 0.32219774512841287
+          }
+        },
+        "mcp": {
+          "before": {
+            "referenceError": 2.1681100823045267,
+            "motionResidual": 1.5633101851851852
+          },
+          "after": {
+            "referenceError": 2.148548353909465,
+            "motionResidual": 1.4093912037037037
+          }
+        },
+        "instruments": {
+          "before": {
+            "referenceError": 2.2029121528716153,
+            "motionResidual": 1.5133774534758753
+          },
+          "after": {
+            "referenceError": 2.119090166962407,
+            "motionResidual": 1.3873129450509394
+          }
+        }
+      },
+      "assetErrors": []
+    }
+  ],
+  "errors": []
+}

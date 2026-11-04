@@ -1,0 +1,92 @@
+{
+  "results": [
+    {
+      "width": 128,
+      "height": 96,
+      "angle": 0,
+      "samples": 20,
+      "maxDisplayDifference": 0,
+      "changed": 376,
+      "corner": [
+        84,
+        127,
+        154,
+        255
+      ],
+      "beforeCorner": [
+        84,
+        127,
+        154,
+        255
+      ],
+      "textures": 2
+    },
+    {
+      "width": 193,
+      "height": 111,
+      "angle": 0.4,
+      "samples": 20,
+      "maxDisplayDifference": 0,
+      "changed": 446,
+      "corner": [
+        84,
+        127,
+        154,
+        255
+      ],
+      "beforeCorner": [
+        84,
+        127,
+        154,
+        255
+      ],
+      "textures": 2
+    },
+    {
+      "width": 97,
+      "height": 151,
+      "angle": -0.3,
+      "samples": 20,
+      "maxDisplayDifference": 0,
+      "changed": 318,
+      "corner": [
+        84,
+        127,
+        154,
+        255
+      ],
+      "beforeCorner": [
+        84,
+        127,
+        154,
+        255
+      ],
+      "textures": 2
+    },
+    {
+      "width": 128,
+      "height": 96,
+      "angle": 0,
+      "samples": 20,
+      "maxDisplayDifference": 0,
+      "changed": 376,
+      "corner": [
+        84,
+        127,
+        154,
+        255
+      ],
+      "beforeCorner": [
+        84,
+        127,
+        154,
+        255
+      ],
+      "textures": 2
+    }
+  ],
+  "released": 1,
+  "protectedDisplays": 1,
+  "error": 0,
+  "errors": []
+}

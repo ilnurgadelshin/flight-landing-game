@@ -143,7 +143,7 @@ export class ResolutionScaler {
     if (!this.enabled || !active) {this.stalls=0;return;}
     if(dtMs>250){
       // Ignore an isolated loading hitch, but don't stay stuck at <4 FPS.
-      if(this.world.autoQuality&&++this.stalls>=8){this.set(this.min);this.world.reduceQuality();this.stalls=0;}
+      if((this.world.autoQuality||this.world.edgeFilter?.enabled)&&++this.stalls>=8){this.set(this.min);this.world.reduceQuality();this.stalls=0;}
       return;
     }
     this.stalls=0;
@@ -155,8 +155,9 @@ export class ResolutionScaler {
       const before = this.probe; this.probe = null;
       if (avg >= this.upMs) { this.ceiling = Math.min(this.ceiling, before); this.set(before); this.good = 0; return; }
     }
-    const effects = this.world.autoQuality && this.world.quality === 'high';
-    const floor = effects ? this.effectsFloor : this.min;
+    const highEffects = this.world.autoQuality && this.world.quality === 'high';
+    const effects = highEffects || !!this.world.edgeFilter?.enabled;
+    const floor = highEffects ? this.effectsFloor : this.min;
     if (effects) {
       this.slow = avg > this.slowMs && this.ratio <= floor + .01 ? this.slow + 1 : 0;
       if (this.slow >= 3) { this.reduceEffects(); return; }

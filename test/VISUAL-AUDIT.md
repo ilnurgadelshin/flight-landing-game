@@ -7,14 +7,25 @@ below record how the scene evolved; their older counts, captures and priorities 
 the remaining-work list. Update this section after each reviewed visual pass, including
 what changed, visible impact, measured cost, evidence and limitations.
 
-The latest visual pass **restores the compact cockpit's forward-panel lettering**.
+The latest visual pass **smooths phone landing-view silhouettes while protecting
+live instruments**. The compact low tier now applies a display-space edge filter
+after drawing the world and cabin. Projected screen boundaries preserve the live
+PFD, ND, other displays and MCP readouts; focused PANEL/MAP views bypass the filter.
+In the tested landing views, windshield-region reference error falls about 9–17%
+and motion residual about 9–18%. This is spatial filtering, not temporal AA or a
+reconstruction of missing detail. Desktop retains its existing multisampling.
+The extra framebuffer copy uses 1.28 MiB at 852×393; adaptive quality releases it
+if frames remain slow at minimum resolution. Physical-phone performance remains open.
+
+The preceding visual pass **restores the compact cockpit's forward-panel lettering**.
 Its preparation tool had removed most source text objects. A 107,636-byte derivative
 restores 1,490 glyphs/marks as 417 filtered patches, adding 834 triangles and four
 material draws on low quality. Desktop retains its original geometry: the texture
 alternative softened its multisampled lettering. This adds visible panel structure,
 but does not make every small label readable at normal phone framing. Native PANEL/PFD
 and MAP remain the primary small-screen instruments. Phone startup now has only
-100,823 bytes of headroom; physical-device readability and performance are unverified.
+100,823 bytes of headroom before the new edge-filter code; the current margin is
+89,087 bytes. Physical-device readability and performance are unverified.
 
 A local airport contact-shadow prototype was also evaluated and rejected. It changed
 only about 0.022% high / 0.046% low of the flare frame above a five-level mean RGB
@@ -65,8 +76,9 @@ altitude is larger. No new button, asset, tree, scenery geometry or 3D render pa
 Further geographic expansion is paused. Priority follows the landing experience.
 Phone framing, live-display sampling, steady runway lights and runway paint/edge
 filtering are delivered. Connected airport ground and taxiway paint are now also
-delivered. Forward labels are restored on the compact model; other lettering and
-thin geometry still need work in the pilot's final approach, flare and rollout.
+delivered. Forward labels are restored on the compact model, and its broad silhouette
+edges now have spatial filtering. Other lettering and subpixel geometry still need
+work in the pilot's final approach, flare and rollout.
 Local shadow work remains conditional on visible pilot-seat value. Fine finishes
 and remote scenery no longer outrank these.
 Physical-device usability and performance still require validation.
@@ -119,8 +131,8 @@ should not be presented again as untouched tasks. Their broader quality limitati
 
 | Rank | Remaining work | Importance | Current limit / next acceptance evidence |
 | --- | --- | --- | --- |
-| 1 | Remaining temporal stability and small lettering | High | Steady lights, live display textures, runway paint/edges and taxiway centerlines use local filtering. Compact forward labels are restored; desktop retains its sharper source geometry. Pavement silhouettes, branches, shadow edges and other labels remain. This is not whole-scene temporal anti-aliasing. Select visible defects in continuous pilot motion and measure GPU cost. |
-| 2 | Phone landing readability and usability validation | High on phones | Closer forward framing, larger radio altitude, native-resolution PANEL/PFD and forward labels are delivered. Tiny lettering and the short screen's limited space remain. Validate on real devices, including touch steering, orientation and browser toolbars; desktop emulation does not certify readability, FPS or battery use. |
+| 1 | Remaining temporal stability and small lettering | High where visible during landing | Lights, live displays, runway paint/edges and taxiway centerlines use local filtering. Compact forward labels are restored, and a display-space edge pass now smooths broad phone silhouettes while protecting live readouts. Desktop retains its multisampling and source geometry. Subpixel branches, shadow edges and other lettering can still shimmer; spatial filtering cannot restore missing samples. Select the next defect in continuous pilot motion and measure GPU cost. |
+| 2 | Phone landing readability and usability validation | High on phones | Closer framing, larger radio altitude, native PANEL/PFD, forward labels and smoother silhouettes are delivered. Tiny lettering and the short screen's limited space remain. Validate the combined experience on real devices, including steering, orientation, browser toolbars and sustained frame pacing; desktop emulation does not certify readability, FPS or battery use. |
 | 3 | Local airport shadows and remaining ground detail | Medium; higher if a pilot-visible defect is demonstrated | Connected exits, the hangar forecourt, maintained verges, filtered paint and terminal architecture are delivered. Finer object contact shadows, coarse shadow edges and simple pavement junctions remain. The contact-mask prototype had too little normal pilot-view impact and was discarded. Require useful final-approach/flare/rollout evidence before another shadow or decoration pass; retain runway clearances and markings. |
 | 4 | Remaining cockpit materials and lighting | Medium | Remaining knobs/metal, floor and some shell surfaces are simple; indirect light/reflections remain approximations. Require visible benefit during normal flight. Completed panel, pedestal, overhead and liner finishes are not new scope. |
 | 5 | Finer cloud and wet-weather rendering | Medium overall; high in weather scenarios | Repeated fair-weather forms and simplified deep cloud interiors remain. Preserve corrected rain timing and cloud-entry visibility. |
@@ -131,11 +143,87 @@ Performance and compatibility are acceptance requirements for every item, rather
 separate cosmetic milestone. Current high-resolution scenes still fall below 60 FPS on
 the M2 Pro; retain adaptive quality and report costs. Physical phones, ordinary laptops
 and multiple GPU drivers need wider validation. The isolated display, runway and taxiway
-sampling probes pass SwiftShader too, as does the new forward-label probe. The latest
-label pass checks full-scene flare/inspection views on both tiers in SwiftShader,
-and all 270 browser checks pass on Metal. The preceding airport pass checks full-scene
-flare/junction views on both tiers in SwiftShader; the wider captures use Metal.
+sampling probes pass SwiftShader too, as do the forward-label and new phone-edge
+probes. The current pass checks full-scene clear/night/storm/PANEL views on
+SwiftShader and runs the 24-check graphics group plus phone-control checks on Metal.
+The preceding label pass ran all 270 browser checks; that full flight suite was
+not repeated for this rendering-only change. Earlier airport and cockpit checks
+retain their own dated evidence below.
 Neither establishes physical-phone or ordinary-laptop performance.
+
+### Phone landing-view edge filtering — 2026-11-04
+
+Baseline: `b17b4e6`. The compact low-detail renderer has no multisampling, leaving
+visible stair steps on cockpit frames and airport silhouettes. A bounded FXAA
+pass now filters its completed display image. The matching Three.js shader is
+vendored under the existing MIT license. Subpixel blending is halved; the pass
+uses no previous frame, so it adds no temporal history or motion ghosting.
+
+The initial whole-image prototype softened the live instruments. It was revised
+to project their actual planar screen boundaries and copy those pixels unchanged.
+The source MCP readout windows, PFD, ND, engine/system and standby displays are
+protected. The projection follows the camera rather than fixed screen rectangles.
+Focused PANEL/MAP views bypass the pass; their native redraws and DOM controls
+remain separate. Desktop keeps its original multisampling and does not run the
+filter. A failed authored-model download still uses the procedural deck.
+
+The filter copies the already tone-mapped framebuffer, preserving the existing
+display-space colour treatment. It adds **one fullscreen triangle/draw and one
+framebuffer copy** on filtered frames. A reusable RGBA8 texture costs
+**1,339,344 bytes (1.28 MiB)** at 852×393, or **3,010,968 bytes (2.87 MiB)** at
+world ratio 1.5. There is no extra scene render or depth target. Resizing disposes
+the old copy. Sustained slow active frames at the resolution floor, or repeated
+extreme stalls, remove the filter and release its resources for that session.
+
+The [comparison](output/landing-edge-review.html) presents before/after flare,
+rollout, night, storm and focused-panel views, plus a selectable supersampled
+reference. Two paired six-second head pans show flare and rollout. Aircraft state
+is frozen; these are not complete landing recordings or FPS evidence. The pass
+visibly smooths broad edges. It cannot recreate detail that was absent from the
+rendered pixels; thin branches, small printed lettering and distant features
+remain imperfect, and some non-display detail becomes softer.
+
+Validation:
+
+- **25 Node suites** pass. The adaptive-quality tests additionally cover removal
+  after sustained slow phone frames/extreme stalls, stable fast frames, inactive
+  states and disabled scaling.
+- Five full-scene Metal comparisons and four SwiftShader comparisons sweep nine
+  subpixel camera positions. The reference renders the same scene at four times
+  each dimension and averages in linear light. On the windshield region, Metal
+  reference error falls **16.6% flare / 13.3% rollout / 9.0% night / 15.9% storm**;
+  motion residual falls **17.8% / 12.0% / 9.3% / 18.0%**. SwiftShader shows similar
+  flare/night/storm reductions. These are sampling metrics, not realism scores.
+- Each ordinary view independently projects **819 interior display samples**;
+  before/after RGB differences are **zero** on both renderers. Focused PANEL has
+  288 such samples and an entirely unchanged frame. The small probe also checks
+  oblique display preservation, unchanged flat colour, portrait/landscape sizes
+  and release/replacement of the single framebuffer texture.
+- Both the authored deck and a deliberately failed-model procedural fallback
+  render correctly on SwiftShader. Resolution changes dispose the previous
+  copy, and adaptive effect removal releases the final texture; rendering remains
+  usable after repeated removal calls.
+- The **24-check graphics group** and Retina PFD, touch-cycle, MAP, resize,
+  tablet and Flight School checks pass. The small renderer probe runs by default
+  on SwiftShader in `test:all`; full-scene and fallback checks are in `test:edges`.
+  The full 270-check flight suite was not rerun for this rendering-only pass.
+- Delivery passes at **8,910,913 / 20,132,716 bytes** low and
+  **14,367,376 / 68,169,319 bytes** high (startup / prepared flight), an
+  **11,736-byte code increase** on each tier. No model/image assets change;
+  low retains **89,087 bytes** beneath its 9 MB startup guard.
+- The local review verifies fifteen images, four videos, comparison direction,
+  reference selection, magnification, playback and 390 px layout.
+
+Low remains at the Mac's **60 FPS** presentation ceiling in the paired benchmark.
+The high tier does not run this filter; its **31.9–35.8 FPS** measurements vary
+around the previous **32.0–36.3**. A separate GPU-completed render probe alternates
+off/on/on/off at ratios 1 and 1.5. At 1×, differences are within about ±0.02 ms;
+at 1.5×, serialized render means increase **0.07–0.08 ms (4–5%)** on this Mac.
+This is not a zero-overhead claim. Copy/filter work,
+memory, physical-phone battery use and sustained hardware performance still matter.
+The October cumulative scenery cost remains unresolved. See the
+[performance record](RENDER-PERFORMANCE.md#phone-landing-view-edge-filtering--2026-11-04)
+and `benchmarks/2026-11-04-landing-edge-*` evidence.
 
 ### Compact forward-panel lettering — 2026-11-04
 

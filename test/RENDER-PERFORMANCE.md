@@ -3346,3 +3346,80 @@ suite separately. Paired six-second camera pans are visual evidence, not an FPS
 measurement. An airport contact-shadow prototype was discarded after showing
 too little pilot-view benefit; no runtime change or performance claim for that
 prototype is included in this pass.
+
+
+## Phone landing-view edge filtering — 2026-11-04
+
+Baseline: `b17b4e6`. Sequential Apple M2 Pro / Chromium 141 / ANGLE Metal
+measurements, without recording or other GPU tests. The actual application RAF,
+presentation and live instrument redraws/uploads run with frozen flight physics.
+Each view warms for four seconds and samples twelve. High is 1440×900 at world
+ratio 1.5; low is 852×393 touch emulation at ratio 1 and device ratio 2.
+
+| Tier / view | Before / after FPS | Before / after p95 ms |
+| --- | ---: | ---: |
+| high / forward | 34.6 / 34.7 | 33.4 / 33.4 |
+| high / flare | 34.4 / 34.5 | 33.4 / 33.4 |
+| high / storm | 36.3 / 35.8 | 33.4 / 33.4 |
+| high / rollout | 32.0 / 31.9 | 33.4 / 33.4 |
+| low / forward | 60.0 / 60.0 | 16.7 / 16.7 |
+| low / flare | 60.0 / 60.0 | 16.8 / 16.8 |
+| low / storm | 60.0 / 60.0 | 16.7 / 16.7 |
+| low / rollout | 60.0 / 60.0 | 16.8 / 16.7 |
+
+The compact low tier now performs one framebuffer copy and one fullscreen
+triangle/draw after the world and cabin. Desktop high retains the same rendering
+path; its roughly −1.3% to +0.4% variation is not an optimization. Low stays at the
+60 Hz presentation ceiling, which can hide the filter's extra work.
+
+To look beyond that ceiling, `test/edge-filter-cost.mjs` alternates the filter
+off/on/on/off on the same complete scene, at world ratios 1 and 1.5. Each run
+has fifteen warm-up frames and fifty measured frames, with live instrument
+updates and frozen physics. `gl.finish()` brackets each draw to include completed
+GPU work. This deliberately serializes the pipeline; it is **not gameplay FPS**,
+nor an isolated GPU timer. The means below pool the two runs for each state.
+
+| Ratio / view | Filter off mean ms | Filter on mean ms |
+| --- | ---: | ---: |
+| 1 / clear flare | 1.789 | 1.811 |
+| 1 / storm flare | 1.740 | 1.724 |
+| 1.5 / clear flare | 1.688 | 1.758 |
+| 1.5 / storm flare | 1.648 | 1.726 |
+
+At ratio 1, the differences are about ±0.02 ms and within run variation. At
+ratio 1.5, the filter adds about **0.07–0.08 ms (4–5%)** to these serialized
+render means. These are small measured costs on this Mac, not evidence of zero
+cost, mobile speed or battery efficiency. Sustained performance on physical
+phones and ordinary laptops remains unmeasured.
+
+The reusable RGBA8 framebuffer copy has no mipmaps or extra depth buffer. At
+852×393 it uses **1,339,344 bytes (1.28 MiB)**; at ratio 1.5 the actual drawing
+buffer is 1278×589, using **3,010,968 bytes (2.87 MiB)**. The filter reads the
+already tone-mapped display image. Projected live-screen polygons bypass its
+sampling so the PFD, ND, other displays and MCP text preserve their current
+pixels; focused PANEL/MAP views bypass the whole pass. There is no separate
+render of the world/cockpit, HDR target, frame history or geometric expansion.
+Resize disposes/replaces the copy. If active frames stay slow at the resolution
+floor, adaptive quality releases the filter for the rest of the session; repeated
+extreme stalls also trigger that removal. Fast, inactive and explicitly fixed
+rendering do not trigger it.
+
+Delivery bodies are **14,367,376 / 68,169,319 bytes** high and
+**8,910,913 / 20,132,716 bytes** low (startup / prepared flight). Both tiers add
+**11,736 bytes of JavaScript**, including the vendored MIT Three.js FXAA shader;
+no model or image download changes. Low has **89,087 bytes** left under its 9 MB
+startup guard. The slow-frame desktop automatic selection check still chooses
+low and disables its HDR composer and shadows.
+
+The October 28 cumulative scenery comparison remains the historical reference:
+37.8 / 33.9 / 40.1 FPS before expansion versus 34.7 / 30.1 / 36.2 after corrections
+(captain / upper approach / storm). Different cameras and the live-instrument
+method prevent direct comparison. This pass adds no trees or geographic coverage
+and does not erase that earlier cost.
+
+Evidence: `benchmarks/2026-11-04-landing-edge-benchmark-{before,after}.json`,
+`benchmarks/2026-11-04-landing-edge-cost.json` and
+`benchmarks/2026-11-04-landing-edge-delivery.json`. The visual audit separately
+records the full-scene reference/motion metrics, display-preservation checks,
+fallback, resize and adaptive-disposal tests, graphics and phone-control checks.
+The paired camera-pan videos are visual evidence, not frame-rate measurements.

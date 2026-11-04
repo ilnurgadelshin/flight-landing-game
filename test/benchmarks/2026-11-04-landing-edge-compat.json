@@ -1,0 +1,42 @@
+{
+  "results": [
+    {
+      "missing": false,
+      "authored": true,
+      "displays": 12,
+      "texture": true,
+      "resizeDisposed": 1,
+      "size": [
+        596,
+        275
+      ],
+      "drawingBuffer": [
+        596,
+        275
+      ],
+      "disabled": true,
+      "dropDisposed": 2,
+      "glError": 0,
+      "errors": []
+    },
+    {
+      "missing": true,
+      "authored": false,
+      "displays": 9,
+      "texture": true,
+      "resizeDisposed": 1,
+      "size": [
+        596,
+        275
+      ],
+      "drawingBuffer": [
+        596,
+        275
+      ],
+      "disabled": true,
+      "dropDisposed": 2,
+      "glError": 0,
+      "errors": []
+    }
+  ]
+}

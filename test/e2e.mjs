@@ -1319,7 +1319,7 @@ if (want('graphics')) {
   section('E16', 'Graphics: sky, haze, sunlight and shadows; quality tiers');
   await page.evaluate(()=>window.__restoreVisualScene());
   const low = await page.evaluate(() => { const w = window.__sim.world; return { q: w.quality, composer: !!w.composer, shadows: w.renderer.shadowMap.enabled }; });
-  check('the fast tier (phones, and this page): no post-processing and no shadow maps', low.q === 'low' && !low.composer && !low.shadows, JSON.stringify(low));
+  check('the fast tier (phones, and this page): no HDR composer and no shadow maps', low.q === 'low' && !low.composer && !low.shadows, JSON.stringify(low));
   const ctx = await browser.newContext({ viewport: { width: 640, height: 360 } });   // the pixel checks use thumbnails: a small page draws faster
   const gp = await ctx.newPage();
   gp.on('console', (m) => { if (m.type() === 'error' || m.type() === 'warning') consoleErrors.push(`[graphics ${m.type()}] ${m.text()}`); });

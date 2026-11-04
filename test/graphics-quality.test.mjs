@@ -20,6 +20,14 @@ const explicit=world();explicit.autoQuality=false;const fixed=new ResolutionScal
 for(let i=0;i<500;i++)fixed.frame(33.3,true);
 assert.equal(explicit.quality,'high');assert.equal(explicit.ratio,1,'Explicit quality/DRS overrides are respected');
 
+for(const [enabled,frameMs,active,shouldDrop]of [[true,33.3,true,true],[true,400,true,true],[true,16.7,true,false],[true,33.3,false,false],[false,33.3,true,false]]){
+ const phone={autoQuality:false,quality:'low',edgeFilter:{enabled:true},setPixelRatio(r){this.ratio=r;},reduceQuality(){this.edgeFilter=null;}};
+ const s=new ResolutionScaler(phone,{enabled,start:1.5});
+ for(let i=0;i<900;i++)s.frame(frameMs,active);
+ assert.equal(!phone.edgeFilter,shouldDrop,'Phone edge filtering drops only after sustained slow active frames at the resolution floor');
+ if(shouldDrop)assert.equal(phone.ratio,.7);
+}
+
 const retina=world(),adaptive=new ResolutionScaler(retina,{enabled:true,start:1,maxRatio:1.5});
 for(let i=0;i<4000;i++)adaptive.frame(16.7,true);
 assert.equal(retina.ratio,1.5,'Sustained fast Retina frames recover detail above the initial 1×');

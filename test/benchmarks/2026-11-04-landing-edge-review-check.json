@@ -1,0 +1,9 @@
+{
+  "images": 15,
+  "videos": 4,
+  "slider": true,
+  "zoom": true,
+  "playback": true,
+  "narrowLayout": true,
+  "errors": []
+}

@@ -14,7 +14,7 @@
     "test:visual": "node test/visual-review.mjs",
     "test:lighting": "node test/cockpit-lighting.mjs",
     "test:delivery": "node test/delivery.mjs",
-    "test:all": "npm test && node test/light-stability.mjs && node test/instrument-sampling.mjs && node test/runway-sampling.mjs && node test/taxiway-markings.mjs && node test/label-sampling.mjs && node test/e2e-parallel.mjs",
+    "test:all": "npm test && node test/light-stability.mjs && node test/instrument-sampling.mjs && node test/runway-sampling.mjs && node test/taxiway-markings.mjs && node test/label-sampling.mjs && node test/edge-filter.mjs && node test/e2e-parallel.mjs",
     "test:vegetation": "node test/vegetation-weather.mjs && node test/woodland-coverage.mjs",
     "test:woodland-preparation": "node test/woodland-preparation.mjs",
     "test:woodland-lighting": "node test/woodland-lighting.mjs",
@@ -34,7 +34,8 @@
     "test:instruments": "node test/instrument-sampling.mjs && node test/landing-instruments.mjs",
     "test:runway": "node test/runway-sampling.mjs && node test/runway-surfaces.mjs",
     "test:airport-ground": "node test/taxiway-markings.mjs && node test/airport-ground.mjs",
-    "test:labels": "node test/cockpit-labels.test.mjs && node test/label-sampling.mjs && node test/forward-labels.mjs"
+    "test:labels": "node test/cockpit-labels.test.mjs && node test/label-sampling.mjs && node test/forward-labels.mjs",
+    "test:edges": "node test/edge-filter.mjs && node test/edge-filter-compat.mjs && node test/landing-edge.mjs"
   },
   "license": "MIT",
   "dependencies": {

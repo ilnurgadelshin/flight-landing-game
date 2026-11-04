@@ -1,0 +1,139 @@
+{
+  "date": "2026-11-04T19:18:01.497Z",
+  "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M2 Pro, Unspecified Version)",
+  "method": "Alternating disabled/enabled/enabled/disabled: 15 warmup + 50 measured frames each, live instrument updates with frozen physics, gl.finish before and after every draw. CPU and GPU serialized; not gameplay FPS.",
+  "results": [
+    {
+      "ratio": 1,
+      "scenarioId": "clear",
+      "width": 852,
+      "height": 393,
+      "textureBytes": 1339344,
+      "runs": [
+        {
+          "enabled": false,
+          "p50Ms": 1.6999998092651367,
+          "p95Ms": 2.8000001907348633,
+          "meanMs": 1.8579999923706054
+        },
+        {
+          "enabled": true,
+          "p50Ms": 1.6999998092651367,
+          "p95Ms": 2.3999996185302734,
+          "meanMs": 1.8100000190734864
+        },
+        {
+          "enabled": true,
+          "p50Ms": 1.7000007629394531,
+          "p95Ms": 2.3000001907348633,
+          "meanMs": 1.8120000267028809
+        },
+        {
+          "enabled": false,
+          "p50Ms": 1.6999998092651367,
+          "p95Ms": 2.200000762939453,
+          "meanMs": 1.7199999809265136
+        }
+      ]
+    },
+    {
+      "ratio": 1,
+      "scenarioId": "storm",
+      "width": 852,
+      "height": 393,
+      "textureBytes": 1339344,
+      "runs": [
+        {
+          "enabled": false,
+          "p50Ms": 1.6000003814697266,
+          "p95Ms": 2.200000762939453,
+          "meanMs": 1.6700000190734863
+        },
+        {
+          "enabled": true,
+          "p50Ms": 1.6000003814697266,
+          "p95Ms": 2.3000001907348633,
+          "meanMs": 1.6960000038146972
+        },
+        {
+          "enabled": true,
+          "p50Ms": 1.6999998092651367,
+          "p95Ms": 2.5,
+          "meanMs": 1.751999988555908
+        },
+        {
+          "enabled": false,
+          "p50Ms": 1.6000003814697266,
+          "p95Ms": 2.6999998092651367,
+          "meanMs": 1.8099999809265137
+        }
+      ]
+    },
+    {
+      "ratio": 1.5,
+      "scenarioId": "clear",
+      "width": 1278,
+      "height": 589,
+      "textureBytes": 3010968,
+      "runs": [
+        {
+          "enabled": false,
+          "p50Ms": 1.5999994277954102,
+          "p95Ms": 2.3999996185302734,
+          "meanMs": 1.6880000305175782
+        },
+        {
+          "enabled": true,
+          "p50Ms": 1.6000003814697266,
+          "p95Ms": 2.6000003814697266,
+          "meanMs": 1.7460000038146972
+        },
+        {
+          "enabled": true,
+          "p50Ms": 1.6000003814697266,
+          "p95Ms": 2.6000003814697266,
+          "meanMs": 1.77
+        },
+        {
+          "enabled": false,
+          "p50Ms": 1.6000003814697266,
+          "p95Ms": 2.3000001907348633,
+          "meanMs": 1.6879999732971191
+        }
+      ]
+    },
+    {
+      "ratio": 1.5,
+      "scenarioId": "storm",
+      "width": 1278,
+      "height": 589,
+      "textureBytes": 3010968,
+      "runs": [
+        {
+          "enabled": false,
+          "p50Ms": 1.5,
+          "p95Ms": 2.40000057220459,
+          "meanMs": 1.6279999923706054
+        },
+        {
+          "enabled": true,
+          "p50Ms": 1.5,
+          "p95Ms": 2.5,
+          "meanMs": 1.6680000114440918
+        },
+        {
+          "enabled": true,
+          "p50Ms": 1.6000003814697266,
+          "p95Ms": 2.3999996185302734,
+          "meanMs": 1.7839999580383301
+        },
+        {
+          "enabled": false,
+          "p50Ms": 1.5,
+          "p95Ms": 2.40000057220459,
+          "meanMs": 1.6679999923706055
+        }
+      ]
+    }
+  ]
+}

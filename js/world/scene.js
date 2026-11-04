@@ -7,8 +7,9 @@
 // static map over the airport, and a small map around the flight deck that follows the aircraft
 // (window-frame shadows sweeping over the panel). On the 'high' quality tier (desktops) the world
 // is drawn into a floating-point buffer with 4× MSAA and goes through a bloom pass (the sun, the
-// runway lights at night) before tone mapping; phones ('low') draw straight to the screen.
+// runway lights at night) before tone mapping; compact low uses a display-space edge filter.
 import * as THREE from 'three';
+import {EdgeFilter} from './edge-filter.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
@@ -93,7 +94,8 @@ export class World {
   constructor(canvas, opts = {}) {
     this.canvas = canvas;
     this.lowDetail = !!opts.lowDetail;
-    // 'high': shadows, floating-point frame with MSAA and bloom. 'low' (phones): straight to the screen.
+    // 'high': shadows, floating-point frame with MSAA and bloom. Compact low
+    // uses the display framebuffer plus a bounded edge filter, without HDR.
     this.quality = opts.quality || (this.lowDetail ? 'low' : 'high');
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: !this.lowDetail, logarithmicDepthBuffer: true, powerPreference: 'high-performance' });
     // the high tier needs floating-point render targets
@@ -108,6 +110,7 @@ export class World {
     renderer.shadowMap.enabled = high;
     renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer = renderer;
+    this.edgeFilter=this.lowDetail&&!high?new EdgeFilter():null;
     this.maxAniso = renderer.capabilities.getMaxAnisotropy();
 
     this.atmo = new Atmosphere();
@@ -236,7 +239,7 @@ export class World {
 
   /** Drop expensive effects without restarting a flight or moving its camera. */
   reduceQuality() {
-    if(this.quality==='low')return;
+    if(this.quality==='low'){this.edgeFilter?.dispose();this.edgeFilter=null;return;}
     this.quality='low';this.renderer.shadowMap.enabled=false;this.groundCover?.reduceQuality();this.windshield?.reduceQuality();this.precipitation?.reduceQuality();
     for(const light of [this.sun,this.cockpitSun]){
       light.castShadow=false;light.shadow.map?.dispose();light.shadow.map=null;
@@ -315,6 +318,7 @@ export class World {
   /** Let the flight deck cast and receive the sun's shadow (called once the cockpit is built). */
   setupCockpit(root,eyeLocal,windshield) {
     this.windshield=windshield;
+    this.edgeFilter?.protectDisplays(root);
     this.cabinEnvironment=new CabinEnvironment(this,root,eyeLocal);
     if (this.quality !== 'high') return;
     root.traverse((o) => {
@@ -701,11 +705,12 @@ export class World {
     else r.render(this.scene, this.camera);
     // the flight deck on top, straight to the screen (its displays keep their exact colours);
     // the head-up view has none (drawCockpit false)
-    if (this.drawCockpit === false) return;
+    if (this.drawCockpit === false) {this.edgeFilter?.render(r,this.camera,false);return;}
     this.windshield?.captureOutside(r,this.camera);
     r.autoClear = false;
     r.clearDepth();
     r.render(this.cockpitScene, this.camera);
     r.autoClear = true;
+    if(!this.displayFocused)this.edgeFilter?.render(r,this.camera);
   }
 }

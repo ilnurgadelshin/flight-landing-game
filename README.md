@@ -653,8 +653,13 @@ Calibration waits while the tab is hidden and restarts its sample after an inter
 The **high** graphics tier uses sun shadows, and the outside view
 drawn into a floating-point frame with 4× multisampling and a bloom pass (the
 sun, glints, the lights at night) before tone mapping. Phones and tablets get
-the **low** tier: the same sky, haze and lighting, drawn straight to the screen,
-without shadows or bloom. Add `?quality=high` or `?quality=low` to the address
+the **low** tier: the same sky, haze and lighting, without shadows or bloom.
+The compact low-detail view adds a lightweight display-space edge filter to soften
+stair-step silhouettes. Live screens and MCP readouts preserve their existing pixels;
+focused PANEL/MAP views bypass it. It uses one reusable framebuffer copy and one
+fullscreen draw, and is released if frames remain slow at minimum resolution.
+It reduces some edge crawl but is not temporal anti-aliasing and cannot recover
+missing fine detail. Desktop retains its multisampling. Add `?quality=high` or `?quality=low` to the address
 to choose a fixed tier and bypass automatic selection. `?drs=0` disables adaptive
 resolution; `?drs=1` enables it even with a fixed tier. Automatic selection is a local
 measurement, not a guarantee of performance on every scene or device.
@@ -1112,6 +1117,13 @@ subpixel motion with supersampled source geometry, and checks desktop/phone view
 and asset-failure fallback. The asset check is in `npm test`; the sampling probe is
 in `test:all`. Rebuild the derivative with `node tools/prepare-cockpit-labels.mjs`
 whenever the high-detail cockpit asset changes.
+
+`npm run test:edges` checks phone edge filtering, display/colour preservation and
+resource release, then compares full landing views with a supersampled reference.
+The small software-renderer probe is also included in `test:all`. Use
+`node test/landing-edge-motion.mjs` for paired camera pans and
+`node test/landing-edge-review.mjs --verify` for the local review, after captures
+and benchmarks have been collected. Recorded motion is not an FPS measurement.
 
 | Command | What it checks | Time |
 | --- | --- | --- |
