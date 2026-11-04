@@ -1,0 +1,90 @@
+{
+  "date": "2026-11-04",
+  "baseline": "9302d97",
+  "unitSuites": 25,
+  "e2e": {
+    "passed": 270,
+    "failed": 0,
+    "failures": [],
+    "sections": [
+      {
+        "id": "E1",
+        "s": 1
+      },
+      {
+        "id": "E2",
+        "s": 3
+      },
+      {
+        "id": "E3",
+        "s": 16
+      },
+      {
+        "id": "E4",
+        "s": 6
+      },
+      {
+        "id": "E5",
+        "s": 55
+      },
+      {
+        "id": "E6",
+        "s": 115
+      },
+      {
+        "id": "E7",
+        "s": 40
+      },
+      {
+        "id": "E17",
+        "s": 105
+      },
+      {
+        "id": "E8",
+        "s": 7
+      },
+      {
+        "id": "E9",
+        "s": 137
+      },
+      {
+        "id": "E10",
+        "s": 25
+      },
+      {
+        "id": "E11",
+        "s": 138
+      },
+      {
+        "id": "E12",
+        "s": 19
+      },
+      {
+        "id": "E13",
+        "s": 138
+      },
+      {
+        "id": "E14",
+        "s": 18
+      },
+      {
+        "id": "E15",
+        "s": 138
+      },
+      {
+        "id": "E16",
+        "s": 23
+      }
+    ]
+  },
+  "phone": "Retina PFD, live values, touch view cycle, MAP, resize, tablet and Flight School passed.",
+  "review": {
+    "images": 20,
+    "videos": 4,
+    "slider": true,
+    "zoom": true,
+    "playback": true,
+    "narrowLayout": true,
+    "errors": []
+  }
+}

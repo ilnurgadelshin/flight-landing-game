@@ -1,0 +1,43 @@
+{
+  "baseline": "9302d97",
+  "status": "Rejected prototype; no contact-shadow runtime changes retained.",
+  "method": "Matched whole-frame mean absolute RGB difference; threshold is mean per-pixel difference >5. Not a quality score or a performance measurement.",
+  "changes": [
+    {
+      "tier": "high",
+      "view": "flare",
+      "meanRGBDifference": 0.00374099794238681,
+      "percentPixelsAbove5": 0.021527777777777778
+    },
+    {
+      "tier": "high",
+      "view": "late-rollout",
+      "meanRGBDifference": 0.0006576646090534989,
+      "percentPixelsAbove5": 0.0011574074074074073
+    },
+    {
+      "tier": "high",
+      "view": "shadow",
+      "meanRGBDifference": 0.024096707818929978,
+      "percentPixelsAbove5": 0.1445216049382716
+    },
+    {
+      "tier": "low",
+      "view": "flare",
+      "meanRGBDifference": 0.008572355819963608,
+      "percentPixelsAbove5": 0.04569401139662402
+    },
+    {
+      "tier": "low",
+      "view": "late-rollout",
+      "meanRGBDifference": 0.00003086087915676132,
+      "percentPixelsAbove5": 0
+    },
+    {
+      "tier": "low",
+      "view": "shadow",
+      "meanRGBDifference": 0.017450333894802186,
+      "percentPixelsAbove5": 0.10004897920175848
+    }
+  ]
+}

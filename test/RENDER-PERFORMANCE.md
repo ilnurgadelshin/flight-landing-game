@@ -3281,3 +3281,68 @@ above `da71c83` from source changes. No asset download is added. Low has
 **211,429 bytes** of headroom under its 9 MB startup budget. The slow-frame
 automatic-quality check still selects low and disables the composer and shadows.
 Evidence: `benchmarks/2026-11-03-airport-ground-delivery.json`.
+
+
+## Compact forward-panel lettering — 2026-11-04
+
+Baseline: `9302d97`. Sequential Apple M2 Pro / Chromium 141 / ANGLE Metal
+measurements, without other GPU work or recording. The actual application RAF,
+presentation and live cockpit texture updates run with frozen flight physics.
+Each scene warms for four seconds and samples twelve. High is 1440×900 at world
+ratio 1.5; low is 852×393 touch emulation at world ratio 1 and device ratio 2.
+
+| Tier / view | Before / after FPS | Before / after p95 ms |
+| --- | ---: | ---: |
+| high / forward | 41.8 / 40.6 | 33.4 / 33.4 |
+| high / flare | 40.6 / 40.6 | 33.4 / 33.4 |
+| high / storm | 43.1 / 42.7 | 33.4 / 33.4 |
+| high / rollout | 38.4 / 38.0 | 33.4 / 33.4 |
+| low / forward | 60.0 / 60.0 | 16.7 / 16.7 |
+| low / flare | 60.0 / 60.0 | 16.8 / 16.7 |
+| low / storm | 60.0 / 60.0 | 16.7 / 16.8 |
+| low / rollout | 60.0 / 60.0 | 16.7 / 16.8 |
+
+High retains the source geometry and does not download or render the new label
+asset; its roughly −3% to +0.2% changes are run variation, not an optimization.
+Low stays at the 60 Hz ceiling on this Mac, which can hide added work. Physical
+phone performance, battery cost and label preparation stalls remain unmeasured.
+Adaptive quality is still necessary for the high tier.
+
+The compact cockpit adds **four material draws and 834 triangles**, restoring
+**1,490 glyphs/marks** from the source as 417 planar patches. The corresponding
+source marks cost 201,583 triangles, but they had already been removed from the
+old compact cockpit. That figure is avoided restoration geometry, not a saving
+against the old game or a reduction of the desktop cockpit. The new texture
+method was rejected for desktop after the isolated sampling comparison showed
+it softened the existing multisampled lettering.
+
+The **107,636-byte** derivative contains a lossless **2048×512** coverage atlas.
+At runtime its alpha becomes a shared single-channel texture: **1 MiB CPU
+coverage buffer / about 1.33 MiB mipmapped GPU storage**, plus geometry. Temporary
+RGBA readback, canvas and decoded-image storage are released after conversion;
+the conversion still has a transient allocation and CPU cost at startup. Labels
+join the existing cockpit pass, with no additional render target, reflection
+capture or scene pass. Their materials retain the existing lighting. Missing
+downloads leave the original compact model usable.
+
+Delivery bodies are **14,355,640 / 68,157,583 bytes** high and
+**8,899,177 / 20,120,980 bytes** low (startup / prepared flight). Compared with
+`9302d97`, high adds **2,970 bytes** of source only; low adds **110,606 bytes**
+including the asset. Low has just **100,823 bytes** left below its 9 MB startup
+guard. Any subsequent asset work must respect that small remaining budget.
+The slow-frame automatic selection check still chooses low and disables the
+composer and shadows.
+
+The October 28 cumulative scenery comparison remains the historical reference:
+37.8 / 33.9 / 40.1 FPS before expansion versus 34.7 / 30.1 / 36.2 after corrections
+(captain / upper approach / storm). Different camera positions and the current
+live-instrument method prevent a direct comparison. This pass adds no geographic
+coverage or trees and does not erase that earlier cost.
+
+Evidence: `benchmarks/2026-11-04-forward-labels-benchmark-{before,after}.json`
+and `benchmarks/2026-11-04-forward-labels-delivery.json`. The visual audit records
+Metal/SwiftShader sampling, full-scene views, fallback and the 270-check browser
+suite separately. Paired six-second camera pans are visual evidence, not an FPS
+measurement. An airport contact-shadow prototype was discarded after showing
+too little pilot-view benefit; no runtime change or performance claim for that
+prototype is included in this pass.

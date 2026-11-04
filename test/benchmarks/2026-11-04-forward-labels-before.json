@@ -1,0 +1,96 @@
+{
+  "date": "2026-11-04T09:01:15.757Z",
+  "baseline": true,
+  "results": [
+    {
+      "tier": "high",
+      "view": "forward",
+      "labels": null,
+      "draws": 0,
+      "triangles": 0,
+      "coverage": false,
+      "errors": []
+    },
+    {
+      "tier": "high",
+      "view": "flare",
+      "labels": null,
+      "draws": 0,
+      "triangles": 0,
+      "coverage": false,
+      "errors": []
+    },
+    {
+      "tier": "high",
+      "view": "close",
+      "labels": null,
+      "draws": 0,
+      "triangles": 0,
+      "coverage": false,
+      "errors": []
+    },
+    {
+      "tier": "high",
+      "view": "night",
+      "labels": null,
+      "draws": 0,
+      "triangles": 0,
+      "coverage": false,
+      "errors": []
+    },
+    {
+      "tier": "high",
+      "view": "storm",
+      "labels": null,
+      "draws": 0,
+      "triangles": 0,
+      "coverage": false,
+      "errors": []
+    },
+    {
+      "tier": "low",
+      "view": "forward",
+      "labels": null,
+      "draws": 0,
+      "triangles": 0,
+      "coverage": false,
+      "errors": []
+    },
+    {
+      "tier": "low",
+      "view": "flare",
+      "labels": null,
+      "draws": 0,
+      "triangles": 0,
+      "coverage": false,
+      "errors": []
+    },
+    {
+      "tier": "low",
+      "view": "close",
+      "labels": null,
+      "draws": 0,
+      "triangles": 0,
+      "coverage": false,
+      "errors": []
+    },
+    {
+      "tier": "low",
+      "view": "night",
+      "labels": null,
+      "draws": 0,
+      "triangles": 0,
+      "coverage": false,
+      "errors": []
+    },
+    {
+      "tier": "low",
+      "view": "storm",
+      "labels": null,
+      "draws": 0,
+      "triangles": 0,
+      "coverage": false,
+      "errors": []
+    }
+  ]
+}

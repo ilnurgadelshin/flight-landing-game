@@ -700,6 +700,12 @@ The visual assets are bundled locally and need no map service, account or API ke
   the upper liner has molded grain and restrained joins. These are material
   interpretations rather than photographic aircraft textures. The old cockpit remains
   available if the model cannot load.
+  The compact phone cockpit restores 1,490 forward-panel marks that its optimized
+  model omitted. Their original shapes are baked into a filtered coverage atlas,
+  carried by 834 triangles in four batches. The 108 KB derivative is credited to
+  the same cockpit author. Desktop retains its source geometry. Tiny printed labels
+  still cannot all be read at normal phone framing; the native PANEL/PFD supplies
+  the primary flight information.
 - Outside rain uses fresh, individually recycled drops with soft streaks aligned to wind and
   aircraft velocity. Looking sideways no longer rotates the rain toward the pilot. Pane drops
   also change position and shape on each arrival instead of replaying the same short pattern.
@@ -1100,6 +1106,12 @@ group also guards the pavement joins without adding a second scenery load. Use
 `RECORD_VIDEO=1 node test/runway-motion.mjs airport-ground-motion-after` for a matched
 landing recording and `node test/airport-ground-review.mjs --verify` to assemble and
 verify the local review once its before/after captures and benchmarks are available.
+
+`npm run test:labels` verifies the source-derived forward-label asset, compares its
+subpixel motion with supersampled source geometry, and checks desktop/phone views
+and asset-failure fallback. The asset check is in `npm test`; the sampling probe is
+in `test:all`. Rebuild the derivative with `node tools/prepare-cockpit-labels.mjs`
+whenever the high-detail cockpit asset changes.
 
 | Command | What it checks | Time |
 | --- | --- | --- |

@@ -1,0 +1,135 @@
+{
+  "reports": [
+    {
+      "samples": 0,
+      "size": 256,
+      "angle": 0,
+      "before": {
+        "referenceError": 7.455145143995098,
+        "motionResidual": 5.450897216796875,
+        "coverageRatio": 0.9951452965753983
+      },
+      "after": {
+        "referenceError": 2.991930499987985,
+        "motionResidual": 1.9085970610574958,
+        "coverageRatio": 0.9931156190763253
+      }
+    },
+    {
+      "samples": 0,
+      "size": 256,
+      "angle": 20,
+      "before": {
+        "referenceError": 7.746438419117647,
+        "motionResidual": 5.224965413411458,
+        "coverageRatio": 1.0168754431576459
+      },
+      "after": {
+        "referenceError": 3.241509425461361,
+        "motionResidual": 1.8565332749310661,
+        "coverageRatio": 0.8936416088534208
+      }
+    },
+    {
+      "samples": 0,
+      "size": 512,
+      "angle": 0,
+      "before": {
+        "referenceError": 5.510799308491896,
+        "motionResidual": 3.4441661229849365,
+        "coverageRatio": 0.9958771791427019
+      },
+      "after": {
+        "referenceError": 2.7637032625329905,
+        "motionResidual": 1.4497648977970108,
+        "coverageRatio": 1.0066461295896993
+      }
+    },
+    {
+      "samples": 0,
+      "size": 512,
+      "angle": 20,
+      "before": {
+        "referenceError": 5.4051598837209305,
+        "motionResidual": 3.3076624369604475,
+        "coverageRatio": 1.0152717292196614
+      },
+      "after": {
+        "referenceError": 2.9867922988434272,
+        "motionResidual": 1.4202918423882722,
+        "coverageRatio": 0.9136376988585005
+      }
+    },
+    {
+      "samples": 4,
+      "size": 256,
+      "angle": 0,
+      "before": {
+        "referenceError": 2.550938003111784,
+        "motionResidual": 3.065670836205576,
+        "coverageRatio": 1.0067558065139373
+      },
+      "after": {
+        "referenceError": 2.9396654456819493,
+        "motionResidual": 1.9001534655203227,
+        "coverageRatio": 0.986418548025453
+      }
+    },
+    {
+      "samples": 4,
+      "size": 256,
+      "angle": 20,
+      "before": {
+        "referenceError": 2.6272895340734332,
+        "motionResidual": 2.988089168772978,
+        "coverageRatio": 1.0014679698397912
+      },
+      "after": {
+        "referenceError": 3.199311487769127,
+        "motionResidual": 1.8465721778620303,
+        "coverageRatio": 0.8847110728006636
+      }
+    },
+    {
+      "samples": 4,
+      "size": 512,
+      "angle": 0,
+      "before": {
+        "referenceError": 1.548426672245713,
+        "motionResidual": 1.8285660818761746,
+        "coverageRatio": 1.01114320009857
+      },
+      "after": {
+        "referenceError": 2.76233095532963,
+        "motionResidual": 1.4496309272778658,
+        "coverageRatio": 1.0064860377593856
+      }
+    },
+    {
+      "samples": 4,
+      "size": 512,
+      "angle": 20,
+      "before": {
+        "referenceError": 1.4934830521355829,
+        "motionResidual": 1.7834934900421364,
+        "coverageRatio": 1.0083162989896846
+      },
+      "after": {
+        "referenceError": 2.986053032030289,
+        "motionResidual": 1.420214763459449,
+        "coverageRatio": 0.9135543073905265
+      }
+    }
+  ],
+  "gpu": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (LLVM 10.0.0) (0x0000C0DE)), SwiftShader driver)",
+  "labels": {
+    "glyphs": 1490,
+    "patches": 417,
+    "triangles": 834,
+    "atlas": [
+      2048,
+      512
+    ]
+  },
+  "errors": []
+}

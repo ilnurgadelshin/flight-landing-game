@@ -175,6 +175,35 @@ Pass an optional output directory after the source path to build comparison asse
 overwriting the game files. `npm run test:assets` checks the delivered models' frame dimensions,
 source materials and animated-control bindings.
 
+The compact cockpit deliberately removes the original `Text` objects during
+optimization. The November 4 forward-label pass restores **1,490 selected flat
+marks** on the MCP and main panel from the delivered high-detail geometry, with
+their original outlines, colour, occlusion and placement. Moving yoke, pedestal
+and overhead lettering are outside this pass. Four material batches contain
+**417 coplanar patches / 834 triangles**, instead of adding the **201,583 source
+triangles** for these marks to the phone model. Desktop keeps its original vector
+geometry: the filtered prototype softened its multisampled text.
+
+`models/737-forward-labels.glb` is a **107,636-byte CC BY 4.0 derivative** of
+hakai315's model, covered by the cockpit license and credits page. Its 2048×512
+palette PNG preserves all coverage values exactly. Runtime extracts a shared
+linear, single-channel texture: 1 MiB of retained CPU pixels and about 1.33 MiB
+with GPU mipmaps. The temporary canvas and decoded image are released. The labels
+receive the existing cockpit illumination and baked occlusion; they do not cast
+shadows. A failed load leaves the existing compact cockpit usable.
+
+Reproduce it directly from the delivered source asset:
+
+```sh
+node tools/prepare-cockpit-labels.mjs
+```
+
+Optional source/output arguments allow isolated regeneration. The asset test
+checks the source SHA-256, geometry correspondence, coverage and budgets. The
+generator excludes thick or large joined parts and projects the selected marks
+onto their front planes; this is a small geometric approximation, not a new font
+or an exact reproduction of embossed letter bevels.
+
 For a repeatable source inspection in Blender (optional; not required to build or play):
 
 ```sh

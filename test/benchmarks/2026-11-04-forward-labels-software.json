@@ -1,0 +1,63 @@
+{
+  "date": "2026-11-04T09:08:23.059Z",
+  "baseline": false,
+  "results": [
+    {
+      "tier": "high",
+      "view": "flare",
+      "labels": null,
+      "draws": 0,
+      "triangles": 0,
+      "coverage": false,
+      "errors": []
+    },
+    {
+      "tier": "high",
+      "view": "close",
+      "labels": null,
+      "draws": 0,
+      "triangles": 0,
+      "coverage": false,
+      "errors": []
+    },
+    {
+      "tier": "low",
+      "view": "flare",
+      "labels": {
+        "glyphs": 1490,
+        "patches": 417,
+        "triangles": 834,
+        "atlas": [
+          2048,
+          512
+        ]
+      },
+      "draws": 4,
+      "triangles": 834,
+      "coverage": true,
+      "errors": []
+    },
+    {
+      "tier": "low",
+      "view": "close",
+      "labels": {
+        "glyphs": 1490,
+        "patches": 417,
+        "triangles": 834,
+        "atlas": [
+          2048,
+          512
+        ]
+      },
+      "draws": 4,
+      "triangles": 834,
+      "coverage": true,
+      "errors": []
+    }
+  ],
+  "fallback": {
+    "authored": true,
+    "labelError": true,
+    "modelError": false
+  }
+}

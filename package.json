@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "start": "npx http-server -p 8080 -c-1 .",
-    "test": "node test/physics.test.mjs && node test/flight-model.test.mjs && node test/terrain.test.mjs && node test/woodland-shadows.test.mjs && node test/woodland-density.test.mjs && node test/work-slices.test.mjs && node test/window-light.test.mjs && node test/cabin-shading.test.mjs && node test/cockpit-materials.test.mjs && node test/graphics-quality.test.mjs && node test/phone.test.mjs && node test/gamepad.test.mjs && node test/weather-assets.test.mjs && node test/rain-field.test.mjs && node test/corridor-assets.test.mjs && node test/airport-countryside.test.mjs && node test/ground-cover.test.mjs && node test/authored-assets.test.mjs && node test/sky.test.mjs && node test/cloud-layer.test.mjs && node test/hud.test.mjs && node test/nav.test.mjs && node test/game.test.mjs && node test/cockpit-asset.test.mjs",
+    "test": "node test/physics.test.mjs && node test/flight-model.test.mjs && node test/terrain.test.mjs && node test/woodland-shadows.test.mjs && node test/woodland-density.test.mjs && node test/work-slices.test.mjs && node test/window-light.test.mjs && node test/cabin-shading.test.mjs && node test/cockpit-materials.test.mjs && node test/graphics-quality.test.mjs && node test/phone.test.mjs && node test/gamepad.test.mjs && node test/weather-assets.test.mjs && node test/rain-field.test.mjs && node test/corridor-assets.test.mjs && node test/airport-countryside.test.mjs && node test/ground-cover.test.mjs && node test/authored-assets.test.mjs && node test/sky.test.mjs && node test/cloud-layer.test.mjs && node test/hud.test.mjs && node test/nav.test.mjs && node test/game.test.mjs && node test/cockpit-asset.test.mjs && node test/cockpit-labels.test.mjs",
     "test:assets": "node test/cockpit-asset.test.mjs",
     "test:corridor": "node test/corridor-assets.test.mjs && node test/corridor-scenery.mjs && node test/woodland-joins.mjs",
     "test:e2e": "node test/e2e-parallel.mjs",
@@ -14,7 +14,7 @@
     "test:visual": "node test/visual-review.mjs",
     "test:lighting": "node test/cockpit-lighting.mjs",
     "test:delivery": "node test/delivery.mjs",
-    "test:all": "npm test && node test/light-stability.mjs && node test/instrument-sampling.mjs && node test/runway-sampling.mjs && node test/taxiway-markings.mjs && node test/e2e-parallel.mjs",
+    "test:all": "npm test && node test/light-stability.mjs && node test/instrument-sampling.mjs && node test/runway-sampling.mjs && node test/taxiway-markings.mjs && node test/label-sampling.mjs && node test/e2e-parallel.mjs",
     "test:vegetation": "node test/vegetation-weather.mjs && node test/woodland-coverage.mjs",
     "test:woodland-preparation": "node test/woodland-preparation.mjs",
     "test:woodland-lighting": "node test/woodland-lighting.mjs",
@@ -33,7 +33,8 @@
     "test:ground-materials": "node test/ground-materials.mjs && node test/ground-material-motion.mjs",
     "test:instruments": "node test/instrument-sampling.mjs && node test/landing-instruments.mjs",
     "test:runway": "node test/runway-sampling.mjs && node test/runway-surfaces.mjs",
-    "test:airport-ground": "node test/taxiway-markings.mjs && node test/airport-ground.mjs"
+    "test:airport-ground": "node test/taxiway-markings.mjs && node test/airport-ground.mjs",
+    "test:labels": "node test/cockpit-labels.test.mjs && node test/label-sampling.mjs && node test/forward-labels.mjs"
   },
   "license": "MIT",
   "dependencies": {

@@ -1,13 +1,28 @@
 # Visual improvement audit
 
-## Current status — 2026-11-03
+## Current status — 2026-11-04
 
 This section is the current checklist. The original September audit and dated work log
 below record how the scene evolved; their older counts, captures and priorities are not
 the remaining-work list. Update this section after each reviewed visual pass, including
 what changed, visible impact, measured cost, evidence and limitations.
 
-The latest visual pass **repairs the airport pavement layout visible during landing**.
+The latest visual pass **restores the compact cockpit's forward-panel lettering**.
+Its preparation tool had removed most source text objects. A 107,636-byte derivative
+restores 1,490 glyphs/marks as 417 filtered patches, adding 834 triangles and four
+material draws on low quality. Desktop retains its original geometry: the texture
+alternative softened its multisampled lettering. This adds visible panel structure,
+but does not make every small label readable at normal phone framing. Native PANEL/PFD
+and MAP remain the primary small-screen instruments. Phone startup now has only
+100,823 bytes of headroom; physical-device readability and performance are unverified.
+
+A local airport contact-shadow prototype was also evaluated and rejected. It changed
+only about 0.022% high / 0.046% low of the flare frame above a five-level mean RGB
+threshold, with still less effect during rollout. No contact-shadow code is retained.
+This does not finish shadows; it lowers the priority of that particular approach
+until a useful pilot-view improvement can be demonstrated.
+
+The preceding visual pass **repairs the airport pavement layout visible during landing**.
 Five sideways connector slabs now match the continuous taxiways in the wheel query;
 a small forecourt joins the hangars to the taxiway and original apron. Turf variation
 follows pavement margins, and filtered 0.30 m taxiway lines replace oversized texture
@@ -50,8 +65,9 @@ altitude is larger. No new button, asset, tree, scenery geometry or 3D render pa
 Further geographic expansion is paused. Priority follows the landing experience.
 Phone framing, live-display sampling, steady runway lights and runway paint/edge
 filtering are delivered. Connected airport ground and taxiway paint are now also
-delivered. Local shadows, remaining thin details and printed cockpit lettering
-still need work in the pilot's final approach, flare and rollout. Fine finishes
+delivered. Forward labels are restored on the compact model; other lettering and
+thin geometry still need work in the pilot's final approach, flare and rollout.
+Local shadow work remains conditional on visible pilot-seat value. Fine finishes
 and remote scenery no longer outrank these.
 Physical-device usability and performance still require validation.
 
@@ -103,9 +119,9 @@ should not be presented again as untouched tasks. Their broader quality limitati
 
 | Rank | Remaining work | Importance | Current limit / next acceptance evidence |
 | --- | --- | --- | --- |
-| 1 | Local airport shadows during landing | High where visible from the pilot eye | Connected exits, the hangar forecourt, maintained verges, filtered runway/taxiway paint and terminal architecture are delivered. The ground-layout milestone is complete. Finer object contact shadows and coarse shadow edges remain a separate task, selected using the last 30 seconds, flare and rollout. Reject decoration with no useful pilot-seat contribution; retain runway clearances and markings. |
-| 2 | Remaining temporal stability and small lettering | High | Steady airfield lights, live display textures and runway paint/edges now use local filtering; native phone PFD rendering is delivered. Taxiway centerline sampling is also delivered; pavement silhouettes, more complete markings, printed labels, branches and shadow edges remain. Low-detail source lettering also loses shape; anti-aliasing cannot restore removed geometry. Validate in continuous pilot motion and measure GPU cost. |
-| 3 | Phone landing readability and usability validation | High on phones | Closer forward framing, larger radio altitude and native-resolution PANEL/PFD are delivered. Smaller labels and the short screen's limited space remain. Validate on real devices, including touch steering, orientation and browser toolbars; desktop emulation does not certify readability, FPS or battery use. |
+| 1 | Remaining temporal stability and small lettering | High | Steady lights, live display textures, runway paint/edges and taxiway centerlines use local filtering. Compact forward labels are restored; desktop retains its sharper source geometry. Pavement silhouettes, branches, shadow edges and other labels remain. This is not whole-scene temporal anti-aliasing. Select visible defects in continuous pilot motion and measure GPU cost. |
+| 2 | Phone landing readability and usability validation | High on phones | Closer forward framing, larger radio altitude, native-resolution PANEL/PFD and forward labels are delivered. Tiny lettering and the short screen's limited space remain. Validate on real devices, including touch steering, orientation and browser toolbars; desktop emulation does not certify readability, FPS or battery use. |
+| 3 | Local airport shadows and remaining ground detail | Medium; higher if a pilot-visible defect is demonstrated | Connected exits, the hangar forecourt, maintained verges, filtered paint and terminal architecture are delivered. Finer object contact shadows, coarse shadow edges and simple pavement junctions remain. The contact-mask prototype had too little normal pilot-view impact and was discarded. Require useful final-approach/flare/rollout evidence before another shadow or decoration pass; retain runway clearances and markings. |
 | 4 | Remaining cockpit materials and lighting | Medium | Remaining knobs/metal, floor and some shell surfaces are simple; indirect light/reflections remain approximations. Require visible benefit during normal flight. Completed panel, pedestal, overhead and liner finishes are not new scope. |
 | 5 | Finer cloud and wet-weather rendering | Medium overall; high in weather scenarios | Repeated fair-weather forms and simplified deep cloud interiors remain. Preserve corrected rain timing and cloud-entry visibility. |
 | 6 | Canopy form and grouping | Medium | Repeated species and image-plane silhouettes remain. Improve representation within existing budgets after the landing priorities above. |
@@ -115,9 +131,88 @@ Performance and compatibility are acceptance requirements for every item, rather
 separate cosmetic milestone. Current high-resolution scenes still fall below 60 FPS on
 the M2 Pro; retain adaptive quality and report costs. Physical phones, ordinary laptops
 and multiple GPU drivers need wider validation. The isolated display, runway and taxiway
-sampling probes pass SwiftShader too. The latest airport pass also checks full-scene
+sampling probes pass SwiftShader too, as does the new forward-label probe. The latest
+label pass checks full-scene flare/inspection views on both tiers in SwiftShader,
+and all 270 browser checks pass on Metal. The preceding airport pass checks full-scene
 flare/junction views on both tiers in SwiftShader; the wider captures use Metal.
 Neither establishes physical-phone or ordinary-laptop performance.
+
+### Compact forward-panel lettering — 2026-11-04
+
+Baseline: `9302d97`. `tools/prepare-cockpit.mjs` deliberately deletes source
+`Text*` objects from the compact cockpit before simplifying it. This removed much
+of the MCP/main-panel lettering, not just its fine shape. The high model's text
+batches also contain other geometry, so replacing an entire named batch would
+remove unrelated parts.
+
+`tools/prepare-cockpit-labels.mjs` isolates small, thin forward-facing connected
+components, projects their original silhouettes and retains their colour,
+placement and averaged baked occlusion. Neighbouring coplanar marks share a
+patch so overlapping filter footprints do not double-fade neighbouring letters.
+The result is **1,490 glyphs/marks in 417 patches, 834 triangles and four material
+batches**, derived from **201,583 source triangles**. The latter is geometry
+avoided when restoring the phone labels, **not a reduction of desktop geometry**.
+The original two cockpit GLBs are unchanged. The derivative retains hakai315's
+CC BY 4.0 attribution and documents the modification.
+
+The **107,636-byte GLB** includes a **2048×512** lossless coverage atlas. Loading
+converts its alpha to a shared linear single-channel texture with mipmaps and
+anisotropic filtering: **1 MiB retained CPU coverage / about 1.33 MiB mipmapped
+GPU texture storage**, plus geometry. The temporary canvas and decoded image are
+released. Four meshes join the existing cockpit render; no separate pass or
+render target is added. Original surface lighting still applies. Missing label
+downloads retain the compact cockpit rather than replacing the whole deck with
+the fallback.
+
+The [local comparison](output/forward-label-review.html) includes normal forward,
+flare, storm and night views on both tiers, plus an explicitly labelled close
+inspection camera. Two paired six-second camera pans show phone lettering in
+motion with frozen flight physics. This is a modest restoration of panel detail,
+not a new phone display layout. Many letters remain too small for dependable
+reading in the normal forward view. The planar patches approximate the raised
+source lettering; they do not reproduce every bevel or oblique perspective.
+
+Validation:
+
+- All **25 Node suites** and the full **270/270 browser checks** pass. The latter
+  includes keyboard, touch, tilt and controller landings as well as graphics.
+- Ten matched Metal views per version and four current SwiftShader views render
+  without page, shader or asset errors. Both confirm that only the compact
+  cockpit requests the derivative. The failed-download fallback also passes.
+- An isolated test renders the actual selected original geometry and the new
+  coverage patches against an independent **4× supersampled source reference**.
+  Four no-MSAA cases use 256/512 px crops, 0°/20° pitch and seventeen subpixel
+  positions. On Metal/SwiftShader, reference error falls about **44–60%** and
+  motion residual about **57–65%**, with integrated coverage **89–101%** of the
+  reference. This compares restoration methods, not the old phone's absent text.
+  Four-MSAA results show that textures soften the existing desktop lettering;
+  desktop therefore keeps its original geometry. The probe defaults to
+  SwiftShader and is included in `test:all` and `test:labels`.
+- Native Retina PFD/live-value, touch view cycle, MAP, resize, tablet and Flight
+  School checks pass. These are emulation checks, not physical-device evidence.
+- Delivery checks pass at **8,899,177 / 20,120,980 bytes** low and
+  **14,355,640 / 68,157,583 bytes** high (startup / prepared flight). Low adds
+  110,606 bytes including code and leaves **100,823 bytes** below its 9 MB guard.
+  High adds only 2,970 bytes of source; it does not download the derivative.
+- The review page checks all twenty images, four videos, comparison direction,
+  magnification, playback and 390 px layout without page errors.
+
+Sequential M2 Pro hardware measurements keep low near the 60 Hz ceiling and
+high at **38.0–42.7 FPS**, versus **38.4–43.1** before, with unchanged high p95
+of 33.4 ms. High does not execute the new rendering path; its small timing
+differences are run variation. The display ceiling can hide low-tier cost.
+See the [performance record](RENDER-PERFORMANCE.md#compact-forward-panel-lettering--2026-11-04)
+and retained `benchmarks/2026-11-04-forward-labels-*` evidence. The earlier
+cumulative scenery cost remains unresolved; this pass adds no trees or coverage.
+
+The separate contact-shadow experiment placed baked local footprints on airport
+pavement. At the tested flare position, only **0.022% high / 0.046% low** of
+the frame changed above five mean RGB levels; later rollout was **0.0012% / 0%**.
+Those are difference measurements, not a quality score. The normal pilot-view
+benefit was too small to justify retaining the shader and texture work. No
+performance claim is made for the rejected prototype, and local shadows remain
+unfinished. Compact visibility evidence is retained with this pass to explain
+the priority change rather than silently treating that task as completed.
 
 ### Connected airport pavement and maintained verges — 2026-11-03
 

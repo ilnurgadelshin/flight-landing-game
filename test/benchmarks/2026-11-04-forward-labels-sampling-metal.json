@@ -1,0 +1,135 @@
+{
+  "reports": [
+    {
+      "samples": 0,
+      "size": 256,
+      "angle": 0,
+      "before": {
+        "referenceError": 7.422832414215686,
+        "motionResidual": 5.449473063151042,
+        "coverageRatio": 0.9732694993018153
+      },
+      "after": {
+        "referenceError": 3.0025846429257976,
+        "motionResidual": 1.9100411608328227,
+        "coverageRatio": 0.990167525218745
+      }
+    },
+    {
+      "samples": 0,
+      "size": 256,
+      "angle": 20,
+      "before": {
+        "referenceError": 7.754337086397059,
+        "motionResidual": 5.290730794270833,
+        "coverageRatio": 1.008487139355639
+      },
+      "after": {
+        "referenceError": 3.2863432558991734,
+        "motionResidual": 1.8668831220639297,
+        "coverageRatio": 0.8953643776856341
+      }
+    },
+    {
+      "samples": 0,
+      "size": 512,
+      "angle": 0,
+      "before": {
+        "referenceError": 5.508115310077519,
+        "motionResidual": 3.5051935369318183,
+        "coverageRatio": 0.9940250660429367
+      },
+      "after": {
+        "referenceError": 2.8144291322942143,
+        "motionResidual": 1.456799554410383,
+        "coverageRatio": 1.0066821162057016
+      }
+    },
+    {
+      "samples": 0,
+      "size": 512,
+      "angle": 20,
+      "before": {
+        "referenceError": 5.41311553030303,
+        "motionResidual": 3.359359515393763,
+        "coverageRatio": 1.0100770305525675
+      },
+      "after": {
+        "referenceError": 3.0392958958601057,
+        "motionResidual": 1.4271225610024665,
+        "coverageRatio": 0.9144813705246432
+      }
+    },
+    {
+      "samples": 4,
+      "size": 256,
+      "angle": 0,
+      "before": {
+        "referenceError": 2.3166089965397925,
+        "motionResidual": 2.68571462194904,
+        "coverageRatio": 1.0039540332390686
+      },
+      "after": {
+        "referenceError": 2.9410844837322183,
+        "motionResidual": 1.9011667288985907,
+        "coverageRatio": 0.9820932242835295
+      }
+    },
+    {
+      "samples": 4,
+      "size": 256,
+      "angle": 20,
+      "before": {
+        "referenceError": 2.3877916171064015,
+        "motionResidual": 2.7033491944955066,
+        "coverageRatio": 1.0021987327252313
+      },
+      "after": {
+        "referenceError": 3.2299819705762207,
+        "motionResidual": 1.8564895929074754,
+        "coverageRatio": 0.8856525341731649
+      }
+    },
+    {
+      "samples": 4,
+      "size": 512,
+      "angle": 0,
+      "before": {
+        "referenceError": 1.3073596774862164,
+        "motionResidual": 1.484665307691743,
+        "coverageRatio": 1.001132028951359
+      },
+      "after": {
+        "referenceError": 2.8125231020879107,
+        "motionResidual": 1.4566252092142353,
+        "coverageRatio": 1.0064568775973
+      }
+    },
+    {
+      "samples": 4,
+      "size": 512,
+      "angle": 20,
+      "before": {
+        "referenceError": 1.273544266191325,
+        "motionResidual": 1.446698314907799,
+        "coverageRatio": 1.0019823372552898
+      },
+      "after": {
+        "referenceError": 3.0382759494742224,
+        "motionResidual": 1.4270225419162557,
+        "coverageRatio": 0.9143606352614367
+      }
+    }
+  ],
+  "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M2 Pro, Unspecified Version)",
+  "labels": {
+    "glyphs": 1490,
+    "triangles": 834,
+    "removedTriangles": 201583,
+    "atlas": [
+      2048,
+      512
+    ]
+  },
+  "errors": []
+}
