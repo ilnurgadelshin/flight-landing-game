@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Runway threshold markings</title>
+<style>
+  :root { color-scheme: dark; font: 16px/1.45 system-ui; background: #111b22; color: #e3edf4 }
+  main { max-width: 1100px; margin: auto; padding: 1rem }
+  h1 { line-height: 1.15 }
+  p { color: #c2d0d9 }
+  form, fieldset { display: flex; flex-wrap: wrap; align-items: center; gap: .8rem }
+  fieldset { padding: .3rem .7rem; border: 1px solid #607684; border-radius: .3rem }
+  select { font: inherit; padding: .3rem }
+  figure { margin: 1rem 0 }
+  .frame { overflow: hidden }
+  img { display: block; width: 100%; transform-origin: 50% 37% }
+  .zoom img { transform: scale(2.5) }
+  figcaption { padding-top: .5rem }
+  summary { cursor: pointer; margin-bottom: .5rem }
+  video { display: block; width: 100% }
+</style>
+<main>
+  <h1>Runway threshold markings</h1>
+  <p>Follow the yellow chevrons to the white bar where the landing surface begins.
+     The overhead views show the markings at each end, including both runway numbers.</p>
+  <form>
+    <label>Quality <select id="tier"><option value="high">High</option><option value="low">Low</option></select></label>
+    <label>View <select id="view">
+      <option value="450">Approach · 199 ft</option>
+      <option value="600">Short final · 136 ft</option>
+      <option value="750">Late final · 73 ft</option>
+      <option value="threshold-27">Runway 27 overhead</option>
+      <option value="threshold-09">Runway 09 overhead</option>
+    </select></label>
+    <fieldset><legend>Capture</legend>
+      <label><input type="radio" name="version" value="before"> Before</label>
+      <label><input type="radio" name="version" value="after" checked> After</label>
+    </fieldset>
+    <label><input type="checkbox" id="zoom"> Magnify</label>
+  </form>
+  <figure><div class="frame"><img id="image" alt=""></div><figcaption id="caption" aria-live="polite"></figcaption></figure>
+  <details><summary>Watch the full landing</summary>
+    <video controls muted playsinline preload="none" aria-label="Selected landing capture"></video>
+  </details>
+</main>
+<script>
+  const form = document.querySelector('form');
+  const tier = document.querySelector('#tier'), view = document.querySelector('#view');
+  const image = document.querySelector('#image'), frame = document.querySelector('.frame');
+  const video = document.querySelector('video');
+  function showCapture() {
+    const version = form.elements.version.value, overhead = view.value.startsWith('threshold-');
+    const source = overhead ? 'surfaces' : 'motion';
+    const description = (version === 'before' ? 'Before' : 'After') + ' · ' + view.selectedOptions[0].text;
+    image.src = 'output/threshold-' + source + '-' + version + '-' + tier.value + '-' + view.value + '.png';
+    image.alt = description;
+    image.style.transformOrigin = overhead ? '50% 50%' : tier.value === 'high' ? '50% 37%' : '50% 48%';
+    document.querySelector('#caption').textContent = description;
+    frame.classList.toggle('zoom', document.querySelector('#zoom').checked);
+    const film = 'output/threshold-motion-' + version + '-' + tier.value + '.webm';
+    if (video.getAttribute('src') !== film) video.src = film;
+  }
+  form.addEventListener('change', showCapture);
+  showCapture();
+</script>
+</html>

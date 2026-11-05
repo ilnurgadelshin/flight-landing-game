@@ -3423,3 +3423,28 @@ Evidence: `benchmarks/2026-11-04-landing-edge-benchmark-{before,after}.json`,
 records the full-scene reference/motion metrics, display-preservation checks,
 fallback, resize and adaptive-disposal tests, graphics and phone-control checks.
 The paired camera-pan videos are visual evidence, not frame-rate measurements.
+
+## Runway threshold markings — 2026-11-05
+
+Paired application runs against `d81a328`, on an Apple M2 Pro with Chromium
+141 and ANGLE Metal. Each scene uses four seconds of warm-up and twelve seconds
+of sampling, frozen physics, live instrument redraws and fixed resolution.
+
+| View | FPS before / after | p95 frame time before / after |
+| --- | ---: | ---: |
+| High forward, 1440 × 900 at 1.5× | 39.48 / 39.95 | 33.4 / 33.4 ms |
+| High flare | 39.23 / 40.03 | 33.4 / 33.4 ms |
+| Low forward, 852 × 393 touch layout at 1× | 60.00 / 60.00 | 16.7 / 16.7 ms |
+| Low flare | 60.00 / 60.00 | 16.8 / 16.8 ms |
+
+The p95 frame time is stable at the recorded precision. High still falls short
+of 60 FPS. These Mac measurements do not establish physical-phone performance.
+The cumulative scenery timings and hardware limitations above still apply.
+
+The added rendering work is a filtered map read on the two existing pads.
+They share one 240 × 180 generated texture (172,800 base bytes and 230,268 bytes
+with mip levels in RGBA8). The threshold bars and numerals are baked into the
+existing runway canvas once. Draw and triangle counts for the runway and pads
+stay the same. Delivery measured 14,369,925 / 68,171,868 bytes on high and
+8,913,462 / 20,135,265 bytes on low, to the menu / after preparation.
+Both tiers add 2,549 bytes of JavaScript. [Measurement record](benchmarks/2026-11-05-runway-thresholds.json)

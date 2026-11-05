@@ -609,6 +609,10 @@ The existing paint, rubber deposits, scanned aggregate, wetness and atmospheric
 lighting remain. There are no new assets, textures or draw calls; the additional
 texture reads, 16 margin triangles and discarded fringe pixels require GPU time.
 
+On short final, yellow chevrons mark the 60 m of paved overrun before each end.
+A white bar crosses the runway at the threshold, followed by the longitudinal
+stripes and the tall painted 27 or 09. Both pads share one locally generated texture.
+
 Five 30 m-wide taxiway connectors now join the runway and parallel taxiway, matching
 the wheel-surface query. The hangars have a 280 × 190 m forecourt adjoining the
 existing apron, classified as pavement for rolling/braking. This adds one draw and

@@ -21,6 +21,32 @@ function makeTexture(c, opts = {}) {
   return t;
 }
 
+// Upright outlines in metres for Westhaven's two designators. The long paint
+// strokes in FAA AC 150/5340-1M Figure A-6 account for the pilot's shallow view.
+const runwayNumerals = {
+  '0': 'M0 0H6V18H0Z M1.5 3V15H4.5V3Z',
+  '2': 'M0 0H6V6L1.5 13.2V15H6V18H0V12.6L4.5 5.6V3H1.5V4.8H0Z',
+  '7': 'M0 0H6.9L2.3 18H0.6L4.5 3H0Z',
+  '9': 'M0 0H6V15L1.5 18.9V16.8L4.5 14.1V11.1H0Z M1.5 3V8.1H4.5V3Z',
+};
+
+function drawRunwayDesignator(g, label) {
+  const spacing = 4.5;
+  const widths = [...label].map(digit => digit === '7' ? 6.9 : 6);
+  const span = widths.reduce((sum, width) => sum + width, 0) + (label.length - 1) * spacing;
+  g.translate(-span / 2, -9);
+  for (const [i, digit] of [...label].entries()) {
+    if (runwayNumerals[digit]) {
+      g.fill(new Path2D(runwayNumerals[digit]), 'evenodd');
+    } else {
+      // Keep other configured designators usable too.
+      g.font = 'bold 24px sans-serif';
+      g.fillText(digit, 0, 18, widths[i]);
+    }
+    g.translate(widths[i] + spacing, 0);
+  }
+}
+
 /**
  * Runway texture. U runs along the runway from the "09" end (x = -L/2) to the
  * "27" end (x = +L/2); V across the width. Markings follow ICAO Annex 14 for a
@@ -70,6 +96,10 @@ export function makeRunwayTexture(anisotropy, maxSize = 8192) {
   const endMarkings = (dir, label) => {
     const at = (d) => (dir === 1 ? L - d : d);             // metre position for a distance d from this threshold
     const along = (d, len) => (dir === 1 ? [at(d + len), len] : [at(d), len]);
+    // The paved overrun abuts this end. Keep the threshold bar entirely
+    // inside the landing surface, with a gap before the longitudinal stripes.
+    const [barStart, barLength] = along(0, 3);
+    rect(barStart, barLength, -RW / 2, RW);
     // threshold stripes: 12 stripes 1.8 m wide, 30 m long, from 6 m to 36 m
     const stripeW = 1.8, gap = 1.5;
     const totalStripes = 12;
@@ -87,11 +117,10 @@ export function makeRunwayTexture(anisotropy, maxSize = 8192) {
     // pilot looks along -dir*x; text "up" must point away from the pilot
     g.rotate(dir === 1 ? -Math.PI / 2 : Math.PI / 2);
     g.fillStyle = white;
-    g.font = `bold ${Math.round(18 * sy * 1.05)}px Arial`;
-    g.textAlign = 'center'; g.textBaseline = 'middle';
-    // stretch the glyphs: the along-runway axis has fewer px/m than across
-    g.scale(1, sx / sy);
-    g.fillText(label, 0, 0);
+    // After rotation, horizontal glyph coordinates run across the runway and
+    // vertical coordinates along it. Preserve their physical dimensions.
+    g.scale(sy, sx);
+    drawRunwayDesignator(g, label);
     g.restore();
     g.fillStyle = white;
     // aiming point: two 45 m x 6 m bars at 300 m, inner edges 9 m from the centreline
@@ -119,6 +148,38 @@ export function makeRunwayTexture(anisotropy, maxSize = 8192) {
     deposit.addColorStop(0,'rgba(13,14,15,0)');deposit.addColorStop(.12,`rgba(13,14,15,${strength})`);
     deposit.addColorStop(.7,`rgba(13,14,15,${strength*.7})`);deposit.addColorStop(1,'rgba(13,14,15,0)');
     g.strokeStyle=deposit;g.lineWidth=thickness;g.beginPath();g.moveTo(x,y);g.lineTo(end,y+(rng()-.5)*.15*sy);g.stroke();
+  }
+  return makeTexture(c, { anisotropy });
+}
+
+// FAA AC 150/5340-1M, Figure A-9, short paved overrun. Texture X is metres
+// outward from the threshold, so each tip points towards the landing surface.
+export function makeBlastPadTexture(anisotropy) {
+  const { padLength, width } = RUNWAY;
+  const pixelsPerMetre = 4;
+  const c = canvas(padLength * pixelsPerMetre, width * pixelsPerMetre);
+  const g = c.getContext('2d');
+  g.scale(pixelsPerMetre, pixelsPerMetre);
+  g.fillStyle = '#4a4a4c';
+  g.fillRect(0, 0, padLength, width);
+
+  const margin = 1;
+  const arm = width / 2 - margin;
+  const stripeDepth = Math.SQRT2; // One metre perpendicular to each 45° arm.
+  g.beginPath();
+  g.rect(0, margin, padLength - margin, width - 2 * margin);
+  g.clip();
+  g.fillStyle = '#dfbc40';
+  for (let tip = 0; tip < padLength; tip += 15) {
+    g.beginPath();
+    g.moveTo(tip + arm, margin);
+    g.lineTo(tip, width / 2);
+    g.lineTo(tip + arm, width - margin);
+    g.lineTo(tip + arm + stripeDepth, width - margin);
+    g.lineTo(tip + stripeDepth, width / 2);
+    g.lineTo(tip + arm + stripeDepth, margin);
+    g.closePath();
+    g.fill();
   }
   return makeTexture(c, { anisotropy });
 }

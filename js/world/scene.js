@@ -18,7 +18,7 @@ import { RUNWAY, DEG } from '../config.js';
 import {TAXIWAY_CONNECTORS,HANGAR_APRON} from '../airport-layout.js';
 import {applyTaxiwayMarkings} from './airport-ground.js';
 import { makeRng } from '../physics/atmosphere.js';
-import { makeRunwayTexture, makeTaxiwayTexture, makeDetailTexture, makeCloudTexture } from './textures.js';
+import { makeRunwayTexture, makeBlastPadTexture, makeTaxiwayTexture, makeDetailTexture, makeCloudTexture } from './textures.js';
 import { AirfieldLights } from './lights.js';
 import { Atmosphere, SKY_GLSL, installHaze, sceneColor } from './sky.js';
 import { Cumulus } from './clouds.js';
@@ -374,9 +374,16 @@ export class World {
     add(rw, false);
     this.runwayMat = rwMat;
     addRunwayShoulders(this);
-    // blast pads / stopways at each end (60 m, chevrons omitted)
-    const padMat = std({ color: 0x4a4a4c, roughness: 1 });
-    for (const sx of [-1, 1]) { const p = new THREE.Mesh(new THREE.PlaneGeometry(60, W), padMat); p.rotation.x = -Math.PI / 2; p.position.set(sx * (halfL + 30), 0.01, 0); add(p, false); }
+    const padMat = std({ map: makeBlastPadTexture(aniso), roughness: 1 });
+    const padGeometry = new THREE.PlaneGeometry(RUNWAY.padLength, W);
+    for (const end of [-1, 1]) {
+      const pad = new THREE.Mesh(padGeometry, padMat);
+      pad.name = 'Blast pad ' + (end > 0 ? RUNWAY.ident : RUNWAY.reciprocal);
+      pad.rotation.x = -Math.PI / 2;
+      pad.rotation.z = end > 0 ? 0 : Math.PI;
+      pad.position.set(end * (halfL + RUNWAY.padLength / 2), 0.01, 0);
+      add(pad, false);
+    }
     // parallel taxiway (z 120..150) and connectors, apron
     const twTex = makeTaxiwayTexture(aniso, L, 30, false);
     const tw = new THREE.Mesh(new THREE.PlaneGeometry(L, 30), std({ map: twTex, roughness: 1 }));

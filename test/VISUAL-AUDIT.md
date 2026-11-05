@@ -1,13 +1,19 @@
 # Visual improvement audit
 
-## Current status — 2026-11-04
+## Current status — 2026-11-05
 
 This section is the current checklist. The original September audit and dated work log
 below record how the scene evolved; their older counts, captures and priorities are not
 the remaining-work list. Update this section after each reviewed visual pass, including
 what changed, visible impact, measured cost, evidence and limitations.
 
-The latest visual pass **smooths phone landing-view silhouettes while protecting
+The latest pass **marks the start of the landing surface at both runway ends**.
+Yellow chevrons cover the two paved overruns. A white threshold bar separates
+each pad from the longitudinal runway stripes. The 27 and 09 have tall, measured
+strokes in the runway texture. The change is concentrated in the runway area on
+short final. [Compare the approach and both thresholds](threshold-review.html).
+
+The preceding visual pass **smooths phone landing-view silhouettes while protecting
 live instruments**. The compact low tier now applies a display-space edge filter
 after drawing the world and cabin. Projected screen boundaries preserve the live
 PFD, ND, other displays and MCP readouts; focused PANEL/MAP views bypass the filter.
@@ -23,9 +29,9 @@ restores 1,490 glyphs/marks as 417 filtered patches, adding 834 triangles and fo
 material draws on low quality. Desktop retains its original geometry: the texture
 alternative softened its multisampled lettering. This adds visible panel structure,
 but does not make every small label readable at normal phone framing. Native PANEL/PFD
-and MAP remain the primary small-screen instruments. Phone startup now has only
-100,823 bytes of headroom before the new edge-filter code; the current margin is
-89,087 bytes. Physical-device readability and performance are unverified.
+and MAP remain the primary small-screen instruments. Phone startup headroom was
+100,823 bytes after the label pass and 89,087 bytes after the edge filter.
+Physical-device readability and performance are unverified.
 
 A local airport contact-shadow prototype was also evaluated and rejected. It changed
 only about 0.022% high / 0.046% low of the flare frame above a five-level mean RGB
@@ -133,7 +139,7 @@ should not be presented again as untouched tasks. Their broader quality limitati
 | --- | --- | --- | --- |
 | 1 | Remaining temporal stability and small lettering | High where visible during landing | Lights, live displays, runway paint/edges and taxiway centerlines use local filtering. Compact forward labels are restored, and a display-space edge pass now smooths broad phone silhouettes while protecting live readouts. Desktop retains its multisampling and source geometry. Subpixel branches, shadow edges and other lettering can still shimmer; spatial filtering cannot restore missing samples. Select the next defect in continuous pilot motion and measure GPU cost. |
 | 2 | Phone landing readability and usability validation | High on phones | Closer framing, larger radio altitude, native PANEL/PFD, forward labels and smoother silhouettes are delivered. Tiny lettering and the short screen's limited space remain. Validate the combined experience on real devices, including steering, orientation, browser toolbars and sustained frame pacing; desktop emulation does not certify readability, FPS or battery use. |
-| 3 | Local airport shadows and remaining ground detail | Medium; higher if a pilot-visible defect is demonstrated | Connected exits, the hangar forecourt, maintained verges, filtered paint and terminal architecture are delivered. Finer object contact shadows, coarse shadow edges and simple pavement junctions remain. The contact-mask prototype had too little normal pilot-view impact and was discarded. Require useful final-approach/flare/rollout evidence before another shadow or decoration pass; retain runway clearances and markings. |
+| 3 | Local airport shadows and remaining ground detail | Medium; higher if a pilot-visible defect is demonstrated | The runway-end chevrons, threshold bars and measured designators are delivered alongside connected exits, the hangar forecourt and maintained verges. Finer object contact shadows, coarse shadow edges and simple pavement junctions remain. The contact-mask prototype had too little normal pilot-view impact and was discarded. Require useful final-approach/flare/rollout evidence before another shadow or decoration pass. |
 | 4 | Remaining cockpit materials and lighting | Medium | Remaining knobs/metal, floor and some shell surfaces are simple; indirect light/reflections remain approximations. Require visible benefit during normal flight. Completed panel, pedestal, overhead and liner finishes are not new scope. |
 | 5 | Finer cloud and wet-weather rendering | Medium overall; high in weather scenarios | Repeated fair-weather forms and simplified deep cloud interiors remain. Preserve corrected rain timing and cloud-entry visibility. |
 | 6 | Canopy form and grouping | Medium | Repeated species and image-plane silhouettes remain. Improve representation within existing budgets after the landing priorities above. |
@@ -144,12 +150,52 @@ separate cosmetic milestone. Current high-resolution scenes still fall below 60 
 the M2 Pro; retain adaptive quality and report costs. Physical phones, ordinary laptops
 and multiple GPU drivers need wider validation. The isolated display, runway and taxiway
 sampling probes pass SwiftShader too, as do the forward-label and new phone-edge
-probes. The current pass checks full-scene clear/night/storm/PANEL views on
-SwiftShader and runs the 24-check graphics group plus phone-control checks on Metal.
+probes. The phone-edge pass checked full-scene clear/night/storm/PANEL views on
+SwiftShader and ran the 24-check graphics group plus phone-control checks on Metal.
 The preceding label pass ran all 270 browser checks; that full flight suite was
 not repeated for this rendering-only change. Earlier airport and cockpit checks
 retain their own dated evidence below.
 Neither establishes physical-phone or ordinary-laptop performance.
+
+### Runway thresholds on short final — 2026-11-05
+
+Baseline `d81a328`. Both 60 m paved pads were plain asphalt up to the start of
+the runway. The new yellow chevrons point toward a white bar painted on the
+landing side. The existing threshold stripes begin six metres inside that bar's
+outer edge. Each pair of runway numerals is drawn in metres. Measured on the
+actual runway texture, 27 grew from **13.5 to 17.9 m** tall, and 09 from
+**13.9 to 18.7 m**. The shapes follow Figures A-6 and A-9, retaining Westhaven's
+published 09 identifier. [FAA marking diagrams](https://www.faa.gov/documentLibrary/media/Advisory_Circular/150-5340-1M-Chg-1-Airport-Markings.pdf#page=124)
+
+The before/after recordings follow the same 1,892-frame autoland on both
+tiers, including touchdown and rollout to a stop. The cue is local and subtle.
+At 199 ft the runway crop changes by more than five RGB levels at 215 desktop
+and 117 phone-layout pixels. At 73 ft the near threshold is nearly hidden by
+the cockpit, and those counts fall to six and zero. Overhead views show the
+orientation and shape on both ends. [Matched pilot and overhead views](threshold-review.html)
+
+Both pads use the same 240 × 180 canvas and mipmapped texture (about 225 KiB
+of RGBA8 GPU storage including mip levels). The two meshes also share their
+geometry. Startup grows by 2,549 bytes of JavaScript, leaving 86,538 bytes of
+low-tier headroom. The automated surface check samples both ends through their
+actual mesh UVs. All 25 Node suites, the software runway sampling probe, the
+Metal runway views and delivery checks passed. The review loads 20 matched
+stills and plays all four recordings. [Measurements](benchmarks/2026-11-05-runway-thresholds.json)
+
+On the M2 Pro, high flare measured 39.2 FPS before and 40.0 after, with a
+33.4 ms p95 in both runs. The phone layout ran at 60 FPS. Timing and
+physical-device limits are recorded in the [performance log](RENDER-PERFORMANCE.md#runway-threshold-markings--2026-11-05).
+
+To regenerate the local comparison from the project root:
+
+```sh
+mkdir -p test/output/threshold-base
+git archive d81a328 | tar -x -C test/output/threshold-base
+REVIEW_ROOT=test/output/threshold-base node test/runway-surfaces.mjs threshold-surfaces-before
+node test/runway-surfaces.mjs threshold-surfaces-after
+RECORD_VIDEO=1 REVIEW_ROOT=test/output/threshold-base node test/runway-motion.mjs threshold-motion-before
+RECORD_VIDEO=1 node test/runway-motion.mjs threshold-motion-after
+```
 
 ### Phone landing-view edge filtering — 2026-11-04
 

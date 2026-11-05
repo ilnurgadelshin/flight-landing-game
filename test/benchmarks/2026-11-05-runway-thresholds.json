@@ -1,0 +1,436 @@
+{
+  "date": "2026-11-05",
+  "baseline": "d81a328",
+  "designators": {
+    "before": [
+      {
+        "ident": "09",
+        "height": 13.916015625,
+        "span": 19.423828125
+      },
+      {
+        "ident": "27",
+        "height": 13.5498046875,
+        "span": 19.599609375
+      }
+    ],
+    "after": [
+      {
+        "ident": "09",
+        "height": 18.6767578125,
+        "span": 16.5234375
+      },
+      {
+        "ident": "27",
+        "height": 17.9443359375,
+        "span": 17.314453125
+      }
+    ]
+  },
+  "marks": [
+    {
+      "tier": "high",
+      "markings": [
+        {
+          "ident": "27",
+          "arms": [
+            [
+              223,
+              188,
+              64
+            ],
+            [
+              223,
+              188,
+              64
+            ],
+            [
+              223,
+              188,
+              64
+            ]
+          ],
+          "aisle": [
+            74,
+            74,
+            76
+          ],
+          "margin": [
+            74,
+            74,
+            76
+          ],
+          "bar": [
+            233,
+            233,
+            226
+          ],
+          "gap": [
+            81,
+            82,
+            86
+          ]
+        },
+        {
+          "ident": "09",
+          "arms": [
+            [
+              223,
+              188,
+              64
+            ],
+            [
+              223,
+              188,
+              64
+            ],
+            [
+              223,
+              188,
+              64
+            ]
+          ],
+          "aisle": [
+            74,
+            74,
+            76
+          ],
+          "margin": [
+            74,
+            74,
+            76
+          ],
+          "bar": [
+            233,
+            233,
+            226
+          ],
+          "gap": [
+            91,
+            92,
+            96
+          ]
+        }
+      ]
+    },
+    {
+      "tier": "low",
+      "markings": [
+        {
+          "ident": "27",
+          "arms": [
+            [
+              223,
+              188,
+              64
+            ],
+            [
+              223,
+              188,
+              64
+            ],
+            [
+              223,
+              188,
+              64
+            ]
+          ],
+          "aisle": [
+            74,
+            74,
+            76
+          ],
+          "margin": [
+            74,
+            74,
+            76
+          ],
+          "bar": [
+            233,
+            233,
+            226
+          ],
+          "gap": [
+            81,
+            82,
+            86
+          ]
+        },
+        {
+          "ident": "09",
+          "arms": [
+            [
+              223,
+              188,
+              64
+            ],
+            [
+              223,
+              188,
+              64
+            ],
+            [
+              223,
+              188,
+              64
+            ]
+          ],
+          "aisle": [
+            74,
+            74,
+            76
+          ],
+          "margin": [
+            74,
+            74,
+            76
+          ],
+          "bar": [
+            233,
+            233,
+            226
+          ],
+          "gap": [
+            91,
+            92,
+            96
+          ]
+        }
+      ]
+    }
+  ],
+  "timing": {
+    "before": {
+      "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M2 Pro, Unspecified Version)",
+      "method": "Actual application RAF, presentation, live instrument redraws/uploads and rendering; frozen flight physics. Display-capped Mac timing, not physical-phone performance.",
+      "browser": "141.0.7390.37",
+      "results": [
+        {
+          "tier": "high",
+          "mode": "forward",
+          "fps": 39.47543381424107,
+          "p95Ms": 33.400000000001455,
+          "p99Ms": 33.400000000001455,
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "pixelRatio": 1.5
+        },
+        {
+          "tier": "high",
+          "mode": "flare",
+          "fps": 39.22578929435133,
+          "p95Ms": 33.400000000001455,
+          "p99Ms": 33.400000000001455,
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "pixelRatio": 1.5
+        },
+        {
+          "tier": "low",
+          "mode": "forward",
+          "fps": 60.0023301875801,
+          "p95Ms": 16.700000000000728,
+          "p99Ms": 16.80000000000109,
+          "viewport": {
+            "width": 852,
+            "height": 393
+          },
+          "pixelRatio": 1
+        },
+        {
+          "tier": "low",
+          "mode": "flare",
+          "fps": 60.002330187580114,
+          "p95Ms": 16.799999999995634,
+          "p99Ms": 16.80000000000291,
+          "viewport": {
+            "width": 852,
+            "height": 393
+          },
+          "pixelRatio": 1
+        }
+      ]
+    },
+    "after": {
+      "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M2 Pro, Unspecified Version)",
+      "method": "Actual application RAF, presentation, live instrument redraws/uploads and rendering; frozen flight physics. Display-capped Mac timing, not physical-phone performance.",
+      "browser": "141.0.7390.37",
+      "results": [
+        {
+          "tier": "high",
+          "mode": "forward",
+          "fps": 39.946405239636825,
+          "p95Ms": 33.400000000001455,
+          "p99Ms": 33.400000000001455,
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "pixelRatio": 1.5
+        },
+        {
+          "tier": "high",
+          "mode": "flare",
+          "fps": 40.02929378672127,
+          "p95Ms": 33.400000000001455,
+          "p99Ms": 33.400000000001455,
+          "viewport": {
+            "width": 1440,
+            "height": 900
+          },
+          "pixelRatio": 1.5
+        },
+        {
+          "tier": "low",
+          "mode": "forward",
+          "fps": 60.00233018758011,
+          "p95Ms": 16.700000000000728,
+          "p99Ms": 16.80000000000109,
+          "viewport": {
+            "width": 852,
+            "height": 393
+          },
+          "pixelRatio": 1
+        },
+        {
+          "tier": "low",
+          "mode": "flare",
+          "fps": 60.002330187580114,
+          "p95Ms": 16.799999999999272,
+          "p99Ms": 16.80000000000291,
+          "viewport": {
+            "width": 852,
+            "height": 393
+          },
+          "pixelRatio": 1
+        }
+      ]
+    }
+  },
+  "delivery": [
+    {
+      "tier": "high",
+      "startupBytes": 14369925,
+      "preparedBytes": 68171868
+    },
+    {
+      "tier": "low",
+      "startupBytes": 8913462,
+      "preparedBytes": 20135265
+    }
+  ],
+  "resourceDelta": {
+    "javascriptBytes": 2549,
+    "geometryTriangles": 0,
+    "drawCalls": 0,
+    "sharedPadTexture": {
+      "width": 240,
+      "height": 180,
+      "mipChainBytesRGBA8": 230268
+    }
+  },
+  "autoland": {
+    "tiers": [
+      "high",
+      "low"
+    ],
+    "frameCount": 1892,
+    "trajectoryHash": "8db70716",
+    "stopped": true
+  },
+  "capturedPilotCropDifferences": {
+    "criterion": "Mean absolute RGB difference above 5 on an 8-bit scale inside a fixed windshield crop around the threshold on each tier. Includes the existing approach lights and cockpit occlusion. This is not a readability metric.",
+    "samples": [
+      {
+        "tier": "high",
+        "frame": 450,
+        "crop": {
+          "left": 635,
+          "top": 295,
+          "width": 175,
+          "height": 72
+        },
+        "changedPixels": 215,
+        "peak": 64.66666666666667
+      },
+      {
+        "tier": "high",
+        "frame": 600,
+        "crop": {
+          "left": 635,
+          "top": 295,
+          "width": 175,
+          "height": 72
+        },
+        "changedPixels": 129,
+        "peak": 90
+      },
+      {
+        "tier": "high",
+        "frame": 750,
+        "crop": {
+          "left": 635,
+          "top": 295,
+          "width": 175,
+          "height": 72
+        },
+        "changedPixels": 6,
+        "peak": 22
+      },
+      {
+        "tier": "low",
+        "frame": 450,
+        "crop": {
+          "left": 384,
+          "top": 153,
+          "width": 99,
+          "height": 55
+        },
+        "changedPixels": 117,
+        "peak": 30.333333333333332
+      },
+      {
+        "tier": "low",
+        "frame": 600,
+        "crop": {
+          "left": 384,
+          "top": 153,
+          "width": 99,
+          "height": 55
+        },
+        "changedPixels": 49,
+        "peak": 38.333333333333336
+      },
+      {
+        "tier": "low",
+        "frame": 750,
+        "crop": {
+          "left": 384,
+          "top": 153,
+          "width": 99,
+          "height": 55
+        },
+        "changedPixels": 0,
+        "peak": 4
+      }
+    ]
+  },
+  "validation": {
+    "nodeSuites": 25,
+    "metalViewsPerTier": 9,
+    "softwareGPU": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (LLVM 10.0.0) (0x0000C0DE)), SwiftShader driver)",
+    "softwareRunwaySamplingCases": 20,
+    "softwareBoundaryCases": 4,
+    "review": {
+      "images": 20,
+      "videos": 4,
+      "magnify": true,
+      "narrowLayout": true,
+      "errors": []
+    }
+  }
+}

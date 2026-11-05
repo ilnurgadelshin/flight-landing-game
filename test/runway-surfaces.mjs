@@ -15,13 +15,70 @@ try{
   page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
   await page.goto(url+'/?quality='+tier);await page.waitForFunction(()=>window.__sim,null,{timeout:scaledTimeout(120000)});await completeScenery(page);
   const report={tier,views:[]};reports.push(report);
-  for(const view of ['shoulder','touchdown','rollout','flare','final','storm','night']){
+  report.designators = await page.evaluate(async () => {
+   const {RUNWAY} = await import('/js/config.js');
+   const image = window.__sim.world.runwayTex.image;
+   const sx = image.width / RUNWAY.length, sy = image.height / RUNWAY.width;
+   // Measure white paint in the numeral area, excluding the runway edge lines.
+   return [false, true].map(nearEnd => {
+    const start = Math.floor((nearEnd ? RUNWAY.length - 74 : 40) * sx);
+    const width = Math.ceil(34 * sx), height = Math.floor(26 * sy);
+    const {data} = image.getContext('2d').getImageData(start, Math.floor((image.height-height)/2), width, height);
+    let x0 = width, x1 = -1, y0 = height, y1 = -1;
+    for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
+     if (data[4 * (y * width + x)] < 190) continue;
+     x0 = Math.min(x0,x); x1 = Math.max(x1,x); y0 = Math.min(y0,y); y1 = Math.max(y1,y);
+    }
+    return {ident:nearEnd ? RUNWAY.ident : RUNWAY.reciprocal, height:(x1-x0+1)/sx, span:(y1-y0+1)/sy};
+   });
+  });
+  if (!baseline) {
+   for (const numeral of report.designators) {
+    assert.ok(numeral.height >= 17.5 && numeral.height <= 19.4, numeral.ident + ' uses the full painted height');
+    assert.ok(numeral.span >= 16 && numeral.span <= 18, numeral.ident + ' retains two separated numeral strokes');
+   }
+   // Sample the materials through real world-space ray hits. A flipped pad at
+   // the reciprocal end still has the right colours but fails these placements.
+   const markings = await page.evaluate(async () => {
+    const T = await import('/vendor/three.module.js');
+    const { RUNWAY } = await import('/js/config.js');
+    const world = window.__sim.world, runway = world.scene.getObjectByName('Runway pavement');
+    const ray = new T.Raycaster(), down = new T.Vector3(0, -1, 0);
+    world.scene.updateMatrixWorld(true);
+    function sample(mesh, x, z) {
+     ray.set(new T.Vector3(x, 10, z), down);
+     const hit = ray.intersectObject(mesh, false)[0], map = mesh.material.map;
+     const uv = map.transformUv(hit.uv), image = map.image;
+     return Array.from(image.getContext('2d').getImageData(
+      Math.floor(uv.x * image.width), Math.floor(uv.y * image.height), 1, 1).data.slice(0, 3));
+    }
+    return [1, -1].map(end => {
+     const ident = end > 0 ? RUNWAY.ident : RUNWAY.reciprocal;
+     const pad = world.scene.getObjectByName('Blast pad ' + ident);
+     const at = distance => end * (RUNWAY.length / 2 + distance);
+     const arms = [-10, 0, 10].map(z => sample(pad, at(15.7 + Math.abs(z)), z));
+     return { ident, arms, aisle: sample(pad, at(24), 0), margin: sample(pad, at(37), 22.1),
+      bar: sample(runway, at(-1.5), 8), gap: sample(runway, at(-4.5), 8) };
+    });
+   });
+   for (const {ident, arms, aisle, margin, bar, gap} of markings) {
+    for (const [r,g,b] of arms) assert.ok(r > 180 && g > 140 && b < g / 2, ident + ' chevron points inward');
+    for (const [r,g,b] of [aisle, margin, gap]) assert.ok(Math.max(r,g,b) < 120, ident + ' pavement separates the paint');
+    assert.ok(Math.min(...bar) > 205, ident + ' white bar starts on the landing side');
+   }
+   report.markings = markings;
+  }
+  for(const view of ['shoulder','touchdown','threshold-27','threshold-09','rollout','flare','final','storm','night']){
    const stats=await page.evaluate(async view=>{
     const T=await import('/vendor/three.module.js'),s=window.__sim,w=s.world;
     s.start({startId:'short',scenarioId:view==='storm'?'storm':'clear',night:view==='night',seed:5});s.setTimeScale(0);s.setDrawing(false);s.game.state='menu';
     const c=new T.PerspectiveCamera(50,1440/900,.1,60000);
     if(['shoulder','storm','night'].includes(view)){c.position.set(1250,3.7,-29);c.lookAt(1120,1,-41);}
     if(view==='touchdown'){c.position.set(1350,14,-45);c.lookAt(1030,0,0);}
+    if(view.startsWith('threshold-')){
+     const end=view==='threshold-27'?1:-1;
+     c.position.set(end*1600,58,end*-30);c.lookAt(end*1510,0,0);
+    }
     c.updateMatrixWorld();w.camera=c;if(w.composer)w.composer.passes[0].camera=c;w.drawCockpit=false;
     if(['rollout','flare','final'].includes(view)){
      w.camera=s.view.cockpit.camera;if(w.composer)w.composer.passes[0].camera=w.camera;
