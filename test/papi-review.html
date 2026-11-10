@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Runway 27 glidepath lights</title>
+<style>
+  :root {color-scheme:dark; font:16px/1.5 system-ui; background:#101a21; color:#e4edf0}
+  main {max-width:1050px; margin:auto; padding:1rem}
+  h1 {line-height:1.15} p {max-width:72ch}
+  form, .playback {display:flex; flex-wrap:wrap; align-items:center; gap:.8rem; margin:1rem 0}
+  select, button {font:inherit; padding:.3rem .5rem}
+  .crops {display:grid; grid-template-columns:1fr 1fr; gap:1rem}
+  figure {min-width:0; margin:0} figcaption {margin:.4rem 0}
+  canvas, img {display:block; width:100%; height:auto} canvas {image-rendering:pixelated}
+  input[type=range] {width:min(360px,100%); vertical-align:middle}
+</style>
+<main>
+  <h1>Runway 27 glidepath lights</h1>
+  <p>The four lamps to the left of the runway guide the descent. Two white and two red indicate the intended slope. This six-second cockpit sequence descends from above it to below it.</p>
+  <form id="conditions">
+    <label>View <select id="tier"><option value="high">Desktop</option><option value="low">Phone layout</option></select></label>
+    <label>Light <select id="phase"><option value="night">Night</option><option value="day">Day</option></select></label>
+  </form>
+  <div class="crops">
+    <figure><figcaption>Before · magnified</figcaption><canvas id="before" width="96" height="24" aria-label="Earlier glidepath lights"></canvas></figure>
+    <figure><figcaption>After · magnified</figcaption><canvas id="after" width="96" height="24" aria-label="Updated glidepath lights"></canvas></figure>
+  </div>
+  <div class="playback"><button type="button" id="play">Play descent</button>
+    <label>Frame <input type="range" id="frame" min="0" max="90" value="45"></label>
+    <output for="frame" id="time"></output>
+  </div>
+  <figure><figcaption><label>Full cockpit <select id="version"><option value="after">After</option><option value="before">Before</option></select></label> · midpoint, two white and two red</figcaption>
+    <img id="cockpit" alt="Cockpit view on the glidepath">
+  </figure>
+</main>
+<script type="module">
+  const el = id => document.getElementById(id);
+  const versions = ['before', 'after'];
+  const strips = versions.map(() => new Image());
+  const frame = el('frame'), play = el('play');
+  let animation;
+  function draw() {
+    const n = Number(frame.value);
+    versions.forEach((version, i) => {
+      const ctx = el(version).getContext('2d');
+      ctx.clearRect(0, 0, 96, 24);
+      if (strips[i].complete && strips[i].naturalWidth) ctx.drawImage(strips[i], 0, n * 24, 96, 24, 0, 0, 96, 24);
+    });
+    el('time').value = (n / 15).toFixed(1) + ' s';
+  }
+  function stop() {
+    cancelAnimationFrame(animation);
+    animation = undefined;
+    play.textContent = 'Play descent';
+  }
+  function load() {
+    stop();
+    const suffix = '-' + el('tier').value + '-' + el('phase').value;
+    frame.value = 45;
+    versions.forEach((v, i) => {
+      strips[i].onload = draw;
+      strips[i].src = 'output/papi-' + v + suffix + '-strip.png';
+    });
+    loadCockpit();
+    draw();
+  }
+  function loadCockpit() {
+    el('cockpit').src = 'output/papi-' + el('version').value + '-' + el('tier').value + '-' + el('phase').value + '-2.png';
+  }
+  play.onclick = () => {
+    if (animation !== undefined) { stop(); return; }
+    const start = performance.now();
+    play.textContent = 'Pause';
+    function tick(t) {
+      frame.value = Math.min(90, Math.floor((t - start) * 15 / 1000));
+      draw();
+      if (+frame.value < 90) animation = requestAnimationFrame(tick); else stop();
+    }
+    animation = requestAnimationFrame(tick);
+  };
+  frame.oninput = () => { stop(); draw(); };
+  el('version').onchange = loadCockpit;
+  el('conditions').onchange = load;
+  load();
+</script>
+</html>

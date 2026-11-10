@@ -19,8 +19,9 @@ try {
   assert.ok(/Apple|AMD|Intel|NVIDIA/.test(gpu)&&!/SwiftShader|llvmpipe/.test(gpu));report.gpu=gpu;
   for(const mode of (process.env.BENCHMARK_MODES||'forward,panel,storm,rollout').split(',')) {
    await page.evaluate(({mode,ratio})=>{const s=window.__sim;
-    s.start({startId:'short',scenarioId:mode==='storm'?'storm':'clear',seed:11,mode:'game',sound:false,skipSchool:true});s.setTimeScale(0);s.setDrawing(true);s.world.setPixelRatio(ratio);
-    s.game.sim.aircraft.place({x:mode==='rollout'?1000:mode==='flare'?1750:2700,y:mode==='rollout'?2.5:mode==='flare'?15:78,z:0,headingDeg:270,iasKts:mode==='rollout'?85:147,flapIndex:4,gearDown:true,gammaDeg:mode==='flare'?-1.5:-3,onGround:mode==='rollout'});
+    const flare=mode==='flare'||mode==='night-flare';
+    s.start({startId:'short',scenarioId:mode==='storm'?'storm':'clear',night:mode==='night-flare',seed:11,mode:'game',sound:false,skipSchool:true});s.setTimeScale(0);s.setDrawing(true);s.world.setPixelRatio(ratio);
+    s.game.sim.aircraft.place({x:mode==='rollout'?1000:flare?1750:2700,y:mode==='rollout'?2.5:flare?15:78,z:0,headingDeg:270,iasKts:mode==='rollout'?85:147,flapIndex:4,gearDown:true,gammaDeg:flare?-1.5:-3,onGround:mode==='rollout'});
     s.view.setMode('cockpit');Object.assign(s.view.look,{yaw:0,pitch:0,down:mode==='panel'});
    },{mode,ratio});
    const sample=await page.evaluate(()=>new Promise(resolve=>{let start,last,firstVersion;const intervals=[];

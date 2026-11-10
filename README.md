@@ -597,9 +597,10 @@ eye position, taxiways, terminal buildings, photographed countryside, woodland, 
 lightning.
 
 Airfield lights use a small, opacity-weighted pixel footprint so distant steady
-lamps remain visible between pixels as the camera moves. Daytime runway lamps are
-more subdued; PAPI colours and intentional flash sequences retain their behaviour.
-The filter keeps the existing single point draw and adds no asset downloads.
+lamps remain visible between pixels as the camera moves. The four PAPI lamps
+blend from red to white across a narrow elevation band and fade as the aircraft
+leaves the beam sideways. Their lower night intensity keeps the two colours
+distinct through tone mapping. All airfield lights share one point draw.
 
 The runway filters its paint at four positions within each screen pixel and blends
 partial coverage at its outer boundary. This reduces grazing-angle shimmer on both
@@ -1097,6 +1098,10 @@ final/flare/night/storm views on both tiers. `RECORD_VIDEO=1` records their matc
 camera paths. These checks default to SwiftShader; hardware pacing is measured
 separately by `test/render-benchmark.mjs`.
 The isolated light-sampling regression also runs in `npm run test:all`.
+The landing-light suite checks the displayed PAPI colours in the daytime and
+night cockpit. Run `node test/papi-approach.mjs papi-after` to capture the
+six-second descent for `test/papi-review.html`. For the comparison, run the
+same command with `papi-before` and set `REVIEW_ROOT` to a checkout of `fec8d0c`.
 
 `npm run test:runway` checks the actual runway shader against a supersampled
 reference at approach/flare/rollout angles and checks its depth/coverage boundary,

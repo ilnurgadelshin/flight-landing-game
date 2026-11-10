@@ -1,13 +1,20 @@
 # Visual improvement audit
 
-## Current status — 2026-11-05
+## Current status — 2026-11-10
 
 This section is the current checklist. The original September audit and dated work log
 below record how the scene evolved; their older counts, captures and priorities are not
 the remaining-work list. Update this section after each reviewed visual pass, including
 what changed, visible impact, measured cost, evidence and limitations.
 
-The latest pass **marks the start of the landing surface at both runway ends**.
+The latest pass **makes the four runway 27 glidepath lights easier to read on
+short final**, especially at night. As the pilot descends, each lamp passes
+through a narrow red/white transition. As the aircraft moves alongside the
+lamps, the signal fades across the edge of the beam. The comparison follows a
+controlled descent through all five indications in the desktop and compact
+cockpits. [Play the matched day and night views](papi-review.html).
+
+The preceding pass **marks the start of the landing surface at both runway ends**.
 Yellow chevrons cover the two paved overruns. A white threshold bar separates
 each pad from the longitudinal runway stripes. The 27 and 09 have tall, measured
 strokes in the runway texture. The change is concentrated in the runway area on
@@ -137,7 +144,7 @@ should not be presented again as untouched tasks. Their broader quality limitati
 
 | Rank | Remaining work | Importance | Current limit / next acceptance evidence |
 | --- | --- | --- | --- |
-| 1 | Remaining temporal stability and small lettering | High where visible during landing | Lights, live displays, runway paint/edges and taxiway centerlines use local filtering. Compact forward labels are restored, and a display-space edge pass now smooths broad phone silhouettes while protecting live readouts. Desktop retains its multisampling and source geometry. Subpixel branches, shadow edges and other lettering can still shimmer; spatial filtering cannot restore missing samples. Select the next defect in continuous pilot motion and measure GPU cost. |
+| 1 | Remaining temporal stability and small lettering | High where visible during landing | Lights, live displays, runway paint/edges and taxiway centerlines use local filtering. PAPI colours now vary continuously through the glidepath cutoffs and remain distinguishable on short final at night. Compact forward labels are restored, and a display-space edge pass now smooths broad phone silhouettes while protecting live readouts. Desktop retains its multisampling and source geometry. Subpixel branches, shadow edges and other lettering can still shimmer; spatial filtering cannot restore missing samples. Select the next defect in continuous pilot motion and measure GPU cost. |
 | 2 | Phone landing readability and usability validation | High on phones | Closer framing, larger radio altitude, native PANEL/PFD, forward labels and smoother silhouettes are delivered. Tiny lettering and the short screen's limited space remain. Validate the combined experience on real devices, including steering, orientation, browser toolbars and sustained frame pacing; desktop emulation does not certify readability, FPS or battery use. |
 | 3 | Local airport shadows and remaining ground detail | Medium; higher if a pilot-visible defect is demonstrated | The runway-end chevrons, threshold bars and measured designators are delivered alongside connected exits, the hangar forecourt and maintained verges. Finer object contact shadows, coarse shadow edges and simple pavement junctions remain. The contact-mask prototype had too little normal pilot-view impact and was discarded. Require useful final-approach/flare/rollout evidence before another shadow or decoration pass. |
 | 4 | Remaining cockpit materials and lighting | Medium | Remaining knobs/metal, floor and some shell surfaces are simple; indirect light/reflections remain approximations. Require visible benefit during normal flight. Completed panel, pedestal, overhead and liner finishes are not new scope. |
@@ -156,6 +163,38 @@ The preceding label pass ran all 270 browser checks; that full flight suite was
 not repeated for this rendering-only change. Earlier airport and cockpit checks
 retain their own dated evidence below.
 Neither establishes physical-phone or ordinary-laptop performance.
+
+### Runway 27 glidepath lights — 2026-11-10
+
+On baseline `fec8d0c` each PAPI lamp displayed a fixed pink across 9.6 arcminutes.
+On the night approach the airfield's shared intensity boost also pushed the red
+cores close to white. The new colour blend spans 3 arcminutes on axis and 5 at
+10° off axis. A separate horizontal fade extends from 10° to the simulator's
+existing 25° cutoff. The blend widths follow the FAA equipment specification.
+[FAA AC 150/5345-28H, §3.2.1](https://www.faa.gov/documentLibrary/media/Advisory_Circular/150-5345-28H.pdf#page=12)
+
+The short-range intensity correction recedes between 1.4 and 4 km. In a
+six-second descent from 3.68° to 2.32°, the normal cockpit passes through all
+five indications. At the 3° midpoint the first red lamp in the desktop night
+capture changes from RGB **251/236/224 to 251/140/106**. Its white neighbour
+reads **237/237/234**. On the compact night view the same red lamp changes from
+**241/209/188 to 225/42/26**. Each value comes from the projected lamp centre
+after rendering the world and cockpit. The moving comparison includes the
+original pixels and the full midpoint view. [Day and night comparison](papi-review.html)
+
+The four lamps share the existing airfield draw. The runtime JavaScript grows
+by **932 bytes** and reuses the existing geometry and shader. The M2 Pro flare
+benchmark with live instruments measured **38.1 → 38.0 FPS** by day and
+**38.3 → 38.7 FPS** at night on high at 1.5×. High p95 was 33.4 ms in all four
+runs. The compact layout on the same Mac measured **60.0 FPS** in both conditions.
+Startup measured 14,370,857 bytes high and 8,914,394 bytes low.
+[Measurements](benchmarks/2026-11-10-papi.json)
+
+All 25 Node suites passed. Metal and SwiftShader passed the 48-case lamp
+sampling probe, angular sweeps, and day/night cockpit colour checks on both
+tiers. In the 4 km compact night capture the four individual lights are still
+hard to count. The strongest improvement is on short final. Physical-phone
+readability and sustained frame pacing still need a device trial.
 
 ### Runway thresholds on short final — 2026-11-05
 

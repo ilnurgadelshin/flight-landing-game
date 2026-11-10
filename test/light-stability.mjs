@@ -6,6 +6,7 @@ import fs from 'node:fs/promises';
 import assert from 'node:assert/strict';
 const label=(process.argv[2]||'light-stability').replace(/[^a-z0-9_-]/gi,'-');
 const baseline=!!process.env.REVIEW_ROOT;
+await fs.mkdir('test/output', { recursive: true });
 const {server,url}=await startServer(process.env.REVIEW_ROOT||process.cwd()),browser=await launchBrowser();
 try {
  const page=await browser.newPage(),errors=[];
@@ -73,7 +74,25 @@ try {
    const e=lights.entries[lights.papi[0]],eye=new T.Vector3(e.x+4000,e.y+4000*Math.tan(angle*Math.PI/180),e.z);
    lights.update(0,eye,0,1,1);papi.push(lights.papi.filter(i=>lights.brightAttr.getX(i)>0&&lights.colAttr.getY(i)>.8).length);
   }
-  rt.dispose();renderer.dispose();return {gpu,lights:count,placementHash:(placementHash>>>0).toString(16),results,visibility:{visible,off,behind,occluded,fog,cloud},papi};
+  // Walk one real lamp through its colour transition and out of its beam.
+  // Use polar coordinates so elevation stays fixed during the azimuth sweep.
+  const lamp = lights.papi[0], origin = lights.entries[lamp], tilt = lights.papiAngles[0];
+  const sample = (deviation, azimuth, distance = 300) => {
+    const rad = Math.PI / 180;
+    const eye = new T.Vector3(origin.x + distance * Math.cos(azimuth * rad),
+      origin.y + distance * Math.tan((tilt + deviation) * rad), origin.z + distance * Math.sin(azimuth * rad));
+    lights.update(0, eye, 0, 1, 1);
+    return { red: lights.colAttr.getX(lamp), green: lights.colAttr.getY(lamp), brightness: lights.brightAttr.getX(lamp) };
+  };
+  const transitions = [0, -10, 10].map(azimuth => {
+    const halfWidth = (azimuth === 0 ? 3 : 5) / 120;
+    return Array.from({length: 17}, (_, i) => sample(halfWidth * (i - 8) / 8, azimuth).green);
+  });
+  const beam = [-26, -25, -24, -20, -15, -10, 0, 10, 15, 20, 24, 25, 26, 180]
+    .map(azimuth => sample(0, azimuth).brightness);
+  lights.material.uniforms.uIntensity.value = 3; // night core gain
+  const nightPower = [500, 1400, 2700, 4000, 6000].map(range => sample(-1, 0, range).red);
+  rt.dispose();renderer.dispose();return {gpu,lights:count,placementHash:(placementHash>>>0).toString(16),results,visibility:{visible,off,behind,occluded,fog,cloud},papi,transitions,beam,nightPower};
  });
  await fs.writeFile(`test/output/${label}.json`,JSON.stringify(report,null,2)+'\n');
  console.log({cases:report.results.length,maxFluxRange:Math.max(...report.results.map(r=>r.fluxRange)),maxCenterError:Math.max(...report.results.map(r=>r.centerError)),visibility:report.visibility,papi:report.papi});
@@ -83,4 +102,21 @@ try {
  assert.deepEqual(errors,[]);
  assert.ok(report.visibility.visible>0);for(const k of ['off','behind','occluded','fog','cloud'])assert.equal(report.visibility[k],0,k);
  assert.deepEqual(report.papi,[4,2,0]);
+ if (!baseline) {
+  for (const green of report.transitions) {
+   assert.ok(green[0] < .04 && green.at(-1) > .95, 'Transition spans the red and white endpoints');
+   for (let i = 1; i < green.length; i++) {
+    const step = green[i] - green[i - 1];
+    assert.ok(step > 0 && step < .1, 'Intermediate colours change continuously across the beam split');
+   }
+  }
+  const b = report.beam;
+  assert.deepEqual(b.slice(0, 6), b.slice(7, 13).reverse(), 'Left and right beam edges match');
+  assert.ok(b[1] === 0 && b[2] > 0 && b[2] < b[3] && b[3] < b[4] && b[4] < b[5]);
+  assert.equal(b[5], b[6], 'Centreline approach receives full brightness');
+  assert.equal(b.at(-1), 0, 'Behind the PAPI receives no signal');
+  const [near, final, middle, distant, far] = report.nightPower;
+  assert.ok(near === final && near < .3 && middle > near && middle < distant && distant === 1 && far === 1,
+    'Night glare correction fades out before it can dim distant lamps');
+ }
 }finally{await browser.close();server.close();}

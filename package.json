@@ -26,7 +26,7 @@
     "test:airport-glass": "node test/airport-glass.mjs",
     "test:phone-cockpit": "node test/phone-cockpit.mjs && node test/landing-instruments.mjs",
     "test:landing-experience": "node test/landing-experience.mjs",
-    "test:landing-lights": "node test/light-stability.mjs && node test/landing-light-motion.mjs",
+    "test:landing-lights": "node test/light-stability.mjs && node test/landing-light-motion.mjs && node test/papi-approach.mjs --check",
     "test:cockpit-surfaces": "node test/cockpit-surfaces.mjs",
     "test:scenery": "node test/authored-scenery.mjs",
     "test:tiles": "node test/ground-tiles.mjs",
