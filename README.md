@@ -130,6 +130,12 @@ framing for the cockpit and head-up display. The choice is remembered on the dev
   system (HGS). It suits phones, where the flight deck takes half the screen,
   and it is lighter to draw.
 
+After a flight, **Watch the landing** on the results screen replays the last
+minute from a camera on the grass beside the touchdown point: the recorded
+position and attitude (ten samples a second) flown by the apron's 737 model. Any
+key, click or tap returns to the results. It needs the scenery's airliner model, so
+the button is hidden if that has not loaded.
+
 The head-up display's symbols are conformal: each is drawn where it lies in
 the world.
 

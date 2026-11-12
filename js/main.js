@@ -22,6 +22,7 @@ import { TiltControl, TILT } from './tilt.js';
 import { Haptics } from './haptics.js';
 import { GamepadInput, PAD } from './gamepad.js';
 import { setTilt, getScheme, setPad, controlsHtml } from './controls.js';
+import { Replay } from './replay.js';
 import { selectGraphicsQuality } from './graphics-quality.js';
 import { SHORT_FINAL_EYE } from './world/ground-detail.js';
 
@@ -55,6 +56,7 @@ async function boot() {
   const view = new GameView({ game, world, cockpit, look: input.look, hud: new HeadUpDisplay(document.getElementById('hud-canvas')),
     compactCockpit: () => getScheme() === 'touch' && innerHeight <= 600 && innerWidth / innerHeight >= 1.35,
     outsideFirst: () => getScheme() !== 'touch' });
+  const replay = new Replay({ game, world, view });
   const presentation = new Presentation({ game, view, world, ui, audio, gpws, haptics, touch, input });
   input.onAction((name, arg) => presentation.onAction(name, arg));
   const platform = new Platform({ game, input, world });
@@ -180,6 +182,12 @@ async function boot() {
   ui.onQuit = () => game.quitToMenu();
   ui.onAgain = () => { platform.enterFullscreen(); tiltFromTap(); game.start(Object.assign({}, game.opts, { skipSchool: true, demo: false })); };
   ui.onHelp = () => game.action('help');
+  // the results screen's replay: any key, click or tap returns to the results
+  ui.onReplay = () => { if (replay.start()) ui.setReplay(true); };
+  replay.onEnd = () => ui.setReplay(false, replay.available);
+  const endReplay = (e) => { if (replay.active && e.target.id !== 'btn-replay') { e.preventDefault(); replay.stop(); } };
+  window.addEventListener('keydown', endReplay, true); window.addEventListener('pointerdown', endReplay, true);
+  game.on('state', ({ state }) => { if (state !== 'finished') replay.stop(); else ui.setReplay(false, replay.available); });
 
   // ---- main loop
   let last = performance.now();
@@ -203,7 +211,9 @@ async function boot() {
     pad.poll(now / 1000);
     presentation.soundHint(dt);
     const t0 = performance.now();
-    if (game.state !== 'menu') {
+    if (replay.active) {
+      replay.frame(dt);                     // the landing again, from beside the runway
+    } else if (game.state !== 'menu') {
       const simDt = game.update(dt);        // controls, physics, rules
       presentation.frame(dt, simDt);        // vibration, HUD
       view.update(dt);                      // aircraft, flight deck, world
@@ -237,6 +247,7 @@ async function boot() {
     audioLog: () => audio.log,
     result: () => game.result,
     press: (code) => input.press(code), release: (code) => input.release(code),
+    replay,
     setDrawing: (on) => { drawing = !!on; },
     drawNow: () => view.draw(),
     errors: [],

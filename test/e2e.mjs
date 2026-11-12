@@ -278,6 +278,28 @@ if (want('land')) {
       check(`${sc}: the callouts play the recordings, none left to the browser's speech`, spoken.length >= 3 && spoken.every((a) => a.via === 'clip') && !fallbacks.length, `${spoken.map((a) => `${a.text} (${a.via})`).join(', ').slice(0, 140)}${fallbacks.length ? ' | fallbacks: ' + fallbacks.join(', ') : ''}`);
     }
   }
+  // the results screen's replay of the landing just flown (the model stands in if the scenery's is not loaded)
+  const rp = await page.evaluate(async () => {
+    const s = window.__sim, w = s.world, btn = document.getElementById('btn-replay'), shown = (id) => getComputedStyle(document.getElementById(id)).display !== 'none';
+    const out = { samples: s.game.replay.length, touched: s.game.replay.some((p) => p.ground), offered: !btn.hidden === s.replay.available };
+    if (!s.replay.available) {
+      const THREE = await import('three');
+      w.parkedAircraft = new THREE.Group(); w.parkedAircraft.add(new THREE.Mesh(new THREE.BoxGeometry(30, 4, 38), new THREE.MeshBasicMaterial()));
+      btn.hidden = false;
+    }
+    const flightCamera = w.camera; btn.click();
+    out.playing = s.replay.active && document.body.classList.contains('replay') && !shown('results') && w.camera !== flightCamera;
+    for (let i = 0; i < 12; i++) s.replay.frame(0.1);
+    const m = s.replay.model.position, c = w.camera.position;
+    out.distance = Math.hypot(m.x - c.x, m.y - c.y, m.z - c.z); out.fov = w.camera.fov; out.stillPlaying = s.replay.active;
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', key: ' ', bubbles: true, cancelable: true }));
+    out.returned = !s.replay.active && !document.body.classList.contains('replay') && shown('results') && w.camera === flightCamera && !s.replay.model.visible && s.game.state === 'finished';
+    return out;
+  });
+  check('the flight is recorded for the replay, through the touchdown', rp.samples > 20 && rp.touched, `${rp.samples} samples`);
+  check('"Watch the landing" is offered only when there is a model to fly', rp.offered);
+  check('the replay follows the aircraft from beside the runway on a long lens', rp.playing && rp.stillPlaying && rp.distance > 50 && rp.distance < 6000 && rp.fov <= 38, `${fmt(rp.distance, 0)} m away, ${fmt(rp.fov, 1)}° lens`);
+  check('a key ends the replay and returns to the results', rp.returned);
 }
 
 // --------------------------------------------------------------------------- failure consequences
