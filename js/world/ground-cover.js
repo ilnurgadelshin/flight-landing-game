@@ -5,15 +5,15 @@ import {RUNWAY} from '../config.js';
 import {TERRAIN} from '../physics/terrain.js';
 import {sceneryGroundHeight} from './scenery-ground.js';
 
-const TILE=10,CONNECTORS=[-1450,-700,0,700,1450];
+const TILE=10;
 const hash=(x,z,seed)=>{let h=Math.imul(x,374761393)^Math.imul(z,668265263)^Math.imul(seed,1274126177);h=Math.imul(h^(h>>>13),1274126177);return ((h^(h>>>16))>>>0)/4294967296;};
 const wrap=(x,n)=>(x%n+n)%n;
 export function groundCoverKind(world,x,z){
  const half=RUNWAY.length/2;
  if(Math.abs(x)<half+160&&Math.abs(z)<110){
-  // Include the full aggregate shoulder, blast pads and both physical/rendered connector extents.
+  // Include the full aggregate shoulder and blast pads. Connector geometry now
+  // matches surfaceAt, so the shared pavement check also protects those joins.
   if(Math.abs(x)<half+RUNWAY.padLength+2&&Math.abs(z)<RUNWAY.width/2+8)return 0;
-  if(CONNECTORS.some(cx=>Math.abs(x-cx)<54&&Math.abs(z-72)<20))return 0;
   for(const dx of [-1.2,1.2])for(const dz of [-1.2,1.2])if(TERRAIN.surfaceAt(x+dx,z+dz)!=='grass')return 0;
   return 1;
  }

@@ -13,6 +13,7 @@ const VERT = /* glsl */`
   attribute float bright;
   varying vec3 vColor;
   varying float vBright;
+  varying float vCoverage;
   varying float vDepth;
   varying vec3 vCloudDir;
   uniform float uPixelRatio;
@@ -33,7 +34,13 @@ const VERT = /* glsl */`
     float signal = smoothstep(2.0, 3.4, size);
     float minSize = mix(3.0, mix(0.65, 1.8, signal), uDaylight);
     s *= mix(1.0, mix(0.62, 0.95, signal), uDaylight);
-    gl_PointSize = clamp(s, minSize * uPixelRatio, 26.0 * uPixelRatio) * (bright > 0.01 ? 1.0 : 0.0);
+    s = clamp(s, minSize * uPixelRatio, 26.0 * uPixelRatio);
+    // Sample even subpixel lamps with a four-framebuffer-pixel soft footprint.
+    // Scale opacity by area so the filter does not make distant lamps brighter.
+    // Retaining Points keeps the existing one-vertex, one-draw-call budget.
+    float footprint = max(s, 4.0);
+    vCoverage = s * s / (footprint * footprint);
+    gl_PointSize = footprint * (bright > 0.01 ? 1.0 : 0.0);
     gl_Position = projectionMatrix * mvPosition;
     #include <logdepthbuf_vertex>
   }
@@ -42,6 +49,7 @@ const FRAG = /* glsl */`
   ${CLOUD_LAYER_GLSL}
   varying vec3 vColor;
   varying float vBright;
+  varying float vCoverage;
   varying float vDepth;
   varying vec3 vCloudDir;
   uniform float uFogDensity;
@@ -54,9 +62,9 @@ const FRAG = /* glsl */`
     vec2 c = gl_PointCoord - 0.5;
     float r = length(c) * 2.0;
     if (r > 1.0) discard;
-    float core = smoothstep(1.0, 0.15, r);
-    float halo = smoothstep(1.0, 0.0, r) * 0.35;
-    float a = (core + halo) * vBright;
+    float core = (1.0 - smoothstep(0.15, 1.0, r));
+    float halo = (1.0 - smoothstep(0.0, 1.0, r)) * 0.35;
+    float a = (core + halo) * vBright * vCoverage;
     // lights punch through fog better than terrain (Koschmieder-ish) but still fade
     float fog = exp(-uFogDensity * uFogDensity * vDepth * vDepth * 0.55);
     // No visibility floor: it made the whole runway glow through opaque cloud.
@@ -75,8 +83,10 @@ const COL = {
   green: [0.15, 1, 0.35],
   amber: [1, 0.72, 0.1],
   blue: [0.25, 0.45, 1],
-  pink: [1, 0.55, 0.55],
 };
+
+// Scene-linear filter colour. Runway-end and obstruction lamps have their own red.
+const PAPI_RED = [1, 0.018, 0.006];
 
 export class AirfieldLights {
   constructor(scene, extraEntries = [], atmosphere) {
@@ -217,20 +227,29 @@ export class AirfieldLights {
     if (this._townOn !== townOn) { this._townOn = townOn; for (const idx of this.groups.town || []) this.brightAttr.setX(idx, townOn); }
     // PAPI from the pilot's eye
     if (eye) {
+      // The airfield boosts all light cores at dusk/night. Dim the PAPI lamps
+      // at those settings so tone mapping keeps the red sector distinguishable.
+      const closePower = THREE.MathUtils.lerp(1, 0.2, THREE.MathUtils.smoothstep(u.uIntensity.value, 1, 3));
       for (let i = 0; i < 4; i++) {
         const e = this.entries[this.papi[i]];
         const dx = eye.x - e.x, dz = eye.z - e.z, dy = eye.y - e.y;
         const horiz = Math.hypot(dx, dz);
         const ang = Math.atan2(dy, Math.max(horiz, 1)) / DEG;
-        const t = this.papiAngles[i];
-        // ~0.1° transition band appears pink
-        let c;
-        if (ang > t + 0.08) c = COL.white; else if (ang < t - 0.08) c = COL.red; else c = COL.pink;
-        // PAPI is only visible from ahead of the runway (within +-~15° azimuth of the approach)
-        const azimuth = Math.atan2(-dz, dx) / DEG; // aircraft east of the PAPI: dx>0
-        const visible = dx > 50 && Math.abs(azimuth) < 25;
-        this.setColor(this.papi[i], c);
-        this.brightAttr.setX(this.papi[i], visible ? 1.4 : 0);
+        const azimuth = Math.atan2(Math.abs(dz), dx) / DEG;
+        // FAA AC 150/5345-28H §3.2.1: full red-to-white width is at most
+        // 3 arcminutes at beam centre and 5 at the edges.
+        const halfWidth = THREE.MathUtils.lerp(3, 5, Math.min(azimuth / 10, 1)) / 120;
+        const white = THREE.MathUtils.smoothstep(ang - this.papiAngles[i], -halfWidth, halfWidth);
+        // At long range the four point sprites share only a few screen pixels.
+        // Ease out the glare correction to preserve the distant signal.
+        const power = THREE.MathUtils.lerp(closePower, 1, THREE.MathUtils.smoothstep(horiz, 1400, 4000));
+        this.colAttr.setXYZ(this.papi[i], power,
+          power * THREE.MathUtils.lerp(PAPI_RED[1], COL.white[1], white),
+          power * THREE.MathUtils.lerp(PAPI_RED[2], COL.white[2], white));
+        // Keep the signal steady on final, then fade it as the pilot passes
+        // out of the beam. The previous scenery cut-off was 25 degrees.
+        const beam = 1 - THREE.MathUtils.smoothstep(azimuth, 10, 25);
+        this.brightAttr.setX(this.papi[i], 1.4 * beam);
       }
     }
     this.colAttr.needsUpdate = true;

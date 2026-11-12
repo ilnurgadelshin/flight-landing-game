@@ -3,8 +3,9 @@
 // It reads the game and never changes it.
 //
 // Two first-person views from the captain's eye point:
-//   cockpit   the flight deck around the eye, looking 14° down (11° on short touch screens);
-//             PANEL tilts further down to the instruments
+//   cockpit   the flight deck around the eye. Keyboard/controller: looking 6° down over the glareshield
+//             with the PFD and ND docked along the bottom; touch: 14° down (7° on short screens);
+//             PANEL tilts down on desktop, or enlarges the PFD on a short touch screen
 //   head-up   the flight deck hidden and a head-up display over the outside world (js/hud.js), like
 //             X-Plane's "forward with HUD" or a 737 flown on its head-up guidance system. The eye
 //             looks 6° below the nose, so on the approach the runway is near the middle of the
@@ -20,6 +21,9 @@ import { DEG } from './config.js';
 import { commandSpeed } from './autothrottle.js';
 
 const COCKPIT_PITCH = -14 * DEG, HUD_PITCH = -6 * DEG, COCKPIT_FOV = 58;
+// A computer's flight deck view looks out over the glareshield: the world fills most of the screen
+// and the primary and navigation displays are docked, sharp, along the bottom (ui.setDock).
+const OUTSIDE_PITCH = -6 * DEG, OUTSIDE_FOV = 50;
 const ND_FOV = 50;                          // the ND view's vertical field of view (deg)
 /** The head-up view's vertical field of view (degrees) for a screen shape: about 100° across, 45–70° high. */
 export function hudFov(aspect) {
@@ -33,7 +37,8 @@ export class GameView {
    * @param cockpit js/cockpit/cockpit.js
    * @param look    { yaw, pitch, down } where the player is looking (InputManager.look)
    */
-  constructor({ game, world, cockpit, look, hud = null, compactCockpit = () => false }) {
+  constructor({ game, world, cockpit, look, hud = null, compactCockpit = () => false, outsideFirst = () => false }) {
+    this.outsideFirst = outsideFirst;           // a keyboard/controller screen: look out over the glareshield
     this.game = game; this.world = world; this.cockpit = cockpit; this.look = look;
     this.hud = hud;                             // js/hud.js HeadUpDisplay (the head-up view's symbols)
     this.compactCockpit = compactCockpit;       // short landscape touch viewport, independent of graphics quality
@@ -75,7 +80,24 @@ export class GameView {
   /** Lean in to the navigation display, or back to the view chosen. */
   setNdView(on) { this.ndView = !!on && this.game.state !== 'school'; }
   /** The camera is in front of the ND (the move has finished). */
-  get ndSettled() { return this.ndView && this.cockpit.focus >= 1; }
+  get ndSettled() { return this.ndView && this.cockpit.focusDisplay === 'nd' && this.cockpit.focus >= 1; }
+
+  /** Short touch screens use PANEL to read the captain's primary flight display. */
+  get pfdView() {
+    return !this.ndView && this.mode === 'cockpit' && this.look.down && this.compactCockpit()
+      && (this.game.state === 'flying' || this.game.state === 'paused');
+  }
+
+  /** The flight deck view is looking out over the glareshield (not Flight School, PANEL or MAP). */
+  get outside() {
+    return this.mode === 'cockpit' && this.game.state !== 'school' && !this.compactCockpit() && this.outsideFirst()
+      && this.world.camera.aspect >= 1.35;
+  }
+  /** The docked displays are shown: flying, looking ahead over the glareshield. */
+  get docked() {
+    const s = this.game.state;
+    return this.outside && (s === 'flying' || s === 'paused') && !this.ndView && this.cockpit.focus === 0 && this.cockpit.lookDown < 0.3;
+  }
 
   setMode(mode) {
     if (mode !== 'cockpit' && mode !== 'hud') return;
@@ -122,6 +144,11 @@ export class GameView {
     const at = g.controls.autothrottle, atSpd = at.engaged && !st.onGround ? commandSpeed(inp, st) : null;
     // the flight deck is drawn while the camera leans in to the ND or back out of it, and the field
     // of view narrows with the move (it eases: cockpit.focus)
+    const focusDisplay = this.ndView ? 'nd' : this.pfdView ? 'pfd' : null;
+    if (focusDisplay && focusDisplay !== this.cockpit.focusDisplay) {
+      this.cockpit.focus = 0;
+      this.cockpit.focusDisplay = focusDisplay;
+    }
     const f = this.cockpit.focus, s = f * f * (3 - 2 * f);
     const hud = this.shown === 'hud' && f === 0, cam = this.world.camera;
     const headUp = this.mode === 'hud' && this.game.state !== 'school';
@@ -129,11 +156,13 @@ export class GameView {
     // 100-degree wide-angle lens that shrinks the runway and exaggerates pillars.
     // On a phone the wide desktop lens makes both the windshield and instruments tiny.
     // A narrower lens and a slightly higher gaze use the same source-model eye point.
-    // PANEL widens the lens and tilts to the instruments, rather than down to the
-    // floor. School keeps its original camera for highlights; MAP frames itself.
+    // PANEL frames the primary display on a phone. School keeps its original
+    // camera for highlights; desktop PANEL and MAP retain their framing.
     const compact = this.compactCockpit() && g.state !== 'school';
-    const deckFov = cam.aspect < 1.35 ? 70 : COCKPIT_FOV - (compact ? 10 * (1 - this.cockpit.lookDown) : 0);
-    const deckPitch = COCKPIT_PITCH + (compact ? 3 * DEG : 0);
+    // PANEL (L) tilts back down to the instruments with the original lens and framing.
+    const out = this.outside, down = this.cockpit.lookDown;
+    const deckFov = cam.aspect < 1.35 ? 70 : compact ? 40 : out ? OUTSIDE_FOV + (COCKPIT_FOV - OUTSIDE_FOV) * down : COCKPIT_FOV;
+    const deckPitch = out ? OUTSIDE_PITCH : COCKPIT_PITCH + (compact ? 7 * DEG : 0);
     const fov = (headUp ? hudFov(cam.aspect) : deckFov) * (1 - s) + ND_FOV * s;
     if (Math.abs(cam.fov - fov) > 1e-3) { cam.fov = fov; cam.updateProjectionMatrix(); }
     this.world.drawCockpit = !hud;
@@ -144,9 +173,11 @@ export class GameView {
       rollMode: fma ? fma.roll : (g.mode === 'training' ? 'FD' : ''), pitchMode: fma ? fma.pitch : (g.mode === 'training' ? 'FD' : ''),
       mcp, efis: g.efis, nd: g.ndOpts(),
       hidden: hud, viewPitch: headUp ? HUD_PITCH : deckPitch,
-      panelTilt: (compact && !headUp ? 16 : 40) * DEG,
-      focus: this.ndView, focusFov: ND_FOV, focusFrame: this.ndFrame,
+      panelTilt: (compact && !headUp ? 0 : 40) * DEG + (out && !headUp ? deckPitch - COCKPIT_PITCH : 0),
+      focus: !!focusDisplay, focusFov: ND_FOV, focusFrame: this.pfdView ? this.pfdFrame : this.ndFrame,
     });
+    // The focused PANEL/MAP view prioritizes its existing native display sampling.
+    this.world.displayFocused=this.cockpit.focus>0;
     // the speed trend for the display's acceleration caret (kt per simulated second, smoothed)
     const tr = this.speedTrend;
     if (tr.t < 0 || st.time < tr.t) { tr.ias = st.ias; tr.t = st.time; tr.rate = 0; }

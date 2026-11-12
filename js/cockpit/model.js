@@ -1,11 +1,13 @@
 // Authored 737 flight deck, with the simulator's live instruments and controls.
 // Coordinates below are measured on the source model, then converted by prepare-cockpit.mjs.
 import * as THREE from 'three';
+import { displayMaterial } from './instruments.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
 import { applyCockpitSurfaces } from './surfaces.js';
 import { headlinerData } from './headliner.js';
 import { Windshield } from './glazing.js';
+import { loadForwardLabels, filterForwardLabels } from './labels.js';
 
 const point=(x,y,z)=>new THREE.Vector3(-1.7*x,.14+1.7*(y-2.22),-1.7*(z-.9));
 
@@ -26,7 +28,9 @@ export async function loadFlightDeck(cockpit) {
   const roofGeometry=new THREE.BufferGeometry();roofGeometry.setAttribute('position',new THREE.Float32BufferAttribute(roofPositions,3));roofGeometry.setIndex(roofIndices);roofGeometry.computeVertexNormals();
   const roofMaterial=new THREE.MeshStandardMaterial({color:0x626763,roughness:.96,side:THREE.DoubleSide});roofMaterial.name='FlightDeckHeadliner';
   const roof=new THREE.Mesh(roofGeometry,roofMaterial);roof.name='Flight deck headliner';model.add(roof);
+  const labels=c.lowDetail?await loadForwardLabels(model,new GLTFLoader().setMeshoptDecoder(MeshoptDecoder)):null;
   await applyCockpitSurfaces(model,{lowDetail:c.lowDetail});
+  filterForwardLabels(labels);
   // Keep the procedural deck only as a load-failure fallback. It is replaced as one unit,
   // rather than leaving another shell, another panel or overlapping seats underneath.
   const keep=new Set([c.camRig,c.dome,c.flood]);
@@ -52,7 +56,7 @@ export async function loadFlightDeck(cockpit) {
   c.eyeLocal.copy(point(.24,2.155,.95));
   const live=new THREE.Group();live.name='Live flight instruments';root.add(live);
   const screen=(tex,x,y,z,size=.102)=>{
-    const mesh=new THREE.Mesh(new THREE.PlaneGeometry(size*1.7,size*1.7),new THREE.MeshBasicMaterial({map:tex,toneMapped:false}));
+    const mesh=new THREE.Mesh(new THREE.PlaneGeometry(size*1.7,size*1.7),displayMaterial(tex));
     mesh.position.copy(point(x,y,z));live.add(mesh);return mesh;
   };
   const pfd=c.pfdScreen=screen(c.pfd.tex,.3223,1.8788,1.4555);

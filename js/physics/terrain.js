@@ -3,6 +3,7 @@
 // only the fictional airport and its obstacle-clearance envelope are graded.
 import { RUNWAY } from '../config.js';
 import { landscapeHeight } from './elevation.js';
+import {TAXIWAY_CONNECTORS,HANGAR_APRON} from '../airport-layout.js';
 
 export const TERRAIN = {
   // Metres relative to the fictional airport datum (valleys can be below it).
@@ -15,8 +16,9 @@ export const TERRAIN = {
     // parallel taxiway on the south side and apron
     if (Math.abs(x) <= halfL && z > 120 && z < 150) return 'taxiway';
     if (Math.abs(x) < 700 && z > 150 && z < 420) return 'taxiway';
+    if(x>=HANGAR_APRON.xMin&&x<=HANGAR_APRON.xMax&&z>HANGAR_APRON.zMin&&z<HANGAR_APRON.zMax)return 'taxiway';
     // taxiway connectors
-    for (const cx of [-1450, -700, 0, 700, 1450]) {
+    for (const cx of TAXIWAY_CONNECTORS) {
       if (Math.abs(x - cx) < 15 && z > halfW && z < 150) return 'taxiway';
     }
     return 'grass';

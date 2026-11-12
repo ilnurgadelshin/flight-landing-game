@@ -7,15 +7,19 @@
 // static map over the airport, and a small map around the flight deck that follows the aircraft
 // (window-frame shadows sweeping over the panel). On the 'high' quality tier (desktops) the world
 // is drawn into a floating-point buffer with 4× MSAA and goes through a bloom pass (the sun, the
-// runway lights at night) before tone mapping; phones ('low') draw straight to the screen.
+// runway lights at night) before tone mapping; compact low uses a display-space edge filter.
 import * as THREE from 'three';
+import {EdgeFilter} from './edge-filter.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { RUNWAY, DEG } from '../config.js';
+import {TAXIWAY_CONNECTORS,HANGAR_APRON} from '../airport-layout.js';
+import {applyTaxiwayMarkings} from './airport-ground.js';
 import { makeRng } from '../physics/atmosphere.js';
-import { makeRunwayTexture, makeTaxiwayTexture, makeDetailTexture, makeCloudTexture } from './textures.js';
+import { makeRunwayTexture, makeBlastPadTexture, makeTaxiwayTexture, makeDetailTexture, makeCloudTexture } from './textures.js';
 import { AirfieldLights } from './lights.js';
 import { Atmosphere, SKY_GLSL, installHaze, sceneColor } from './sky.js';
 import { Cumulus } from './clouds.js';
@@ -24,7 +28,7 @@ import { buildOvercast } from './overcast.js';
 import { addAirportDetail } from './airport-detail.js';
 import { buildAirportArchitecture } from './airport-architecture.js';
 import { buildLandscape } from './landscape.js';
-import { addRunwayShoulders } from './runway-surfaces.js';
+import { addRunwayShoulders, runwayGeometry, filterRunwayMaterial } from './runway-surfaces.js';
 import { loadParkedAircraft } from './scenery-models.js';
 import { CabinEnvironment } from '../cockpit/lighting.js';
 import {cloudDensityAt,CLOUD_FRINGE,CLOUD_EXTINCTION} from './cloud-layer.js';
@@ -78,20 +82,41 @@ const SKY_FRAG = /* glsl */`
   }
 `;
 
+// Display-space grade for the world's picture: an S-curve about mid-grey and more saturation.
+const GRADE_SHADER = {
+  uniforms: { tDiffuse: { value: null }, uContrast: { value: 0.12 }, uSaturation: { value: 1.14 } },
+  vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+  fragmentShader: /* glsl */`
+    uniform sampler2D tDiffuse; uniform float uContrast, uSaturation; varying vec2 vUv;
+    void main() {
+      vec4 c = texture2D(tDiffuse, vUv);
+      vec3 s = c.rgb * c.rgb * (3.0 - 2.0 * c.rgb);            // smoothstep: darker shadows, brighter lights
+      vec3 g = mix(c.rgb, s, uContrast);
+      float l = dot(g, vec3(0.2126, 0.7152, 0.0722));
+      gl_FragColor = vec4(clamp(mix(vec3(l), g, uSaturation), 0.0, 1.0), c.a);
+    }`,
+};
+
 // Sun positions and air for each time of day. Colours are given as they should look on screen.
 const TOD = {
-  // day: 40° up, 70° right of the final approach track: the landscape ahead is lit from the side,
-  // the terminal's runway-facing side is in the sun, and it shines in through the right-hand windows
-  day: { sun: [-0.26, 0.643, -0.72], turbidity: 2.0, rayleigh: 2.5, scale: 0.1, sunIrr: 6.0, sunWhite: 0.7, cockpitEnv: 0.7, fill: 1.2, lights: 0.8, stars: 0 },
-  dusk: { sun: [-0.85, 0.12, 0.5], turbidity: 4, rayleigh: 2.5, scale: 0.1, sunIrr: 5.0, sunWhite: 0.2, cockpitEnv: 0.3, fill: 0.5, lights: 2.5, stars: 0.3 },
-  night: { sun: [0.3, -0.4, 0.5], moon: [0.35, 0.55, -0.45], turbidity: 3, rayleigh: 2.5, scale: 0.1, sunIrr: 0, sunWhite: 1, cockpitEnv: 1, fill: 0.02, lights: 3, stars: 1, nightZenith: 0x03060f, nightHorizon: 0x111a2a },
+  // day: a mid-afternoon sun 25° up, behind the aircraft's right shoulder on final: the landscape
+  // ahead is front-lit with relief and long shadows, the sky ahead is a deep blue, the terminal's
+  // runway-facing side is in the sun, and it shines in through the right-hand windows.
+  // exposure: the camera's, for the outside world (a low sun lights the ground less; the eye
+  // adapts). cabin: the flight deck's own exposure (it is drawn separately): darker than the
+  // world by day so the windows read as the bright part of the picture, and a little darker at night (the panel stays readable).
+  // bloom: the glow's strength (high tier); less at night, when the runway's lights would merge.
+  day: { sun: [0.35, 0.42, -0.84], turbidity: 2.0, rayleigh: 2.5, scale: 0.1, sunIrr: 6.0, sunWhite: 0.35, cockpitEnv: 0.7, fill: 1.2, lights: 0.8, stars: 0, exposure: 1.6, cabin: 0.72, bloom: 0.45 },
+  dusk: { sun: [-0.85, 0.12, 0.5], turbidity: 4, rayleigh: 2.5, scale: 0.1, sunIrr: 5.0, sunWhite: 0.2, cockpitEnv: 0.3, fill: 0.5, lights: 2.5, stars: 0.3, exposure: 1.0, cabin: 0.85, bloom: 0.4 },
+  night: { sun: [0.3, -0.4, 0.5], moon: [0.35, 0.55, -0.45], turbidity: 3, rayleigh: 2.5, scale: 0.1, sunIrr: 0, sunWhite: 1, cockpitEnv: 1, fill: 0.02, lights: 3, stars: 1, nightZenith: 0x03060f, nightHorizon: 0x111a2a, exposure: 1.0, cabin: 0.85, bloom: 0.12 },
 };
 
 export class World {
   constructor(canvas, opts = {}) {
     this.canvas = canvas;
     this.lowDetail = !!opts.lowDetail;
-    // 'high': shadows, floating-point frame with MSAA and bloom. 'low' (phones): straight to the screen.
+    // 'high': shadows, floating-point frame with MSAA and bloom. Compact low
+    // uses the display framebuffer plus a bounded edge filter, without HDR.
     this.quality = opts.quality || (this.lowDetail ? 'low' : 'high');
     const renderer = new THREE.WebGLRenderer({ canvas, antialias: !this.lowDetail, logarithmicDepthBuffer: true, powerPreference: 'high-performance' });
     // the high tier needs floating-point render targets
@@ -106,6 +131,7 @@ export class World {
     renderer.shadowMap.enabled = high;
     renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer = renderer;
+    this.edgeFilter=this.lowDetail&&!high?new EdgeFilter():null;
     this.maxAniso = renderer.capabilities.getMaxAnisotropy();
 
     this.atmo = new Atmosphere();
@@ -234,7 +260,7 @@ export class World {
 
   /** Drop expensive effects without restarting a flight or moving its camera. */
   reduceQuality() {
-    if(this.quality==='low')return;
+    if(this.quality==='low'){this.edgeFilter?.dispose();this.edgeFilter=null;return;}
     this.quality='low';this.renderer.shadowMap.enabled=false;this.groundCover?.reduceQuality();this.windshield?.reduceQuality();this.precipitation?.reduceQuality();
     for(const light of [this.sun,this.cockpitSun]){
       light.castShadow=false;light.shadow.map?.dispose();light.shadow.map=null;
@@ -313,6 +339,7 @@ export class World {
   /** Let the flight deck cast and receive the sun's shadow (called once the cockpit is built). */
   setupCockpit(root,eyeLocal,windshield) {
     this.windshield=windshield;
+    this.edgeFilter?.protectDisplays(root);
     this.cabinEnvironment=new CabinEnvironment(this,root,eyeLocal);
     if (this.quality !== 'high') return;
     root.traverse((o) => {
@@ -360,30 +387,48 @@ export class World {
     this.runwayTex = makeRunwayTexture(aniso, this.renderer.capabilities.maxTextureSize);
     const asphalt = makeDetailTexture(); asphalt.repeat.set(900, 16); asphalt.anisotropy = aniso;
     const rwMat = std({ map: this.runwayTex, bumpMap: asphalt, bumpScale: 0.018, roughness: 0.95, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
-    const rw = new THREE.Mesh(new THREE.PlaneGeometry(L, W), rwMat);
+    filterRunwayMaterial(rwMat);
+    const rw = new THREE.Mesh(runwayGeometry(), rwMat);
+    rw.name = 'Runway pavement';
     rw.rotation.x = -Math.PI / 2;
     rw.position.y = 0.02;
     add(rw, false);
     this.runwayMat = rwMat;
     addRunwayShoulders(this);
-    // blast pads / stopways at each end (60 m, chevrons omitted)
-    const padMat = std({ color: 0x4a4a4c, roughness: 1 });
-    for (const sx of [-1, 1]) { const p = new THREE.Mesh(new THREE.PlaneGeometry(60, W), padMat); p.rotation.x = -Math.PI / 2; p.position.set(sx * (halfL + 30), 0.01, 0); add(p, false); }
+    const padMat = std({ map: makeBlastPadTexture(aniso), roughness: 1 });
+    const padGeometry = new THREE.PlaneGeometry(RUNWAY.padLength, W);
+    for (const end of [-1, 1]) {
+      const pad = new THREE.Mesh(padGeometry, padMat);
+      pad.name = 'Blast pad ' + (end > 0 ? RUNWAY.ident : RUNWAY.reciprocal);
+      pad.rotation.x = -Math.PI / 2;
+      pad.rotation.z = end > 0 ? 0 : Math.PI;
+      pad.position.set(end * (halfL + RUNWAY.padLength / 2), 0.01, 0);
+      add(pad, false);
+    }
     // parallel taxiway (z 120..150) and connectors, apron
-    const twTex = makeTaxiwayTexture(aniso, L, 30);
+    const twTex = makeTaxiwayTexture(aniso, L, 30, false);
     const tw = new THREE.Mesh(new THREE.PlaneGeometry(L, 30), std({ map: twTex, roughness: 1 }));
     tw.rotation.x = -Math.PI / 2; tw.position.set(0, 0.015, 135); add(tw, false);
-    const conTex = makeTaxiwayTexture(aniso, 120, 30);
+    applyTaxiwayMarkings(tw.material);
+    const connectorLength=150-W/2,connectorCentre=(150+W/2)/2;
+    const conTex = makeTaxiwayTexture(aniso, connectorLength, 30, false);
     const conMat = std({ map: conTex, roughness: 1 });
-    for (const cx of [-1450, -700, 0, 700, 1450]) {
-      const c = new THREE.Mesh(new THREE.PlaneGeometry(30, 100), conMat);
-      c.rotation.x = -Math.PI / 2; c.rotation.z = Math.PI / 2; c.position.set(cx, 0.012, 72); add(c, false);
+    applyTaxiwayMarkings(conMat);
+    for (const cx of TAXIWAY_CONNECTORS) {
+      const c = new THREE.Mesh(new THREE.PlaneGeometry(connectorLength, 30), conMat);
+      c.name='Taxiway connector';
+      c.rotation.x = -Math.PI / 2; c.rotation.z = Math.PI / 2; c.position.set(cx, 0.012, connectorCentre); add(c, false);
     }
     this.pavementMats = [padMat, tw.material, conMat];
     this.texturedPavement = [tw.material, conMat];
     const apron = new THREE.Mesh(new THREE.PlaneGeometry(1400, 270), std({ color: 0x55565a, roughness: 1 }));
     apron.rotation.x = -Math.PI / 2; apron.position.set(0, 0.014, 285); add(apron, false);
+    apron.name='Terminal apron';
     this.pavementMats.push(apron.material);
+    const ha=HANGAR_APRON;
+    const hangarApron=new THREE.Mesh(new THREE.PlaneGeometry(ha.xMax-ha.xMin,ha.zMax-ha.zMin),apron.material);
+    hangarApron.name='Hangar forecourt';hangarApron.rotation.x=-Math.PI/2;
+    hangarApron.position.set((ha.xMin+ha.xMax)/2,.014,(ha.zMin+ha.zMax)/2);add(hangarApron,false);
 
     this.airportArchitecture=buildAirportArchitecture(this.scene,this.quality==='low',aniso);
     // jet bridges + parked aircraft on the apron
@@ -448,6 +493,10 @@ export class World {
     this.bloom = new UnrealBloomPass(new THREE.Vector2(size.x, size.y), 0.45, 0.5, 1.6);
     this.composer.addPass(this.bloom);
     this.composer.addPass(new OutputPass());
+    // a restrained grade on the finished picture of the world (the flight deck and its displays
+    // are drawn afterwards and keep their exact colours): a little more contrast and colour
+    this.grade = new ShaderPass(GRADE_SHADER);
+    this.composer.addPass(this.grade);
   }
 
   // ------------------------------------------------------------------ scenario
@@ -517,6 +566,12 @@ export class World {
     this.cockpitScene.environmentRotation.set(0,0,0);
     this.cockpitScene.environmentIntensity = P.cockpitEnv;
     this.cockpitFill.intensity = P.fill * (storm ? 0.6 : 1);
+    // exposure: under an overcast the ground has a fraction of the light and the eye opens up
+    // (eased in update() as the aircraft descends through the deck)
+    this.exposureClear = P.exposure; this.exposureOvercast = P.exposure * (tod === 'day' ? 1.25 : 1);
+    this.exposure = storm || !this.hasDeck ? this.exposureClear : this.exposure || this.exposureClear;
+    this.cabinExposure = P.cabin;
+    if (this.bloom) this.bloom.strength = P.bloom;
 
     // ---- surfaces
     this.groundUniforms.uWet.value = scenario.wet ? 1 : 0;
@@ -633,6 +688,8 @@ export class World {
       u.treeSunAmount.value=Math.max(0,(this.daylight*sunF-.08)/.92);
     }
     this.sun.intensity = this.sunI * sunF;
+    const exposure = this.exposureClear + (this.exposureOvercast - this.exposureClear) * under;
+    this.exposure += (exposure - this.exposure) * Math.min(1, dt * 0.8);
     this.cockpitSun.intensity = this.sunI * sunF * (this.cockpitSunScale || 0.6);
     if (this.sun.castShadow) { this.sun.shadow.intensity = sunF; this.cockpitSun.shadow.intensity = sunF; }
     const envKey = this.env.above && (!this.env.below || under < 0.5) ? 'above' : 'below';
@@ -684,15 +741,18 @@ export class World {
     const r = this.renderer;
     r.autoClear = true;
     this.deckSurfaces.render(this.camera);
+    r.toneMappingExposure = this.exposure || 1;
     if (this.composer) this.composer.render();
     else r.render(this.scene, this.camera);
     // the flight deck on top, straight to the screen (its displays keep their exact colours);
     // the head-up view has none (drawCockpit false)
-    if (this.drawCockpit === false) return;
+    if (this.drawCockpit === false) {this.edgeFilter?.render(r,this.camera,false);return;}
     this.windshield?.captureOutside(r,this.camera);
     r.autoClear = false;
     r.clearDepth();
+    r.toneMappingExposure = this.cabinExposure || 1;
     r.render(this.cockpitScene, this.camera);
     r.autoClear = true;
+    if(!this.displayFocused)this.edgeFilter?.render(r,this.camera);
   }
 }

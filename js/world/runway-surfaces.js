@@ -1,7 +1,48 @@
-// Airport edge aggregate shares the existing asphalt scan, with metric scale and
-// a feathered gravel/soil margin. It does not change the operational pavement.
+// Filtered runway coverage and airport-edge aggregate. The operational pavement
+// stays fixed; aggregate shares the existing asphalt scan and a feathered margin.
 import * as THREE from 'three';
 import {RUNWAY} from '../config.js';
+
+// Raster support for partial pixels at the operational pavement boundary. The
+// shader clips coverage to the original [0,1] UV rectangle, including its ends.
+// Preserve the original central quad: stretching its triangles across the fringe
+// destabilizes grazing-angle interpolation on SwiftShader. The 16 fringe triangles
+// add raster support, not physical pavement, and share the same draw/material.
+export function runwayGeometry(){
+ const xs=[-RUNWAY.length/2-512,-RUNWAY.length/2,RUNWAY.length/2,RUNWAY.length/2+512];
+ const ys=[RUNWAY.width/2+32,RUNWAY.width/2,-RUNWAY.width/2,-RUNWAY.width/2-32];
+ const geometry=new THREE.PlaneGeometry(1,1,3,3),positions=geometry.attributes.position,uv=geometry.attributes.uv;
+ for(let row=0;row<4;row++)for(let col=0;col<4;col++){
+  const i=row*4+col,x=xs[col],y=ys[row];
+  positions.setXYZ(i,x,y,0);uv.setXY(i,x/RUNWAY.length+.5,y/RUNWAY.width+.5);
+ }
+ return geometry;
+}
+
+export function filterRunwayMaterial(material){
+ const previous=material.onBeforeCompile;
+ material.transparent=true;
+ material.onBeforeCompile=(shader,renderer)=>{
+  previous.call(material,shader,renderer);
+  shader.fragmentShader=shader.fragmentShader.replace('#include <map_fragment>',`
+   vec2 runwayDx=dFdx(vMapUv),runwayDy=dFdy(vMapUv);
+   vec2 runwayFootprint=max(abs(runwayDx)+abs(runwayDy),vec2(1e-8));
+   vec2 runwayCoverage=clamp((min(vMapUv+.5*runwayFootprint,vec2(1.0))-
+     max(vMapUv-.5*runwayFootprint,vec2(0.0)))/runwayFootprint,0.0,1.0);
+   diffuseColor.a*=runwayCoverage.x*runwayCoverage.y;
+   if(diffuseColor.a<=0.0)discard;
+   // Four positions inside the pixel retain the paint at grazing angles. Each
+   // has the derivatives of a half-size pixel, retaining hardware anisotropy.
+   vec4 runwaySample=(
+     textureGrad(map,vMapUv-.25*runwayDx-.25*runwayDy,.5*runwayDx,.5*runwayDy)+
+     textureGrad(map,vMapUv+.25*runwayDx-.25*runwayDy,.5*runwayDx,.5*runwayDy)+
+     textureGrad(map,vMapUv-.25*runwayDx+.25*runwayDy,.5*runwayDx,.5*runwayDy)+
+     textureGrad(map,vMapUv+.25*runwayDx+.25*runwayDy,.5*runwayDx,.5*runwayDy))*.25;
+   diffuseColor*=runwaySample;
+  `);
+ };
+ material.customProgramCacheKey=()=> 'runway-pixel-coverage-v1';
+}
 
 export function addRunwayShoulders(world){
  const positions=[],uv=[],indices=[];

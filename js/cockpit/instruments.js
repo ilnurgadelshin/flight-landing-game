@@ -13,8 +13,27 @@ function mkCanvas() {
   const c = document.createElement('canvas'); c.width = S; c.height = S;
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
-  tex.minFilter = THREE.LinearFilter; tex.magFilter = THREE.LinearFilter; tex.generateMipmaps = false;
+  // The fitted displays often cover far fewer pixels than their 512px canvases.
+  // Filter their small text/lines across that footprint. Native-resolution
+  // PANEL/MAP redraws remain independent.
+  tex.minFilter = THREE.LinearMipmapLinearFilter; tex.magFilter = THREE.LinearFilter;
+  tex.generateMipmaps = true;
+  tex.userData.liveDisplay = true;
   return { canvas: c, ctx: c.getContext('2d'), tex };
+}
+
+export function displayMaterial(tex) {
+  const material = new THREE.MeshBasicMaterial({ map: tex, toneMapped: false });
+  if (tex.userData.liveDisplay) {
+    // A half-level bias retains small digits while still filtering their footprint.
+    // Magnified displays clamp to level zero; native 2D focus views bypass this.
+    material.onBeforeCompile = shader => {
+      shader.fragmentShader = shader.fragmentShader.replace('#include <map_fragment>',
+        THREE.ShaderChunk.map_fragment.replace('texture2D( map, vMapUv )', 'texture2D( map, vMapUv, -0.5 )'));
+    };
+    material.customProgramCacheKey = () => 'live-display-filter-v1';
+  }
+  return material;
 }
 
 const FONT = 'bold 15px "DejaVu Sans Mono", Consolas, monospace';
@@ -26,9 +45,11 @@ const MAGENTA = '#ff4dff', GREEN = '#33ff66', CYAN = '#33ddff', WHITE = '#ffffff
 export class PFD {
   constructor() { Object.assign(this, mkCanvas()); this.fdEnabled = false; this.fd = { pitch: 0, roll: 0 }; this.frame = 0; }
 
-  draw(st, extra = {}) {
-    const g = this.ctx;
-    this.frame++;
+  draw(st, extra = {}, g = this.ctx) {
+    if (g === this.ctx) this.frame++;
+    // The enlarged phone display keeps its tapes and indications, but gives the
+    // three primary values more of their existing boxes. Fit long altitudes too.
+    const valueFont = g === this.ctx ? FONT_L : 'bold 32px "DejaVu Sans Mono", Consolas, monospace';
     g.fillStyle = '#000'; g.fillRect(0, 0, S, S);
     const cx = 250, cy = 250, R = 128;      // attitude indicator
     const pitchDeg = st.pitch / DEG, roll = st.roll;
@@ -114,8 +135,8 @@ export class PFD {
     // current speed box
     g.fillStyle = '#000'; g.strokeStyle = '#fff'; g.lineWidth = 2;
     g.beginPath(); g.roundRect(asX - 4, tcy - 20, asW + 4, 40, 4); g.fill(); g.stroke();
-    g.font = FONT_L; g.fillStyle = st.stallWarning ? RED : '#fff'; g.textAlign = 'right'; g.textBaseline = 'middle';
-    g.fillText(Math.round(ias), asX + asW - 8, tcy);
+    g.font = valueFont; g.fillStyle = st.stallWarning ? RED : '#fff'; g.textAlign = 'right'; g.textBaseline = 'middle';
+    g.fillText(Math.round(ias), asX + asW - 8, tcy, asW - 8);
     // selected speed readout
     g.font = FONT; g.fillStyle = MAGENTA; g.textAlign = 'center';
     g.fillText(extra.targetSpeed ? Math.round(extra.targetSpeed) : '---', asX + asW / 2, 74);
@@ -143,11 +164,11 @@ export class PFD {
     g.restore();
     g.fillStyle = '#000'; g.strokeStyle = '#fff'; g.lineWidth = 2;
     g.beginPath(); g.roundRect(alX, tcy - 20, alW + 4, 40, 4); g.fill(); g.stroke();
-    g.font = FONT_L; g.fillStyle = '#fff'; g.textAlign = 'right'; g.textBaseline = 'middle';
-    g.fillText(Math.round(altFt / 20) * 20, alX + alW - 6, tcy);
+    g.font = valueFont; g.fillStyle = '#fff'; g.textAlign = 'right'; g.textBaseline = 'middle';
+    g.fillText(Math.round(altFt / 20) * 20, alX + alW - 6, tcy, alW - 8);
     // radio altitude
     if (st.agl / FT < 2500) {
-      g.font = FONT_L; g.fillStyle = st.agl / FT < 200 ? AMBER : '#fff'; g.textAlign = 'center';
+      g.font = valueFont; g.fillStyle = st.agl / FT < 200 ? AMBER : '#fff'; g.textAlign = 'center';
       g.fillText(Math.round(st.agl / FT / (st.agl / FT < 100 ? 2 : 10)) * (st.agl / FT < 100 ? 2 : 10), cx, cy + 112);
     }
     // baro
@@ -218,7 +239,7 @@ export class PFD {
     if (extra.gaMode) { g.fillStyle = GREEN; g.font = FONT; g.fillText('GO-AROUND', cx, 60); }
     // DH / minimums
     g.fillStyle = GREEN; g.font = FONT_S; g.textAlign = 'right'; g.fillText('RADIO 200', S - 8, 60);
-    this.tex.needsUpdate = true;
+    if (g === this.ctx) this.tex.needsUpdate = true;
   }
 }
 

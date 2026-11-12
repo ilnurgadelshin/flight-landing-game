@@ -175,6 +175,35 @@ Pass an optional output directory after the source path to build comparison asse
 overwriting the game files. `npm run test:assets` checks the delivered models' frame dimensions,
 source materials and animated-control bindings.
 
+The compact cockpit deliberately removes the original `Text` objects during
+optimization. The November 4 forward-label pass restores **1,490 selected flat
+marks** on the MCP and main panel from the delivered high-detail geometry, with
+their original outlines, colour, occlusion and placement. Moving yoke, pedestal
+and overhead lettering are outside this pass. Four material batches contain
+**417 coplanar patches / 834 triangles**, instead of adding the **201,583 source
+triangles** for these marks to the phone model. Desktop keeps its original vector
+geometry: the filtered prototype softened its multisampled text.
+
+`models/737-forward-labels.glb` is a **107,636-byte CC BY 4.0 derivative** of
+hakai315's model, covered by the cockpit license and credits page. Its 2048×512
+palette PNG preserves all coverage values exactly. Runtime extracts a shared
+linear, single-channel texture: 1 MiB of retained CPU pixels and about 1.33 MiB
+with GPU mipmaps. The temporary canvas and decoded image are released. The labels
+receive the existing cockpit illumination and baked occlusion; they do not cast
+shadows. A failed load leaves the existing compact cockpit usable.
+
+Reproduce it directly from the delivered source asset:
+
+```sh
+node tools/prepare-cockpit-labels.mjs
+```
+
+Optional source/output arguments allow isolated regeneration. The asset test
+checks the source SHA-256, geometry correspondence, coverage and budgets. The
+generator excludes thick or large joined parts and projects the selected marks
+onto their front planes; this is a small geometric approximation, not a new font
+or an exact reproduction of embossed letter bevels.
+
 For a repeatable source inspection in Blender (optional; not required to build or play):
 
 ```sh
@@ -867,6 +896,9 @@ python3 tools/fetch-scenery.py
 ## Libraries
 
 The vendored Three.js glTF loader and geometry utilities are MIT licensed (`vendor/addons/LICENSE`).
+The phone display-space edge filter uses the matching vendored Three.js FXAA shader,
+also under that MIT license. It adds no image, model or scenery asset; see the visual
+audit for its display-preservation rules, reusable framebuffer storage and measured cost.
 The bundled Meshopt decoder is MIT licensed (`vendor/addons/libs/meshoptimizer-LICENSE.md`).
 
 
@@ -959,6 +991,17 @@ are MIT-licensed; no downloaded building, image, font or network service is used
 The gate locations and aircraft/jet-bridge placements are retained. Architecture
 remains visual scenery and does not change the runway, taxiways or flight physics.
 
+The November 3 airport-ground follow-up uses original project code and the existing
+surface scans; it adds no downloaded assets. It corrects the five connector slabs
+to match their existing wheel-surface layout and adds a 280 × 190 m hangar forecourt
+adjoining the main apron. Unlike the architecture-only pass, that forecourt is also
+classified as pavement by the wheel query. `js/airport-layout.js` shares its bounds
+between rendering and terrain classification. Turf variation follows the pavement
+union, and analytic coverage renders 0.30 m taxiway centerlines without a new paint
+texture. Width reference: [FAA AIM 2-3-4](https://www.faa.gov/air_traffic/publications/atpubs/aim_html/chap2_section_3.html).
+The forecourt shares the apron material and scanned aggregate; it adds one draw and
+two triangles. This does not add geographic coverage, trees or shadow maps.
+
 Five stepped curved roofs, recessed curtain walls, mezzanine bands and V-shaped
 supports connect through four glazed galleries and solid stair cores. The end wings
 have continuous shaded glazing. Hangars have pitched roofs, glazed sliding doors,
@@ -978,7 +1021,7 @@ unoccupied rooms. Derivative filtering softens thin floor joints and ceiling lig
 All ray divisions are epsilon-guarded, including axis-aligned and grazing views. Rooms
 remain opaque and share the usual atmosphere and shadows, avoiding transparent sorting.
 
-No image downloads, render passes, triangles or draw calls are added. The two old generated
+The glass pass adds no image downloads, render passes, triangles or draw calls. The two old generated
 facade maps are removed, saving about **1.33 MiB high / 0.33 MiB low** of mipmapped GPU texture
 storage, plus their CPU canvases. Static per-pane attributes add **182,424 bytes** on either
 tier. The remaining sign canvas uses about **0.67 MiB high / 0.17 MiB low** on the GPU. Room
