@@ -155,6 +155,7 @@ export class Presentation {
     this.ui.setChecklist(g.state === 'flying' ? g.checklist() : null);
     this.navDisplay(frameDt);
     this.flightDisplay();
+    this.ui.setDock(this.view.docked, this.view.cockpit.pfd.canvas, this.view.cockpit.nd.canvas);
     if (this.chart.open) { this.chart.wait -= frameDt; if (this.chart.wait <= 0) { this.chart.wait = CHART_PERIOD; this.drawChart(); } }
   }
 

@@ -169,7 +169,7 @@ if (want('keys')) {
   const settled = () => page.waitForFunction(() => window.__sim.cockpit.lookDown < 0.005, null, { timeout: 30000 });   // the look eases back from L
   await settled(); await tap('KeyC'); await frames(3); const hv = await viewNow();
   await tap('KeyC'); await frames(3); const cv = await viewNow();
-  check('C switches to the head-up view (no flight deck, the eye 6° below the nose) and back', hv.mode === 'hud' && hv.body && !hv.deck && Math.abs(hv.pitch + 6) < 0.5 && cv.mode === 'cockpit' && !cv.body && cv.deck && cv.fov === 58 && Math.abs(cv.pitch + 14) < 0.5, `head-up ${JSON.stringify(hv)}, cockpit ${JSON.stringify(cv)}`);
+  check('C switches to the head-up view (no flight deck, the eye 6° below the nose) and back', hv.mode === 'hud' && hv.body && !hv.deck && Math.abs(hv.pitch + 6) < 0.5 && cv.mode === 'cockpit' && !cv.body && cv.deck && cv.fov === 50 && Math.abs(cv.pitch + 6) < 0.5, `head-up ${JSON.stringify(hv)}, cockpit ${JSON.stringify(cv)}`);
   // mouse yoke
   await page.mouse.click(VW / 2, VH / 2); await frames(2);
   check('click engages the mouse yoke', await page.evaluate(() => window.__sim.inputManager.mouseEngaged));

@@ -361,3 +361,10 @@ body.touch.view-panel #hgs { display: none; }
      above the rudder beside A/T (TO/GA in the compact layout), clear of both displays. */
   body.touch #t-map { left: calc(136px * var(--k)); bottom: calc(52px * var(--k)); height: calc(44px * var(--k)); }
 }
+
+/* A computer's flight deck view looks out over the glareshield; the captain's primary flight and
+   navigation displays are docked above the readouts, drawn from the same live instruments. */
+#dock { display: none; position: absolute; left: 50%; bottom: 76px; transform: translateX(-50%); gap: 12px; pointer-events: none; }
+body.dock #dock { display: flex; }
+#dock canvas { width: min(25vh, 22vw, 260px); height: min(25vh, 22vw, 260px); border-radius: 6px; background: #000;
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.14), 0 0 0 6px #161c24, 0 0 0 7px rgba(255,255,255,0.08), 0 8px 24px rgba(0,0,0,0.45); }

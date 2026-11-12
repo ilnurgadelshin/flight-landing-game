@@ -14,6 +14,7 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { RUNWAY, DEG } from '../config.js';
 import {TAXIWAY_CONNECTORS,HANGAR_APRON} from '../airport-layout.js';
 import {applyTaxiwayMarkings} from './airport-ground.js';
@@ -81,13 +82,33 @@ const SKY_FRAG = /* glsl */`
   }
 `;
 
+// Display-space grade for the world's picture: an S-curve about mid-grey and more saturation.
+const GRADE_SHADER = {
+  uniforms: { tDiffuse: { value: null }, uContrast: { value: 0.12 }, uSaturation: { value: 1.14 } },
+  vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
+  fragmentShader: /* glsl */`
+    uniform sampler2D tDiffuse; uniform float uContrast, uSaturation; varying vec2 vUv;
+    void main() {
+      vec4 c = texture2D(tDiffuse, vUv);
+      vec3 s = c.rgb * c.rgb * (3.0 - 2.0 * c.rgb);            // smoothstep: darker shadows, brighter lights
+      vec3 g = mix(c.rgb, s, uContrast);
+      float l = dot(g, vec3(0.2126, 0.7152, 0.0722));
+      gl_FragColor = vec4(clamp(mix(vec3(l), g, uSaturation), 0.0, 1.0), c.a);
+    }`,
+};
+
 // Sun positions and air for each time of day. Colours are given as they should look on screen.
 const TOD = {
-  // day: 40° up, 70° right of the final approach track: the landscape ahead is lit from the side,
-  // the terminal's runway-facing side is in the sun, and it shines in through the right-hand windows
-  day: { sun: [-0.26, 0.643, -0.72], turbidity: 2.0, rayleigh: 2.5, scale: 0.1, sunIrr: 6.0, sunWhite: 0.7, cockpitEnv: 0.7, fill: 1.2, lights: 0.8, stars: 0 },
-  dusk: { sun: [-0.85, 0.12, 0.5], turbidity: 4, rayleigh: 2.5, scale: 0.1, sunIrr: 5.0, sunWhite: 0.2, cockpitEnv: 0.3, fill: 0.5, lights: 2.5, stars: 0.3 },
-  night: { sun: [0.3, -0.4, 0.5], moon: [0.35, 0.55, -0.45], turbidity: 3, rayleigh: 2.5, scale: 0.1, sunIrr: 0, sunWhite: 1, cockpitEnv: 1, fill: 0.02, lights: 3, stars: 1, nightZenith: 0x03060f, nightHorizon: 0x111a2a },
+  // day: a mid-afternoon sun 25° up, behind the aircraft's right shoulder on final: the landscape
+  // ahead is front-lit with relief and long shadows, the sky ahead is a deep blue, the terminal's
+  // runway-facing side is in the sun, and it shines in through the right-hand windows.
+  // exposure: the camera's, for the outside world (a low sun lights the ground less; the eye
+  // adapts). cabin: the flight deck's own exposure (it is drawn separately): darker than the
+  // world by day so the windows read as the bright part of the picture, and a little darker at night (the panel stays readable).
+  // bloom: the glow's strength (high tier); less at night, when the runway's lights would merge.
+  day: { sun: [0.35, 0.42, -0.84], turbidity: 2.0, rayleigh: 2.5, scale: 0.1, sunIrr: 6.0, sunWhite: 0.35, cockpitEnv: 0.7, fill: 1.2, lights: 0.8, stars: 0, exposure: 1.6, cabin: 0.72, bloom: 0.45 },
+  dusk: { sun: [-0.85, 0.12, 0.5], turbidity: 4, rayleigh: 2.5, scale: 0.1, sunIrr: 5.0, sunWhite: 0.2, cockpitEnv: 0.3, fill: 0.5, lights: 2.5, stars: 0.3, exposure: 1.0, cabin: 0.85, bloom: 0.4 },
+  night: { sun: [0.3, -0.4, 0.5], moon: [0.35, 0.55, -0.45], turbidity: 3, rayleigh: 2.5, scale: 0.1, sunIrr: 0, sunWhite: 1, cockpitEnv: 1, fill: 0.02, lights: 3, stars: 1, nightZenith: 0x03060f, nightHorizon: 0x111a2a, exposure: 1.0, cabin: 0.85, bloom: 0.12 },
 };
 
 export class World {
@@ -472,6 +493,10 @@ export class World {
     this.bloom = new UnrealBloomPass(new THREE.Vector2(size.x, size.y), 0.45, 0.5, 1.6);
     this.composer.addPass(this.bloom);
     this.composer.addPass(new OutputPass());
+    // a restrained grade on the finished picture of the world (the flight deck and its displays
+    // are drawn afterwards and keep their exact colours): a little more contrast and colour
+    this.grade = new ShaderPass(GRADE_SHADER);
+    this.composer.addPass(this.grade);
   }
 
   // ------------------------------------------------------------------ scenario
@@ -541,6 +566,12 @@ export class World {
     this.cockpitScene.environmentRotation.set(0,0,0);
     this.cockpitScene.environmentIntensity = P.cockpitEnv;
     this.cockpitFill.intensity = P.fill * (storm ? 0.6 : 1);
+    // exposure: under an overcast the ground has a fraction of the light and the eye opens up
+    // (eased in update() as the aircraft descends through the deck)
+    this.exposureClear = P.exposure; this.exposureOvercast = P.exposure * (tod === 'day' ? 1.25 : 1);
+    this.exposure = storm || !this.hasDeck ? this.exposureClear : this.exposure || this.exposureClear;
+    this.cabinExposure = P.cabin;
+    if (this.bloom) this.bloom.strength = P.bloom;
 
     // ---- surfaces
     this.groundUniforms.uWet.value = scenario.wet ? 1 : 0;
@@ -657,6 +688,8 @@ export class World {
       u.treeSunAmount.value=Math.max(0,(this.daylight*sunF-.08)/.92);
     }
     this.sun.intensity = this.sunI * sunF;
+    const exposure = this.exposureClear + (this.exposureOvercast - this.exposureClear) * under;
+    this.exposure += (exposure - this.exposure) * Math.min(1, dt * 0.8);
     this.cockpitSun.intensity = this.sunI * sunF * (this.cockpitSunScale || 0.6);
     if (this.sun.castShadow) { this.sun.shadow.intensity = sunF; this.cockpitSun.shadow.intensity = sunF; }
     const envKey = this.env.above && (!this.env.below || under < 0.5) ? 'above' : 'below';
@@ -708,6 +741,7 @@ export class World {
     const r = this.renderer;
     r.autoClear = true;
     this.deckSurfaces.render(this.camera);
+    r.toneMappingExposure = this.exposure || 1;
     if (this.composer) this.composer.render();
     else r.render(this.scene, this.camera);
     // the flight deck on top, straight to the screen (its displays keep their exact colours);
@@ -716,6 +750,7 @@ export class World {
     this.windshield?.captureOutside(r,this.camera);
     r.autoClear = false;
     r.clearDepth();
+    r.toneMappingExposure = this.cabinExposure || 1;
     r.render(this.cockpitScene, this.camera);
     r.autoClear = true;
     if(!this.displayFocused)this.edgeFilter?.render(r,this.camera);

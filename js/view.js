@@ -3,7 +3,8 @@
 // It reads the game and never changes it.
 //
 // Two first-person views from the captain's eye point:
-//   cockpit   the flight deck around the eye, looking 14° down (7° on short touch screens);
+//   cockpit   the flight deck around the eye. Keyboard/controller: looking 6° down over the glareshield
+//             with the PFD and ND docked along the bottom; touch: 14° down (7° on short screens);
 //             PANEL tilts down on desktop, or enlarges the PFD on a short touch screen
 //   head-up   the flight deck hidden and a head-up display over the outside world (js/hud.js), like
 //             X-Plane's "forward with HUD" or a 737 flown on its head-up guidance system. The eye
@@ -20,6 +21,9 @@ import { DEG } from './config.js';
 import { commandSpeed } from './autothrottle.js';
 
 const COCKPIT_PITCH = -14 * DEG, HUD_PITCH = -6 * DEG, COCKPIT_FOV = 58;
+// A computer's flight deck view looks out over the glareshield: the world fills most of the screen
+// and the primary and navigation displays are docked, sharp, along the bottom (ui.setDock).
+const OUTSIDE_PITCH = -6 * DEG, OUTSIDE_FOV = 50;
 const ND_FOV = 50;                          // the ND view's vertical field of view (deg)
 /** The head-up view's vertical field of view (degrees) for a screen shape: about 100° across, 45–70° high. */
 export function hudFov(aspect) {
@@ -33,7 +37,8 @@ export class GameView {
    * @param cockpit js/cockpit/cockpit.js
    * @param look    { yaw, pitch, down } where the player is looking (InputManager.look)
    */
-  constructor({ game, world, cockpit, look, hud = null, compactCockpit = () => false }) {
+  constructor({ game, world, cockpit, look, hud = null, compactCockpit = () => false, outsideFirst = () => false }) {
+    this.outsideFirst = outsideFirst;           // a keyboard/controller screen: look out over the glareshield
     this.game = game; this.world = world; this.cockpit = cockpit; this.look = look;
     this.hud = hud;                             // js/hud.js HeadUpDisplay (the head-up view's symbols)
     this.compactCockpit = compactCockpit;       // short landscape touch viewport, independent of graphics quality
@@ -81,6 +86,17 @@ export class GameView {
   get pfdView() {
     return !this.ndView && this.mode === 'cockpit' && this.look.down && this.compactCockpit()
       && (this.game.state === 'flying' || this.game.state === 'paused');
+  }
+
+  /** The flight deck view is looking out over the glareshield (not Flight School, PANEL or MAP). */
+  get outside() {
+    return this.mode === 'cockpit' && this.game.state !== 'school' && !this.compactCockpit() && this.outsideFirst()
+      && this.world.camera.aspect >= 1.35;
+  }
+  /** The docked displays are shown: flying, looking ahead over the glareshield. */
+  get docked() {
+    const s = this.game.state;
+    return this.outside && (s === 'flying' || s === 'paused') && !this.ndView && this.cockpit.focus === 0 && this.cockpit.lookDown < 0.3;
   }
 
   setMode(mode) {
@@ -143,8 +159,10 @@ export class GameView {
     // PANEL frames the primary display on a phone. School keeps its original
     // camera for highlights; desktop PANEL and MAP retain their framing.
     const compact = this.compactCockpit() && g.state !== 'school';
-    const deckFov = cam.aspect < 1.35 ? 70 : compact ? 40 : COCKPIT_FOV;
-    const deckPitch = COCKPIT_PITCH + (compact ? 7 * DEG : 0);
+    // PANEL (L) tilts back down to the instruments with the original lens and framing.
+    const out = this.outside, down = this.cockpit.lookDown;
+    const deckFov = cam.aspect < 1.35 ? 70 : compact ? 40 : out ? OUTSIDE_FOV + (COCKPIT_FOV - OUTSIDE_FOV) * down : COCKPIT_FOV;
+    const deckPitch = out ? OUTSIDE_PITCH : COCKPIT_PITCH + (compact ? 7 * DEG : 0);
     const fov = (headUp ? hudFov(cam.aspect) : deckFov) * (1 - s) + ND_FOV * s;
     if (Math.abs(cam.fov - fov) > 1e-3) { cam.fov = fov; cam.updateProjectionMatrix(); }
     this.world.drawCockpit = !hud;
@@ -155,7 +173,7 @@ export class GameView {
       rollMode: fma ? fma.roll : (g.mode === 'training' ? 'FD' : ''), pitchMode: fma ? fma.pitch : (g.mode === 'training' ? 'FD' : ''),
       mcp, efis: g.efis, nd: g.ndOpts(),
       hidden: hud, viewPitch: headUp ? HUD_PITCH : deckPitch,
-      panelTilt: (compact && !headUp ? 0 : 40) * DEG,
+      panelTilt: (compact && !headUp ? 0 : 40) * DEG + (out && !headUp ? deckPitch - COCKPIT_PITCH : 0),
       focus: !!focusDisplay, focusFov: ND_FOV, focusFrame: this.pfdView ? this.pfdFrame : this.ndFrame,
     });
     // The focused PANEL/MAP view prioritizes its existing native display sampling.

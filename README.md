@@ -112,7 +112,12 @@ Both views are first-person, from the captain's eye point, with different
 framing for the cockpit and head-up display. The choice is remembered on the device.
 
 - **Cockpit**: the 737 flight deck around you, with its displays and levers.
-  The panel look tilts down to the displays and the pedestal on a computer or tablet.
+  With a keyboard or controller the view looks out over the glareshield (6° down,
+  a 50° lens), so the world fills most of the screen. The captain's primary flight
+  and navigation displays are docked along the bottom, drawn from the same live
+  instruments. Hold `L` to tilt down to the full panel and the pedestal with the
+  original framing; Flight School keeps that framing too.
+  The panel look tilts down to the displays and the pedestal on a tablet.
   On a short landscape touch screen, the forward view uses a closer lens and higher
   gaze for landing. Tap **VIEW** once for **PANEL**: it enlarges the captain's primary
   flight display between the touch controls, drawing its live instruments at the
@@ -659,6 +664,13 @@ The **high** graphics tier uses sun shadows, and the outside view
 drawn into a floating-point frame with 4× multisampling and a bloom pass (the
 sun, glints, the lights at night) before tone mapping. Phones and tablets get
 the **low** tier: the same sky, haze and lighting, without shadows or bloom.
+By day the sun is 25° up behind the aircraft's right shoulder: the landscape ahead is
+front-lit and the sky ahead is a deep blue. The outside world and the flight deck have
+separate exposures per time of day (the world's opens up by a quarter under a cloud
+deck, eased on the way down through it): the flight deck is darker than the windows by
+day and a little darker at night, and its displays keep their exact colours. The high tier
+finishes the outside picture with a restrained contrast and saturation grade, and uses
+less bloom at night. These are set values, not a metered auto-exposure.
 The compact low-detail view adds a lightweight display-space edge filter to soften
 stair-step silhouettes. Live screens and MCP readouts preserve their existing pixels;
 focused PANEL/MAP views bypass it. It uses one reusable framebuffer copy and one

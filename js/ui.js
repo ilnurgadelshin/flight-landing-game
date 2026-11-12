@@ -253,6 +253,20 @@ export class UI {
     return {g:c.getContext('2d'),scale:c.width/512};
   }
 
+  /** The flight deck's primary and navigation displays, docked along the bottom of the outside view. */
+  setDock(on, pfd, nd) {
+    if (on !== this._dockOn) { this._dockOn = on; document.body.classList.toggle('dock', on); }
+    if (!on) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    for (const [id, source] of [['dock-pfd', pfd], ['dock-nd', nd]]) {
+      const c = $(id), size = Math.round(c.clientWidth * dpr);
+      if (!size) continue;
+      if (c.width !== size) c.width = c.height = size;
+      const g = c.getContext('2d'); g.imageSmoothingQuality = 'high';
+      g.drawImage(source, 0, 0, size, size);
+    }
+  }
+
   /** The controls that an instrument view must leave accessible. */
   touchObstacles(includeMap = false) {
     const out = [];
