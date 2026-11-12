@@ -147,6 +147,7 @@ export class UI {
     $('chart-close').addEventListener('click', () => this.onChart && this.onChart(false));
     $('chart-canvas').addEventListener('click', () => $('chart').classList.toggle('zoom'));
     $('btn-again').addEventListener('click', () => this.onAgain && this.onAgain());
+    $('btn-replay').addEventListener('click', () => this.onReplay && this.onReplay());
     $('btn-menu').addEventListener('click', () => this.onQuit && this.onQuit());
     $('btn-help').addEventListener('click', () => this.onHelp && this.onHelp());
     $('school-next').addEventListener('click', () => this.schoolStep(1));
@@ -423,6 +424,12 @@ export class UI {
 
   // ---- results ---------------------------------------------------------------
   /** The results screen; drawMap(ctx) paints the debrief map on its canvas. */
+  /** The replay is playing: the results give way to it, with a note on how to return. */
+  setReplay(on, available = true) {
+    document.body.classList.toggle('replay', on);
+    $('btn-replay').hidden = !available;
+  }
+
   showResults(res, drawMap = null) {
     const o = $('res-outcome'); o.textContent = fmtOutcome(res.outcome); o.className = res.success ? 'ok' : 'fail';
     $('res-headline').textContent = res.headline;

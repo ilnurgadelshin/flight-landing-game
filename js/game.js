@@ -55,6 +55,8 @@ export class Game {
     this.result = null;
     this.efis = this.newEfis();
     this.path = this.newPath();
+    this.replay = [];           // the last minute's positions and attitudes (js/replay.js)
+    this.replayWait = 0;
   }
 
   /**
@@ -71,6 +73,15 @@ export class Game {
     p.samples.push({ t: this.time, x: st.x, z: st.z, altFt: (st.alt - RUNWAY.elevation) / FT, aglFt: st.agl / FT,
       kind: st.onGround ? 'ground' : (this.inCircuit() ? 'goaround' : 'approach'), seg: p.seg });
     if (p.samples.length > PATH_MAX) { p.samples = p.samples.filter((s, i) => i % 2 === 0); p.period *= 2; }
+  }
+  /** For the replay: { t, x, y, z, q, ground } ten times a second, the last 60 s. */
+  recordReplay(dt) {
+    this.replayWait -= dt;
+    if (this.replayWait > 0) return;
+    this.replayWait = 0.1;
+    const st = this.sim.state;
+    this.replay.push({ t: this.time, x: st.x, y: st.y, z: st.z, q: [st.quat[0], st.quat[1], st.quat[2], st.quat[3]], ground: !!st.onGround });
+    if (this.replay.length > 600) this.replay.shift();
   }
   mark(type, text = '') {
     const st = this.sim.state;
@@ -130,6 +141,7 @@ export class Game {
     this.ctx = this.newCtx();
     this.efis = this.newEfis();
     this.path = this.newPath();
+    this.replay = []; this.replayWait = 0;
     this.events.length = 0;
     this.time = 0;
     this.result = null;
@@ -292,7 +304,7 @@ export class Game {
     this.time += dt;
     this.ctx.elapsed += dt;
     this.track(dt);
-    if (!this.ctx.finished) this.recordPath(dt);
+    if (!this.ctx.finished) { this.recordPath(dt); this.recordReplay(dt); }
     if (this.state === 'flying' && this.mode === 'training') this.instructor(dt);
     return dt;
   }

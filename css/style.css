@@ -368,3 +368,8 @@ body.touch.view-panel #hgs { display: none; }
 body.dock #dock { display: flex; }
 #dock canvas { width: min(25vh, 22vw, 260px); height: min(25vh, 22vw, 260px); border-radius: 6px; background: #000;
   box-shadow: 0 0 0 1px rgba(255,255,255,0.14), 0 0 0 6px #161c24, 0 0 0 7px rgba(255,255,255,0.08), 0 8px 24px rgba(0,0,0,0.45); }
+
+/* the landing's replay (js/replay.js): the results and the flight's readouts give way to it */
+body.replay #results, body.replay #hud { display: none !important; }
+body.replay::after { content: 'REPLAY  ·  click or press any key to return'; position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%);
+  padding: 7px 14px; border-radius: 8px; background: rgba(13,19,23,0.72); color: #dfe8ea; font: 600 12px/1 "Segoe UI", Roboto, Arial, sans-serif; letter-spacing: .12em; pointer-events: none; }
