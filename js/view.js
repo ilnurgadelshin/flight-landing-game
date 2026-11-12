@@ -121,7 +121,7 @@ export class GameView {
   }
 
   /** Camera shake (m), e.g. at touchdown; it dies away by itself. */
-  shake(amount) { this.cockpit.shakeAmt = amount; }
+  shake(amount) { this.cockpit.shakeAmt = amount; this.cockpit.bobV = -Math.min(0.6, amount * 9); }
 
   /** Screen position of a named flight-deck part (Flight School highlights). */
   anchorFor(name) {
