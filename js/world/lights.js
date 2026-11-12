@@ -32,7 +32,9 @@ const VERT = /* glsl */`
     // Only beacons/PAPI need a conspicuous daytime core. Hundreds of 3 px
     // minimum-size lamps used to merge into a white rectangle on final.
     float signal = smoothstep(2.0, 3.4, size);
-    float minSize = mix(3.0, mix(0.65, 1.8, signal), uDaylight);
+    // At night a 3 px minimum merged the runway's rows into one glare at a few miles; ordinary
+    // lamps now shrink to points there (the soft footprint below keeps them steady).
+    float minSize = mix(mix(1.5, 3.0, signal), mix(0.65, 1.8, signal), uDaylight);
     s *= mix(1.0, mix(0.62, 0.95, signal), uDaylight);
     s = clamp(s, minSize * uPixelRatio, 26.0 * uPixelRatio);
     // Sample even subpixel lamps with a four-framebuffer-pixel soft footprint.

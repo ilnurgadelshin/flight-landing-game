@@ -42,6 +42,7 @@ export class Cockpit {
     this._qLook = new THREE.Quaternion(); this._v = new THREE.Vector3();
     this.shake = new THREE.Vector3();
     this.shakeAmt = 0;
+    this.bob = 0; this.bobV = 0; this.lean = 0;   // touchdown jolt (m, m/s) and braking lean (0..1)
 
     // "Boeing grey" plastics; lit by the hemisphere/sun plus the interior lights below
     const grain = surfaceGrain();
@@ -311,12 +312,25 @@ export class Cockpit {
     const gdev = Math.abs(st.gLoad - 1) * 0.008;
     this.shakeAmt = Math.max(this.shakeAmt * (1 - dt * 3), rough + gdev + (extra.shake || 0));
     const sh = this.shakeAmt;
-    this.shake.set((Math.random() - 0.5) * sh, (Math.random() - 0.5) * sh, 0);
+    // a rumble, not static: the shake eases towards a new random offset about 25 times a second
+    const follow = Math.min(1, dt * 25);
+    this.shake.x += ((Math.random() - 0.5) * sh - this.shake.x) * follow;
+    this.shake.y += ((Math.random() - 0.5) * sh - this.shake.y) * follow;
     this.camera.position.copy(this.shake);
     // head moves slightly under lateral/vertical acceleration (feels heavy)
     this.camera.position.y -= clamp((st.gLoad - 1) * 0.02, -0.04, 0.04);
+    // the touchdown's jolt: the head drops and settles (a damped spring, kicked by jolt())
+    const h = Math.min(dt, 0.05);
+    this.bobV += (-140 * this.bob - 11 * this.bobV) * h; this.bob += this.bobV * h;
+    this.camera.position.y += clamp(this.bob, -0.06, 0.03);
+    // braking and reverse thrust: the body leans into the straps as the aircraft slows on the runway
+    let lean = 0;
+    if (dt > 0 && st.onGround && this._gs !== undefined) lean = clamp((this._gs - st.groundSpeed) / dt / 4, 0, 1);   // 1 at 0.4 g
+    this._gs = st.groundSpeed;
+    this.lean += (lean - this.lean) * Math.min(1, dt * 2.5);
+    this.camera.position.z -= this.lean * 0.035;
     const base = extra.viewPitch === undefined ? this.basePitch : extra.viewPitch;
-    this.camera.rotation.set(base - this.lookDown * (extra.panelTilt ?? 40 * DEG) + this.lookPitch, this.lookYaw, 0, 'YXZ');
+    this.camera.rotation.set(base - this.lookDown * (extra.panelTilt ?? 40 * DEG) + this.lookPitch - this.lean * 0.9 * DEG, this.lookYaw, 0, 'YXZ');
     // The instrument view: ease from the eye to the selected display in 0.45 s.
     const step = Math.min(dt, 0.1) / 0.45;
     this.focus = extra.focus ? Math.min(1, this.focus + step) : Math.max(0, this.focus - step);
