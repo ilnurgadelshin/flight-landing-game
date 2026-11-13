@@ -11,9 +11,10 @@ import {MeshoptDecoder,MeshoptEncoder,MeshoptSimplifier} from 'meshoptimizer';
 const source=process.argv[2];
 if(!source)throw new Error('Supply the original asset snapshot directory.');
 const report=[];
-async function image(file,{lossless=false,quality=84}={}){
+async function image(file,{lossless=false,quality=84,sharpen=0}={}){
   const input=await fs.readFile(path.join(source,file)),output=file.replace(/\.(png|jpg)$/,'.webp');
-  const result=await sharp(input).webp({quality,alphaQuality:100,lossless,effort:6}).toBuffer();
+  const pixels=sharpen?sharp(input).sharpen({sigma:sharpen,m1:1,m2:2}):sharp(input);
+  const result=await pixels.webp({quality,alphaQuality:100,lossless,effort:6}).toBuffer();
   await fs.writeFile(output,result);
   report.push({file:output,before:input.length,after:result.length,lossless,quality});
 }
@@ -25,7 +26,9 @@ for(const name of ['region','approach','airport','final-approach']){
   await fs.writeFile(file,result);report.push({file,before:0,after:result.length,quality:75,resolution:512});
 }
 for(const file of await fs.readdir(path.join(source,'assets/scenery/detail')))
-  if(file.endsWith('.jpg'))await image(`assets/scenery/detail/${file}`);
+  // The survey is soft (0.6 m) and the tiles are magnified on short final: an unsharp mask of
+  // about a pixel, with a lower quality that keeps the download where it was.
+  if(file.endsWith('.jpg'))await image(`assets/scenery/detail/${file}`,{quality:76,sharpen:file.endsWith('-low.jpg')?.8:1.1});
 // New elevation atlases are final WebP from bake-woodland.mjs. Restoring the old
 // 28-view PNG here would mismatch their 84-view metadata and corrupt the trees.
 const canopy=JSON.parse(await fs.readFile('assets/scenery/tree-variety.json'));

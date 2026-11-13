@@ -9,6 +9,7 @@
 // is drawn into a floating-point buffer with 4× MSAA and goes through a bloom pass (the sun, the
 // runway lights at night) before tone mapping; compact low uses a display-space edge filter.
 import * as THREE from 'three';
+import { DETAIL_AHEAD } from './ground-detail.js';
 import {EdgeFilter} from './edge-filter.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
@@ -640,6 +641,13 @@ export class World {
     cam.updateProjectionMatrix();
   }
 
+  /** Where the sharp ground tiles centre: ahead of the eye along the camera's view, not beneath it. */
+  detailFocus(eye) {
+    const focus = this._detailFocus ??= new THREE.Vector3(), d = this.camera.getWorldDirection(this._detailDir ??= new THREE.Vector3());
+    const reach = DETAIL_AHEAD / Math.max(Math.hypot(d.x, d.z), 0.5);   // looking steeply down: nearer the eye
+    return focus.set(eye.x + d.x * reach, eye.y, eye.z + d.z * reach);
+  }
+
   // ------------------------------------------------------------------ per frame
   /**
    * @param dt seconds
@@ -648,7 +656,7 @@ export class World {
    */
   update(dt, state, eye) {
     this.time += dt;
-    this.groundDetail?.update(eye);
+    this.groundDetail?.update(this.detailFocus(eye));
     this.groundCover?.update(eye);
     if(this.quality==='high')this.requestNearTrees?.(eye);
     this.nearWoodland?.update(dt,eye);

@@ -39,8 +39,9 @@ def tile(cell):
     return dict(id=name,center=center,side=side,source=url)
 
 if __name__=='__main__':
-    # Last 8 km of final approach, including the nearest photographed villages.
+    # Last 8 km of final approach, including the nearest photographed villages, and the
+    # kilometre around the threshold (the ground just short of the runway).
     with ThreadPoolExecutor(max_workers=2) as pool:
-        tiles=list(pool.map(tile,[(x,z) for x in range(2,10) for z in [-1,0]]))
+        tiles=list(pool.map(tile,[(x,z) for x in range(1,10) for z in [-1,0]]))
     (OUT/'manifest.json').write_text(json.dumps(dict(license='Public domain — USDA NAIP / USGS',
         origin=[-77.615,40.828],highPixelMetres=.5,lowPixelMetres=1,tiles=tiles),indent=2)+'\n')

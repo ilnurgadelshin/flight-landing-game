@@ -689,7 +689,7 @@ measurement, not a guarantee of performance on every scene or device.
 
 Startup loads the flight deck, small terrain previews and, on high, the compressed cloud
 density: the menu appears after those. The detailed scenery then **loads behind the menu**:
-the full aerial photographs, every ground detail tile (only the four nearest are on the
+the full aerial photographs, every ground detail tile (only four are on the
 graphics card at a time; the others wait in memory, so a flight decodes them rather than
 downloading them), buildings, roads, woodland, parked aircraft and, on high, the nearby 3D
 trees. The current scene is then warmed with shader compilation and texture/buffer uploads
@@ -741,9 +741,12 @@ The visual assets are bundled locally and need no map service, account or API ke
   8 km airport, plus an 8 km final-approach layer at 2 m/px. They blend across rolling
   terrain that remains level under the airport and approach safety strip;
   the scenery uses Pennsylvania imagery repositioned around fictional Westhaven,
-  rather than reproducing a real airport. Sixteen local detail tiles sharpen the last
-  8 km of the approach, sampled at 0.5 m/px on high and 1 m/px on low, with four loaded
-  at a time. The underlying NAIP survey is generally 0.6 m. Close woodland uses nine
+  rather than reproducing a real airport. Eighteen local detail tiles sharpen the last
+  8 km of the approach and the kilometre around the threshold, sampled at 0.5 m/px on high
+  and 1 m/px on low, with four loaded at a time. Those four centre 650 m ahead of the eye
+  along the view, where the ground is seen, not beneath the aircraft. The tiles are
+  sharpened when encoded (an unsharp mask of about a pixel), since they are magnified on
+  short final. The underlying NAIP survey is generally 0.6 m. Close woodland uses nine
   authored forms from three broadleaf sources plus pine and fir, baked into 216 canopy views
   from CC0 models. Spatial grouping varies the mature crown silhouettes.
   On high quality, nearby crowns transition to the same models' 3D branches and leaves
@@ -830,7 +833,8 @@ The visual assets are bundled locally and need no map service, account or API ke
 
 The desktop cockpit has about 1.04 million triangles and an 8.3 MB download. The lighter
 phone model has about 430,000 triangles and a 3.6 MB download, omits tiny molded labels,
-and retains the live instruments. Phones also use 1024 px aerial images and fewer trees.
+and retains the live instruments. Phones also use smaller aerial images (2048 px for the airport and final approach,
+3.9 m a pixel; 1024 px for the wider region) and fewer trees.
 The captain’s desktop view uses a 58° vertical field of view and an eye position fitted
 to the original cabin. The GLBs preserve the authored shell proportions and material values.
 Verified panels, trim, seats and yokes receive distinct runtime finishes. High quality adds

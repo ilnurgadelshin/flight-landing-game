@@ -38,7 +38,9 @@ with tempfile.TemporaryDirectory(prefix='flight-scenery-') as tmp:
         fetch(url, raw)
         im = Image.open(raw).convert('RGB')
         im.save(OUT / f'{name}.jpg', quality=90, optimize=True)
-        im.resize((1024, 1024), Image.Resampling.LANCZOS).save(OUT / f'{name}-low.jpg', quality=85, optimize=True)
+        # phones fly the last miles over these two: 2048 px (3.9 m a pixel) there, 1024 px elsewhere
+        low = 2048 if name in ('airport', 'final-approach') else 1024
+        im.resize((low, low), Image.Resampling.LANCZOS).save(OUT / f'{name}-low.jpg', quality=85, optimize=True)
         sources.append(dict(file=f'{name}.jpg', source=url, center=[east, 0], side=side, license='Public domain — USDA NAIP / USGS'))
         print(name, im.size, flush=True)
     for asset, prefix in [('aerial_grass_rock', 'grass'), ('aerial_asphalt_01', 'asphalt')]:

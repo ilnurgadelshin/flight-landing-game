@@ -8,6 +8,24 @@
   "lowPixelMetres": 1,
   "tiles": [
     {
+      "id": "1_-1",
+      "center": [
+        1500,
+        -500
+      ],
+      "side": 1032,
+      "source": "https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer/exportImage?bbox=-8638761.852819476%2C4986983.5648699505%2C-8637397.992348272%2C4988347.425341154&bboxSR=3857&imageSR=3857&size=2064%2C2064&format=jpg&compressionQuality=94&renderingRule=%7B%22rasterFunction%22%3A+%22NaturalColor%22%7D&f=image"
+    },
+    {
+      "id": "1_0",
+      "center": [
+        1500,
+        500
+      ],
+      "side": 1032,
+      "source": "https://imagery.nationalmap.gov/arcgis/rest/services/USGSNAIPImagery/ImageServer/exportImage?bbox=-8638761.852819476%2C4985661.994645915%2C-8637397.992348272%2C4987025.855117119&bboxSR=3857&imageSR=3857&size=2064%2C2064&format=jpg&compressionQuality=94&renderingRule=%7B%22rasterFunction%22%3A+%22NaturalColor%22%7D&f=image"
+    },
+    {
       "id": "2_-1",
       "center": [
         2500,
