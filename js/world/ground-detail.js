@@ -2,8 +2,12 @@
 import * as THREE from 'three';
 import { RUNWAY, APPROACH_STARTS } from '../config.js';
 
-/** Where the short final starts: the one start inside the detail tiles (sim.js reposition). */
-export const SHORT_FINAL_EYE=new THREE.Vector3(RUNWAY.thresholdX+APPROACH_STARTS.short.distanceNm*1852,0,0);
+/** The four tiles centre this far ahead of the eye along the view (m): on an approach the ground
+ *  first seen is some 200 m ahead, so tiles centred beneath the aircraft are half behind it. */
+export const DETAIL_AHEAD=650;
+/** Where the tiles centre for the short final's start (the one start inside the tiles; sim.js
+ *  reposition), looking down the approach to the west. */
+export const SHORT_FINAL_EYE=new THREE.Vector3(RUNWAY.thresholdX+APPROACH_STARTS.short.distanceNm*1852-DETAIL_AHEAD,0,0);
 
 export const GROUND_DETAIL_GLSL=/* glsl */`
   uniform sampler2D uDetail0,uDetail1,uDetail2,uDetail3;
@@ -29,7 +33,7 @@ export async function loadGroundDetail(world,uniforms,fallback) {
   const {tiles}=await res.json(),low=world.lowDetail||world.quality==='low';
   const cache=new Map(),errors=new Set(),url=t=>new URL(`../../assets/scenery/detail/${t.id}${low?'-low':''}.webp`,import.meta.url).href;
   // Only four tiles are on the graphics card at a time, but every file is downloaded with the
-  // scenery (12 MB, 3 MB on low): during a flight a tile is decoded from memory, not waited for.
+  // scenery (14 MB, 3 MB on low): during a flight a tile is decoded from memory, not waited for.
   const files=new Map(tiles.map(t=>[t.id,fetch(url(t)).then(r=>{if(!r.ok)throw new Error(`HTTP ${r.status}`);return r.blob();})]));
   // Decoded off the main thread where the browser can (an ImageBitmap).
   const decode=async t=>{
