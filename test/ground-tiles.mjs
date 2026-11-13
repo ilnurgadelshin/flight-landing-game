@@ -17,6 +17,9 @@ try{
     const r=await page.evaluate(async()=>{
       const T=await import('/vendor/three.module.js'),s=window.__sim,w=s.world,d=w.groundDetail,R=w.renderer;
       const slots=()=>[0,1,2,3].map(i=>w.groundUniforms[`uDetail${i}`].value);
+      // The flight below starts here: as a new flight does, with its tiles brought at once (the
+      // tiles prepared behind the menu centre ahead of the menu's view, not on this point).
+      await d.update(new T.Vector3(8908,200,0));
       const settled=slots(),size=settled[0].image.width;
       const finished=t=>!t.isRenderTargetTexture||[...d.cache.values()].some(e=>e.texture===t);
       // Fly toward the threshold, 3 m an animation frame, counting the strip copies in each frame.
