@@ -47,6 +47,7 @@ export class AudioSystem {
     this.stickShaker = null;
     this.hornOsc = null;
     this.config = { engine: true };
+    this.listener = 1;
   }
 
   /** Must be called from a user gesture. `context`: render somewhere else (tests: an OfflineAudioContext). */
@@ -116,8 +117,14 @@ export class AudioSystem {
 
   setEnabled(on) {
     this.enabled = on;
-    if (this.master) this.master.gain.setTargetAtTime(on ? 0.8 : 0, this.ctx.currentTime, 0.05);
+    if (this.master) this.master.gain.setTargetAtTime(on ? 0.8 * this.listener : 0, this.ctx.currentTime, 0.05);
     this.setSession();
+  }
+
+  /** How much of the aircraft's sound reaches the listener: 1 in the flight deck, less from a camera at a distance (the replay). */
+  setListener(level) {
+    this.listener = level;
+    if (this.master && this.enabled) this.master.gain.setTargetAtTime(0.8 * level, this.ctx.currentTime, 0.15);
   }
 
   /**

@@ -132,7 +132,9 @@ framing for the cockpit and head-up display. The choice is remembered on the dev
 
 After a flight, **Watch the landing** on the results screen replays the last
 minute from a camera on the grass beside the touchdown point: the recorded
-position and attitude (ten samples a second) flown by the apron's 737 model. Any
+position and attitude (ten samples a second) flown by the apron's 737 model. The engines,
+the roll and the touchdown are heard from the camera, quieter with distance, and the main
+wheels leave a puff of tyre smoke. Any
 key, click or tap returns to the results. It needs the scenery's airliner model, so
 the button is hidden if that has not loaded.
 

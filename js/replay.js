@@ -18,8 +18,8 @@ function puffTexture() {
 }
 
 export class Replay {
-  constructor({ game, world, view }) {
-    this.game = game; this.world = world; this.view = view;
+  constructor({ game, world, view, audio }) {
+    this.game = game; this.world = world; this.view = view; this.audio = audio;
     this.active = false; this.onEnd = null;
     this.camera = new THREE.PerspectiveCamera(20, 1, 1, 60000);
     this.q0 = new THREE.Quaternion(); this.q1 = new THREE.Quaternion(); this.target = new THREE.Vector3();
@@ -66,6 +66,7 @@ export class Replay {
     w.camera = this.saved.camera; if (w.composer) w.composer.passes[0].camera = this.saved.camera;
     w.drawCockpit = this.saved.draw;
     this.model.visible = false; this.active = false;
+    this.audio?.setListener(1);
     for (const p of this.puffs) { p.visible = false; p.userData.age = PUFF_LIFE; }
     if (this.onEnd) this.onEnd();
   }
@@ -83,7 +84,8 @@ export class Replay {
     const m = this.model;
     m.position.set(a.x + (b.x - a.x) * k, a.y + (b.y - a.y) * k - this.cg, a.z + (b.z - a.z) * k);
     m.quaternion.copy(this.q0.fromArray(a.q)).slerp(this.q1.fromArray(b.q), k);
-    this.updateSmoke(Math.min(dt, 0.1), a.ground || (b.ground && k > .5));
+    const ground = a.ground || (b.ground && k > .5), landed = ground && !this.wasGround;
+    this.updateSmoke(Math.min(dt, 0.1), ground);
     // follow the aircraft with a long lens that widens as it comes past
     const c = this.camera;
     this.target.copy(m.position); this.target.y += 4;
@@ -91,9 +93,21 @@ export class Replay {
     c.fov = Math.min(38, Math.max(3.5, 2 * Math.atan(27 / dist) * 180 / Math.PI));
     c.aspect = innerWidth / innerHeight; c.updateProjectionMatrix();
     c.lookAt(this.target); c.updateMatrixWorld();
+    this.updateSound(dt, a, ground, landed, dist);
     w.drawCockpit = false;
     w.update(dt, this.game.sim.state, c.position);
     w.render();
+  }
+
+  /** The aircraft heard from the camera: the recorded engines and roll, fading with distance, and the touchdown. */
+  updateSound(dt, sample, ground, landed, dist) {
+    const audio = this.audio; if (!audio || sample.n1 === undefined) return;
+    audio.setListener(Math.min(1, Math.max(0.06, 150 / dist)));
+    if (landed) audio.play('touchdown');
+    const n1 = sample.n1, speed = sample.speed || 0;
+    // outside there is no slipstream on a windscreen: a little of the airframe's rush only
+    audio.update(dt, { n1: [n1, n1], reverser: sample.reverser || 0, tasKts: speed * 1.944 * 0.35, speedbrake: 0, gearDown: false,
+      groundSpeed: speed, onGround: ground, surface: 'runway', skidding: false, stallWarning: false });
   }
 
   /** A burst of tyre smoke from each main gear when the wheels meet the runway, left behind the aircraft. */

@@ -291,15 +291,16 @@ if (want('land')) {
     out.playing = s.replay.active && document.body.classList.contains('replay') && !shown('results') && w.camera !== flightCamera;
     for (let i = 0; i < 12; i++) s.replay.frame(0.1);
     const m = s.replay.model.position, c = w.camera.position;
-    out.distance = Math.hypot(m.x - c.x, m.y - c.y, m.z - c.z); out.fov = w.camera.fov; out.stillPlaying = s.replay.active;
+    out.distance = Math.hypot(m.x - c.x, m.y - c.y, m.z - c.z); out.fov = w.camera.fov; out.stillPlaying = s.replay.active; out.heard = s.audio.listener;
     window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Space', key: ' ', bubbles: true, cancelable: true }));
-    out.returned = !s.replay.active && !document.body.classList.contains('replay') && shown('results') && w.camera === flightCamera && !s.replay.model.visible && s.game.state === 'finished';
+    out.returned = !s.replay.active && !document.body.classList.contains('replay') && shown('results') && w.camera === flightCamera && !s.replay.model.visible && s.game.state === 'finished' && s.audio.listener === 1;
     return out;
   });
   check('the flight is recorded for the replay, through the touchdown', rp.samples > 20 && rp.touched, `${rp.samples} samples`);
   check('"Watch the landing" is offered only when there is a model to fly', rp.offered);
   check('the replay follows the aircraft from beside the runway on a long lens', rp.playing && rp.stillPlaying && rp.distance > 50 && rp.distance < 6000 && rp.fov <= 38, `${fmt(rp.distance, 0)} m away, ${fmt(rp.fov, 1)}° lens`);
-  check('a key ends the replay and returns to the results', rp.returned);
+  check('the replay is heard from the camera: quieter with distance', rp.heard > 0.05 && rp.heard < 1, `level ${fmt(rp.heard, 2)}`);
+  check('a key ends the replay and returns to the results, the sound back in the flight deck', rp.returned);
 }
 
 // --------------------------------------------------------------------------- failure consequences
