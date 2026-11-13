@@ -6,6 +6,16 @@ import { sceneryGroundHeight } from './world/scenery-ground.js';
 
 const LEAD = 20;          // s shown before the touchdown
 const TAIL = 1.5;         // s held on the last sample
+const PUFFS = 28, PUFF_LIFE = 2.6;   // tyre smoke: sprites spawned at the main wheels as they spin up
+const GEAR = 2.86;        // m, a main gear leg from the centreline
+
+function puffTexture() {
+  const c = document.createElement('canvas'); c.width = c.height = 64;
+  const g = c.getContext('2d'), r = g.createRadialGradient(32, 32, 2, 32, 32, 32);
+  r.addColorStop(0, 'rgba(255,255,255,.9)'); r.addColorStop(.5, 'rgba(255,255,255,.35)'); r.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = r; g.fillRect(0, 0, 64, 64);
+  return new THREE.CanvasTexture(c);
+}
 
 export class Replay {
   constructor({ game, world, view }) {
@@ -37,6 +47,15 @@ export class Replay {
     this.saved = { camera: w.camera, draw: w.drawCockpit };
     w.camera = this.camera; if (w.composer) w.composer.passes[0].camera = this.camera;
     this.view.hud?.render(this.saved.camera, this.game.sim.state, { visible: false });
+    if (!this.puffs) {
+      const map = puffTexture();
+      this.puffs = Array.from({ length: PUFFS }, () => {
+        const p = new THREE.Sprite(new THREE.SpriteMaterial({ map, transparent: true, depthWrite: false }));
+        p.center.set(.5, .22);              // most of a puff above the runway it lies on
+        p.visible = false; p.userData = { age: PUFF_LIFE, v: new THREE.Vector3() }; w.scene.add(p); return p;
+      });
+    }
+    this.smoke = 0; this.side = 0; this.wasGround = true; this.last = new THREE.Vector3(NaN);
     this.model.visible = true; this.active = true;
     return true;
   }
@@ -47,6 +66,7 @@ export class Replay {
     w.camera = this.saved.camera; if (w.composer) w.composer.passes[0].camera = this.saved.camera;
     w.drawCockpit = this.saved.draw;
     this.model.visible = false; this.active = false;
+    for (const p of this.puffs) { p.visible = false; p.userData.age = PUFF_LIFE; }
     if (this.onEnd) this.onEnd();
   }
 
@@ -63,6 +83,7 @@ export class Replay {
     const m = this.model;
     m.position.set(a.x + (b.x - a.x) * k, a.y + (b.y - a.y) * k - this.cg, a.z + (b.z - a.z) * k);
     m.quaternion.copy(this.q0.fromArray(a.q)).slerp(this.q1.fromArray(b.q), k);
+    this.updateSmoke(Math.min(dt, 0.1), a.ground || (b.ground && k > .5));
     // follow the aircraft with a long lens that widens as it comes past
     const c = this.camera;
     this.target.copy(m.position); this.target.y += 4;
@@ -73,5 +94,33 @@ export class Replay {
     w.drawCockpit = false;
     w.update(dt, this.game.sim.state, c.position);
     w.render();
+  }
+
+  /** A burst of tyre smoke from each main gear when the wheels meet the runway, left behind the aircraft. */
+  updateSmoke(dt, ground) {
+    const m = this.model, d = this.target;
+    if (ground && !this.wasGround) this.smoke = 0.5;       // s of smoke from this touchdown (and from each bounce)
+    this.wasGround = ground;
+    const speed = Number.isNaN(this.last.x) || dt <= 0 ? 0 : m.position.distanceTo(this.last) / dt;
+    if (this.smoke > 0 && ground) {
+      this.smoke -= dt;
+      for (let n = 0; n < 2; n++) {
+        const p = this.puffs.reduce((o, q) => (q.userData.age > o.userData.age ? q : o));
+        this.side = -this.side || 1;
+        d.set(this.side * GEAR, 0.6, 1.5).applyQuaternion(m.quaternion).add(m.position);
+        p.position.copy(d); p.userData.age = 0; p.userData.size = 2.5 + Math.random() * 1.5;
+        p.userData.v.set(0, 0, -1).applyQuaternion(m.quaternion).multiplyScalar(speed * .08).setY(.8 + Math.random() * .8);
+        p.material.rotation = Math.random() * 6.28; p.visible = true;
+      }
+    }
+    this.last.copy(m.position);
+    const light = Math.min(1, Math.max(.1, (this.world.sun?.intensity ?? 3) / 3));
+    for (const p of this.puffs) {
+      const u = p.userData; if (u.age >= PUFF_LIFE) { p.visible = false; continue; }
+      u.age += dt; const f = u.age / PUFF_LIFE;
+      p.position.addScaledVector(u.v, dt); u.v.multiplyScalar(Math.exp(-1.6 * dt));
+      p.scale.setScalar(u.size * (1 + 4 * Math.sqrt(f)));
+      p.material.opacity = .5 * (1 - f) * (1 - f); p.material.color.setRGB(.86 * light, .86 * light, .88 * light);
+    }
   }
 }
