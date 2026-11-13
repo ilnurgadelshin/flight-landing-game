@@ -56,7 +56,7 @@ async function boot() {
   const view = new GameView({ game, world, cockpit, look: input.look, hud: new HeadUpDisplay(document.getElementById('hud-canvas')),
     compactCockpit: () => getScheme() === 'touch' && innerHeight <= 600 && innerWidth / innerHeight >= 1.35,
     outsideFirst: () => getScheme() !== 'touch' });
-  const replay = new Replay({ game, world, view });
+  const replay = new Replay({ game, world, view, audio });
   const presentation = new Presentation({ game, view, world, ui, audio, gpws, haptics, touch, input });
   input.onAction((name, arg) => presentation.onAction(name, arg));
   const platform = new Platform({ game, input, world });

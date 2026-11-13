@@ -80,7 +80,8 @@ export class Game {
     if (this.replayWait > 0) return;
     this.replayWait = 0.1;
     const st = this.sim.state;
-    this.replay.push({ t: this.time, x: st.x, y: st.y, z: st.z, q: [st.quat[0], st.quat[1], st.quat[2], st.quat[3]], ground: !!st.onGround });
+    this.replay.push({ t: this.time, x: st.x, y: st.y, z: st.z, q: [st.quat[0], st.quat[1], st.quat[2], st.quat[3]], ground: !!st.onGround,
+      n1: (st.n1[0] + st.n1[1]) / 2, reverser: st.reverser, speed: st.groundSpeed });   // for the replay's sound
     if (this.replay.length > 600) this.replay.shift();
   }
   mark(type, text = '') {
