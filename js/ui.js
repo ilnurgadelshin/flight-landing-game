@@ -121,7 +121,9 @@ export class UI {
     document.querySelectorAll('#scenario-row .choice').forEach((b) => b.classList.toggle('selected', b.dataset.scenario === this.selection.scenario));
     document.querySelectorAll('#start-row .choice').forEach((b) => b.classList.toggle('selected', b.dataset.start === this.selection.start));
     $('scenario-section').style.opacity = this.selection.mode === 'training' ? 0.45 : 1;
-    $('btn-demo').disabled = !!APPROACH_STARTS[this.selection.start].ground;   // the autoland demo flies approaches only
+    const ground = !!APPROACH_STARTS[this.selection.start].ground;
+    $('btn-demo').disabled = ground;                       // the autoland demo flies approaches only
+    $('btn-start').textContent = ground ? 'Start at the gate' : 'Start approach';
   }
 
   getOptions() {

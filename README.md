@@ -183,6 +183,8 @@ flight deck.
 | ND view: lean in to the navigation display (from either view) | `J` · its buttons (or `,` `.` `K`) set the range and mode · `J`, ✕ or `C` goes back |
 | Approach chart | `E` (also in the pause menu) · `Esc` closes it |
 | Reposition on final (after a go-around) | `Backspace` |
+| From the gate: the next step (pushback, engine start, release the parking brake) | `U`, or the button under the message |
+| Parking brake (on the ground) | `Y` |
 | Pause / Flight School / menu | `P` / `H` / `Esc` |
 
 The pitch axis defaults to "game style" (up arrow / mouse up = nose up). Tick
@@ -998,7 +1000,36 @@ tyre friction.
 | Standard final | 10 nm, 3000 ft, 175 kts | flaps 5, gear up | about 5 min |
 | Full approach | 26 nm, 7000 ft, 210 kts | flaps 1, gear up | about 12 min |
 
+| From the gate | stand 4, on the ground | engines off, parking brake set, flaps up | as long as you take |
+
 The **Night** option in the menu flies any of these after dark.
+
+### From the gate
+
+The first stage of a departure (the plan is below). The flight starts parked on stand 4, nose to
+the terminal, engines off. One control takes each step: `U`, the button under the message, or a
+controller's View button.
+
+1. **Pushback.** The parking brake is released and the tug pushes the aircraft back 45 m, turns
+   its tail along the apron and stops with the nose to the east, about 75 s in all. The parking
+   brake is set again.
+2. **Engine start**, during the push or after it. Simplified to one action: the starter motors
+   engine 2 for 14 s, it lights off and runs up to idle at 21 % N1, about 32 s; engine 1 follows
+   by itself.
+3. **Parking brake released**, and the aircraft taxis. Idle thrust alone gets it rolling
+   (10 kt after about 70 s; a little thrust is quicker) and keeps accelerating it, so the brakes
+   (`B`) hold the speed. The rudder control works the tiller during a departure: the nosewheel
+   turns up to 65° at walking pace and less as the speed rises, a 90° turn in about 12 s at 8 kt.
+   The route to runway 27: left to the parallel taxiway, right along it to its east end, and
+   onto the runway.
+
+A take-off from there works with the existing flight model: flaps 5, full thrust, rotate at about
+145 kt, gear up. It is recognised (AIRBORNE) but not yet graded, and nothing calls the speeds yet.
+The flight then goes on like any other: a landing back on runway 27 is graded as usual.
+
+Not in this stage: a tug to look at, a route drawn to follow, hold-short lines, the take-off
+calls and grading, and the phone layout's own taxi controls (the step button works on a phone;
+the parking brake after the first release has a key only).
 
 ## Departure: plan and research
 
@@ -1069,7 +1100,7 @@ before each stage is graded:
 ### Stages
 
 1. **Gate, pushback and a simplified engine start**, then taxi basics (idle thrust, tiller, parking
-   brake). *In progress.*
+   brake). **Done** (see *From the gate* above); a visible tug is still to come.
 2. **Take-off from the runway:** flaps and trim set, the calls, rotation, climb to a set altitude,
    graded.
 3. **Taxi to the runway:** a route to follow, hold-short line, line-up, signs and markings.
