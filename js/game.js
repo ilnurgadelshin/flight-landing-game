@@ -478,7 +478,7 @@ export class Game {
     else if (d.phase === 'ready') { text = 'ENGINES STABLE — [[departure]]: release the parking brake and taxi'; step = 'RELEASE PARKING BRAKE'; }
     else if (d.phase === 'lineup') { text = 'RUNWAY 27, CLEARED FOR TAKE-OFF — [[departure]]: release the parking brake'; step = 'RELEASE PARKING BRAKE'; }
     else if (d.phase === 'cleared') text = this.takeoffBrief();
-    else if (d.phase === 'taxi') text = 'TAXI TO RUNWAY 27 — follow the line: left to the taxiway, right along it to the far end. [[rudder]] steers the nosewheel';
+    else if (d.phase === 'taxi') text = 'TAXI TO RUNWAY 27 VIA A, A5 — follow the line: left to taxiway A, right along it, left onto A5. [[rudder]] steers the nosewheel';
     else if (d.phase === 'airborne') text = 'POSITIVE RATE — [[gear]]: gear up';
     this.message(text, 'ga', d.phase === 'taxi' ? 14 : d.phase === 'airborne' ? 6 : 0);
     d.step = step;

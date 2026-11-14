@@ -1034,7 +1034,10 @@ ends to the runway (`js/taxi-route.js`; a training aid, not a real marking). A s
 drives it in a test: 1,690 m in about 290 s at 15 kt on the straights and 8 kt in the turns, never
 off the pavement and within 6 m of the line. Each connector has a runway holding position marking
 76 m from the centreline (two solid lines on the holding side, two dashed on the runway's);
-the airport is quiet, so the clearance to line up comes as the aircraft reaches it. The tug is
+the airport is quiet, so the clearance to line up comes as the aircraft reaches it. The parallel
+taxiway is A and its connectors A1 (west) to A5 (by the 27 threshold); lit signs give the
+location and the runway at each holding point ("A5 | 27") and the direction to each connector
+along taxiway A ("← A5 | A"), and the clearance reads "via A, A5". The tug is
 seen once it has disconnected, driving clear of the nose to the left. An engine start plays the
 air starter and the light-off. Once stopped while taxiing, the step control sets the parking
 brake and releases it again, so a phone has a control for it.
@@ -1172,9 +1175,8 @@ before each stage is graded:
    brake). **Done** (see *From the gate* above).
 2. **Take-off from the runway:** flaps and trim set, the calls, rotation, climb to a set altitude,
    graded. **Done** (see *Take-off* above).
-3. **Taxi to the runway:** a route to follow, hold-short line, line-up, signs and markings. The
-   route, the holding position markings and the clearance are **done**; taxiway signs and named
-   taxiways are not.
+3. **Taxi to the runway:** a route to follow, hold-short line, line-up, signs and markings. **Done**:
+   the route, the holding position markings, the clearance, the taxiway names and the signs.
 4. **Failures and depth:** rejected take-off, an engine failure at V1, reduced thrust, a choice of
    weight. **Done**: the rejected take-off with RTO autobrake, the engine failure before and
    at V1, reduced thrust and the weights.

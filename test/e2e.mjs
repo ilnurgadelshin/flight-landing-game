@@ -370,6 +370,7 @@ if (want('depart')) {
       o.after = { state: g.state, msg: el('mode-msg').textContent, hidden: el('school').classList.contains('hidden') };
     }
     out.anchors = ui.DEPARTURE_STEPS.map((p) => [p.anchor, !!s.view.anchorFor(p.anchor)]);
+    const ts = s.world.taxiSigns; out.signs = ts ? { n: ts.signs.length, hold: ts.signs.filter((x) => x.yaw === 0).map((x) => x.panels.map((k) => ts.panels[k].text).join('|')) } : null;
     g.quitToMenu();
     return out;
   });
@@ -377,6 +378,7 @@ if (want('depart')) {
     school.gate.state === 'school' && school.gate.shown && school.gate.count === '1 / 8' && school.gate.first === 'From the gate' && new Set(school.gate.titles).size === 8 && school.gate.keys >= 7 && school.gate.last === 'Start flying' && school.gate.after.state === 'flying' && school.gate.after.hidden && /GATE 4/.test(school.gate.after.msg),
     `${school.gate.count}: ${school.gate.titles.join(', ')}`);
   check('from the runway it starts at the take-off pages, then the clearance', school.runway.count === '1 / 6' && school.runway.first === 'Before take-off' && school.runway.after.state === 'flying' && /CLEARED FOR TAKE-OFF/.test(school.runway.after.msg), `${school.runway.count}: ${school.runway.first}`);
+  check('taxiway signs: location and runway at the five holding points, directions along taxiway A', school.signs && school.signs.n === 15 && school.signs.hold.join() === 'A1|09,A2|09-27,A3|09-27,A4|09-27,A5|27', school.signs && school.signs.hold.join(' '));
   check('every page points at a part of the flight deck that exists', school.anchors.every(([, ok]) => ok), school.anchors.filter(([, ok]) => !ok).map(([a]) => a).join(', '));
   check('no JavaScript errors in either departure', !flow.errors.length, flow.errors.join(' | '));
 }
