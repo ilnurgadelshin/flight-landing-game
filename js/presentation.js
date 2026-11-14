@@ -89,7 +89,7 @@ export class Presentation {
     on('damage', () => { audio.play('crash'); ui.flash(0.9); if (haptics) haptics.crash(); view.shake(0.12); });
     on('finish', ({ result }) => {
       audio.setConfigHorn(false); audio.stopStickShaker();
-      this.lastDebrief = debriefModel(game.path);
+      this.lastDebrief = debriefModel(game.path, { takeoff: !!result.takeoff });
       ui.showResults(result, (ctx) => drawDebrief(ctx, this.lastDebrief));
       if (result.takeoff) audio.play(result.success ? 'chime' : 'caution');
       else if (result.success) audio.say(result.score >= 78 ? 'Nice landing, Captain' : 'We are down', { priority: 1 }); else audio.play('caution');

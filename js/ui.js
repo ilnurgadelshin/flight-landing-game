@@ -447,6 +447,11 @@ export class UI {
       t.appendChild(tr);
     }
     if (drawMap) drawMap($('res-map').getContext('2d'));
+    // a take-off's debrief: its own legend, and the replay is of the take-off
+    const to = !!res.takeoff;
+    $('lg-air').textContent = to ? 'in the air' : 'approach'; $('lg-ga').style.display = to ? 'none' : '';
+    $('lg-marks').textContent = to ? '■ lift-off, end' : '▲ go-around · ● touchdown · ■ stop';
+    $('btn-replay').textContent = to ? 'Watch the take-off' : 'Watch the landing';
     const n = $('res-notes'); n.innerHTML = '';
     for (const note of res.notes) { const d = document.createElement('div'); d.textContent = note; n.appendChild(d); }
     this.show('results', true);

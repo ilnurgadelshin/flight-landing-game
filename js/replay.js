@@ -37,7 +37,10 @@ export class Replay {
       this.model.name = 'Replay aircraft'; this.model.rotation.set(0, 0, 0);
       w.scene.add(this.model);
     }
-    const touch = s.find((p) => p.ground) || s[s.length - 1];
+    // a landing: the camera waits by the touchdown. A take-off (the recording starts on the ground
+    // and ends in the air): by the lift-off, the last moment on the runway
+    const departing = s[0].ground && !s[s.length - 1].ground;
+    const touch = (departing ? s.findLast((p) => p.ground) : s.find((p) => p.ground)) || s[s.length - 1];
     // the centre of gravity's height above the wheels: its height over the runway once rolling
     this.cg = touch.ground ? touch.y - sceneryGroundHeight(touch.x, touch.z, w.groundLowDetail) : 3;
     this.t = Math.max(s[0].t, touch.t - LEAD); this.end = s[s.length - 1].t;

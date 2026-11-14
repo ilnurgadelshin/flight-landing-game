@@ -357,7 +357,6 @@ export class Game {
         const text = { eighty: '80 KNOTS', v1: 'V1', rotate: 'ROTATE', positive: 'POSITIVE RATE' }[e.call];
         if (e.call !== 'positive') this.message(text, '', 2);
         this.emit('takeoffCall', { call: e.call }); this.log('takeoff', text.toLowerCase());
-        if (e.call === 'eighty') this.mark('takeoffroll', 'take-off roll');
       } else if (e.type === 'rejected') {
         this.message('REJECTED TAKE-OFF — brakes ([[brakes]]), speedbrakes ([[speedbrake]]), reverse ([[reverse]])', 'warn', 6);
         this.log('takeoff', `rejected at ${e.ias.toFixed(0)} kt`); this.mark('rejected', `${e.ias.toFixed(0)} kt`);
