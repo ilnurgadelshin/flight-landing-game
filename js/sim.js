@@ -1,7 +1,7 @@
 // Simulation session: atmosphere + aircraft (+ its avionics) + fixed-step integration with a
 // frame-time accumulator. Shared by the game (browser) and the tests (Node).
 import { Atmosphere } from './physics/atmosphere.js';
-import { Aircraft } from './physics/aircraft.js';
+import { Aircraft, CG_HEIGHT_ON_GROUND } from './physics/aircraft.js';
 import { deriveApproach } from './avionics.js';
 import { SCENARIOS, APPROACH_STARTS, RUNWAY, PHYSICS_DT, NM, FT, KTS, DEG } from './config.js';
 
@@ -27,6 +27,16 @@ export class Simulation {
   reposition(startId) {
     if (startId) this.start = APPROACH_STARTS[startId];
     const s = this.start;
+    this.accumulator = 0;
+    this.stepCount = 0;
+    if (s.ground) {
+      // parked on the stand as a crew finds it for a departure: engines off, parking brake set
+      const ac = this.aircraft;
+      ac.place({ x: s.stand.x, y: CG_HEIGHT_ON_GROUND + 0.05, z: s.stand.z, headingDeg: s.stand.headingDeg, iasKts: 0,
+        flapIndex: s.flaps, gearDown: true, throttle: 0, onGround: true, enginesRunning: false });
+      ac.input.parkingBrake = ac.state.parkingBrake = true; ac.tillerAssist = true;
+      return;
+    }
     const dist = s.distanceNm * NM;
     const x = RUNWAY.thresholdX + dist;                 // east of the threshold, flying west
     const alt = s.altFt * FT;

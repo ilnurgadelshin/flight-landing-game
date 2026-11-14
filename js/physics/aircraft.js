@@ -34,6 +34,10 @@ const _aero = { CL: 0, CD: 0, Cm: 0 };
 // Height of the CG above the ground with the gear extended and compressed
 // under static load. Used as the radio-altimeter datum.
 export const CG_HEIGHT_ON_GROUND = 3.3;
+// the simplified engine start: the starter's motoring, then the run-up to idle (seconds, N1 fraction)
+const START = { motorS: 14, motorN1: 0.06, motorTau: 4, runUpTau: 6 };
+// taxi steering: the tiller's nosewheel angle, limited so a turn stays within this lateral acceleration
+const TILLER = { maxDeg: 65, lateralAccel: 0.6, rateDeg: 20, wheelbase: 14.8 };
 
 export class Aircraft {
   /**
@@ -115,12 +119,14 @@ export class Aircraft {
       flapIndex: 0,   // detent index
       trim: 0,        // degrees of stabiliser trim (+ = nose up)
       autobrake: 0,   // 0 off, 1,2,3, 4 = MAX
+      parkingBrake: false,
     };
 
     // ----- internal state ---------------------------------------------------
     this.surfaces = { elevator: 0, aileron: 0, rudder: 0 }; // radians, actual positions
     // engine 1 (left) and engine 2 (right), each with its thrust line's distance from the centreline
-    this.engines = [-1, 1].map((side) => ({ n1: AC.engines.idleN1, thrust: 0, failed: false, x: side * AC.engines.lateralArm }));
+    this.engines = [-1, 1].map((side) => ({ n1: AC.engines.idleN1, thrust: 0, failed: false, running: true, starting: false, startT: 0, x: side * AC.engines.lateralArm }));
+    this.tow = null;   // a tug moving the aircraft: { vx, vz, headingRate } (m/s, rad/s clockwise seen from above)
     this.reverserPos = 0;         // 0 stowed .. 1 deployed
     this.flapDeg = 0;
     this.gearPos = 1;             // 0 up .. 1 down & locked
@@ -175,7 +181,7 @@ export class Aircraft {
       p: 0, q: 0, r: 0,
       ias: 0, tas: 0, tasKts: 0, alpha: 0, beta: 0, mach: 0,
       track: 0, gamma: 0, gLoad: 1,
-      n1: [0, 0], thrust: 0, engineThrust: [0, 0], engineFailed: [false, false], flapDeg: 0, flapIndex: 0, gearPos: 1, gearDown: true, gearInTransit: false,
+      n1: [0, 0], thrust: 0, engineThrust: [0, 0], engineFailed: [false, false], engineRunning: [true, true], engineStarting: [false, false], parkingBrake: false, towed: false, flapDeg: 0, flapIndex: 0, gearPos: 1, gearDown: true, gearInTransit: false,
       speedbrake: 0, speedbrakeArmed: false, reverser: 0, reverseSelected: false, trim: 0,
       elevator: 0, aileron: 0, rudder: 0, throttle: 0, brake: 0, autobrake: 0,
       onGround: false, wheelsOnGround: 0, mainsOnGround: false, noseOnGround: false,
@@ -190,7 +196,7 @@ export class Aircraft {
 
   // ----- placement -----------------------------------------------------------
   /** Place the aircraft at a position with heading (deg), speed (kts), config. */
-  place({ x, y, z, headingDeg, iasKts, flapIndex = 4, gearDown = true, throttle = 'trim', gammaDeg = 0, onGround = false }) {
+  place({ x, y, z, headingDeg, iasKts, flapIndex = 4, gearDown = true, throttle = 'trim', gammaDeg = 0, onGround = false, enginesRunning = true }) {
     const b = this.body;
     b.position.set(x, y, z);
     b.velocity.set(0, 0, 0);
@@ -209,6 +215,9 @@ export class Aircraft {
     this.input.reverse = false;
     this.input.reverseLevel = 1;
     this.input.brake = 0;
+    this.input.parkingBrake = false;
+    this.tow = null; this.noseSteer = 0;
+    this.tillerAssist = false;   // set for a departure's ground handling; off again once airborne
     this.reverserPos = 0;
     this.speedbrakePos = 0;
     this.surfaces.elevator = this.surfaces.aileron = this.surfaces.rudder = 0;
@@ -253,7 +262,7 @@ export class Aircraft {
     if (throttle === 'trim') this.input.throttle = clamp((n1 - E.idleN1) / (1 - E.idleN1), 0, 1);
     this.input.trim = onGround ? 0 : clamp(trim.trimDeg, -AC.controls.maxTrimDeg, AC.controls.maxTrimDeg);
     const thrust = onGround ? 0 : trim.thrust;
-    for (const e of this.engines) { e.n1 = n1; e.thrust = thrust / E.count; e.failed = false; }
+    for (const e of this.engines) { e.n1 = enginesRunning ? n1 : 0; e.thrust = enginesRunning ? thrust / E.count : 0; e.failed = false; e.running = enginesRunning; e.starting = false; e.startT = 0; }
     const wv = onGround ? 0 : tas;
     this.updateState(0, { tas: wv, totalThrust: thrust, alpha, wind });
   }
@@ -288,6 +297,19 @@ export class Aircraft {
 
   /** Fail an engine (0 = left, 1 = right), or restore it: it winds down to a windmilling fan. */
   setEngineFailed(index, failed = true) { this.engines[index].failed = failed; }
+
+  /**
+   * Start a stopped engine (simplified: one action for the start switch, the fuel lever and the
+   * monitoring). The starter turns the fan for START.motorS seconds, the engine lights off and
+   * runs up to idle: about 35 s in all. An 'engineStable' event follows.
+   */
+  startEngine(index) {
+    const e = this.engines[index];
+    if (e.running || e.starting || e.failed) return false;
+    e.starting = true; e.startT = 0;
+    this.events.push({ t: this.time, type: 'engineStart', engine: index });
+    return true;
+  }
 
   // ----- main fixed step ---------------------------------------------------------
   step(dt) {
@@ -377,11 +399,18 @@ export class Aircraft {
     let totalThrust = 0, thrustYaw = 0;
     for (const eng of this.engines) {
       // a failed engine winds down to its windmilling fan, which drags instead of pushing
-      const target = eng.failed ? E.windmillN1 : n1Target;
+      let target = eng.failed ? E.windmillN1 : n1Target;
       const up = target > eng.n1;
-      const tau = up ? (eng.n1 < 0.55 ? E.tauUpLow : E.tauUpHigh) : E.tauDown;
+      let tau = up ? (eng.n1 < 0.55 ? E.tauUpLow : E.tauUpHigh) : E.tauDown;
+      if (eng.starting) {
+        // the starter motors the fan, then the engine lights off and accelerates slowly to idle
+        eng.startT += dt;
+        if (!eng.running && eng.startT >= START.motorS) eng.running = true;
+        target = eng.running ? E.idleN1 : START.motorN1; tau = eng.running ? START.runUpTau : START.motorTau;
+        if (eng.running && eng.n1 > E.idleN1 - 0.008) { eng.starting = false; this.events.push({ t: this.time, type: 'engineStable', engine: this.engines.indexOf(eng) }); }
+      } else if (!eng.running && !eng.failed) { target = 0; tau = 6; }
       eng.n1 += (target - eng.n1) * (1 - Math.exp(-dt / tau));
-      eng.thrust = this.damage.destroyed ? 0
+      eng.thrust = this.damage.destroyed || !eng.running ? 0
         : eng.failed ? -qbar * E.windmillDragArea : engineThrust(eng.n1, mach, pRatio, E) * reverseFactor;
       totalThrust += eng.thrust;
       thrustYaw += eng.thrust * eng.x;   // about +Y (up): the right engine's thrust turns the nose left
@@ -467,6 +496,9 @@ export class Aircraft {
     this.groundBody.position.y = this.terrain.heightAt(b.position.x, b.position.z);
     this.groundBody.aabbNeedsUpdate = true;
     this.world.step(dt);
+    if (this.tow) {   // the tug sets the path over the ground; the struts still carry the aircraft
+      b.velocity.x = this.tow.vx; b.velocity.z = this.tow.vz; b.angularVelocity.y = -this.tow.headingRate;
+    }
     for (const c of this.world.contacts) {
       if (c.bi !== b && c.bj !== b) continue;
       const shape = c.bi === b ? c.si : c.sj;
@@ -501,7 +533,7 @@ export class Aircraft {
       if (this.groundTime > 0.12 && this.airborne) { this.airborne = false; this.airborneTime = 0; this.onTouchdownConfirmed(); }
     } else {
       this.airborneTime += dt;
-      if (this.airborneTime > 0.5 && !this.airborne) { this.airborne = true; this.groundTime = 0; if (this.touchdown) this.onLiftoffAfterTouchdown(); }
+      if (this.airborneTime > 0.5 && !this.airborne) { this.airborne = true; this.groundTime = 0; this.tillerAssist = false; if (this.touchdown) this.onLiftoffAfterTouchdown(); }
     }
     if (!this.airborne) this.landingRollDistance += Math.hypot(b.velocity.x, b.velocity.z) * dt;
 
@@ -544,7 +576,7 @@ export class Aircraft {
       autoBrakeCmd = clamp((target - decel) * 0.25 + this._abInt, 0, 1) * clamp((this._mainsGroundT - 0.5) / 1.0, 0, 1);
     } else { this._abInt = 0; }
     this._lastGs = gsNow;
-    const brakeCmd = clamp(Math.max(inp.brake, autoBrakeCmd), 0, 1);
+    const brakeCmd = inp.parkingBrake ? 1 : clamp(Math.max(inp.brake, autoBrakeCmd), 0, 1);
     this.brakeApplied = brakeCmd;
     const wet = this.atmosphere.scenario.wet;
 
@@ -586,8 +618,23 @@ export class Aircraft {
       if (g.name === 'nose') {
         // the pedals' nosewheel steering: ±7° at any speed, as on a 737 (at speed the rudder does
         // most of the work; the nosewheel is lightly loaded)
-        const maxSteer = g.cfg.steerMaxDeg * DEG;
-        g.steer = inp.yaw * maxSteer;
+        let maxSteer = g.cfg.steerMaxDeg * DEG;
+        if (this.tillerAssist) {
+          // Before a flight (the gate, the taxi out) the rudder control also works the tiller: the
+          // nosewheel turns as far as the speed allows, up to the tiller's angle at walking pace,
+          // and moves at the tiller's rate. A landing's roll-out keeps the pedals' ±7° alone.
+          const v = Math.max(gsNow, 0.5);
+          maxSteer = clamp(Math.atan(TILLER.wheelbase * TILLER.lateralAccel / (v * v)), maxSteer, TILLER.maxDeg * DEG);
+          const want = inp.yaw * maxSteer, step = TILLER.rateDeg * DEG * dt;
+          g.steer = Math.abs(want) <= g.cfg.steerMaxDeg * DEG && Math.abs(this.noseSteer) <= g.cfg.steerMaxDeg * DEG ? want
+            : this.noseSteer + clamp(want - this.noseSteer, -step, step);
+        } else g.steer = inp.yaw * maxSteer;
+        if (this.tow) {
+          // towed: the nosewheel is turned by the towbar, along the way its contact point moves
+          const v0 = b.getVelocityAtWorldPoint(contact, _v3), sp = Math.hypot(v0.x, v0.z);
+          if (sp > 0.05) { const along = v0.x * fx + v0.z * fz, cross = v0.x * -fz + v0.z * fx; g.steer = Math.atan2(cross, Math.abs(along)) * (along < 0 ? -1 : 1); }
+        }
+        this.noseSteer = g.steer;
         const cs = Math.cos(g.steer), sn = Math.sin(g.steer);
         // rotate the forward vector clockwise (seen from above, +Y up) by the
         // steer angle: heading h -> h + steer. For west (-1,0) and +steer this
@@ -618,6 +665,8 @@ export class Aircraft {
       if (fMag > limit) { const k = limit / fMag; fLong *= k; fLat *= k; g.skid = true; this.skidding = true; }
       if (Math.abs(slip) > T.corneringSlipPeakRad * 1.5 && vMag > 3) { g.skid = true; this.skidding = true; }
       if (g.surface === 'grass') fLong -= 0.04 * N * sign(vLong) * clamp(Math.abs(vLong), 0, 1);
+      // towed, the tug sets the motion over the ground: the tyres roll along it without pushing back
+      if (this.tow) { fLong = 0; fLat = 0; g.skid = false; this.skidding = false; }
       const fWorld = _v2.set(fx * fLong + rx * fLat, 0, fz * fLong + rz * fLat);
       b.applyForce(fWorld, rel);
 
@@ -837,6 +886,9 @@ export class Aircraft {
     st.n1[0] = this.engines[0].n1; st.n1[1] = this.engines[1].n1;
     st.engineThrust[0] = this.engines[0].thrust; st.engineThrust[1] = this.engines[1].thrust;
     st.engineFailed[0] = this.engines[0].failed; st.engineFailed[1] = this.engines[1].failed;
+    st.engineRunning[0] = this.engines[0].running; st.engineRunning[1] = this.engines[1].running;
+    st.engineStarting[0] = this.engines[0].starting; st.engineStarting[1] = this.engines[1].starting;
+    st.parkingBrake = this.input.parkingBrake; st.towed = !!this.tow;
     st.thrust = extra.totalThrust || 0;
     st.flapDeg = this.flapDeg; st.flapIndex = this.input.flapIndex;
     st.gearPos = this.gearPos; st.gearDown = this.gearPos > 0.98; st.gearInTransit = this.gearPos > 0.02 && this.gearPos < 0.98;

@@ -532,5 +532,60 @@ console.log('\n[R7] Every phrase the game speaks has a recording');
   check('each phrase has its MP3 file', !bad.length, bad.length ? 'bad or missing: ' + bad.join(', ') : `${phrases.length} files`);
 }
 
+console.log('\n[R8] Departure: from the gate, pushback, engine start, taxi, take-off');
+{
+  const R = rig({ startId: 'gate' }), g = R.game, ac = g.sim.aircraft, st = () => g.sim.state;
+  const KT = 0.514444;
+  const prompts = () => R.of('message').map((m) => m.text).filter(Boolean);
+  check('the flight starts on stand 4: on the ground, engines off, parking brake set, no lessons or demo',
+    g.state === 'flying' && st().onGround && st().n1[0] === 0 && !st().engineRunning[0] && st().parkingBrake && Math.abs(st().x - 160) < 1 && Math.abs(st().z - 380) < 1 && /GATE 4/.test(prompts()[0]),
+    prompts()[0]);
+  R.fly(20);
+  check('nothing moves until the pushback is asked for', st().groundSpeed < 0.05 && Math.hypot(st().x - 160, st().z - 380) < 0.5);
+  g.action('departure');
+  check('the pushback starts: parking brake released, the tug has the aircraft', !st().parkingBrake || ac.tow !== null, g.ctx.departure.phase);
+  R.fly(15);
+  const backing = st().z < 378 && Math.abs(st().x - 160) < 1 && st().towed;
+  check('the tug pushes straight back off the stand at walking pace', backing && Math.abs(st().groundSpeed - 1.5) < 0.2, `${(380 - st().z).toFixed(1)} m back, ${st().groundSpeed.toFixed(2)} m/s`);
+  g.action('departure');
+  check('the engines are started during the push: no. 2 first', ac.engines[1].starting && !ac.engines[0].starting && /ENGINE 2 STARTING/.test(prompts().at(-1)), prompts().at(-1));
+  let worstRoll = 0, worstPitch = 0;
+  for (let t = 0; t < 130 && g.ctx.departure.phase !== 'ready'; t += 0.1) { g.update(0.1); worstRoll = Math.max(worstRoll, Math.abs(st().roll)); worstPitch = Math.max(worstPitch, Math.abs(st().pitch)); }
+  const hdg = st().heading / DEG;
+  check('the push ends on the taxi lane with the nose to the east, parking brake set, the aircraft undisturbed',
+    g.ctx.departure.phase === 'ready' && Math.abs(hdg - 90) < 1.5 && st().parkingBrake && !st().towed && st().groundSpeed < 0.05 && worstRoll < 1 * DEG && worstPitch < 1.5 * DEG && st().surface === 'taxiway' && !ac.damage.notes.length,
+    `heading ${hdg.toFixed(1)}°, at ${st().x.toFixed(0)}, ${st().z.toFixed(0)}, roll ≤ ${(worstRoll / DEG).toFixed(2)}°`);
+  check('both engines run at idle, no. 1 started after no. 2', st().engineRunning.every(Boolean) && st().n1.every((n) => Math.abs(n - 0.21) < 0.01) && g.events.filter((e) => /engine . start/.test(e.text)).map((e) => e.text).join() === 'engine 2 start,engine 1 start');
+  R.fly(10);
+  check('the parking brake holds against idle thrust', st().groundSpeed < 0.05);
+  g.action('departure');
+  check('the last step releases the parking brake and gives the taxi route', !st().parkingBrake && g.ctx.departure.phase === 'taxi' && /TAXI TO RUNWAY 27/.test(prompts().at(-1)));
+  R.fly(40);
+  check('idle thrust alone gets the aircraft rolling', st().groundSpeed > 2 * KT && st().groundSpeed < 12 * KT, `${(st().groundSpeed / KT).toFixed(1)} kt after 40 s`);
+  // a left turn with the rudder control at taxi speed: the tiller's angles, not the pedals' 7°
+  const h0 = st().heading; let steer = 0; ac.input.yaw = -1;
+  for (let t = 0; t < 10; t += 0.1) { g.update(0.1); steer = Math.max(steer, Math.abs(st().noseSteer)); }
+  ac.input.yaw = 0;
+  let turned = (h0 - st().heading) / DEG; if (turned < 0) turned += 360;
+  check('the rudder control steers the nosewheel as a tiller at taxi speed', steer > 30 * DEG && turned > 45 && !st().skidding, `${(steer / DEG).toFixed(0)}° of nosewheel, ${turned.toFixed(0)}° of turn in 10 s`);
+  g.action('parkingBrake'); R.fly(8);
+  check('the parking brake control sets and releases the brake on the ground', st().parkingBrake && st().groundSpeed < 0.1);
+  g.action('parkingBrake');
+  // the take-off itself, from the runway: the stage's physics, lined up by placing the aircraft
+  ac.place({ x: 1440, y: 3.35, z: 0, headingDeg: 270, iasKts: 0, flapIndex: 2, gearDown: true, throttle: 0, onGround: true });
+  ac.input.throttle = 1; let lift = null;
+  for (let t = 0; t < 70 && !lift; t += 0.05) {
+    if (st().ias > 145) ac.input.pitch = Math.max(-1, Math.min(0.7, (12 * DEG - st().pitch) * 4 - st().q * 2));
+    g.update(0.05); if (g.ctx.departure.phase === 'airborne') lift = { x: st().x, ias: st().ias };
+  }
+  check('a take-off from the runway is recognised: airborne within 1,600 m, the gear prompt, no go-around or landing counted',
+    lift && 1440 - lift.x < 1600 && /AIRBORNE/.test(prompts().at(-1)) && g.ctx.goArounds === 0 && !ac.touchdown && g.state === 'flying' && !ac.damage.notes.length,
+    lift ? `airborne ${(1440 - lift.x).toFixed(0)} m down the runway at ${lift.ias.toFixed(0)} kt` : 'never airborne');
+  const R2 = rig({ startId: 'gate', mode: 'training' });
+  check('Flight School and the autoland demo stay out of a gate start', R2.game.state === 'flying' && !R2.of('school').length && !rig({ startId: 'gate', demo: true }).game.demoAp);
+  R2.game.action('departure'); R2.fly(10); R2.game.action('reposition');
+  check('repositioning returns to the stand, parked', R2.game.ctx.departure.phase === 'gate' && R2.game.sim.state.parkingBrake && Math.abs(R2.game.sim.state.z - 380) < 1 && !R2.game.sim.state.towed);
+}
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

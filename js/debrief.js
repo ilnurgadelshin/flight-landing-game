@@ -126,7 +126,7 @@ function drawMark(g, m, labels = true) {
   else if (m.type === 'crash') { g.strokeStyle = '#ff4d4d'; g.lineWidth = 3; g.beginPath(); g.moveTo(-7, -7); g.lineTo(7, 7); g.moveTo(7, -7); g.lineTo(-7, 7); g.stroke(); }
   else { g.fillStyle = '#fff'; g.fillRect(-5, -5, 10, 10); g.strokeRect(-5, -5, 10, 10); }
   if (labels) {
-    const t = { goaround: 'GA', touchdown: 'TD', touchandgo: 'T&G', stop: 'STOP', crash: 'CRASH', end: 'END' }[m.type] || '';
+    const t = { goaround: 'GA', touchdown: 'TD', touchandgo: 'T&G', stop: 'STOP', crash: 'CRASH', end: 'END', takeoff: 'T/O' }[m.type] || '';
     g.fillStyle = INK; g.font = font(12, true); g.textAlign = 'left'; g.textBaseline = 'bottom'; g.fillText(t, 8, -6);
   }
   g.restore();

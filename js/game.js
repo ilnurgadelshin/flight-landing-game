@@ -22,6 +22,7 @@
 //   damage       { type, reason }                     strikes, gear collapse, destruction
 //   finish       { result }
 import { Simulation } from './sim.js';
+import { Pushback } from './pushback.js';
 import { FlightControls } from './flightcontrols.js';
 import { commandSpeed } from './autothrottle.js';
 import { evaluateLanding } from './evaluate.js';
@@ -128,9 +129,12 @@ export class Game {
     const scenario = SCENARIOS[opts.scenarioId];
     this.sim = new Simulation({ scenarioId: opts.scenarioId, startId: opts.startId, seed: opts.seed || (Date.now() % 1000) + 1 });
     this.controls = new FlightControls(this.sim.aircraft, this.player);
+    const ground = !!this.sim.start.ground;   // a departure: from the gate (the README's departure plan)
+    this.pushback = ground ? new Pushback(this.sim.aircraft, this.sim.start.stand) : null;
     this.controls.onAutothrottle = (on, reason) => this.announceAutothrottle(on, reason);
     if (this.mode === 'training') this.controls.enableDirector();
     this.sim.preStep = (dt) => {
+      if (this.pushback && this.pushback.step(dt)) this.pushbackDone();
       if (this.controls.step(dt)) this.announceTakeover();
       // the autoland decided to go around: announced like TO/GA pressed, before the GPWS looks at
       // the flaps coming up to 15
@@ -140,6 +144,7 @@ export class Game {
     this.sim.postStep = (dt) => { if (this.state === 'flying' && this.gpws) this.gpws.update(dt, this.sim.state, { gaMode: this.ctx.gaMode, gaAltitudeLoss: this.ctx.gaMaxAgl - this.sim.state.agl, terrainAhead: this.terrainAhead() }); };
     if (this.gpws) this.gpws.reset();
     this.ctx = this.newCtx();
+    this.ctx.departure = ground ? { phase: 'gate', enginesAsked: false } : null;
     this.efis = this.newEfis();
     this.path = this.newPath();
     this.replay = []; this.replayWait = 0;
@@ -149,7 +154,11 @@ export class Game {
     this._instT = 0; this._gaHint = false;
     this.emit('start', { opts, scenario, night: this.night });
     this.emit('instructor', { html: '' });
-    if (opts.demo) {
+    if (ground) {
+      // no autoland demo and no approach lessons from the gate: the flight starts with the pushback
+      this.setState('flying');
+      this.departurePrompt();
+    } else if (opts.demo) {
       this.controls.engageAutopilot({});
       this.setState('flying');
       this.message('AUTOLAND DEMO — [[takeover]] to take over', 'ga');
@@ -200,6 +209,18 @@ export class Game {
         // the autoland flies its own; on the ground there is nothing to engage
         if (this.demoAp) break;
         if (!this.controls.setAutothrottle(!this.controls.autothrottle.engaged, 'switch') && st.onGround) this.message('A/T — engages in flight only', '', 2);
+        break;
+      }
+      case 'departure': this.departureStep(); break;
+      case 'parkingBrake': {
+        const inp = this.sim.aircraft.input;
+        if (!st.onGround || st.towed) break;
+        this.setParkingBrake(!inp.parkingBrake);
+        this.emit('control', { name, value: inp.parkingBrake });
+        this.message(inp.parkingBrake ? 'PARKING BRAKE SET' : 'PARKING BRAKE RELEASED', '', 2);
+        this.log('input', `parking brake ${inp.parkingBrake ? 'set' : 'released'}`);
+        const d = this.ctx.departure;
+        if (d && d.phase === 'ready' && !inp.parkingBrake) { d.phase = 'taxi'; this.departurePrompt(); }
         break;
       }
       case 'reposition': if (this.ctx.gaMode || st.alt > 900 || st.onGround) this.reposition(); break;
@@ -272,6 +293,17 @@ export class Game {
 
   reposition() {
     this.sim.reposition();
+    if (this.sim.start.ground) {
+      // back on the stand, as the flight began
+      this.pushback = new Pushback(this.sim.aircraft, this.sim.start.stand);
+      this.ctx.departure = { phase: 'gate', enginesAsked: false };
+      this.ctx.gaMode = false; this.ctx.wasLow = false;
+      if (this.gpws) this.gpws.reset();
+      this.path.seg++; this.path.wait = 0;
+      this.emit('reposition', { distanceNm: 0 }); this.log('reposition', 'back at the gate');
+      this.departurePrompt();
+      return;
+    }
     this.ctx.gaMode = false; this.ctx.wasLow = false; this.ctx.gaTimer = 0; this.ctx.touchAndGo = false; this.ctx.sixtyCalled = false;
     // the autoland flies the new approach from the start (it keeps count of its go-arounds)
     const ap = this.controls.autopilot;
@@ -282,6 +314,54 @@ export class Game {
     this.message(`REPOSITIONED — ${this.sim.start.distanceNm} nm final`, 'ga', 2.5);
     this.emit('reposition', { distanceNm: this.sim.start.distanceNm });
     this.log('reposition', 'back on final');
+  }
+
+  // ------------------------------------------------------------------ departure
+  /**
+   * The next step of a departure from the gate, one control for all of them: request the pushback,
+   * start the engines (no. 2, then no. 1 follows by itself), release the parking brake.
+   */
+  departureStep() {
+    const d = this.ctx.departure, ac = this.sim.aircraft;
+    if (!d) return;
+    if (d.phase === 'gate') {
+      this.setParkingBrake(false); this.pushback.start(); d.phase = 'push';
+      this.emit('control', { name: 'departure', value: 'push' }); this.log('departure', 'pushback started');
+    } else if ((d.phase === 'push' || d.phase === 'pushed') && !d.enginesAsked) {
+      d.enginesAsked = true; ac.startEngine(1);
+      this.emit('control', { name: 'departure', value: 'start' });
+    } else if (d.phase === 'ready') {
+      this.setParkingBrake(false); d.phase = 'taxi';
+      this.emit('control', { name: 'parkingBrake', value: false }); this.log('input', 'parking brake released');
+    } else return;
+    this.departurePrompt();
+  }
+
+  setParkingBrake(on) { this.sim.aircraft.input.parkingBrake = this.sim.state.parkingBrake = on; }
+
+  /** The tug has stopped: parking brake set, tug away. */
+  pushbackDone() {
+    const d = this.ctx.departure, ac = this.sim.aircraft;
+    this.setParkingBrake(true);
+    d.phase = ac.engines.every((e) => e.running && !e.starting) ? 'ready' : 'pushed';
+    this.log('departure', 'pushback complete'); this.emit('control', { name: 'parkingBrake', value: true });
+    this.departurePrompt();
+  }
+
+  /** What the crew is told at this step, and the step the one control would take next. */
+  departurePrompt() {
+    const d = this.ctx.departure; if (!d) return;
+    const E = this.sim.aircraft.engines, starting = E[1].starting ? 2 : E[0].starting ? 1 : 0;
+    const engines = starting ? `ENGINE ${starting} STARTING` : '';
+    let text = '', step = '';
+    if (d.phase === 'gate') { text = `GATE ${this.sim.start.stand.index + 1} — [[departure]]: request the pushback`; step = 'PUSHBACK'; }
+    else if (d.phase === 'push') { text = d.enginesAsked ? `PUSHBACK — ${engines || 'ENGINES RUNNING'}` : 'PUSHBACK — [[departure]]: start the engines'; step = d.enginesAsked ? '' : 'START ENGINES'; }
+    else if (d.phase === 'pushed') { text = d.enginesAsked ? `PUSHBACK COMPLETE — ${engines}` : 'PUSHBACK COMPLETE, parking brake set — [[departure]]: start the engines'; step = d.enginesAsked ? '' : 'START ENGINES'; }
+    else if (d.phase === 'ready') { text = 'ENGINES STABLE — [[departure]]: release the parking brake and taxi'; step = 'RELEASE PARKING BRAKE'; }
+    else if (d.phase === 'taxi') text = 'TAXI TO RUNWAY 27 — turn left to the taxiway, then right along it to the far end. [[rudder]] steers the nosewheel';
+    else if (d.phase === 'airborne') text = 'AIRBORNE — [[gear]]: gear up';
+    this.message(text, 'ga', d.phase === 'taxi' ? 14 : d.phase === 'airborne' ? 6 : 0);
+    this.emit('departure', { phase: d.phase, step });
   }
 
   /** A go-around: TO/GA pressed (manual), detected from the flying, or the autoland's (with its reason). */
@@ -372,6 +452,16 @@ export class Game {
         this.mark(c.touchAndGo && c.gaMode ? 'touchandgo' : 'touchdown', `${(e.sink / 0.00508).toFixed(0)} fpm`);
       } else if (e.type === 'spoilers') { this.emit('spoilers'); this.log('systems', 'ground spoilers deployed'); }
       else if (e.type === 'liftoff') { this.log('bounce', `bounce ${e.bounce}`); }
+      else if (e.type === 'engineStart') { this.log('systems', `engine ${e.engine + 1} start`); this.emit('engineStart', { engine: e.engine }); }
+      else if (e.type === 'engineStable') {
+        this.log('systems', `engine ${e.engine + 1} stable at idle`);
+        const d = c.departure;
+        if (d) {
+          if (e.engine === 1) ac.startEngine(0);              // no. 2 first, then no. 1, as crews start them
+          else if (d.phase === 'pushed') d.phase = 'ready';
+          this.departurePrompt();
+        }
+      }
       else if (e.type === 'autobrakeDisarm') {
         this.message('AUTOBRAKE DISARM', '', 2.5);
         this.emit('control', { name: 'autobrake', value: 0 });
@@ -382,6 +472,10 @@ export class Game {
         this.log('damage', e.reason || e.type);
         if (e.type === 'destroyed') c.crashSeen = true;
       } else if (e.type === 'hardlanding') { this.log('damage', 'hard landing'); }
+    }
+    // a departure: off the ground
+    if (c.departure && c.departure.phase !== 'airborne' && !st.onGround && st.agl > 5) {
+      c.departure.phase = 'airborne'; this.log('departure', `airborne at ${st.ias.toFixed(0)} kt`); this.mark('takeoff', `${st.ias.toFixed(0)} kt`); this.departurePrompt();
     }
     // excursion / overrun
     if (st.onGround && ac.touchdown) {
@@ -397,7 +491,7 @@ export class Game {
         if (c.finishTimer > (destroyed ? 2.5 : 1.5)) this.finish();
       } else c.finishTimer = 0;
       // flew off (e.g. missed approach and left the area)
-      if (st.distToThreshold > 40 * NM || Math.abs(st.z) > 30000) { this.log('abort', 'left the area'); this.finish(); }
+      if (Math.abs(st.distToThreshold) > 40 * NM || Math.abs(st.z) > 30000) { this.log('abort', 'left the area'); this.finish(); }
     }
   }
 
@@ -422,6 +516,7 @@ export class Game {
     if (this._instT < 0.5) return;
     this._instT = 0;
     const st = this.sim.state, inp = this.sim.aircraft.input, c = this.ctx;
+    if (c.departure && c.departure.phase !== 'airborne') return;   // the approach's hints have nothing to say at the gate
     const aglFt = st.agl / FT, dNm = st.distToThreshold / NM;
     const target = st.vref + 5, atOn = this.controls.autothrottle.engaged;
     const hints = [];
