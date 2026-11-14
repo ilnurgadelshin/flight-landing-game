@@ -30,6 +30,9 @@ export const TAKEOFF = {
   ratings: [{ id: 'TO', lever: 1 }, { id: 'TO-1', lever: 0.9 }, { id: 'TO-2', lever: 0.8 }],
   // take-off weights offered (kg): a light aircraft, a typical one, and near the maximum (79,016 kg)
   weights: [62000, 70000, 78000],
+  // an engine failure on the roll, for practice: 'early' is 20 kt before V1 (the answer is to stop),
+  // 'v1' just after it (the answer is to go). With one engine the flight ends at 1,500 ft.
+  failures: ['none', 'early', 'v1', 'surprise'], failEarlyKt: 20, engineOutEndFt: 1500, engineOutClimb: [0, 20],
   speedFromFt: 35, speedToFt: 1000,   // the climb speed is judged between these heights
 };
 
@@ -69,8 +72,9 @@ export function configProblems(st, inp, trim) {
 }
 
 export class TakeoffMonitor {
-  constructor(aircraft, { wet = false } = {}) {
-    this.ac = aircraft; this.wet = wet;
+  /** @param opts { wet, failure: null | { at: 'early' | 'v1', engine: 0 | 1 } } */
+  constructor(aircraft, { wet = false, failure = null } = {}) {
+    this.ac = aircraft; this.wet = wet; this.failure = failure;
     this.phase = 'before';        // before → roll → rotate → climb → done; or roll → rejected → done
     this.rec = null; this.brief = '';
     this.rating = 0;              // index into TAKEOFF.ratings: the take-off thrust selected
@@ -104,7 +108,7 @@ export class TakeoffMonitor {
         const bad = configProblems(st, inp, trim);
         this.rec = { speeds, trim, config: bad, startX: st.x, startHeading: st.heading, t: 0, maxDev: 0, called: {},
           rotate: null, liftoff: null, rate: null, positiveT: null, gearUpT: null, speed: { n: 0, sum: 0, min: Infinity }, climbDev: 0, maxBank: 0,
-          stall: false, settled: false, rejected: null, endIas: null,
+          stall: false, settled: false, rejected: null, endIas: null, failure: null,
           rating: TAKEOFF.ratings[this.rating].id, mass: this.ac.mass, rto: inp.autobrake === 5, flapIndex: inp.flapIndex,
           clean: { lowFt: null, slow: null, upFt: null, reducedFt: null, maxIas: 0, told: {} } };
         this.phase = 'roll';
@@ -119,6 +123,12 @@ export class TakeoffMonitor {
 
     if (this.phase === 'roll' || this.phase === 'rotate') {
       if (st.onGround) r.maxDev = Math.max(r.maxDev, Math.abs(st.lateralOffset));
+      // the practice engine failure: once, at its speed
+      const F = this.failure;
+      if (F && !r.failure && st.onGround && st.ias >= (F.at === 'v1' ? V.v1 + 1 : Math.max(92, V.v1 - T.failEarlyKt))) {
+        this.ac.setEngineFailed(F.engine);
+        r.failure = { engine: F.engine, ias: st.ias, beforeV1: st.ias < V.v1 }; out.push({ type: 'engineFailure', engine: F.engine, ias: st.ias });
+      }
       if (st.ias >= 80) call('eighty');
       if (st.ias >= V.v1) call('v1');
       if (st.ias >= V.vr) call('rotate');
@@ -154,6 +164,8 @@ export class TakeoffMonitor {
     if (aglFt >= T.speedFromFt && aglFt <= T.speedToFt) { r.speed.n++; r.speed.sum += st.ias; r.speed.min = Math.min(r.speed.min, st.ias); }
     r.climbDev = Math.max(r.climbDev, Math.abs(st.lateralOffset));
     r.maxBank = Math.max(r.maxBank, Math.abs(st.roll));
+    // on one engine the take-off ends once it is safely climbing: no clean-up to grade
+    if (r.failure) { if (aglFt >= T.engineOutEndFt) { r.endIas = st.ias; this.phase = 'done'; out.push({ type: 'done' }); } return out; }
     // after take-off: accelerate and clean up from 1,000 ft, climb thrust from 1,500 ft
     const cl = r.clean;
     if (inp.flapIndex < r.flapIndex) {
@@ -183,12 +195,19 @@ export function evaluateTakeoff(monitor, ac) {
   const cfg = r.config.filter((p) => p !== 'FLAPS MOVING');
   add('Configuration', cfg.length ? `not set: ${cfg.join(', ').toLowerCase()}` : `flaps ${AC.flapDetents[V.flapIndex]}, trim ${r.trim.toFixed(1)}, thrust ${r.rating}, ${(r.mass / 1000).toFixed(0)} t${r.rto ? ', autobrake RTO' : ''}`, cfg.length ? 0 : 10, 10,
     cfg.length ? 'Flaps 1, 5 or 15, the trim in the green band, speedbrake down and the parking brake released before take-off thrust.' : 'Set for take-off.', !cfg.length);
-  add('Centreline on the roll', `${r.maxDev.toFixed(1)} m off at most`, 15 * within(r.maxDev, 3, 15), 15,
-    r.maxDev <= 3 ? 'On the centreline.' : 'Small rudder inputs early keep the nose on the centreline.', r.maxDev < 15);
+  const fail = r.failure, devFull = fail ? 9 : 3, devZero = fail ? 22 : 15;   // an engine failure swings the nose: the runway's half-width is the limit
+  add('Centreline on the roll', `${r.maxDev.toFixed(1)} m off at most`, 15 * within(r.maxDev, devFull, devZero), 15,
+    r.maxDev <= devFull ? (fail ? 'Held with the rudder through the engine failure.' : 'On the centreline.') : fail ? 'Rudder at once, towards the engine still running.' : 'Small rudder inputs early keep the nose on the centreline.', r.maxDev < devZero);
+  if (fail) {
+    const stopped = !!r.rejected, right = fail.beforeV1 ? stopped : !stopped;
+    add('Engine failure', `engine ${fail.engine + 1} failed at ${fail.ias.toFixed(0)} kt (V1 ${V.v1}): ${stopped ? 'stopped' : 'continued'}`, right ? 10 : 0, 10,
+      fail.beforeV1 ? (right ? 'Before V1: stop.' : 'Before V1 the take-off is rejected: there is runway to stop on, and one engine less to climb with.') : (right ? 'After V1: go.' : 'After V1 the take-off is continued.'), right);
+  }
 
   if (r.rejected) {
     const j = r.rejected, ok = !j.afterV1 && j.stoppedOnRunway;
-    add('The decision', `rejected at ${j.ias.toFixed(0)} kt (V1 ${V.v1})`, j.afterV1 ? 0 : 40, 40, j.afterV1 ? 'After V1 the take-off is continued: there may not be runway left to stop.' : 'Before V1: stopping was the right call.', !j.afterV1);
+    const dec = fail ? 30 : 40;
+    add('The decision', `rejected at ${j.ias.toFixed(0)} kt (V1 ${V.v1})`, j.afterV1 ? 0 : dec, dec, j.afterV1 ? 'After V1 the take-off is continued: there may not be runway left to stop.' : 'Before V1: stopping was the right call.', !j.afterV1);
     add('Stopping', j.stoppedOnRunway ? 'stopped on the runway' : 'left the runway', j.stoppedOnRunway ? 35 : 0, 35, j.stoppedOnRunway ? 'Thrust closed, brakes, speedbrakes and reverse.' : 'Maximum braking, speedbrakes up and reverse thrust at once.', j.stoppedOnRunway);
     const score = dmg.destroyed ? 0 : items.reduce((s, i) => s + i.points, 0);
     return { outcome: ok && !dmg.destroyed ? 'rejected' : 'overrun', headline: ok ? `Rejected take-off at ${j.ias.toFixed(0)} kt, stopped on the runway` : j.afterV1 ? 'Take-off rejected after V1' : 'Rejected take-off left the runway',
@@ -208,7 +227,7 @@ export function evaluateTakeoff(monitor, ac) {
   }
   if (lo) {
     if (r.rate !== null) {
-      const [a, b] = T.rateDegS, off = r.rate < a ? a - r.rate : r.rate > b ? r.rate - b : 0;
+      const [a, b] = fail ? [1.5, 3] : T.rateDegS, off = r.rate < a ? a - r.rate : r.rate > b ? r.rate - b : 0;   // a little slower on one engine
       add('Rotation rate', `${r.rate.toFixed(1)}° a second`, 15 * within(off, 0, 1.5), 15, off === 0 ? 'Smooth and continuous.' : r.rate > b ? 'Too fast: the tail comes close to the runway.' : 'Too slow: the aircraft stays on the runway longer.', off < 1.5);
     }
     const pitch = lo.pitch / DEG, margin = T.tailPitchDeg - pitch;
@@ -217,13 +236,14 @@ export function evaluateTakeoff(monitor, ac) {
     const gearOk = r.gearUpT !== null && r.gearUpT <= T.gearUpS;
     add('Gear up', r.gearUpT === null ? 'not selected up' : `${r.gearUpT.toFixed(1)} s after the positive rate`, gearOk ? 5 : r.gearUpT !== null ? 2 : 0, 5, gearOk ? 'Positive rate, gear up.' : 'Gear up as soon as the aircraft is climbing: it is a lot of drag.', gearOk);
     if (r.speed.n) {
-      const mean = r.speed.sum / r.speed.n, [a, b] = T.climb, over = mean - V.v2, off = over < a ? a - over : over > b ? over - b : 0;
+      const mean = r.speed.sum / r.speed.n, [a, b] = fail ? T.engineOutClimb : T.climb, over = mean - V.v2, off = over < a ? a - over : over > b ? over - b : 0;
       const low = r.speed.min < V.v2 - 2;
       add('Climb speed', `V2 ${over >= 0 ? '+' : '−'} ${Math.abs(over).toFixed(0)} kt on average (lowest ${r.speed.min.toFixed(0)} kt)`, low ? 0 : 15 * within(off, 0, 20), 15,
-        low ? `Below V2 (${V.v2} kt): lower the nose.` : off === 0 ? 'V2 + 10 to 25.' : over > b ? 'Fast: a little more pitch holds the speed and gains height sooner.' : 'Slow: a little less pitch.', !low && off < 20);
+        low ? `Below V2 (${V.v2} kt): lower the nose.` : off === 0 ? (fail ? 'V2 to V2 + 20 on one engine.' : 'V2 + 10 to 25.') : over > b ? 'Fast: a little more pitch holds the speed and gains height sooner.' : 'Slow: a little less pitch.', !low && off < 20);
     }
-    if (r.endIas !== null || r.climbDev > 0) add('Track', `${r.climbDev.toFixed(0)} m off the runway's line at most, ${(r.maxBank / DEG).toFixed(0)}° of bank`, 5 * within(r.climbDev, 100, 600), 5, r.climbDev <= 100 ? 'Straight out.' : 'Hold the runway heading, the wings level.', r.climbDev < 600);
-    if (r.endIas !== null) {
+    const trackFull = fail ? 400 : 100, trackZero = fail ? 2000 : 600;   // on one engine the heading is held, not the centreline
+    if (r.endIas !== null || r.climbDev > 0) add('Track', `${r.climbDev.toFixed(0)} m off the runway's line at most, ${(r.maxBank / DEG).toFixed(0)}° of bank`, 5 * within(r.climbDev, trackFull, trackZero), 5, r.climbDev <= trackFull ? 'Straight out.' : 'Hold the runway heading, the wings level.', r.climbDev < trackZero);
+    if (r.endIas !== null && !fail) {
       // the clean-up: flaps up on schedule, climb thrust, the speed limit
       const cl = r.clean, faults = [];
       if (cl.lowFt !== null) faults.push(`flaps retracted at ${cl.lowFt.toFixed(0)} ft (not below ${T.cleanFromFt})`);
@@ -242,7 +262,8 @@ export function evaluateTakeoff(monitor, ac) {
   if (dmg.destroyed) score = 0; else if (outcome !== 'takeoff') score = Math.min(score, 30);
   if (r.stall && outcome === 'takeoff') score = Math.min(score, 60);
   const success = outcome === 'takeoff';
-  if (success) headline = score >= 90 ? 'Excellent take-off, Captain' : score >= 78 ? 'Good take-off' : score >= 62 ? 'Acceptable take-off' : 'Airborne, but it was untidy';
+  if (success && fail) headline = fail.beforeV1 ? 'Airborne on one engine, but the failure came before V1' : score >= 78 ? 'Engine failure at V1 handled: climbing on one engine' : 'Airborne on one engine, but it was untidy';
+  else if (success) headline = score >= 90 ? 'Excellent take-off, Captain' : score >= 78 ? 'Good take-off' : score >= 62 ? 'Acceptable take-off' : 'Airborne, but it was untidy';
   return { outcome, headline, score, grade: success ? grade(score) : 'F', items, failures: [], notes, success, takeoff: r };
 }
 

@@ -129,7 +129,8 @@ export class Game {
     this.mode = opts.mode;
     this.night = !!opts.night;
     const scenario = SCENARIOS[opts.scenarioId];
-    this.sim = new Simulation({ scenarioId: opts.scenarioId, startId: opts.startId, seed: opts.seed || (Date.now() % 1000) + 1 });
+    this.seed = opts.seed || (Date.now() % 1000) + 1;
+    this.sim = new Simulation({ scenarioId: opts.scenarioId, startId: opts.startId, seed: this.seed });
     this.controls = new FlightControls(this.sim.aircraft, this.player);
     const ground = !!this.sim.start.ground;   // a departure: from the gate (the README's departure plan)
     this.pushback = ground && this.sim.start.stand ? new Pushback(this.sim.aircraft, this.sim.start.stand) : null;
@@ -343,9 +344,17 @@ export class Game {
     const start = this.sim.start, ac = this.sim.aircraft;
     // a departure's weight: the menu's choice (62 t if none)
     if (start.ground) ac.setMass(TAKEOFF.weights.includes(this.opts.weightKg) ? this.opts.weightKg : TAKEOFF.weights[0]);
-    this.takeoff = start.ground ? new TakeoffMonitor(ac, { wet: this.sim.scenario.wet }) : null;
+    this.takeoff = start.ground ? new TakeoffMonitor(ac, { wet: this.sim.scenario.wet, failure: this.takeoffFailure() }) : null;
     // lined up, the before-take-off checks are done: the trim in the green band, the autobrake at RTO
     if (start.lineUp) { ac.input.trim = ac.state.trim = takeoffTrim(ac, start.flaps); ac.input.autobrake = ac.state.autobrake = 5; }
+  }
+
+  /** The practice engine failure chosen in the menu: when and which engine, or none. 'surprise' draws from the flight's seed. */
+  takeoffFailure() {
+    let at = TAKEOFF.failures.includes(this.opts.failure) ? this.opts.failure : 'none';
+    const seed = this.seed, draw = ((seed * 9301 + 49297) % 233280) / 233280;
+    if (at === 'surprise') at = draw < 1 / 3 ? 'none' : draw < 2 / 3 ? 'early' : 'v1';
+    return at === 'none' ? null : { at, engine: seed % 2 };
   }
 
   /** The take-off speeds and trim for the displays, while a take-off is ahead or under way. */
@@ -378,6 +387,9 @@ export class Game {
       } else if (e.type === 'rejected') {
         this.message('REJECTED TAKE-OFF — brakes ([[brakes]]), speedbrakes ([[speedbrake]]), reverse ([[reverse]])', 'warn', 6);
         this.log('takeoff', `rejected at ${e.ias.toFixed(0)} kt`); this.mark('rejected', `${e.ias.toFixed(0)} kt`);
+      } else if (e.type === 'engineFailure') {
+        this.message(`ENGINE ${e.engine + 1} FAILURE`, 'warn', 6); this.emit('engineFailure', { engine: e.engine });
+        this.log('takeoff', `engine ${e.engine + 1} failed at ${e.ias.toFixed(0)} kt`); this.mark('enginefail', `engine ${e.engine + 1}`);
       } else if (e.type === 'cleanup') {
         this.message(e.step === 'accelerate' ? '1000 FT — lower the nose, accelerate, flaps up on schedule ([[flapsUp]])' : 'CLIMB THRUST — thrust levers back to 90 % ([[thrustDown]])', 'ga', 7);
       } else if (e.type === 'done') this.finish();

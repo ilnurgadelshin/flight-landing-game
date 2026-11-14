@@ -1069,6 +1069,16 @@ start when the aircraft is on the runway.
   aircraft has stopped. The autobrake's RTO position (`N` on the ground before a flight; set at the
   line-up start) gives maximum braking by itself when the levers are closed above 90 kt, and does
   nothing below it, as on the aircraft. Lift-off puts the selector to OFF.
+- **Engine failure** (the menu's option for a departure): an engine fails 20 kt before V1, where
+  the answer is to stop, or just after V1, where it is to go; "surprise me" draws one of those or
+  none. The failed engine runs down in about a second and the nose swings towards it at up to
+  5° a second: rudder at once towards the engine still running holds the runway (a scripted pilot
+  who leads with 60 % rudder stays within 3 m of the centreline; one who only reacts to the heading
+  reaches 17 m of the runway's 22.5). On one engine, rotate a little slower and keep the nose
+  below 10° until airborne: the aircraft lifts off near V2 after about 1,360 m at 62 t and
+  climbs at about 1,000 ft/min at V2 + 10. That take-off ends at 1,500 ft and is graded on the
+  decision too. At 78 t the climb on one engine is only about 200 ft/min, and with reduced
+  thrust the levers must go to full after the failure.
 - **After take-off:** at 1,000 ft the crew is told to lower the nose, accelerate and retract the
   flaps; at 1,500 ft to set climb thrust (the levers at 90 % or less). A flap setting may be
   selected above 1.3 times its stall speed and not below 400 ft; 250 kt is the limit.
@@ -1083,8 +1093,8 @@ The landing warnings stay quiet during a take-off ("too low, gear" as the gear c
 terrain warning now looks along a climbing flight path, so rising ground that the climb clears
 is no threat (this also applies to go-arounds).
 
-Not in this stage: an engine failure on take-off, take-off speeds that change with the thrust
-rating, and Flight School lessons for it.
+Not in this stage: take-off speeds that change with the thrust rating, and Flight School lessons
+for it.
 
 ## Departure: plan and research
 
@@ -1162,8 +1172,8 @@ before each stage is graded:
    route, the holding position markings and the clearance are **done**; taxiway signs and named
    taxiways are not.
 4. **Failures and depth:** rejected take-off, an engine failure at V1, reduced thrust, a choice of
-   weight. The rejected take-off with RTO autobrake, reduced thrust and the weights are **done**;
-   the engine failure is not.
+   weight. **Done**: the rejected take-off with RTO autobrake, the engine failure before and
+   at V1, reduced thrust and the weights.
 5. **The whole flight:** take off, fly the circuit and land.
 6. **Full gate procedures** (kept for later): a cold and dark flight deck, APU, electrical,
    hydraulic and fuel panels, the complete engine start and the checklists. It needs the flight

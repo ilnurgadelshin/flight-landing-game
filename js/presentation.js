@@ -80,6 +80,7 @@ export class Presentation {
     on('takeoffCall', ({ call }) => audio.say({ eighty: 'Eighty knots', v1: 'Vee one', rotate: 'Rotate', positive: 'Positive rate' }[call], { priority: 1 }));
     on('takeoffConfig', () => audio.play('caution'));
     on('engineStart', () => audio.play('starter'));
+    on('engineFailure', () => { audio.play('caution'); if (haptics) haptics.crash?.(); view.shake(0.03); });
     on('demo', () => audio.play('apdisc'));
     on('touchdown', ({ sink, hard }) => {
       audio.play(hard ? 'hardlanding' : 'touchdown');

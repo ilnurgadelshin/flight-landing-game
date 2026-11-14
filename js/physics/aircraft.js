@@ -420,7 +420,10 @@ export class Aircraft {
       } else if (!eng.running && !eng.failed) { target = 0; tau = 6; }
       eng.n1 += (target - eng.n1) * (1 - Math.exp(-dt / tau));
       eng.thrust = this.damage.destroyed || !eng.running ? 0
-        : eng.failed ? -qbar * E.windmillDragArea : engineThrust(eng.n1, mach, pRatio, E) * reverseFactor;
+        // a failed engine's thrust dies away as it runs down (about a second from take-off thrust),
+        // leaving the windmilling fan's drag
+        : eng.failed ? engineThrust(eng.n1, mach, pRatio, E) * clamp((eng.n1 - E.idleN1) / 0.1, 0, 1) * Math.max(0, reverseFactor) - qbar * E.windmillDragArea
+          : engineThrust(eng.n1, mach, pRatio, E) * reverseFactor;
       totalThrust += eng.thrust;
       thrustYaw += eng.thrust * eng.x;   // about +Y (up): the right engine's thrust turns the nose left
     }

@@ -628,21 +628,27 @@ console.log('\n[R9b] Take-off from the runway: speeds, calls, the configuration 
   const { takeoffSpeeds, takeoffTrim, stallSpeed, TAKEOFF } = await import('../js/takeoff.js');
   // a pilot: full thrust, hold the centreline with the rudder, rotate at `at` kt at `rate`°/s to `to`°, gear up `gearS` after lift-off
   // then from 1000 ft: accelerate towards 220 kt, the flaps up as the speed allows, climb thrust at 1500 ft (unless `cleanUp` is false)
-  const fly = (R, { at = null, rate = 2.5, to = 15, gearS = 2, thrust = null, until = 220, rejectAt = null, cleanUp = true, brake = true } = {}) => {
+  const fly = (R, { at = null, rate = 2.5, to = 15, gearS = 2, thrust = null, until = 220, rejectAt = null, cleanUp = true, brake = true, engineOut = false, rejectOnFailure = false } = {}) => {
     const g = R.game, ac = g.sim.aircraft, V = g.takeoff.speeds; let tgt = 0, off = null;
     if (g.ctx.departure.phase === 'lineup') g.action('departure');
     for (let t = 0; t < until && g.state !== 'finished'; t += 1 / 60) {
       const st = g.sim.state, inp = ac.input;
       const aglFt = st.agl / FT, lever = thrust ?? g.takeoff.lever;
+      if (rejectOnFailure && rejectAt === null && st.engineFailed.some(Boolean)) rejectAt = 0;
       inp.throttle = rejectAt !== null && (st.ias >= rejectAt || inp.throttle === 0 && st.ias > 5) ? 0 : cleanUp && aglFt >= 1500 ? Math.min(lever, 0.9) : lever;
       if (rejectAt !== null && inp.throttle === 0) { inp.brake = brake ? 1 : 0; inp.speedbrake = 1; }
-      if (st.onGround) inp.yaw = Math.max(-1, Math.min(1, -st.lateralOffset * 0.05 - (st.heading - 270 * DEG) * 3));
+      // the rudder holds the heading (firmly: an engine may fail), then the wings level
+      // (a pilot who knows which engine failed leads with the rudder towards the live one)
+      const lead = st.engineFailed[0] ? 0.6 : st.engineFailed[1] ? -0.6 : 0;
+      if (st.onGround) inp.yaw = Math.max(-1, Math.min(1, lead - st.lateralOffset * 0.05 - (st.heading - 270 * DEG) * 8 - st.r * 3));
+      else if (st.engineFailed.some(Boolean)) { inp.yaw = Math.max(-1, Math.min(1, lead - (st.heading - 270 * DEG) * 6 - st.r * 3)); inp.roll = Math.max(-1, Math.min(1, -st.roll * 3 - st.p)); }
       else { inp.yaw = 0; inp.roll = Math.max(-1, Math.min(1, -st.roll * 2 - st.lateralOffset * 0.002)); }
       if (rejectAt === null && st.ias >= (at ?? V.vr)) {
-        tgt = Math.min(to, tgt + rate / 60);
+        const out = engineOut && st.engineFailed.some(Boolean);   // on one engine: a slower rotation that keeps the tail clear, then V2 + 10
+        tgt = Math.min(out && st.onGround ? 9.5 : out ? 12.5 : to, tgt + (out ? 2 : rate) / 60);
         // in the climb: pitch for V2 + 17
-        const target = cleanUp && aglFt >= 1000 ? 220 : V.v2 + 17;
-        const want = !st.onGround && st.agl > 30 ? Math.max(6, Math.min(20, to + (st.ias - target) * 0.5)) : tgt;
+        const target = out ? V.v2 + 10 : cleanUp && aglFt >= 1000 ? 220 : V.v2 + 17;
+        const want = !st.onGround && st.agl > (out ? 15 : 30) ? Math.max(out ? 4 : 6, Math.min(out ? 16 : 20, (out ? 12 : to) + (st.ias - target) * (out ? 0.6 : 0.5))) : tgt;
         inp.pitch = Math.max(-1, Math.min(1, (want * DEG - st.pitch) * 6 - st.q * 2.5 + 0.1));
       }
       if (!st.onGround && off === null) off = t;
@@ -726,6 +732,27 @@ console.log('\n[R9b] Take-off from the runway: speeds, calls, the configuration 
     H.game.sim.aircraft.mass === 78000 && hV.v2 === Math.round(1.2 * stallSpeed(2, 78000)) && hV.v2 > 168 && H.game.sim.state.vref > referenceLight && hr.success && hr.takeoff.liftoff.dist > T.liftoff.dist + 400 && hr.score >= 85,
     `V1 ${hV.v1} VR ${hV.vr} V2 ${hV.v2}, lift-off after ${hr.takeoff.liftoff.dist.toFixed(0)} m, ${hr.score} points: ${hr.items.filter((i) => !i.ok).map((i) => i.label + ' ' + i.value).join('; ')}`);
   check('an approach keeps the landing weight whatever the menu holds', rig({ startId: 'short', weightKg: 78000 }).game.sim.aircraft.mass === 62000);
+  // an engine failure just after V1: continued on one engine
+  const F1 = rig({ startId: 'runway', failure: 'v1', seed: 4 }); let failMsg = false; F1.game.on('engineFailure', () => { failMsg = true; });
+  const f1 = fly(F1, { engineOut: true, until: 300 }), fr = f1.takeoff;
+  check('an engine failure at V1, continued: held on the runway with the rudder, airborne without a tail strike, climbing on one engine to 1500 ft',
+    f1.success && f1.outcome === 'takeoff' && failMsg && fr.failure && !fr.failure.beforeV1 && fr.maxDev < 22 && F1.game.sim.state.engineFailed.filter(Boolean).length === 1 && F1.game.sim.state.agl / FT >= 1500 && F1.game.sim.state.agl / FT < 1560 && !F1.game.sim.aircraft.damage.notes.length && item(f1, 'Engine failure').ok && !item(f1, 'After take-off'),
+    `${f1.headline} (${f1.score}): ${fr.maxDev.toFixed(1)} m off the centreline, lift-off after ${fr.liftoff.dist.toFixed(0)} m at ${fr.liftoff.ias.toFixed(0)} kt, climb ${(fr.speed.sum / fr.speed.n).toFixed(0)} kt; ${f1.items.filter((i) => !i.ok).map((i) => i.label).join(', ') || 'every item ok'}`);
+  check('its points add up to 100', f1.items.reduce((s, i) => s + i.max, 0) === 100, `${f1.items.map((i) => `${i.label} ${i.max}`).join(', ')}`);
+  // rejecting after V1 is the wrong answer
+  const F2 = rig({ startId: 'runway', failure: 'v1', seed: 4 }); const f2 = fly(F2, { rejectOnFailure: true, until: 120 });
+  check('the same failure rejected after V1: the decision is marked wrong', f2.takeoff.rejected && f2.takeoff.rejected.afterV1 && !f2.success && !item(f2, 'The decision').ok && !item(f2, 'Engine failure').ok, `${f2.headline}`);
+  // an engine failure 20 kt before V1: the answer is to stop
+  const F3 = rig({ startId: 'runway', failure: 'early', seed: 4 }); const f3 = fly(F3, { rejectOnFailure: true, brake: false, until: 120 });
+  check('an engine failure 20 kt before V1, rejected (RTO braking on one reverser less): stopped on the runway, the right call',
+    f3.success && f3.outcome === 'rejected' && f3.takeoff.failure.beforeV1 && Math.abs(f3.takeoff.failure.ias - 120) < 2 && item(f3, 'Engine failure').ok && f3.items.reduce((s, i) => s + i.max, 0) === 100 && F3.game.sim.state.surface === 'runway',
+    `${f3.headline} (${f3.score}), failed at ${f3.takeoff.failure.ias.toFixed(0)} kt`);
+  const F4 = rig({ startId: 'runway', failure: 'early', seed: 4 }); const f4 = fly(F4, { engineOut: true, until: 300 });
+  check('the same failure continued: airborne, but the decision is marked wrong', f4.takeoff.liftoff && !item(f4, 'Engine failure').ok && item(f4, 'Engine failure').points === 0 && /before V1/.test(f4.headline), `${f4.headline} (${f4.score})`);
+  // none, and the surprise
+  check('no failure unless asked for; "surprise" draws none, early or V1 from the seed, either engine',
+    !rig({ startId: 'runway' }).game.takeoff.failure && new Set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((seed) => { const f = rig({ startId: 'runway', failure: 'surprise', seed }).game.takeoff.failure; return f ? `${f.at}${f.engine}` : 'none'; })).size >= 4);
+  check('an approach never has one', !rig({ startId: 'short', failure: 'v1' }).game.takeoff);
   // the wet runway's V1
   const W = rig({ startId: 'runway', scenarioId: 'storm' });
   check('a wet runway lowers V1', W.game.takeoff.speeds.v1 === 135 && W.game.takeoff.speeds.vr === 143);
