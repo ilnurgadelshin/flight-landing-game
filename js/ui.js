@@ -121,6 +121,7 @@ export class UI {
     document.querySelectorAll('#scenario-row .choice').forEach((b) => b.classList.toggle('selected', b.dataset.scenario === this.selection.scenario));
     document.querySelectorAll('#start-row .choice').forEach((b) => b.classList.toggle('selected', b.dataset.start === this.selection.start));
     $('scenario-section').style.opacity = this.selection.mode === 'training' ? 0.45 : 1;
+    $('btn-demo').disabled = !!APPROACH_STARTS[this.selection.start].ground;   // the autoland demo flies approaches only
   }
 
   getOptions() {
@@ -148,6 +149,7 @@ export class UI {
     $('chart-canvas').addEventListener('click', () => $('chart').classList.toggle('zoom'));
     $('btn-again').addEventListener('click', () => this.onAgain && this.onAgain());
     $('btn-replay').addEventListener('click', () => this.onReplay && this.onReplay());
+    $('btn-step').addEventListener('click', (e) => { e.target.blur(); if (this.onStep) this.onStep(); });
     $('btn-menu').addEventListener('click', () => this.onQuit && this.onQuit());
     $('btn-help').addEventListener('click', () => this.onHelp && this.onHelp());
     $('school-next').addEventListener('click', () => this.schoolStep(1));
@@ -177,7 +179,7 @@ export class UI {
     const gearFail = !!st.gearCollapsed;
     set('h-gear', gearFail ? 'FAIL' : (st.gearDown ? 'DOWN' : (st.gearInTransit ? 'TRANSIT' : 'UP')), gearFail ? 'bad' : (st.gearDown ? 'good' : (st.gearInTransit ? 'warn' : (st.agl / FT < 1500 && st.vs < -1 ? 'bad' : ''))));   // gear up is only a warning when descending low (not in a go-around climb)
     set('h-sb', st.speedbrake > 0.05 ? (st.onGround ? 'UP' : 'FLT') : (st.speedbrakeArmed ? 'ARMED' : 'DOWN'), st.speedbrakeArmed || st.speedbrake > 0.05 ? 'good' : '');
-    set('h-brk', st.brake > 0.05 ? `${Math.round(st.brake * 100)}%` : ['OFF', 'AB1', 'AB2', 'AB3', 'MAX'][st.autobrake], st.brake > 0.05 ? 'warn' : '');
+    set('h-brk', st.parkingBrake ? 'PARK' : st.brake > 0.05 ? `${Math.round(st.brake * 100)}%` : ['OFF', 'AB1', 'AB2', 'AB3', 'MAX'][st.autobrake], st.parkingBrake || st.brake > 0.05 ? 'warn' : '');
     set('h-trim', `${st.trim >= 0 ? 'NU' : 'ND'} ${Math.abs(st.trim).toFixed(1)}`);
     set('h-wind', `${String(Math.round(st.windDirDeg)).padStart(3, '0')}°/${Math.round(st.windKts)}kt`, '');
     set('h-xwind', `${Math.round(Math.abs(st.crosswind))}${st.crosswind > 0.5 ? 'R' : (st.crosswind < -0.5 ? 'L' : '')}`, Math.abs(st.crosswind) > 20 ? 'warn' : '');
@@ -367,6 +369,8 @@ export class UI {
     }
   }
 
+  /** The departure's next step as a button (js/game.js departureStep), or none. */
+  setStep(label) { const e = $('btn-step'); e.textContent = label ? `▶ ${label}` : ''; e.classList.toggle('hidden', !label); }
   setModeMessage(text, cls = '') { const e = this.el.modeMsg; const t = controlsText(text); if (e.textContent !== t) e.textContent = t; e.className = cls; }
   /** Landing checklist overlay (training mode): [{ text, done }] or null to hide. */
   setChecklist(items) { const e = this.el.checklist; if (!items) { e.classList.add('hidden'); return; } e.classList.remove('hidden'); const html = items.map((c) => `<div class="${c.done ? 'done' : 'todo'}">${c.done ? '✓' : '□'} ${c.text}</div>`).join(''); if (e.innerHTML !== html) e.innerHTML = html; }

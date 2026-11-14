@@ -27,6 +27,7 @@ export async function loadParkedAircraft(world) {
       const leg=new THREE.Mesh(new THREE.CylinderGeometry(.10,.10,1.4,6),strut);leg.position.set(x,1.1,z);stand.add(leg);
       for(const dx of [-.22,.22]){const wheel=new THREE.Mesh(new THREE.CylinderGeometry(.44,.44,.28,12),tyre);wheel.rotation.z=Math.PI/2;wheel.position.set(x+dx,.44,z);stand.add(wheel);}
     }
+    stand.visible=i!==world.freeStand;   // a departure's own stand
     world.parkedAircraft.add(stand);
   }
   if(world.sun.castShadow)world.sun.shadow.needsUpdate=true;

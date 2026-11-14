@@ -187,7 +187,9 @@ export class Game {
     if (name === 'help') { if (this.state === 'flying') this.openSchool(false); return; }
     if (name === 'togaOrReposition') {
       // the controller's View button: TO/GA, and once the go-around is under way, back on final
-      if (this.state === 'flying') this.action(this.ctx.gaMode && this.ctx.gaTimer > 3 ? 'reposition' : 'toga');
+      const d = this.ctx.departure;
+      if (this.state === 'flying' && d && ['gate', 'push', 'pushed', 'ready'].includes(d.phase)) this.action('departure');   // at the gate: the next step
+      else if (this.state === 'flying') this.action(this.ctx.gaMode && this.ctx.gaTimer > 3 ? 'reposition' : 'toga');
       return;
     }
     if (this.state !== 'flying') return;

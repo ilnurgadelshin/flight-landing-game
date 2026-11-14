@@ -95,6 +95,10 @@ button.primary:hover { filter: brightness(1.1); }
 #hud-top { position: absolute; top: 10px; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
 #mode-msg { font-size: 22px; font-weight: 700; letter-spacing: 3px; color: var(--accent); text-shadow: 0 2px 8px #000; min-height: 26px; }
 #mode-msg.ga { color: #7ef; }
+/* the next step of a departure from the gate: one button for pushback, engine start, parking brake */
+#btn-step { pointer-events: auto; margin-top: 6px; padding: 9px 20px; border-radius: 10px; border: 1px solid rgba(126,238,255,0.7); background: rgba(8,40,58,0.82); color: #dff8ff; font: 700 15px/1 inherit; letter-spacing: 2px; cursor: pointer; }
+#btn-step:hover, #btn-step:active { background: rgba(20,80,110,0.9); }
+body.touch #btn-step { font-size: 14px; padding: 11px 18px; }
 #checklist { position: absolute; top: 12px; right: 14px; background: rgba(0, 0, 0, 0.55); border: 1px solid rgba(255,255,255,0.15); border-radius: 8px; padding: 6px 10px; font-family: "Consolas", "Menlo", monospace; font-size: 12px; line-height: 1.5; text-align: left; }
 #checklist .done { color: #6f6; } #checklist .todo { color: #fc6; }
 #instructor { background: rgba(0, 40, 70, 0.75); border: 1px solid rgba(63,208,255,0.5); color: #dff6ff; padding: 8px 14px; border-radius: 8px; font-size: 14px; max-width: 640px; text-align: center; }

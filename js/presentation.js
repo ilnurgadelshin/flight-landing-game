@@ -11,7 +11,7 @@ import { chartModel, drawChart } from './chart.js';
 import { debriefModel, drawDebrief } from './debrief.js';
 import { getScheme } from './controls.js';
 
-const CONTROL_SOUNDS = { gear: 'gear', flapsDown: 'flaps', flapsUp: 'flaps', speedbrake: 'click', armSpeedbrake: 'click', autobrake: 'click', autothrottle: 'click', toga: 'chime', ndRange: 'click', ndMode: 'click' };
+const CONTROL_SOUNDS = { departure: 'click', parkingBrake: 'click', gear: 'gear', flapsDown: 'flaps', flapsUp: 'flaps', speedbrake: 'click', armSpeedbrake: 'click', autobrake: 'click', autothrottle: 'click', toga: 'chime', ndRange: 'click', ndMode: 'click' };
 const ND_PERIOD = 1 / 15;            // s between redraws of the ND view's sharp copy of the display
 const CHART_PERIOD = 0.25;           // s between redraws of the approach chart (its own-ship)
 
@@ -42,6 +42,10 @@ export class Presentation {
       this.setChart(false);
       ui.show('hud', true);
       ui.setRain(this.raining);
+      ui.setStep('');
+      // a departure leaves its stand free of the parked airliner that otherwise stands there
+      world.freeStand = game.sim.start.ground ? game.sim.start.stand.index : null;
+      world.parkedAircraft?.children.forEach((stand, i) => { stand.visible = i !== world.freeStand; });
     });
     on('state', ({ state: s, prev }) => {
       if (prev === 'flying' && s !== 'flying') this.yokeWasOn = input.mouseEngaged;
@@ -59,12 +63,15 @@ export class Presentation {
       ui.show('pause', s === 'paused');
       if (s === 'menu') { ui.showMenu(); audio.setConfigHorn(false); audio.stopStickShaker(); }
       if (s === 'menu' || s === 'school' || s === 'finished') this.setChart(false);
+      if (s === 'menu' || s === 'finished') ui.setStep('');
     });
     on('school', () => {
       ui.showSchool((name) => view.anchorFor(name), (look) => { view.schoolLook = look; });
       ui.onSchoolDone = (skipped) => game.schoolDone(skipped);
     });
     on('message', ({ text, kind, duration }) => this.message(text, kind, duration));
+    on('departure', ({ step }) => ui.setStep(step));
+    ui.onStep = () => this.onAction('departure');
     on('instructor', ({ html }) => ui.setInstructor(html));
     on('control', ({ name }) => audio.play(CONTROL_SOUNDS[name]));
     on('goaround', () => audio.say('Go around, flaps fifteen', { priority: 1 }));
