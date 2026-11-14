@@ -79,6 +79,7 @@ export class Presentation {
     // the pilot monitoring's calls on the take-off (js/takeoff.js)
     on('takeoffCall', ({ call }) => audio.say({ eighty: 'Eighty knots', v1: 'Vee one', rotate: 'Rotate', positive: 'Positive rate' }[call], { priority: 1 }));
     on('takeoffConfig', () => audio.play('caution'));
+    on('engineStart', () => audio.play('starter'));
     on('demo', () => audio.play('apdisc'));
     on('touchdown', ({ sink, hard }) => {
       audio.play(hard ? 'hardlanding' : 'touchdown');

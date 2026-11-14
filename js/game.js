@@ -380,8 +380,22 @@ export class Game {
     } else if (d.phase === 'ready' || d.phase === 'lineup') {
       this.setParkingBrake(false); d.phase = d.phase === 'lineup' ? 'cleared' : 'taxi';
       this.emit('control', { name: 'parkingBrake', value: false }); this.log('input', 'parking brake released');
+    } else if (d.phase === 'taxi' || d.phase === 'cleared') {
+      // on the way to the runway: the same control sets the parking brake once stopped, and releases it
+      const st = this.sim.state;
+      if (!st.onGround || (!st.parkingBrake && st.groundSpeed > 0.5)) return;
+      this.action('parkingBrake'); this.taxiStep(true);
+      return;
     } else return;
     this.departurePrompt();
+  }
+
+  /** While taxiing: offer the parking brake on the step control when the aircraft has stopped. */
+  taxiStep(now = false) {
+    const d = this.ctx.departure, st = this.sim.state;
+    if (!d || (d.phase !== 'taxi' && d.phase !== 'cleared')) return;
+    const step = !st.onGround ? '' : st.parkingBrake ? 'RELEASE PARKING BRAKE' : st.groundSpeed < 0.5 && st.throttle < 0.1 ? 'SET PARKING BRAKE' : '';
+    if (step !== d.step || now) { d.step = step; this.emit('departure', { phase: d.phase, step }); }
   }
 
   setParkingBrake(on) { this.sim.aircraft.input.parkingBrake = this.sim.state.parkingBrake = on; }
@@ -410,6 +424,7 @@ export class Game {
     else if (d.phase === 'taxi') text = 'TAXI TO RUNWAY 27 — turn left to the taxiway, then right along it to the far end. [[rudder]] steers the nosewheel';
     else if (d.phase === 'airborne') text = 'POSITIVE RATE — [[gear]]: gear up';
     this.message(text, 'ga', d.phase === 'taxi' ? 14 : d.phase === 'airborne' ? 6 : 0);
+    d.step = step;
     this.emit('departure', { phase: d.phase, step });
   }
 
@@ -522,6 +537,7 @@ export class Game {
         if (e.type === 'destroyed') c.crashSeen = true;
       } else if (e.type === 'hardlanding') { this.log('damage', 'hard landing'); }
     }
+    this.taxiStep();
     if (this.takeoff && !c.finished) this.takeoffEvents(this.takeoff.update(dt, st, inp));
     if (c.finished) return;
     // a departure: off the ground

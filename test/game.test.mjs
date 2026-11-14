@@ -27,7 +27,7 @@ function rig(opts = {}) {
   const gpws = new GPWS({ say: (t) => { said.push(t); return true; }, play: (t) => said.push('sound:' + t), setConfigHorn() {} });
   const game = new Game({ player, gpws });
   const got = [];
-  for (const t of ['state', 'start', 'school', 'message', 'instructor', 'control', 'goaround', 'reposition', 'demo', 'touchdown', 'spoilers', 'damage', 'finish', 'sixtyKnots']) game.on(t, (d) => got.push({ type: t, ...d }));
+  for (const t of ['state', 'start', 'school', 'message', 'instructor', 'control', 'goaround', 'reposition', 'demo', 'touchdown', 'spoilers', 'damage', 'finish', 'sixtyKnots', 'engineStart']) game.on(t, (d) => got.push({ type: t, ...d }));
   const fly = (seconds, frame = 0.1) => { let sim = 0; for (let t = 0; t < seconds && game.state !== 'finished'; t += frame) sim += game.update(frame); return sim; };
   game.start(Object.assign({ mode: 'game', scenarioId: 'clear', startId: 'short', seed: 3 }, opts));
   return { game, player, got, said, fly, of: (t) => got.filter((e) => e.type === t) };
@@ -571,6 +571,15 @@ console.log('\n[R8] Departure: from the gate, pushback, engine start, taxi, take
   g.action('parkingBrake'); R.fly(8);
   check('the parking brake control sets and releases the brake on the ground', st().parkingBrake && st().groundSpeed < 0.1);
   g.action('parkingBrake');
+  // the step control while taxiing: nothing while rolling, the parking brake once stopped
+  const steps = []; g.on('departure', (e) => steps.push(e.step));
+  R.fly(12); const rolling = steps.at(-1) ?? ''; g.action('departure'); const stillOff = !st().parkingBrake;
+  ac.input.brake = 1; R.fly(6); ac.input.brake = 0; R.fly(0.3);
+  const offered = steps.at(-1); g.action('departure'); R.fly(1); const set = st().parkingBrake, release = steps.at(-1);
+  g.action('departure'); R.fly(0.5);
+  check('while taxiing the step control offers the parking brake once the aircraft has stopped (the phone has no other control for it)',
+    rolling === '' && stillOff && offered === 'SET PARKING BRAKE' && set && release === 'RELEASE PARKING BRAKE' && !st().parkingBrake, `${rolling || '-'} → ${offered} → ${release}`);
+  check('each engine start is announced to the presentation (its starter sound)', R.got.filter((e) => e.type === 'engineStart').length === 2);
   // the take-off itself, from the runway: the stage's physics, lined up by placing the aircraft
   ac.place({ x: 1440, y: 3.35, z: 0, headingDeg: 270, iasKts: 0, flapIndex: 2, gearDown: true, throttle: 0, onGround: true });
   ac.input.throttle = 1; let lift = null;
