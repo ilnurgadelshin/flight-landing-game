@@ -580,6 +580,33 @@ console.log('\n[R8] Departure: from the gate, pushback, engine start, taxi, take
   check('while taxiing the step control offers the parking brake once the aircraft has stopped (the phone has no other control for it)',
     rolling === '' && stillOff && offered === 'SET PARKING BRAKE' && set && release === 'RELEASE PARKING BRAKE' && !st().parkingBrake, `${rolling || '-'} → ${offered} → ${release}`);
   check('each engine start is announced to the presentation (its starter sound)', R.got.filter((e) => e.type === 'engineStart').length === 2);
+  // the whole taxi: a pilot following the drawn route from where the pushback ended to the runway
+  {
+    const { taxiRoute, routeProgress, TAXI } = await import('../js/taxi-route.js');
+    const T = rig({ startId: 'gate' }), tg = T.game, tac = tg.sim.aircraft, ts = () => tg.sim.state, route = taxiRoute();
+    tg.action('departure'); T.fly(5); tg.action('departure');
+    for (let t = 0; t < 140 && tg.ctx.departure.phase !== 'ready'; t += 0.1) tg.update(0.1);
+    const startOff = routeProgress(route, ts().x, ts().z).off;
+    tg.action('departure');
+    const wrap = (a) => { a %= 2 * Math.PI; return a > Math.PI ? a - 2 * Math.PI : a < -Math.PI ? a + 2 * Math.PI : a; };
+    let i = 0, off = 0, grass = 0, skid = 0, t = 0, fast = 0;
+    for (; t < 600; t += 0.1) {
+      const st = ts(), pr = routeProgress(route, st.x, st.z, i); i = pr.i; if (pr.left < 3) break;
+      const look = Math.max(12, st.groundSpeed * 3.5); let j = i; while (j < route.length - 1 && route[j].s - route[i].s < look) j++;
+      tac.input.yaw = Math.max(-1, Math.min(1, wrap(Math.atan2(route[j].x - st.x, -(route[j].z - st.z)) - st.heading) * 2.2));
+      let turn = false; for (let k = i; k < route.length && route[k].s - route[i].s < 60; k++) if (route[k].turn) turn = true;
+      const want = (turn ? TAXI.turnKt : TAXI.straightKt) * (pr.left < 40 ? 0.4 : 1), kt = st.groundSpeed / KT;
+      tac.input.throttle = kt < want - 1 ? 0.22 : 0; tac.input.brake = kt > want + 1.5 ? 0.35 : 0;
+      tg.update(0.1); off = Math.max(off, pr.off); if (st.surface === 'grass') grass++; if (st.skidding) skid++; fast = Math.max(fast, kt);
+    }
+    const msgs = T.of('message').map((m) => m.text);
+    check('the route starts where the pushback leaves the aircraft', startOff < 3, `${startOff.toFixed(1)} m from it`);
+    check('driven from the pushback to the runway: on the pavement all the way, no skidding, within 8 m of the line, lined up on 27',
+      t < 420 && grass === 0 && skid === 0 && off < 8 && ts().surface === 'runway' && Math.abs(ts().heading / DEG - 270) < 4 && Math.abs(ts().z) < 3 && !tac.damage.notes.length,
+      `${t.toFixed(0)} s, at most ${off.toFixed(1)} m off the line and ${fast.toFixed(0)} kt, heading ${(ts().heading / DEG).toFixed(1)}°`);
+    check('the clearance comes at the holding point, and the take-off is briefed on the runway (flaps and trim still to set)',
+      msgs.some((m) => /CLEARED TO LINE UP/.test(m)) && /BEFORE TAKE-OFF/.test(msgs.filter((m) => /TAKE-OFF|V1/.test(m)).at(-1) || ''), msgs.filter(Boolean).slice(-2).join(' | '));
+  }
   // the take-off itself, from the runway: the stage's physics, lined up by placing the aircraft
   ac.place({ x: 1440, y: 3.35, z: 0, headingDeg: 270, iasKts: 0, flapIndex: 2, gearDown: true, throttle: 0, onGround: true });
   ac.input.throttle = 1; let lift = null;

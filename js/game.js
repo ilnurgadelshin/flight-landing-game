@@ -24,6 +24,7 @@
 import { Simulation } from './sim.js';
 import { Pushback } from './pushback.js';
 import { TakeoffMonitor, evaluateTakeoff, takeoffTrim } from './takeoff.js';
+import { pastHoldingPoint } from './taxi-route.js';
 import { FlightControls } from './flightcontrols.js';
 import { commandSpeed } from './autothrottle.js';
 import { evaluateLanding } from './evaluate.js';
@@ -421,7 +422,7 @@ export class Game {
     else if (d.phase === 'ready') { text = 'ENGINES STABLE — [[departure]]: release the parking brake and taxi'; step = 'RELEASE PARKING BRAKE'; }
     else if (d.phase === 'lineup') { text = 'RUNWAY 27, CLEARED FOR TAKE-OFF — [[departure]]: release the parking brake'; step = 'RELEASE PARKING BRAKE'; }
     else if (d.phase === 'cleared') text = this.takeoffBrief();
-    else if (d.phase === 'taxi') text = 'TAXI TO RUNWAY 27 — turn left to the taxiway, then right along it to the far end. [[rudder]] steers the nosewheel';
+    else if (d.phase === 'taxi') text = 'TAXI TO RUNWAY 27 — follow the line: left to the taxiway, right along it to the far end. [[rudder]] steers the nosewheel';
     else if (d.phase === 'airborne') text = 'POSITIVE RATE — [[gear]]: gear up';
     this.message(text, 'ga', d.phase === 'taxi' ? 14 : d.phase === 'airborne' ? 6 : 0);
     d.step = step;
@@ -538,6 +539,10 @@ export class Game {
       } else if (e.type === 'hardlanding') { this.log('damage', 'hard landing'); }
     }
     this.taxiStep();
+    // the holding point: this airport is quiet, so the clearance comes as the aircraft reaches it
+    if (c.departure && c.departure.phase === 'taxi' && !c.departure.holdPassed && st.onGround && pastHoldingPoint(st.x, st.z)) {
+      c.departure.holdPassed = true; this.message('RUNWAY 27 — CLEARED TO LINE UP AND TAKE OFF', 'ga', 6); this.log('departure', 'passed the holding point');
+    }
     if (this.takeoff && !c.finished) this.takeoffEvents(this.takeoff.update(dt, st, inp));
     if (c.finished) return;
     // a departure: off the ground

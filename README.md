@@ -1027,9 +1027,15 @@ controller's View button.
 On the runway the take-off below begins: the crew is told what is still to set (flaps, trim), then
 the speeds.
 
-Not in this stage: a tug to look at, a route drawn to follow, hold-short lines, and the phone
-layout's own taxi controls (the step button works on a phone; the parking brake after the first
-release has a key only).
+The route is drawn on the pavement while taxiing: a dashed magenta line from where the pushback
+ends to the runway (`js/taxi-route.js`; a training aid, not a real marking). A scripted pilot
+drives it in a test: 1,690 m in about 290 s at 15 kt on the straights and 8 kt in the turns, never
+off the pavement and within 6 m of the line. Each connector has a runway holding position marking
+76 m from the centreline (two solid lines on the holding side, two dashed on the runway's);
+the airport is quiet, so the clearance to line up comes as the aircraft reaches it. The tug is
+seen once it has disconnected, driving clear of the nose to the left. An engine start plays the
+air starter and the light-off. Once stopped while taxiing, the step control sets the parking
+brake and releases it again, so a phone has a control for it.
 
 ### Take-off
 
@@ -1134,10 +1140,12 @@ before each stage is graded:
 ### Stages
 
 1. **Gate, pushback and a simplified engine start**, then taxi basics (idle thrust, tiller, parking
-   brake). **Done** (see *From the gate* above); a visible tug is still to come.
+   brake). **Done** (see *From the gate* above).
 2. **Take-off from the runway:** flaps and trim set, the calls, rotation, climb to a set altitude,
    graded. **Done** (see *Take-off* above).
-3. **Taxi to the runway:** a route to follow, hold-short line, line-up, signs and markings.
+3. **Taxi to the runway:** a route to follow, hold-short line, line-up, signs and markings. The
+   route, the holding position markings and the clearance are **done**; taxiway signs and named
+   taxiways are not.
 4. **Failures and depth:** rejected take-off, an engine failure at V1, reduced thrust, a choice of
    weight.
 5. **The whole flight:** take off, fly the circuit and land.

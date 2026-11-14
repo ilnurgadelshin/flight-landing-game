@@ -17,7 +17,7 @@ const CHART_PERIOD = 0.25;           // s between redraws of the approach chart 
 
 export class Presentation {
   constructor({ game, view, world, ui, audio, gpws = null, haptics = null, touch = null, input }) {
-    Object.assign(this, { game, view, ui, audio, gpws, haptics, touch, input });
+    Object.assign(this, { game, view, world, ui, audio, gpws, haptics, touch, input });
     this.yokeWasOn = false;          // the mouse yoke was engaged when the flight was interrupted
     this.raining = false;
     this.msgSeq = 0;
@@ -158,6 +158,10 @@ export class Presentation {
   frame(frameDt, simDt) {
     const g = this.game, st = g.sim.state, inp = g.sim.aircraft.input;
     if (this.haptics && simDt > 0 && g.state === 'flying') this.haptics.update(simDt, st);
+    // a departure's ground scene: the route to follow while taxiing, the tug while it pushes and leaves
+    const dep = g.ctx.departure, push = g.pushback;
+    if (this.world.taxiGuidance) this.world.taxiGuidance.update({ route: !!dep && dep.phase === 'taxi' && st.onGround && g.state !== 'menu', towed: st.towed, pushed: !!push && push.done && !!dep && dep.phase !== 'gate',
+      x: st.x, z: st.z, heading: st.heading, dt: simDt });
     const configWarning = this.gpws && this.gpws.hornOn ? 'GEAR NOT DOWN' : (st.destroyed ? 'CRASHED' : '');
     const view = this.view.shown;
     this.ui.setView(view, view === 'cockpit' && g.state !== 'school' && this.view.cockpit.lookDown > 0.25);

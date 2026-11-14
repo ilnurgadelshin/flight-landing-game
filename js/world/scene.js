@@ -10,6 +10,7 @@
 // runway lights at night) before tone mapping; compact low uses a display-space edge filter.
 import * as THREE from 'three';
 import { DETAIL_AHEAD } from './ground-detail.js';
+import { addTaxiGuidance } from './taxi-guidance.js';
 import {EdgeFilter} from './edge-filter.js';
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
@@ -450,6 +451,7 @@ export class World {
     const road = new THREE.Mesh(new THREE.PlaneGeometry(3500, 8), std({ color: 0x555555, roughness: 1 }));
     road.rotation.x = -Math.PI / 2; road.position.set(0, 0.01, 620); add(road, false);
     addAirportDetail(this.scene, this.lowDetail);
+    addTaxiGuidance(this);
     // Perimeter road lighting; villages and woodland follow the photographic region.
     for (let x=-1720;x<=1720;x+=120) this.townLightEntries.push({x,y:8,z:640,color:[1,.75,.42],size:1.2,group:'town'});
   }
