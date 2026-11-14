@@ -185,6 +185,8 @@ flight deck.
 | Reposition on final (after a go-around) | `Backspace` |
 | From the gate: the next step (pushback, engine start, release the parking brake) | `U`, or the button under the message |
 | Parking brake (on the ground) | `Y` |
+| Take-off thrust (on the ground) / rating TO, TO-1, TO-2 (before the roll) | `T` / `Q` |
+| Autobrake RTO (on the ground before a flight) | `N` |
 | Pause / Flight School / menu | `P` / `H` / `Esc` |
 
 The pitch axis defaults to "game style" (up arrow / mouse up = nose up). Tick
@@ -1000,7 +1002,7 @@ tyre friction.
 | Standard final | 10 nm, 3000 ft, 175 kts | flaps 5, gear up | about 5 min |
 | Full approach | 26 nm, 7000 ft, 210 kts | flaps 1, gear up | about 12 min |
 
-| Take-off | lined up on runway 27 | engines at idle, flaps 5, trim set, parking brake set | about 2 min |
+| Take-off | lined up on runway 27 | engines at idle, flaps 5, trim set, autobrake RTO, parking brake set | about 3 min |
 | From the gate | stand 4, on the ground | engines off, parking brake set, flaps up | as long as you take |
 
 The **Night** option in the menu flies any of these after dark.
@@ -1056,11 +1058,24 @@ start when the aircraft is on the runway.
 - **Rotation:** pull at VR at 2 to 3° a second towards 15°. The aircraft lifts off about 4 s later
   near V2 + 8 at about 10° of pitch, some 1,200 m down the runway, and passes 35 ft near V2 + 15.
   The tail touches at about 11° with the wheels on the ground.
+- **Thrust:** `T` (TO/GA) on the ground sets the take-off thrust selected. Before the roll the
+  autothrottle switch (`Q`) steps through the ratings: TO (full), TO-1 (thrust levers at 90 %,
+  about 92 % N1) and TO-2 (80 %, about 84 % N1). The speeds are the same for all three, a
+  simplification; at 62 t TO-2 lifts off after about 1,930 m against 1,220 m.
+- **Weight:** the menu offers 62 t, 70 t and 78 t for a departure. The speeds, the trim and Vref
+  follow the weight; at 78 t the speeds are 159 / 162 / 172 kt and the lift-off comes after about
+  1,900 m at full thrust. Approach starts keep the 62 t landing weight.
 - **Rejected:** closing the thrust levers on the roll rejects the take-off; it ends when the
-  aircraft has stopped.
-- **The end:** 1,500 ft above the runway, with a debrief out of 100: configuration 10, centreline
+  aircraft has stopped. The autobrake's RTO position (`N` on the ground before a flight; set at the
+  line-up start) gives maximum braking by itself when the levers are closed above 90 kt, and does
+  nothing below it, as on the aircraft. Lift-off puts the selector to OFF.
+- **After take-off:** at 1,000 ft the crew is told to lower the nose, accelerate and retract the
+  flaps; at 1,500 ft to set climb thrust (the levers at 90 % or less). A flap setting may be
+  selected above 1.3 times its stall speed and not below 400 ft; 250 kt is the limit.
+- **The end:** 3,000 ft above the runway, with a debrief out of 100: configuration 10, centreline
   on the roll 15, rotation speed 15, rotation rate 15, lift-off attitude 10, gear up within 8 s of
-  the positive rate 5, climb speed (V2 + 10 to 25 between 35 and 1,000 ft) 20, track 10. A tail
+  the positive rate 5, climb speed (V2 + 10 to 25 between 35 and 1,000 ft) 15, track 5, and the
+  clean-up after take-off 10. A tail
   strike, leaving the runway or damage fails it. A rejected take-off is judged on the decision
   (before V1) and on stopping on the runway.
 
@@ -1068,8 +1083,8 @@ The landing warnings stay quiet during a take-off ("too low, gear" as the gear c
 terrain warning now looks along a climbing flight path, so rising ground that the climb clears
 is no threat (this also applies to go-arounds).
 
-Not in this stage: reduced thrust, a choice of weight, RTO autobrake, an engine failure, the
-flap retraction schedule and thrust reduction after 1,500 ft, and Flight School lessons for it.
+Not in this stage: an engine failure on take-off, take-off speeds that change with the thrust
+rating, and Flight School lessons for it.
 
 ## Departure: plan and research
 
@@ -1147,7 +1162,8 @@ before each stage is graded:
    route, the holding position markings and the clearance are **done**; taxiway signs and named
    taxiways are not.
 4. **Failures and depth:** rejected take-off, an engine failure at V1, reduced thrust, a choice of
-   weight.
+   weight. The rejected take-off with RTO autobrake, reduced thrust and the weights are **done**;
+   the engine failure is not.
 5. **The whole flight:** take off, fly the circuit and land.
 6. **Full gate procedures** (kept for later): a cold and dark flight deck, APU, electrical,
    hydraulic and fuel panels, the complete engine start and the checklists. It needs the flight

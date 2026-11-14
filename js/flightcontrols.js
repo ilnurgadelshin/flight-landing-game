@@ -100,7 +100,8 @@ export class FlightControls {
       case 'flapsUp': if (inp.flapIndex <= 0) return null; inp.flapIndex--; return { name, value: inp.flapIndex };
       case 'speedbrake': inp.speedbrake = inp.speedbrake > 0.5 ? 0 : 1; inp.speedbrakeArmed = false; return { name, value: inp.speedbrake };
       case 'armSpeedbrake': inp.speedbrakeArmed = !inp.speedbrakeArmed; if (inp.speedbrakeArmed) inp.speedbrake = 0; return { name, value: inp.speedbrakeArmed };
-      case 'autobrake': inp.autobrake = (inp.autobrake + 1) % 5; return { name, value: inp.autobrake };
+      // before a flight, on the ground: RTO or off (the selector's take-off position); otherwise the landing settings
+      case 'autobrake': inp.autobrake = !this.ac.airborne && !this.ac.touchdown ? (inp.autobrake === 5 ? 0 : 5) : (inp.autobrake + 1) % 5; return { name, value: inp.autobrake };
       case 'toga': inp.throttle = 1; inp.reverse = false; inp.speedbrake = 0; this.autothrottle.goAround(); return { name, value: true };
       default: return null;
     }

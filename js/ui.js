@@ -122,6 +122,7 @@ export class UI {
     document.querySelectorAll('#start-row .choice').forEach((b) => b.classList.toggle('selected', b.dataset.start === this.selection.start));
     $('scenario-section').style.opacity = this.selection.mode === 'training' ? 0.45 : 1;
     const ground = !!APPROACH_STARTS[this.selection.start].ground;
+    $('opt-weight-label').classList.toggle('hidden', !ground);   // a departure's own choice
     $('btn-demo').disabled = ground;                       // the autoland demo flies approaches only
     $('btn-start').textContent = APPROACH_STARTS[this.selection.start].stand ? 'Start at the gate' : ground ? 'Start take-off' : 'Start approach';
   }
@@ -133,6 +134,7 @@ export class UI {
       startId: this.selection.start,
       invertPitch: $('opt-invert').checked,
       night: $('opt-night').checked,
+      weightKg: parseInt($('opt-weight').value, 10),
       sound: $('opt-sound').checked,
       mouseSensitivity: parseFloat($('opt-mouse').value),
     };
@@ -181,7 +183,7 @@ export class UI {
     const gearFail = !!st.gearCollapsed;
     set('h-gear', gearFail ? 'FAIL' : (st.gearDown ? 'DOWN' : (st.gearInTransit ? 'TRANSIT' : 'UP')), gearFail ? 'bad' : (st.gearDown ? 'good' : (st.gearInTransit ? 'warn' : (st.agl / FT < 1500 && st.vs < -1 ? 'bad' : ''))));   // gear up is only a warning when descending low (not in a go-around climb)
     set('h-sb', st.speedbrake > 0.05 ? (st.onGround ? 'UP' : 'FLT') : (st.speedbrakeArmed ? 'ARMED' : 'DOWN'), st.speedbrakeArmed || st.speedbrake > 0.05 ? 'good' : '');
-    set('h-brk', st.parkingBrake ? 'PARK' : st.brake > 0.05 ? `${Math.round(st.brake * 100)}%` : ['OFF', 'AB1', 'AB2', 'AB3', 'MAX'][st.autobrake], st.parkingBrake || st.brake > 0.05 ? 'warn' : '');
+    set('h-brk', st.parkingBrake ? 'PARK' : st.brake > 0.05 ? `${Math.round(st.brake * 100)}%` : ['OFF', 'AB1', 'AB2', 'AB3', 'MAX', 'RTO'][st.autobrake], st.parkingBrake || st.brake > 0.05 ? 'warn' : '');
     set('h-trim', `${st.trim >= 0 ? 'NU' : 'ND'} ${Math.abs(st.trim).toFixed(1)}`);
     set('h-wind', `${String(Math.round(st.windDirDeg)).padStart(3, '0')}°/${Math.round(st.windKts)}kt`, '');
     set('h-xwind', `${Math.round(Math.abs(st.crosswind))}${st.crosswind > 0.5 ? 'R' : (st.crosswind < -0.5 ? 'L' : '')}`, Math.abs(st.crosswind) > 20 ? 'warn' : '');

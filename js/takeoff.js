@@ -3,7 +3,7 @@
 // passes on what it returns.
 //
 // The speeds come from this flight model, not from Boeing's tables: V2 is 1.2 times the 1-g stall
-// speed with the take-off flaps (the tables' maximum lift), VR 10 kt below it and V1 3 kt below VR
+// speed with the take-off flaps at the take-off weight (the tables' maximum lift), VR 10 kt below it and V1 3 kt below VR
 // on a dry runway, 8 kt on a wet one. At 62 t and flaps 5 that is 140 / 143 / 153 kt, a few knots
 // above a real 737-800's. With a rotation of 2.5° a second from VR the aircraft lifts off near
 // V2 + 8 at about 10° of pitch and passes 35 ft near V2 + 15.
@@ -20,19 +20,28 @@ export const TAKEOFF = {
   tailPitchDeg: 11,          // the tail touches at about this pitch with the wheels on the runway
   climb: [10, 25],           // kt above V2 to hold in the climb
   gearUpS: 8,                // s after the positive rate of climb to have the gear selected up
-  endFt: 1500,               // the take-off ends this far above the runway
+  endFt: 3000,               // the take-off ends this far above the runway
+  thrustReductionFt: 1500,   // climb thrust from here
+  climbLever: 0.9,           // the thrust levers at or below this: climb thrust (about 93 % N1)
+  cleanFromFt: 400,          // no flap retraction below this
+  retractMargin: 1.3,        // a flap setting is selected only above this times its stall speed
+  maxKt: 250,                // the speed limit below 10,000 ft
+  // take-off thrust ratings: the full rating and two fixed reductions (the thrust lever position each sets)
+  ratings: [{ id: 'TO', lever: 1 }, { id: 'TO-1', lever: 0.9 }, { id: 'TO-2', lever: 0.8 }],
+  // take-off weights offered (kg): a light aircraft, a typical one, and near the maximum (79,016 kg)
+  weights: [62000, 70000, 78000],
   speedFromFt: 35, speedToFt: 1000,   // the climb speed is judged between these heights
 };
 
-/** The 1-g stall speed (kt) with a flap lever position, at the aircraft's weight. */
-export function stallSpeed(flapIndex) {
-  return Math.sqrt(2 * AC.mass * G / (RHO0 * AC.wingArea * flapValue('CLmax', AC.flapDetents[flapIndex]))) / KTS;
+/** The 1-g stall speed (kt) with a flap lever position, at a weight (kg). */
+export function stallSpeed(flapIndex, mass = AC.mass) {
+  return Math.sqrt(2 * mass * G / (RHO0 * AC.wingArea * flapValue('CLmax', AC.flapDetents[flapIndex]))) / KTS;
 }
 
 /** V1, VR and V2 (kt) for a flap lever position; with other flaps, those for flaps 5. */
-export function takeoffSpeeds(flapIndex, wet = false) {
+export function takeoffSpeeds(flapIndex, wet = false, mass = AC.mass) {
   const f = TAKEOFF.flaps.includes(flapIndex) ? flapIndex : 2;
-  const v2 = Math.round(1.2 * stallSpeed(f)), vr = v2 - 10;
+  const v2 = Math.round(1.2 * stallSpeed(f, mass)), vr = v2 - 10;
   return { v1: vr - (wet ? 8 : 3), vr, v2, flapIndex: f };
 }
 
@@ -40,11 +49,12 @@ const trims = new Map();
 /** The stabiliser trim (° nose up) that holds the climb at V2 + 15 with take-off thrust: the green band's middle. */
 export function takeoffTrim(aircraft, flapIndex) {
   const f = TAKEOFF.flaps.includes(flapIndex) ? flapIndex : 2;
-  if (!trims.has(f)) {
-    const t = aircraft.trimFor({ alt: 300, tas: (takeoffSpeeds(f).v2 + 15) * KTS, gamma: 8 * DEG, flapDeg: AC.flapDetents[f], gearDown: false, n1: 1 });
-    trims.set(f, Math.round(t.trimDeg * 2) / 2);
+  const key = `${f}/${aircraft.mass}`;
+  if (!trims.has(key)) {
+    const t = aircraft.trimFor({ alt: 300, tas: (takeoffSpeeds(f, false, aircraft.mass).v2 + 15) * KTS, gamma: 8 * DEG, flapDeg: AC.flapDetents[f], gearDown: false, n1: 1 });
+    trims.set(key, Math.round(t.trimDeg * 2) / 2);
   }
-  return trims.get(f);
+  return trims.get(key);
 }
 
 /** What is wrong with the configuration for take-off: [] when it is set. */
@@ -63,9 +73,13 @@ export class TakeoffMonitor {
     this.ac = aircraft; this.wet = wet;
     this.phase = 'before';        // before → roll → rotate → climb → done; or roll → rejected → done
     this.rec = null; this.brief = '';
+    this.rating = 0;              // index into TAKEOFF.ratings: the take-off thrust selected
   }
 
-  get speeds() { return this.rec ? this.rec.speeds : takeoffSpeeds(this.ac.input.flapIndex, this.wet); }
+  /** The thrust lever position of the selected take-off thrust. */
+  get lever() { return TAKEOFF.ratings[this.rating].lever; }
+
+  get speeds() { return this.rec ? this.rec.speeds : takeoffSpeeds(this.ac.input.flapIndex, this.wet, this.ac.mass); }
   get trim() { return takeoffTrim(this.ac, this.speeds.flapIndex); }
   /** The take-off was begun: there is something to grade. */
   get started() { return this.phase !== 'before'; }
@@ -82,7 +96,7 @@ export class TakeoffMonitor {
     const onRunway = st.onGround && st.surface === 'runway';
     if (this.phase === 'before') {
       if (!onRunway || this.ac.touchdown) { this.brief = ''; return out; }
-      const speeds = takeoffSpeeds(inp.flapIndex, this.wet), trim = takeoffTrim(this.ac, speeds.flapIndex);
+      const speeds = takeoffSpeeds(inp.flapIndex, this.wet, this.ac.mass), trim = takeoffTrim(this.ac, speeds.flapIndex);
       const problems = configProblems(st, inp, trim).filter((p) => p !== 'PARKING BRAKE' && p !== 'FLAPS MOVING');
       const key = problems.join() + speeds.vr;
       if (key !== this.brief) { this.brief = key; out.push({ type: 'brief', problems, speeds, trim }); }
@@ -90,7 +104,9 @@ export class TakeoffMonitor {
         const bad = configProblems(st, inp, trim);
         this.rec = { speeds, trim, config: bad, startX: st.x, startHeading: st.heading, t: 0, maxDev: 0, called: {},
           rotate: null, liftoff: null, rate: null, positiveT: null, gearUpT: null, speed: { n: 0, sum: 0, min: Infinity }, climbDev: 0, maxBank: 0,
-          stall: false, settled: false, rejected: null, endIas: null };
+          stall: false, settled: false, rejected: null, endIas: null,
+          rating: TAKEOFF.ratings[this.rating].id, mass: this.ac.mass, rto: inp.autobrake === 5, flapIndex: inp.flapIndex,
+          clean: { lowFt: null, slow: null, upFt: null, reducedFt: null, maxIas: 0, told: {} } };
         this.phase = 'roll';
         if (bad.length) out.push({ type: 'config', problems: bad });
       }
@@ -138,6 +154,18 @@ export class TakeoffMonitor {
     if (aglFt >= T.speedFromFt && aglFt <= T.speedToFt) { r.speed.n++; r.speed.sum += st.ias; r.speed.min = Math.min(r.speed.min, st.ias); }
     r.climbDev = Math.max(r.climbDev, Math.abs(st.lateralOffset));
     r.maxBank = Math.max(r.maxBank, Math.abs(st.roll));
+    // after take-off: accelerate and clean up from 1,000 ft, climb thrust from 1,500 ft
+    const cl = r.clean;
+    if (inp.flapIndex < r.flapIndex) {
+      if (aglFt < T.cleanFromFt && cl.lowFt === null) cl.lowFt = aglFt;
+      const need = T.retractMargin * stallSpeed(inp.flapIndex, r.mass);
+      if (st.ias < need && !cl.slow) cl.slow = { ias: st.ias, need, to: inp.flapIndex };
+      r.flapIndex = inp.flapIndex;
+      if (inp.flapIndex === 0) cl.upFt = aglFt;
+    } else if (inp.flapIndex > r.flapIndex) r.flapIndex = inp.flapIndex;
+    if (aglFt >= T.thrustReductionFt && cl.reducedFt === null && inp.throttle <= T.climbLever + 0.005) cl.reducedFt = aglFt;
+    cl.maxIas = Math.max(cl.maxIas, st.ias);
+    for (const [name, at] of [['accelerate', 1000], ['climbThrust', T.thrustReductionFt]]) if (aglFt >= at && !cl.told[name]) { cl.told[name] = true; out.push({ type: 'cleanup', step: name }); }
     if (aglFt >= T.endFt) { r.endIas = st.ias; this.phase = 'done'; out.push({ type: 'done' }); }
     return out;
   }
@@ -153,7 +181,7 @@ export function evaluateTakeoff(monitor, ac) {
   const within = (v, full, zero) => Math.max(0, Math.min(1, (zero - v) / (zero - full)));
 
   const cfg = r.config.filter((p) => p !== 'FLAPS MOVING');
-  add('Configuration', cfg.length ? `not set: ${cfg.join(', ').toLowerCase()}` : `flaps ${AC.flapDetents[V.flapIndex]}, trim ${r.trim.toFixed(1)}`, cfg.length ? 0 : 10, 10,
+  add('Configuration', cfg.length ? `not set: ${cfg.join(', ').toLowerCase()}` : `flaps ${AC.flapDetents[V.flapIndex]}, trim ${r.trim.toFixed(1)}, thrust ${r.rating}, ${(r.mass / 1000).toFixed(0)} t${r.rto ? ', autobrake RTO' : ''}`, cfg.length ? 0 : 10, 10,
     cfg.length ? 'Flaps 1, 5 or 15, the trim in the green band, speedbrake down and the parking brake released before take-off thrust.' : 'Set for take-off.', !cfg.length);
   add('Centreline on the roll', `${r.maxDev.toFixed(1)} m off at most`, 15 * within(r.maxDev, 3, 15), 15,
     r.maxDev <= 3 ? 'On the centreline.' : 'Small rudder inputs early keep the nose on the centreline.', r.maxDev < 15);
@@ -191,10 +219,21 @@ export function evaluateTakeoff(monitor, ac) {
     if (r.speed.n) {
       const mean = r.speed.sum / r.speed.n, [a, b] = T.climb, over = mean - V.v2, off = over < a ? a - over : over > b ? over - b : 0;
       const low = r.speed.min < V.v2 - 2;
-      add('Climb speed', `V2 ${over >= 0 ? '+' : '−'} ${Math.abs(over).toFixed(0)} kt on average (lowest ${r.speed.min.toFixed(0)} kt)`, low ? 0 : 20 * within(off, 0, 20), 20,
+      add('Climb speed', `V2 ${over >= 0 ? '+' : '−'} ${Math.abs(over).toFixed(0)} kt on average (lowest ${r.speed.min.toFixed(0)} kt)`, low ? 0 : 15 * within(off, 0, 20), 15,
         low ? `Below V2 (${V.v2} kt): lower the nose.` : off === 0 ? 'V2 + 10 to 25.' : over > b ? 'Fast: a little more pitch holds the speed and gains height sooner.' : 'Slow: a little less pitch.', !low && off < 20);
     }
-    if (r.endIas !== null || r.climbDev > 0) add('Track', `${r.climbDev.toFixed(0)} m off the runway's line at most, ${(r.maxBank / DEG).toFixed(0)}° of bank`, 10 * within(r.climbDev, 60, 400), 10, r.climbDev <= 60 ? 'Straight out.' : 'Hold the runway heading, the wings level.', r.climbDev < 400);
+    if (r.endIas !== null || r.climbDev > 0) add('Track', `${r.climbDev.toFixed(0)} m off the runway's line at most, ${(r.maxBank / DEG).toFixed(0)}° of bank`, 5 * within(r.climbDev, 100, 600), 5, r.climbDev <= 100 ? 'Straight out.' : 'Hold the runway heading, the wings level.', r.climbDev < 600);
+    if (r.endIas !== null) {
+      // the clean-up: flaps up on schedule, climb thrust, the speed limit
+      const cl = r.clean, faults = [];
+      if (cl.lowFt !== null) faults.push(`flaps retracted at ${cl.lowFt.toFixed(0)} ft (not below ${T.cleanFromFt})`);
+      if (cl.slow) faults.push(`flaps ${AC.flapDetents[cl.slow.to]} selected at ${cl.slow.ias.toFixed(0)} kt (${cl.slow.need.toFixed(0)} needed)`);
+      if (cl.upFt === null) faults.push('flaps not up by 3,000 ft');
+      if (cl.reducedFt === null) faults.push('take-off thrust left set');
+      if (cl.maxIas > T.maxKt + 5) faults.push(`${cl.maxIas.toFixed(0)} kt (250 below 10,000 ft)`);
+      add('After take-off', faults.length ? faults.join('; ') : `flaps up at ${cl.upFt.toFixed(0)} ft, climb thrust from ${cl.reducedFt.toFixed(0)} ft`, Math.max(0, 10 - 4 * faults.length), 10,
+        faults.length ? 'From 1,000 ft lower the nose and accelerate, retract the flaps as the speed allows, and set climb thrust at 1,500 ft.' : 'Accelerated, cleaned up and climb thrust set.', !faults.length);
+    }
     if (r.settled) { notes.push('The aircraft settled back onto the runway after lift-off.'); }
     if (r.stall) notes.push('Stall warning in the climb.');
   }

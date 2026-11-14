@@ -77,6 +77,7 @@ export class Aircraft {
     world.addBody(ground);
     this.groundBody = ground;
 
+    this.mass = AC.mass;   // kg: the landing weight unless a departure sets its own (setMass)
     const body = new CANNON.Body({ mass: AC.mass, material: hullMat });
     this.hullShapes = {};
     for (const [name, h] of Object.entries(AC.hull)) {
@@ -239,7 +240,7 @@ export class Aircraft {
     this._hullTouching = false;
     this.brakeTemp = 0;
     this.stallWarning = false; this.stalled = false;
-    this._mainsGroundT = 0; this._abInt = 0; this._lastGs = undefined; this._sbUpOnGround = false; this._holdT = 0; this._holdSign = 0;
+    this._rto = false; this._mainsGroundT = 0; this._abInt = 0; this._lastGs = undefined; this._sbUpOnGround = false; this._holdT = 0; this._holdSign = 0;
 
     const psi = headingDeg * DEG;
     const rho = this.atmosphere.density(y);
@@ -277,7 +278,7 @@ export class Aircraft {
     const A = AC.aero, E = AC.engines, c = { CL: 0, CD: 0, Cm: 0 };
     const qS = Math.max(0.5 * this.atmosphere.density(alt) * tas * tas * AC.wingArea, 1);
     const mach = tas / this.atmosphere.speedOfSound(alt), pr = this.atmosphere.pressureRatio(alt);
-    const W = AC.mass * G;
+    const W = this.mass * G;
     let thrust = n1 === null ? 0 : E.count * engineThrust(n1, mach, pr, E), alpha = 0;
     for (let k = 0; k < 20; k++) {
       // the thrust line is along the body axis: alpha above the flight path
@@ -297,6 +298,14 @@ export class Aircraft {
 
   /** Fail an engine (0 = left, 1 = right), or restore it: it winds down to a windmilling fan. */
   setEngineFailed(index, failed = true) { this.engines[index].failed = failed; }
+
+  /** The aircraft's weight (kg): a departure's take-off weight. The inertia scales with it. */
+  setMass(kg) {
+    const b = this.body, k = kg / AC.mass, I = AC.inertia;
+    this.mass = kg; b.mass = kg; b.invMass = 1 / kg;
+    b.inertia.set(I.pitch * k, I.yaw * k, I.roll * k); b.invInertia.set(1 / (I.pitch * k), 1 / (I.yaw * k), 1 / (I.roll * k));
+    b.updateInertiaWorld(true); this.state.mass = kg;
+  }
 
   /**
    * Start a stopped engine (simplified: one action for the start switch, the fuel lever and the
@@ -533,7 +542,7 @@ export class Aircraft {
       if (this.groundTime > 0.12 && this.airborne) { this.airborne = false; this.airborneTime = 0; this.onTouchdownConfirmed(); }
     } else {
       this.airborneTime += dt;
-      if (this.airborneTime > 0.5 && !this.airborne) { this.airborne = true; this.groundTime = 0; this.tillerAssist = false; if (this.touchdown) this.onLiftoffAfterTouchdown(); }
+      if (this.airborneTime > 0.5 && !this.airborne) { this.airborne = true; this.groundTime = 0; this.tillerAssist = false; if (this.input.autobrake === 5) this.input.autobrake = 0; if (this.touchdown) this.onLiftoffAfterTouchdown(); }
     }
     if (!this.airborne) this.landingRollDistance += Math.hypot(b.velocity.x, b.velocity.z) * dt;
 
@@ -575,6 +584,16 @@ export class Aircraft {
       this._abInt = clamp((this._abInt || 0) + (target - decel) * dt * 0.35, 0, 1);
       autoBrakeCmd = clamp((target - decel) * 0.25 + this._abInt, 0, 1) * clamp((this._mainsGroundT - 0.5) / 1.0, 0, 1);
     } else { this._abInt = 0; }
+    // RTO: armed for a take-off, it gives maximum braking when the thrust levers are closed above
+    // 90 kt of wheel speed, to a stop; the pedals or lift-off disarm it (below 90 kt it does nothing)
+    if (inp.autobrake === 5) {
+      if (!this._rto && inp.throttle < 0.05 && gsNow > 90 * KTS && bothMains) { this._rto = true; this.events.push({ t: this.time, type: 'rtoBrake' }); }
+      if (this._rto) {
+        autoBrakeCmd = 1;
+        const why = inp.brake > AB.disarmBrake ? 'manual braking' : gsNow < 0.5 ? 'stopped' : '';
+        if (why) { this._rto = false; inp.autobrake = 0; this.events.push({ t: this.time, type: 'autobrakeDisarm', reason: why }); }
+      }
+    }
     this._lastGs = gsNow;
     const brakeCmd = inp.parkingBrake ? 1 : clamp(Math.max(inp.brake, autoBrakeCmd), 0, 1);
     this.brakeApplied = brakeCmd;
@@ -737,14 +756,14 @@ export class Aircraft {
     let gearLoad = 0;
     for (const g of Object.values(this.gear)) gearLoad += g.load || 0;
     // the hull carries whatever the lift and the gear do not
-    const N = Math.max(0, AC.mass * G - (this._aeroFy || 0) - gearLoad);
+    const N = Math.max(0, this.mass * G - (this._aeroFy || 0) - gearLoad);
     if (N <= 0) return;
     const surface = this.terrain.surfaceAt(b.position.x, b.position.z);
     const mu = surface === 'grass' ? AC.hullSlideMu.grass : AC.hullSlideMu.runway;
     const vx = b.velocity.x, vz = b.velocity.z, v = Math.hypot(vx, vz);
     if (v < 1e-3) return;
     // never more than stops the aircraft in this step (static friction at rest)
-    const F = Math.min(mu * N, AC.mass * v / dt);
+    const F = Math.min(mu * N, this.mass * v / dt);
     // applied at the belly line so the scraping also pitches the nose down and damps yaw
     const rel = b.quaternion.vmult(_v4.set(0, -1.6, -2.0), _v4);
     b.applyForce(_v3.set(-vx / v * F, 0, -vz / v * F), rel);
@@ -888,7 +907,7 @@ export class Aircraft {
     st.engineFailed[0] = this.engines[0].failed; st.engineFailed[1] = this.engines[1].failed;
     st.engineRunning[0] = this.engines[0].running; st.engineRunning[1] = this.engines[1].running;
     st.engineStarting[0] = this.engines[0].starting; st.engineStarting[1] = this.engines[1].starting;
-    st.parkingBrake = this.input.parkingBrake; st.towed = !!this.tow;
+    st.parkingBrake = this.input.parkingBrake; st.towed = !!this.tow; st.mass = this.mass;
     st.thrust = extra.totalThrust || 0;
     st.flapDeg = this.flapDeg; st.flapIndex = this.input.flapIndex;
     st.gearPos = this.gearPos; st.gearDown = this.gearPos > 0.98; st.gearInTransit = this.gearPos > 0.02 && this.gearPos < 0.98;

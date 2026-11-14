@@ -5,7 +5,7 @@
 import { Game } from '../js/game.js';
 import { GPWS } from '../js/gpws.js';
 import { FlightControls } from '../js/flightcontrols.js';
-import { FT, DEG } from '../js/config.js';
+import { FT, DEG, AIRCRAFT } from '../js/config.js';
 import { ndModel, autoRange, activeFix } from '../js/nd.js';
 import { MISSED } from '../js/nav.js';
 import { debriefModel } from '../js/debrief.js';
@@ -625,30 +625,34 @@ console.log('\n[R8] Departure: from the gate, pushback, engine start, taxi, take
 
 console.log('\n[R9b] Take-off from the runway: speeds, calls, the configuration warning and the grading');
 {
-  const { takeoffSpeeds, takeoffTrim, TAKEOFF } = await import('../js/takeoff.js');
+  const { takeoffSpeeds, takeoffTrim, stallSpeed, TAKEOFF } = await import('../js/takeoff.js');
   // a pilot: full thrust, hold the centreline with the rudder, rotate at `at` kt at `rate`°/s to `to`°, gear up `gearS` after lift-off
-  const fly = (R, { at = null, rate = 2.5, to = 15, gearS = 2, thrust = 1, until = 150, rejectAt = null } = {}) => {
+  // then from 1000 ft: accelerate towards 220 kt, the flaps up as the speed allows, climb thrust at 1500 ft (unless `cleanUp` is false)
+  const fly = (R, { at = null, rate = 2.5, to = 15, gearS = 2, thrust = null, until = 220, rejectAt = null, cleanUp = true, brake = true } = {}) => {
     const g = R.game, ac = g.sim.aircraft, V = g.takeoff.speeds; let tgt = 0, off = null;
     if (g.ctx.departure.phase === 'lineup') g.action('departure');
     for (let t = 0; t < until && g.state !== 'finished'; t += 1 / 60) {
       const st = g.sim.state, inp = ac.input;
-      inp.throttle = rejectAt !== null && st.ias >= rejectAt ? 0 : thrust;
-      if (rejectAt !== null && inp.throttle === 0) { inp.brake = 1; inp.speedbrake = 1; }
+      const aglFt = st.agl / FT, lever = thrust ?? g.takeoff.lever;
+      inp.throttle = rejectAt !== null && (st.ias >= rejectAt || inp.throttle === 0 && st.ias > 5) ? 0 : cleanUp && aglFt >= 1500 ? Math.min(lever, 0.9) : lever;
+      if (rejectAt !== null && inp.throttle === 0) { inp.brake = brake ? 1 : 0; inp.speedbrake = 1; }
       if (st.onGround) inp.yaw = Math.max(-1, Math.min(1, -st.lateralOffset * 0.05 - (st.heading - 270 * DEG) * 3));
       else { inp.yaw = 0; inp.roll = Math.max(-1, Math.min(1, -st.roll * 2 - st.lateralOffset * 0.002)); }
       if (rejectAt === null && st.ias >= (at ?? V.vr)) {
         tgt = Math.min(to, tgt + rate / 60);
         // in the climb: pitch for V2 + 17
-        const want = !st.onGround && st.agl > 30 ? Math.max(8, Math.min(20, to + (st.ias - (V.v2 + 17)) * 0.5)) : tgt;
+        const target = cleanUp && aglFt >= 1000 ? 220 : V.v2 + 17;
+        const want = !st.onGround && st.agl > 30 ? Math.max(6, Math.min(20, to + (st.ias - target) * 0.5)) : tgt;
         inp.pitch = Math.max(-1, Math.min(1, (want * DEG - st.pitch) * 6 - st.q * 2.5 + 0.1));
       }
       if (!st.onGround && off === null) off = t;
       if (off !== null && t - off > gearS && inp.gearDown) g.action('gear');
+      if (cleanUp && aglFt >= 1000 && inp.flapIndex > 0 && st.ias > 1.3 * stallSpeed(inp.flapIndex - 1, ac.mass) + 3 && Math.abs(st.flapDeg - AIRCRAFT.flapDetents[inp.flapIndex]) < 0.5) g.action('flapsUp');
       g.update(1 / 60);
     }
     return g.result;
   };
-  const V = takeoffSpeeds(2);
+  const V = takeoffSpeeds(2), referenceLight = 170;
   check('take-off speeds from the flight model: flaps 5 at 62 t, V1 < VR < V2, less flap is faster', V.v1 === 140 && V.vr === 143 && V.v2 === 153 && takeoffSpeeds(1).v2 > V.v2 && takeoffSpeeds(3).v2 < V.v2 && takeoffSpeeds(2, true).v1 === 135,
     `${V.v1} / ${V.vr} / ${V.v2} kt; flaps 1 V2 ${takeoffSpeeds(1).v2}, flaps 15 V2 ${takeoffSpeeds(3).v2}`);
 
@@ -664,11 +668,16 @@ console.log('\n[R9b] Take-off from the runway: speeds, calls, the configuration 
   check('the parking brake released: the speeds are briefed', msgs().some((m) => /V1 140 · VR 143 · V2 153/.test(m)));
   check('the calls come in order at their speeds: 80 knots, V1, rotate, then positive rate', calls.map((c) => c.split('@')[0]).join() === 'eighty,v1,rotate,positive' && Math.abs(+calls[0].split('@')[1] - 80) <= 1 && Math.abs(+calls[1].split('@')[1] - 140) <= 1 && Math.abs(+calls[2].split('@')[1] - 143) <= 1, calls.join(' '));
   const T = res && res.takeoff;
-  check('the flight ends 1500 ft above the runway with a take-off debrief', g.state === 'finished' && res.outcome === 'takeoff' && res.success && g.sim.state.agl / FT >= 1500 && g.sim.state.agl / FT < 1560, `${res.outcome}, ${(g.sim.state.agl / FT).toFixed(0)} ft`);
+  check('the flight ends 3000 ft above the runway with a take-off debrief', g.state === 'finished' && res.outcome === 'takeoff' && res.success && g.sim.state.agl / FT >= 3000 && g.sim.state.agl / FT < 3080, `${res.outcome}, ${(g.sim.state.agl / FT).toFixed(0)} ft`);
   check('a take-off flown to the book scores an A', res.score >= 90 && res.grade === 'A' && res.items.every((i) => i.ok), `${res.score}: ${res.items.map((i) => `${i.label} ${i.points}/${i.max}`).join(', ')}`);
   check('what it measured: rotation at VR at 2–3° a second, lift-off below the tail-strike attitude, the climb at V2 + 10 to 25',
     Math.abs(T.rotate.ias - 143) < 6 && T.rate >= 2 && T.rate <= 3 && T.liftoff.pitch / DEG < 11 && T.liftoff.dist < 1500 && T.speed.sum / T.speed.n > 163 && T.speed.sum / T.speed.n < 178 && T.gearUpT < 8,
     `rotation ${T.rotate.ias.toFixed(0)} kt at ${T.rate.toFixed(1)}°/s, lift-off ${T.liftoff.ias.toFixed(0)} kt ${(T.liftoff.pitch / DEG).toFixed(1)}° after ${T.liftoff.dist.toFixed(0)} m, climb ${(T.speed.sum / T.speed.n).toFixed(0)} kt`);
+  const cl = T.clean;
+  check('after take-off: the prompts at 1000 and 1500 ft, the flaps up on schedule, climb thrust set, under 250 kt',
+    msgs().some((m) => /1000 FT/.test(m)) && msgs().some((m) => /CLIMB THRUST/.test(m)) && cl.upFt > 1000 && cl.lowFt === null && !cl.slow && cl.reducedFt >= 1500 && cl.reducedFt < 1600 && cl.maxIas < 250 && g.sim.state.flapIndex === 0,
+    `flaps up at ${cl.upFt && cl.upFt.toFixed(0)} ft, climb thrust at ${cl.reducedFt && cl.reducedFt.toFixed(0)} ft, ${cl.maxIas.toFixed(0)} kt at most`);
+  check('the line-up has the autobrake at RTO; lift-off puts it to OFF', T.rto && g.sim.aircraft.input.autobrake === 0);
   check('no landing rules fired: no go-around, no touchdown, no GPWS warning', g.ctx.goArounds === 0 && !R.of('touchdown').length && !R.said.some((t) => /Sink|Pull|Too low|Terrain|Bank|Stall/.test(t)), R.said.join(', '));
 
   // wrong configuration: flaps up and the trim out of the band
@@ -693,6 +702,30 @@ console.log('\n[R9b] Take-off from the runway: speeds, calls, the configuration 
   // rejected before V1
   const J = rig({ startId: 'runway' }); const jr = fly(J, { rejectAt: 100 });
   check('thrust closed at 100 kt: a rejected take-off, stopped on the runway, a success', jr.outcome === 'rejected' && jr.success && J.game.sim.state.surface === 'runway' && J.game.sim.state.groundSpeed < 1 && /REJECTED/.test(J.of('message').map((m) => m.text).join('|')), `${jr.headline} (${jr.score})`);
+  // clean-up left undone: the flaps and the take-off thrust all the way up
+  const U = rig({ startId: 'runway' }); const ur = fly(U, { cleanUp: false });
+  check('the flaps and take-off thrust left set to 3000 ft: the clean-up loses its points', ur.success && item(ur, 'After take-off').points <= 2 && /flaps not up/.test(item(ur, 'After take-off').value) && /thrust left set/.test(item(ur, 'After take-off').value), item(ur, 'After take-off').value);
+  // RTO autobrake: thrust closed at 120 kt, feet off the brakes
+  const B = rig({ startId: 'runway' }); let peak = 0; B.game.on('message', () => {});
+  const brk = B.game.sim.aircraft; const b0 = fly(B, { rejectAt: 120, brake: false });
+  check('RTO: thrust closed at 120 kt with the feet off the brakes: maximum braking by itself to a stop on the runway',
+    b0.outcome === 'rejected' && b0.success && B.game.events.some((e) => /RTO autobrake/.test(e.text)) && brk.state.brake > 0.9 && 1440 - B.game.sim.state.x < 1700, `stopped ${(1440 - B.game.sim.state.x).toFixed(0)} m from the start of the roll`);
+  const B2 = rig({ startId: 'runway' }); const b2 = fly(B2, { rejectAt: 70, brake: false, until: 60 });
+  check('below 90 kt RTO does nothing: the aircraft rolls on until the pilot brakes', !B2.game.events.some((e) => /RTO autobrake/.test(e.text)) && B2.game.sim.state.groundSpeed > 5, `${(B2.game.sim.state.groundSpeed / 0.514444).toFixed(0)} kt after a minute`);
+  // reduced thrust
+  const D = rig({ startId: 'runway' }), dg = D.game;
+  dg.action('autothrottle'); dg.action('autothrottle');
+  const rated = dg.takeoff.rating; dg.action('departure'); dg.action('toga');
+  const leverSet = dg.sim.aircraft.input.throttle; const dr = fly(D);
+  check('reduced thrust: the switch steps to TO-2, TO/GA sets its lever position, and the roll is longer',
+    rated === 2 && Math.abs(leverSet - 0.8) < 1e-9 && dg.ctx.goArounds === 0 && dr.success && dr.takeoff.rating === 'TO-2' && dr.takeoff.liftoff.dist > T.liftoff.dist + 150 && /TO-2/.test(item(dr, 'Configuration').value),
+    `lift-off after ${dr.takeoff.liftoff.dist.toFixed(0)} m (full thrust ${T.liftoff.dist.toFixed(0)} m), ${dr.score} points`);
+  // weight
+  const H = rig({ startId: 'runway', weightKg: 78000 }), hV = H.game.takeoff.speeds; const hr = fly(H, { until: 300 });
+  check('78 t: the speeds are higher (V2 172), the trim and Vref follow, and the take-off uses more runway',
+    H.game.sim.aircraft.mass === 78000 && hV.v2 === Math.round(1.2 * stallSpeed(2, 78000)) && hV.v2 > 168 && H.game.sim.state.vref > referenceLight && hr.success && hr.takeoff.liftoff.dist > T.liftoff.dist + 400 && hr.score >= 85,
+    `V1 ${hV.v1} VR ${hV.vr} V2 ${hV.v2}, lift-off after ${hr.takeoff.liftoff.dist.toFixed(0)} m, ${hr.score} points: ${hr.items.filter((i) => !i.ok).map((i) => i.label + ' ' + i.value).join('; ')}`);
+  check('an approach keeps the landing weight whatever the menu holds', rig({ startId: 'short', weightKg: 78000 }).game.sim.aircraft.mass === 62000);
   // the wet runway's V1
   const W = rig({ startId: 'runway', scenarioId: 'storm' });
   check('a wet runway lowers V1', W.game.takeoff.speeds.v1 === 135 && W.game.takeoff.speeds.vr === 143);

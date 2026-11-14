@@ -23,7 +23,7 @@
 //   finish       { result }
 import { Simulation } from './sim.js';
 import { Pushback } from './pushback.js';
-import { TakeoffMonitor, evaluateTakeoff, takeoffTrim } from './takeoff.js';
+import { TakeoffMonitor, evaluateTakeoff, takeoffTrim, TAKEOFF } from './takeoff.js';
 import { pastHoldingPoint } from './taxi-route.js';
 import { FlightControls } from './flightcontrols.js';
 import { commandSpeed } from './autothrottle.js';
@@ -197,6 +197,21 @@ export class Game {
     }
     if (this.state !== 'flying') return;
     if (this.demoAp && ['gear', 'flapsDown', 'flapsUp', 'speedbrake', 'toga'].includes(name)) this.disengageDemo();
+    // before a take-off, on the ground: TO/GA sets the take-off thrust selected, and the autothrottle
+    // switch steps through the ratings (full, TO-1, TO-2)
+    const T = this.takeoff;
+    if (T && !T.done && st.onGround && !this.sim.aircraft.touchdown && (name === 'toga' || name === 'autothrottle')) {
+      const inp = this.sim.aircraft.input;
+      if (name === 'toga') {
+        if (inp.parkingBrake) { this.message('PARKING BRAKE SET', 'warn', 2); return; }
+        inp.throttle = T.lever; inp.reverse = false; this.emit('control', { name: 'toga', value: true }); this.log('input', `take-off thrust ${TAKEOFF.ratings[T.rating].id}`);
+      } else if (!T.started) {
+        T.rating = (T.rating + 1) % TAKEOFF.ratings.length;
+        const r = TAKEOFF.ratings[T.rating];
+        this.message(`TAKE-OFF THRUST ${r.id} — ${Math.round((0.21 + 0.79 * r.lever) * 100)} % N1`, '', 3); this.emit('control', { name: 'autothrottle', value: r.id }); this.log('input', `take-off thrust rating ${r.id}`);
+      }
+      return;
+    }
     switch (name) {
       case 'gear': case 'flapsDown': case 'flapsUp': case 'speedbrake': case 'armSpeedbrake': case 'autobrake': case 'toga': {
         const c = this.controls.act(name);
@@ -326,16 +341,18 @@ export class Game {
   /** A departure's take-off is watched and graded (js/takeoff.js); an approach's start has none. */
   newTakeoff() {
     const start = this.sim.start, ac = this.sim.aircraft;
+    // a departure's weight: the menu's choice (62 t if none)
+    if (start.ground) ac.setMass(TAKEOFF.weights.includes(this.opts.weightKg) ? this.opts.weightKg : TAKEOFF.weights[0]);
     this.takeoff = start.ground ? new TakeoffMonitor(ac, { wet: this.sim.scenario.wet }) : null;
-    // lined up, the before-take-off checks are done: the trim is in the green band
-    if (start.lineUp) ac.input.trim = ac.state.trim = takeoffTrim(ac, start.flaps);
+    // lined up, the before-take-off checks are done: the trim in the green band, the autobrake at RTO
+    if (start.lineUp) { ac.input.trim = ac.state.trim = takeoffTrim(ac, start.flaps); ac.input.autobrake = ac.state.autobrake = 5; }
   }
 
   /** The take-off speeds and trim for the displays, while a take-off is ahead or under way. */
   takeoffInfo() {
     const t = this.takeoff;
     if (!t || t.done || (this.ctx.departure && this.ctx.departure.phase === 'airborne' && this.sim.state.agl > 600 * FT)) return null;
-    return Object.assign({ trim: t.trim, rolling: t.started }, t.speeds);
+    return Object.assign({ trim: t.trim, rolling: t.started, rating: TAKEOFF.ratings[t.rating].id, lever: t.lever }, t.speeds);
   }
 
   /** On the runway before the roll: what is still to set, or the speeds. */
@@ -343,7 +360,7 @@ export class Game {
     const t = this.takeoff, V = t.speeds, speeds = `V1 ${V.v1} · VR ${V.vr} · V2 ${V.v2}`;
     const todo = { FLAPS: 'flaps 1, 5 or 15 ([[flapsDown]])', TRIM: `trim ${t.trim.toFixed(1)} nose up ([[trim]])`, SPEEDBRAKE: 'speedbrake down ([[speedbrake]])' };
     if (problems && problems.length) return `BEFORE TAKE-OFF — ${problems.map((p) => todo[p] || p.toLowerCase()).join(', ')}`;
-    return `RUNWAY 27 — ${speeds} — full thrust ([[thrustUp]]), rotate at VR`;
+    return `RUNWAY 27 — ${speeds} — [[toga]]: take-off thrust ${TAKEOFF.ratings[t.rating].id}, rotate at VR`;
   }
 
   /** What the take-off's monitor reported this step. */
@@ -361,6 +378,8 @@ export class Game {
       } else if (e.type === 'rejected') {
         this.message('REJECTED TAKE-OFF — brakes ([[brakes]]), speedbrakes ([[speedbrake]]), reverse ([[reverse]])', 'warn', 6);
         this.log('takeoff', `rejected at ${e.ias.toFixed(0)} kt`); this.mark('rejected', `${e.ias.toFixed(0)} kt`);
+      } else if (e.type === 'cleanup') {
+        this.message(e.step === 'accelerate' ? '1000 FT — lower the nose, accelerate, flaps up on schedule ([[flapsUp]])' : 'CLIMB THRUST — thrust levers back to 90 % ([[thrustDown]])', 'ga', 7);
       } else if (e.type === 'done') this.finish();
     }
   }
@@ -527,6 +546,7 @@ export class Game {
           this.departurePrompt();
         }
       }
+      else if (e.type === 'rtoBrake') { this.message('RTO — MAXIMUM BRAKING', 'warn', 4); this.log('systems', 'RTO autobrake'); }
       else if (e.type === 'autobrakeDisarm') {
         this.message('AUTOBRAKE DISARM', '', 2.5);
         this.emit('control', { name: 'autobrake', value: 0 });

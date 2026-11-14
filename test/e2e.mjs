@@ -322,11 +322,12 @@ if (want('depart')) {
     out.cleared = { msg: el('mode-msg').textContent, stepHidden: el('btn-step').classList.contains('hidden'), brake: g.sim.state.parkingBrake };
     // a scripted pilot through the physics steps (no drawing): full thrust, the centreline, rotate at VR
     const ac = g.sim.aircraft, V = g.takeoff.speeds, D = Math.PI / 180; let tgt = 0;
-    for (let i = 0; i < 120 * 200 && g.state === 'flying'; i++) {
-      const st = g.sim.state, inp = ac.input; inp.throttle = 1;
+    for (let i = 0; i < 120 * 300 && g.state === 'flying'; i++) {
+      const st = g.sim.state, inp = ac.input, aglFt = st.agl / 0.3048; inp.throttle = aglFt >= 1500 ? 0.9 : 1;
       if (st.onGround) inp.yaw = Math.max(-1, Math.min(1, -st.lateralOffset * 0.05 - (st.heading - 270 * D) * 3)); else { inp.yaw = 0; inp.roll = Math.max(-1, Math.min(1, -st.roll * 2 - st.lateralOffset * 0.002)); }
-      if (st.ias >= V.vr) { tgt = Math.min(15, tgt + 2.5 / 120); const want = !st.onGround && st.agl > 30 ? Math.max(8, Math.min(20, 15 + (st.ias - (V.v2 + 17)) * 0.5)) : tgt; inp.pitch = Math.max(-1, Math.min(1, (want * D - st.pitch) * 6 - st.q * 2.5 + 0.1)); }
+      if (st.ias >= V.vr) { tgt = Math.min(15, tgt + 2.5 / 120); const want = !st.onGround && st.agl > 30 ? Math.max(6, Math.min(20, 15 + (st.ias - (aglFt >= 1000 ? 220 : V.v2 + 17)) * 0.5)) : tgt; inp.pitch = Math.max(-1, Math.min(1, (want * D - st.pitch) * 6 - st.q * 2.5 + 0.1)); }
       if (!st.onGround && st.agl > 15 && inp.gearDown) g.action('gear');
+      if (aglFt >= 1000 && inp.flapIndex > 0 && st.ias > [185, 178][inp.flapIndex - 1] && i % 600 === 0) g.action('flapsUp');   // flaps 1 above 178 kt, up above 185
       g.sim.stepOnce(); g.track(1 / 120);   // past the player's devices, which would centre the controls each frame
     }
     out.end = { state: g.state, result: g.result && { outcome: g.result.outcome, score: g.result.score, grade: g.result.grade }, shown: !el('results').classList.contains('hidden'), outcome: el('res-outcome').textContent, headline: el('res-headline').textContent,
@@ -350,8 +351,8 @@ if (want('depart')) {
   check('the take-off start: cleared for take-off, the step button, PARK on the brake readout, the speeds for the displays',
     /CLEARED FOR TAKE-OFF/.test(flow.lineup.msg) && /RELEASE PARKING BRAKE/.test(flow.lineup.step) && flow.lineup.brake === 'PARK' && flow.lineup.parked && flow.lineup.info && flow.lineup.info.vr === 143, JSON.stringify(flow.lineup).slice(0, 200));
   check('the button releases the brake and the speeds are briefed', !flow.cleared.brake && flow.cleared.stepHidden && /V1 140 · VR 143 · V2 153/.test(flow.cleared.msg), flow.cleared.msg);
-  check('a take-off flown to the book ends at 1500 ft with the take-off debrief on the results screen',
-    flow.end.state === 'finished' && flow.end.result && flow.end.result.outcome === 'takeoff' && flow.end.result.score >= 90 && flow.end.shown && flow.end.outcome === 'AIRBORNE' && /take-off/.test(flow.end.headline) && flow.end.rows >= 7,
+  check('a take-off flown to the book ends at 3000 ft with the take-off debrief on the results screen',
+    flow.end.state === 'finished' && flow.end.result && flow.end.result.outcome === 'takeoff' && flow.end.result.score >= 90 && flow.end.shown && flow.end.outcome === 'AIRBORNE' && /take-off/.test(flow.end.headline) && flow.end.rows >= 9,
     `${flow.end.outcome}: ${flow.end.headline} (${flow.end.result && flow.end.result.score})`);
   check('the four calls are spoken in order', flow.end.voices.join() === 'Eighty knots,Vee one,Rotate,Positive rate', flow.end.voices.join(', '));
   check('the gate start: the pushback offered, engines off, the departure stand free of its parked airliner',
