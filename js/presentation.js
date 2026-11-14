@@ -44,7 +44,7 @@ export class Presentation {
       ui.setRain(this.raining);
       ui.setStep('');
       // a departure leaves its stand free of the parked airliner that otherwise stands there
-      world.freeStand = game.sim.start.ground ? game.sim.start.stand.index : null;
+      world.freeStand = game.sim.start.stand ? game.sim.start.stand.index : null;
       world.parkedAircraft?.children.forEach((stand, i) => { stand.visible = i !== world.freeStand; });
     });
     on('state', ({ state: s, prev }) => {

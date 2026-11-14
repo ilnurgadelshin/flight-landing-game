@@ -303,6 +303,64 @@ if (want('land')) {
   check('a key ends the replay and returns to the results, the sound back in the flight deck', rp.returned);
 }
 
+// --------------------------------------------------------------------------- departure
+if (want('depart')) {
+  section('E5d', 'Departure: the take-off start and the gate start in the page');
+  const menu = await page.evaluate(() => {
+    const s = window.__sim; if (s.game.state !== 'menu') s.game.quitToMenu();
+    const pick = (id) => { document.querySelector(`[data-start="${id}"]`).click(); return { start: document.getElementById('btn-start').textContent, demoOff: document.getElementById('btn-demo').disabled }; };
+    const out = { runway: pick('runway'), gate: pick('gate'), short: pick('short') }; return out;
+  });
+  check('the menu offers the take-off and the gate; the start button says which; the autoland demo is for approaches',
+    menu.runway.start === 'Start take-off' && menu.gate.start === 'Start at the gate' && menu.short.start === 'Start approach' && menu.runway.demoOff && menu.gate.demoOff && !menu.short.demoOff, JSON.stringify(menu));
+  const flow = await page.evaluate(async () => {
+    const s = window.__sim, g = s.game, el = (id) => document.getElementById(id), out = {};
+    s.start({ mode: 'game', scenarioId: 'clear', startId: 'runway', seed: 5, sound: false }); s.setTimeScale(1);
+    for (let i = 0; i < 5; i++) { s.presentation.frame(1 / 60, 0); s.view.update(1 / 60); }
+    out.lineup = { msg: el('mode-msg').textContent, step: el('btn-step').textContent, brake: el('h-brk').textContent, parked: s.world.parkedAircraft ? s.world.parkedAircraft.children.every((c) => c.visible) : true, info: g.takeoffInfo() };
+    el('btn-step').click();
+    out.cleared = { msg: el('mode-msg').textContent, stepHidden: el('btn-step').classList.contains('hidden'), brake: g.sim.state.parkingBrake };
+    // a scripted pilot through the physics steps (no drawing): full thrust, the centreline, rotate at VR
+    const ac = g.sim.aircraft, V = g.takeoff.speeds, D = Math.PI / 180; let tgt = 0;
+    for (let i = 0; i < 120 * 200 && g.state === 'flying'; i++) {
+      const st = g.sim.state, inp = ac.input; inp.throttle = 1;
+      if (st.onGround) inp.yaw = Math.max(-1, Math.min(1, -st.lateralOffset * 0.05 - (st.heading - 270 * D) * 3)); else { inp.yaw = 0; inp.roll = Math.max(-1, Math.min(1, -st.roll * 2 - st.lateralOffset * 0.002)); }
+      if (st.ias >= V.vr) { tgt = Math.min(15, tgt + 2.5 / 120); const want = !st.onGround && st.agl > 30 ? Math.max(8, Math.min(20, 15 + (st.ias - (V.v2 + 17)) * 0.5)) : tgt; inp.pitch = Math.max(-1, Math.min(1, (want * D - st.pitch) * 6 - st.q * 2.5 + 0.1)); }
+      if (!st.onGround && st.agl > 15 && inp.gearDown) g.action('gear');
+      g.sim.stepOnce(); g.track(1 / 120);   // past the player's devices, which would centre the controls each frame
+    }
+    out.end = { state: g.state, result: g.result && { outcome: g.result.outcome, score: g.result.score, grade: g.result.grade }, shown: !el('results').classList.contains('hidden'), outcome: el('res-outcome').textContent, headline: el('res-headline').textContent,
+      rows: el('res-table').rows.length, voices: s.audioLog().filter((a) => a.kind === 'voice').map((a) => a.text) };
+    // then the gate: the step button through the pushback
+    s.start({ mode: 'game', scenarioId: 'clear', startId: 'gate', seed: 5, sound: false }); s.setTimeScale(1);
+    for (let i = 0; i < 5; i++) { s.presentation.frame(1 / 60, 0); s.view.update(1 / 60); }
+    const stand = g.sim.start.stand.index;
+    out.gate = { msg: el('mode-msg').textContent, step: el('btn-step').textContent, brake: el('h-brk').textContent, n1: el('h-n1') ? el('h-n1').textContent : '', free: s.world.parkedAircraft ? s.world.parkedAircraft.children.map((c) => c.visible).join() : 'none', stand };
+    el('btn-step').click();
+    for (let i = 0; i < 600; i++) g.update(1 / 60);
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyU', key: 'u', bubbles: true })); window.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyU', key: 'u', bubbles: true }));
+    out.push = { phase: g.ctx.departure.phase, towed: g.sim.state.towed, moved: 380 - g.sim.state.z, starting: ac.engines !== undefined && g.sim.aircraft.engines[1].starting, msg: el('mode-msg').textContent };
+    for (let i = 0; i < 60 * 130 && g.ctx.departure.phase !== 'ready'; i++) g.update(1 / 60);
+    for (let i = 0; i < 3; i++) { s.presentation.frame(1 / 60, 0); s.view.update(1 / 60); }
+    out.ready = { phase: g.ctx.departure.phase, hdg: g.sim.state.heading / D, step: el('btn-step').textContent, brake: el('h-brk').textContent };
+    out.errors = s.errors.slice();
+    g.quitToMenu();
+    return out;
+  });
+  check('the take-off start: cleared for take-off, the step button, PARK on the brake readout, the speeds for the displays',
+    /CLEARED FOR TAKE-OFF/.test(flow.lineup.msg) && /RELEASE PARKING BRAKE/.test(flow.lineup.step) && flow.lineup.brake === 'PARK' && flow.lineup.parked && flow.lineup.info && flow.lineup.info.vr === 143, JSON.stringify(flow.lineup).slice(0, 200));
+  check('the button releases the brake and the speeds are briefed', !flow.cleared.brake && flow.cleared.stepHidden && /V1 140 · VR 143 · V2 153/.test(flow.cleared.msg), flow.cleared.msg);
+  check('a take-off flown to the book ends at 1500 ft with the take-off debrief on the results screen',
+    flow.end.state === 'finished' && flow.end.result && flow.end.result.outcome === 'takeoff' && flow.end.result.score >= 90 && flow.end.shown && flow.end.outcome === 'AIRBORNE' && /take-off/.test(flow.end.headline) && flow.end.rows >= 7,
+    `${flow.end.outcome}: ${flow.end.headline} (${flow.end.result && flow.end.result.score})`);
+  check('the four calls are spoken in order', flow.end.voices.join() === 'Eighty knots,Vee one,Rotate,Positive rate', flow.end.voices.join(', '));
+  check('the gate start: the pushback offered, engines off, the departure stand free of its parked airliner',
+    /GATE 4/.test(flow.gate.msg) && /PUSHBACK/.test(flow.gate.step) && flow.gate.brake === 'PARK' && (flow.gate.free === 'none' || flow.gate.free === '' || flow.gate.free.split(',').every((v, i) => (v === 'true') === (i !== flow.gate.stand))), JSON.stringify(flow.gate));
+  check('the button starts the pushback and the U key starts the engines', flow.push.towed && flow.push.moved > 5 && flow.push.starting && /ENGINE 2 STARTING/.test(flow.push.msg), JSON.stringify(flow.push));
+  check('the push ends with the nose to the east, both engines stable and the brake set', flow.ready.phase === 'ready' && Math.abs(flow.ready.hdg - 90) < 2 && /RELEASE PARKING BRAKE/.test(flow.ready.step) && flow.ready.brake === 'PARK', JSON.stringify(flow.ready));
+  check('no JavaScript errors in either departure', !flow.errors.length, flow.errors.join(' | '));
+}
+
 // --------------------------------------------------------------------------- failure consequences
 if (want('fail')) {
   section('E6', 'Intentional errors: the simulation reacts with alarms and consequences');

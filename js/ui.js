@@ -123,7 +123,7 @@ export class UI {
     $('scenario-section').style.opacity = this.selection.mode === 'training' ? 0.45 : 1;
     const ground = !!APPROACH_STARTS[this.selection.start].ground;
     $('btn-demo').disabled = ground;                       // the autoland demo flies approaches only
-    $('btn-start').textContent = ground ? 'Start at the gate' : 'Start approach';
+    $('btn-start').textContent = APPROACH_STARTS[this.selection.start].stand ? 'Start at the gate' : ground ? 'Start take-off' : 'Start approach';
   }
 
   getOptions() {
