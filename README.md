@@ -1000,6 +1000,86 @@ tyre friction.
 
 The **Night** option in the menu flies any of these after dark.
 
+## Departure: plan and research
+
+The game starts on final approach. The plan is to add the other half of a flight: from the
+gate, through pushback, engine start and taxi, to the take-off and climb. This section records
+what was measured on the existing flight model, what is missing and the order of work. It is a
+plan: only the parts marked **done** below exist.
+
+### What the flight model already does
+
+Measured with the unchanged physics (`js/physics/aircraft.js`), clear weather, 62 t, flaps 5,
+full rated thrust from a standstill on runway 27:
+
+| | Measured |
+|---|---|
+| 80 kt | 14.6 s |
+| 145 kt (rotation started) | 26.4 s |
+| Lift-off | about 3 s after rotation, 1,130 m from the start of the roll |
+| 35 ft | 1,300 m |
+| Climb, gear up, 15° pitch | about 3,600 ft/min at 180 kt |
+
+That is in the range of a 737-800 at this weight and thrust (figures recalled from typical
+performance, not checked against Boeing's documents). The sprung gear, tyre grip, brakes, wet and
+grass surfaces, tail and engine strikes, gear retraction, engine spool-up and an engine failure
+with windmilling drag are all modelled already. The airport has a parallel taxiway, five
+connectors, an apron and five gates, and the physics tells taxiway from grass.
+
+### What is missing
+
+| Area | Gap | Size |
+|---|---|---|
+| Taxi physics | Idle thrust is almost nothing (the aircraft does not move at idle; 1 kt after 30 s at 15 % lever). The pedals steer the nosewheel ±7°, a 118 m turn radius: taxi turns need the tiller's 78°. Differential braking, a parking brake. | Medium |
+| Take-off physics | The weight is fixed at a landing weight; take-off trim; rotation tuned so a normal pull keeps the tail clear (a crude full pull struck it). | Medium |
+| Speeds and thrust | V1, VR and V2 from weight, flaps and wind; reduced-thrust take-off; speed bugs on the tape. | Medium |
+| Procedures and warnings | Take-off configuration warning; the "80 knots", "V1", "rotate" and "positive rate" calls; a rejected take-off with RTO autobrake; the flap retraction schedule; thrust reduction at altitude. | Medium |
+| Controls | Tiller, parking brake and differential brakes on keyboard, touch and controller. The phone layout is the hard part: it is already full. | Medium to hard |
+| Airport for taxiing | A free gate, stand lead-in lines, hold-short lines and signs, taxiway names, a route to follow. | Medium to hard |
+| Pushback and engine start | A tug, an engine start sequence, the before-taxi flow. | Hard if done in full |
+| Game flow and grading | Scenarios, starts, the debrief, the scoring, Flight School and the chart are written around landing. A take-off needs its own scoring (centreline, rotation rate, tail clearance, speed, flap schedule) and lessons. | Hard, by volume |
+| Autoland's counterpart | A demonstration departure needs its own controller. | Medium |
+| After take-off | A departure route, then an end at a set altitude or a circuit back to land. The detailed scenery is built for the eastern approach. | Medium |
+
+### Reference procedure (737-800, simplified)
+
+Recalled from standard operating practice, to be checked against a flight crew operations manual
+before each stage is graded:
+
+- **Pushback:** parking brake released on the tug's call, the tug pushes the aircraft back and
+  turns its tail onto the taxi lane, parking brake set, tug disconnected. The engines are usually
+  started during the push or once it stops.
+- **Engine start:** engine 2 first, then engine 1: starter engaged, fuel at about 25 % N2, light-off,
+  the starter cuts out near 56 % N2, and the engine settles at idle (about 21 % N1) some 40 s after
+  the start.
+- **Taxi:** idle thrust keeps a light aircraft rolling; about 30–35 % N1 breaks it away. Around
+  20 kt on straights and 10 kt or less in turns. The tiller turns the nosewheel up to 78°, the
+  pedals 7°.
+- **Before take-off:** flaps (1, 5, 10, 15 or 25), stabiliser trim for the centre of gravity,
+  speedbrake down, autobrake RTO.
+- **Take-off:** about 40 % N1 to let the engines stabilise, then take-off thrust; "80 knots";
+  "V1" (the stop decision is made by then); "rotate" at VR, 2–3° a second to about 15°; the tail
+  strikes at about 11° with the wheels on the ground; "positive rate", gear up; climb at V2 + 15
+  to 20 kt.
+- **After take-off:** thrust reduced to climb power at about 1,500 ft above the field, then
+  acceleration and the flaps retracted on schedule; 250 kt below 10,000 ft.
+- **Rejected take-off:** below V1: thrust levers closed, RTO autobrake (maximum braking, armed
+  above 90 kt), speedbrakes up, reverse thrust.
+
+### Stages
+
+1. **Gate, pushback and a simplified engine start**, then taxi basics (idle thrust, tiller, parking
+   brake). *In progress.*
+2. **Take-off from the runway:** flaps and trim set, the calls, rotation, climb to a set altitude,
+   graded.
+3. **Taxi to the runway:** a route to follow, hold-short line, line-up, signs and markings.
+4. **Failures and depth:** rejected take-off, an engine failure at V1, reduced thrust, a choice of
+   weight.
+5. **The whole flight:** take off, fly the circuit and land.
+6. **Full gate procedures** (kept for later): a cold and dark flight deck, APU, electrical,
+   hydraulic and fuel panels, the complete engine start and the checklists. It needs the flight
+   deck's switches to be interactive, which they are not today.
+
 ## Architecture
 
 The game is layered so that each part can change, or be tested, on its own. Arrows point from
