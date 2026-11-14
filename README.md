@@ -1000,6 +1000,7 @@ tyre friction.
 | Standard final | 10 nm, 3000 ft, 175 kts | flaps 5, gear up | about 5 min |
 | Full approach | 26 nm, 7000 ft, 210 kts | flaps 1, gear up | about 12 min |
 
+| Take-off | lined up on runway 27 | engines at idle, flaps 5, trim set, parking brake set | about 2 min |
 | From the gate | stand 4, on the ground | engines off, parking brake set, flaps up | as long as you take |
 
 The **Night** option in the menu flies any of these after dark.
@@ -1023,13 +1024,46 @@ controller's View button.
    The route to runway 27: left to the parallel taxiway, right along it to its east end, and
    onto the runway.
 
-A take-off from there works with the existing flight model: flaps 5, full thrust, rotate at about
-145 kt, gear up. It is recognised (AIRBORNE) but not yet graded, and nothing calls the speeds yet.
-The flight then goes on like any other: a landing back on runway 27 is graded as usual.
+On the runway the take-off below begins: the crew is told what is still to set (flaps, trim), then
+the speeds.
 
-Not in this stage: a tug to look at, a route drawn to follow, hold-short lines, the take-off
-calls and grading, and the phone layout's own taxi controls (the step button works on a phone;
-the parking brake after the first release has a key only).
+Not in this stage: a tug to look at, a route drawn to follow, hold-short lines, and the phone
+layout's own taxi controls (the step button works on a phone; the parking brake after the first
+release has a key only).
+
+### Take-off
+
+The second stage (`js/takeoff.js`). The **Take-off** start is lined up on runway 27 with the
+engines at idle, flaps 5 and the trim set, held on the parking brake; from the gate the same rules
+start when the aircraft is on the runway.
+
+- **Speeds** come from this flight model, not Boeing's tables: V2 is 1.2 times the stall speed with
+  the take-off flaps, VR 10 kt below it, V1 3 kt below VR (8 kt on a wet runway). At 62 t: 145 /
+  148 / 158 kt with flaps 1, 140 / 143 / 153 with flaps 5, 135 / 138 / 148 with flaps 15, a few
+  knots above a real 737-800's. They are bugs on the speed tape (V1, R, V2) and in the message.
+- **Configuration:** flaps 1, 5 or 15, the trim within 1.5° of the take-off setting (4.0° nose up
+  with flaps 1 and 5, 5.0° with flaps 15), speedbrake down, parking brake released. On the runway
+  the message names what is not set; take-off thrust with any of it wrong gives TAKEOFF CONFIG
+  and a caution tone.
+- **Calls** by the pilot monitoring, recorded in the flight deck's voice: "eighty knots", "V one",
+  "rotate", "positive rate".
+- **Rotation:** pull at VR at 2 to 3° a second towards 15°. The aircraft lifts off about 4 s later
+  near V2 + 8 at about 10° of pitch, some 1,200 m down the runway, and passes 35 ft near V2 + 15.
+  The tail touches at about 11° with the wheels on the ground.
+- **Rejected:** closing the thrust levers on the roll rejects the take-off; it ends when the
+  aircraft has stopped.
+- **The end:** 1,500 ft above the runway, with a debrief out of 100: configuration 10, centreline
+  on the roll 15, rotation speed 15, rotation rate 15, lift-off attitude 10, gear up within 8 s of
+  the positive rate 5, climb speed (V2 + 10 to 25 between 35 and 1,000 ft) 20, track 10. A tail
+  strike, leaving the runway or damage fails it. A rejected take-off is judged on the decision
+  (before V1) and on stopping on the runway.
+
+The landing warnings stay quiet during a take-off ("too low, gear" as the gear comes up), and the
+terrain warning now looks along a climbing flight path, so rising ground that the climb clears
+is no threat (this also applies to go-arounds).
+
+Not in this stage: reduced thrust, a choice of weight, RTO autobrake, an engine failure, the
+flap retraction schedule and thrust reduction after 1,500 ft, and Flight School lessons for it.
 
 ## Departure: plan and research
 
@@ -1102,7 +1136,7 @@ before each stage is graded:
 1. **Gate, pushback and a simplified engine start**, then taxi basics (idle thrust, tiller, parking
    brake). **Done** (see *From the gate* above); a visible tug is still to come.
 2. **Take-off from the runway:** flaps and trim set, the calls, rotation, climb to a set altitude,
-   graded.
+   graded. **Done** (see *Take-off* above).
 3. **Taxi to the runway:** a route to follow, hold-short line, line-up, signs and markings.
 4. **Failures and depth:** rejected take-off, an engine failure at V1, reduced thrust, a choice of
    weight.

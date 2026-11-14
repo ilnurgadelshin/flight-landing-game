@@ -579,12 +579,91 @@ console.log('\n[R8] Departure: from the gate, pushback, engine start, taxi, take
     g.update(0.05); if (g.ctx.departure.phase === 'airborne') lift = { x: st().x, ias: st().ias };
   }
   check('a take-off from the runway is recognised: airborne within 1,600 m, the gear prompt, no go-around or landing counted',
-    lift && 1440 - lift.x < 1600 && /AIRBORNE/.test(prompts().at(-1)) && g.ctx.goArounds === 0 && !ac.touchdown && g.state === 'flying' && !ac.damage.notes.length,
+    lift && 1440 - lift.x < 1600 && /POSITIVE RATE/.test(prompts().at(-1)) && g.ctx.goArounds === 0 && !ac.touchdown && g.state === 'flying' && !ac.damage.notes.length,
     lift ? `airborne ${(1440 - lift.x).toFixed(0)} m down the runway at ${lift.ias.toFixed(0)} kt` : 'never airborne');
   const R2 = rig({ startId: 'gate', mode: 'training' });
   check('Flight School and the autoland demo stay out of a gate start', R2.game.state === 'flying' && !R2.of('school').length && !rig({ startId: 'gate', demo: true }).game.demoAp);
   R2.game.action('departure'); R2.fly(10); R2.game.action('reposition');
   check('repositioning returns to the stand, parked', R2.game.ctx.departure.phase === 'gate' && R2.game.sim.state.parkingBrake && Math.abs(R2.game.sim.state.z - 380) < 1 && !R2.game.sim.state.towed);
+}
+
+console.log('\n[R9b] Take-off from the runway: speeds, calls, the configuration warning and the grading');
+{
+  const { takeoffSpeeds, takeoffTrim, TAKEOFF } = await import('../js/takeoff.js');
+  // a pilot: full thrust, hold the centreline with the rudder, rotate at `at` kt at `rate`°/s to `to`°, gear up `gearS` after lift-off
+  const fly = (R, { at = null, rate = 2.5, to = 15, gearS = 2, thrust = 1, until = 150, rejectAt = null } = {}) => {
+    const g = R.game, ac = g.sim.aircraft, V = g.takeoff.speeds; let tgt = 0, off = null;
+    if (g.ctx.departure.phase === 'lineup') g.action('departure');
+    for (let t = 0; t < until && g.state !== 'finished'; t += 1 / 60) {
+      const st = g.sim.state, inp = ac.input;
+      inp.throttle = rejectAt !== null && st.ias >= rejectAt ? 0 : thrust;
+      if (rejectAt !== null && inp.throttle === 0) { inp.brake = 1; inp.speedbrake = 1; }
+      if (st.onGround) inp.yaw = Math.max(-1, Math.min(1, -st.lateralOffset * 0.05 - (st.heading - 270 * DEG) * 3));
+      else { inp.yaw = 0; inp.roll = Math.max(-1, Math.min(1, -st.roll * 2 - st.lateralOffset * 0.002)); }
+      if (rejectAt === null && st.ias >= (at ?? V.vr)) {
+        tgt = Math.min(to, tgt + rate / 60);
+        // in the climb: pitch for V2 + 17
+        const want = !st.onGround && st.agl > 30 ? Math.max(8, Math.min(20, to + (st.ias - (V.v2 + 17)) * 0.5)) : tgt;
+        inp.pitch = Math.max(-1, Math.min(1, (want * DEG - st.pitch) * 6 - st.q * 2.5 + 0.1));
+      }
+      if (!st.onGround && off === null) off = t;
+      if (off !== null && t - off > gearS && inp.gearDown) g.action('gear');
+      g.update(1 / 60);
+    }
+    return g.result;
+  };
+  const V = takeoffSpeeds(2);
+  check('take-off speeds from the flight model: flaps 5 at 62 t, V1 < VR < V2, less flap is faster', V.v1 === 140 && V.vr === 143 && V.v2 === 153 && takeoffSpeeds(1).v2 > V.v2 && takeoffSpeeds(3).v2 < V.v2 && takeoffSpeeds(2, true).v1 === 135,
+    `${V.v1} / ${V.vr} / ${V.v2} kt; flaps 1 V2 ${takeoffSpeeds(1).v2}, flaps 15 V2 ${takeoffSpeeds(3).v2}`);
+
+  const R = rig({ startId: 'runway' }), g = R.game, st0 = g.sim.state;
+  const msgs = () => R.of('message').map((m) => m.text).filter(Boolean);
+  check('the take-off start: lined up on runway 27, engines at idle, flaps 5, the trim set, held on the parking brake',
+    st0.onGround && st0.surface === 'runway' && Math.abs(st0.heading / DEG - 270) < 0.1 && st0.flapIndex === 2 && st0.parkingBrake && g.sim.aircraft.input.trim === takeoffTrim(g.sim.aircraft, 2) && /CLEARED FOR TAKE-OFF/.test(msgs()[0]),
+    `trim ${g.sim.aircraft.input.trim}`);
+  const info = g.takeoffInfo();
+  check('the displays get the speeds and the trim', info && info.v1 === 140 && info.vr === 143 && info.v2 === 153 && info.trim === 4);
+  const calls = []; g.on('takeoffCall', (c) => calls.push(`${c.call}@${g.sim.state.ias.toFixed(0)}`));
+  const res = fly(R);
+  check('the parking brake released: the speeds are briefed', msgs().some((m) => /V1 140 · VR 143 · V2 153/.test(m)));
+  check('the calls come in order at their speeds: 80 knots, V1, rotate, then positive rate', calls.map((c) => c.split('@')[0]).join() === 'eighty,v1,rotate,positive' && Math.abs(+calls[0].split('@')[1] - 80) <= 1 && Math.abs(+calls[1].split('@')[1] - 140) <= 1 && Math.abs(+calls[2].split('@')[1] - 143) <= 1, calls.join(' '));
+  const T = res && res.takeoff;
+  check('the flight ends 1500 ft above the runway with a take-off debrief', g.state === 'finished' && res.outcome === 'takeoff' && res.success && g.sim.state.agl / FT >= 1500 && g.sim.state.agl / FT < 1560, `${res.outcome}, ${(g.sim.state.agl / FT).toFixed(0)} ft`);
+  check('a take-off flown to the book scores an A', res.score >= 90 && res.grade === 'A' && res.items.every((i) => i.ok), `${res.score}: ${res.items.map((i) => `${i.label} ${i.points}/${i.max}`).join(', ')}`);
+  check('what it measured: rotation at VR at 2–3° a second, lift-off below the tail-strike attitude, the climb at V2 + 10 to 25',
+    Math.abs(T.rotate.ias - 143) < 6 && T.rate >= 2 && T.rate <= 3 && T.liftoff.pitch / DEG < 11 && T.liftoff.dist < 1500 && T.speed.sum / T.speed.n > 163 && T.speed.sum / T.speed.n < 178 && T.gearUpT < 8,
+    `rotation ${T.rotate.ias.toFixed(0)} kt at ${T.rate.toFixed(1)}°/s, lift-off ${T.liftoff.ias.toFixed(0)} kt ${(T.liftoff.pitch / DEG).toFixed(1)}° after ${T.liftoff.dist.toFixed(0)} m, climb ${(T.speed.sum / T.speed.n).toFixed(0)} kt`);
+  check('no landing rules fired: no go-around, no touchdown, no GPWS warning', g.ctx.goArounds === 0 && !R.of('touchdown').length && !R.said.some((t) => /Sink|Pull|Too low|Terrain|Bank|Stall/.test(t)), R.said.join(', '));
+
+  // wrong configuration: flaps up and the trim out of the band
+  const C = rig({ startId: 'runway' }); C.game.sim.aircraft.input.flapIndex = 0; C.game.sim.aircraft.flapDeg = 0; C.game.sim.aircraft.input.trim = 0;
+  let warned = null; C.game.on('takeoffConfig', (e) => { warned = e.problems; });
+  C.game.action('departure'); C.fly(1);
+  const before = C.of('message').map((m) => m.text).at(-1);
+  const cr = fly(C, { at: 160 });
+  check('before the roll the crew is told what is not set', /BEFORE TAKE-OFF/.test(before) && /flaps/.test(before) && /trim 4\.0/.test(before), before);
+  check('take-off thrust with the flaps up and the trim off: the configuration warning, and no points for it', warned && warned.includes('FLAPS') && warned.includes('TRIM') && cr && cr.items[0].points === 0 && !cr.items[0].ok, JSON.stringify(warned));
+
+  // early and abrupt: a full pull 20 kt before VR
+  const E = rig({ startId: 'runway' }); const er = fly(E, { at: 123, rate: 8, to: 18 });
+  check('pulling early and hard strikes the tail: TAIL STRIKE, graded F', er.outcome === 'tailstrike' && er.grade === 'F' && !er.success && er.score <= 30, `${er.outcome} ${er.score}: ${er.headline}`);
+  // late and slow
+  const L = rig({ startId: 'runway' }); const lr = fly(L, { at: 165, rate: 1.2 });
+  const item = (r, l) => r.items.find((i) => i.label === l);
+  check('a late, slow rotation loses points on both and uses more runway', lr.success && item(lr, 'Rotation speed').points < 8 && item(lr, 'Rotation rate').points < 15 && lr.takeoff.liftoff.dist > T.liftoff.dist + 200 && lr.score < res.score, `${lr.score}: lift-off after ${lr.takeoff.liftoff.dist.toFixed(0)} m`);
+  // gear left down
+  const G = rig({ startId: 'runway' }); const gr = fly(G, { gearS: 999 });
+  check('the gear left down: no points for it', gr.success && item(gr, 'Gear up').points === 0);
+  // rejected before V1
+  const J = rig({ startId: 'runway' }); const jr = fly(J, { rejectAt: 100 });
+  check('thrust closed at 100 kt: a rejected take-off, stopped on the runway, a success', jr.outcome === 'rejected' && jr.success && J.game.sim.state.surface === 'runway' && J.game.sim.state.groundSpeed < 1 && /REJECTED/.test(J.of('message').map((m) => m.text).join('|')), `${jr.headline} (${jr.score})`);
+  // the wet runway's V1
+  const W = rig({ startId: 'runway', scenarioId: 'storm' });
+  check('a wet runway lowers V1', W.game.takeoff.speeds.v1 === 135 && W.game.takeoff.speeds.vr === 143);
+  // from the gate the same monitor waits for the runway
+  const Gt = rig({ startId: 'gate' });
+  Gt.fly(2);
+  check('from the gate the take-off is briefed only on the runway', !Gt.game.takeoff.started && !Gt.of('message').some((m) => /BEFORE TAKE-OFF|V1 1/.test(m.text)));
 }
 
 console.log(`\n${passed} passed, ${failed} failed`);

@@ -254,6 +254,9 @@ export const APPROACH_STARTS = {
            desc: '10 nm, 3000 ft, flaps 5. Configure and intercept the glideslope. About 5 minutes.' },
   full: { id: 'full', name: 'Full approach', distanceNm: 26, altFt: 7000, iasKts: 210, flaps: 1, gear: false,
            desc: '26 nm, 7000 ft, flaps 1. Descend, slow down and configure. About 12 minutes.' },
+  // a take-off: lined up on runway 27, the engines running, configured (js/takeoff.js)
+  runway: { id: 'runway', name: 'Take-off', ground: true, lineUp: { x: 1440, z: 0, headingDeg: 270 }, flaps: 2, gear: true,
+           desc: 'Lined up on runway 27, flaps 5, ready to go. Take off and climb to 1500 ft. About 2 minutes.' },
   // a departure: parked on stand 4, engines off (js/pushback.js, the README's departure plan)
   gate: { id: 'gate', name: 'From the gate', ground: true, flaps: 0, gear: true,
            stand: { x: 160, z: 380, headingDeg: 180, noseToDeg: 90, index: 3 },

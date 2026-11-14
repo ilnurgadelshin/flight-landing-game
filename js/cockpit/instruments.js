@@ -128,8 +128,10 @@ export class PFD {
     const vfe = AC.flaps.vfe[st.flapIndex];
     if (vfe < 300) { const yv = tcy - (vfe - ias) * pxPerKt; g.fillStyle = RED; g.fillRect(asX + asW - 8, yv - 400, 8, 400); for (let y = yv - 400; y < yv; y += 12) { g.fillStyle = '#000'; g.fillRect(asX + asW - 8, y, 8, 6); } }
     // Vref bug + selected speed bug
-    const bug = (v, col, label) => { const y = tcy - (v - ias) * pxPerKt; g.fillStyle = col; g.beginPath(); g.moveTo(asX + asW, y); g.lineTo(asX + asW - 10, y - 7); g.lineTo(asX + asW - 10, y + 7); g.closePath(); g.fill(); if (label) { g.font = FONT_S; g.fillStyle = col; g.textAlign = 'left'; g.fillText(label, asX + 2, y); } };
-    bug(st.vref, GREEN, 'REF');
+    const bug = (v, col, label, dx = 2) => { const y = tcy - (v - ias) * pxPerKt; g.fillStyle = col; g.beginPath(); g.moveTo(asX + asW, y); g.lineTo(asX + asW - 10, y - 7); g.lineTo(asX + asW - 10, y + 7); g.closePath(); g.fill(); if (label) { g.font = FONT_S; g.fillStyle = col; g.textAlign = 'left'; g.fillText(label, asX + dx, y); } };
+    // a take-off ahead or under way: its speeds in place of the landing reference
+    if (extra.takeoff) { bug(extra.takeoff.v1, WHITE, 'V1'); bug(extra.takeoff.vr, WHITE, 'R', 24); bug(extra.takeoff.v2, MAGENTA, 'V2'); }
+    else bug(st.vref, GREEN, 'REF');
     if (extra.targetSpeed) bug(extra.targetSpeed, MAGENTA);
     g.restore();
     // current speed box

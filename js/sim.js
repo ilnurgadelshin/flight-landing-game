@@ -32,6 +32,13 @@ export class Simulation {
     if (s.ground) {
       // parked on the stand as a crew finds it for a departure: engines off, parking brake set
       const ac = this.aircraft;
+      if (s.lineUp) {
+        // lined up for take-off: engines at idle, held on the parking brake
+        ac.place({ x: s.lineUp.x, y: CG_HEIGHT_ON_GROUND + 0.05, z: s.lineUp.z, headingDeg: s.lineUp.headingDeg, iasKts: 0,
+          flapIndex: s.flaps, gearDown: true, throttle: 0, onGround: true });
+        ac.input.parkingBrake = ac.state.parkingBrake = true;
+        return;
+      }
       ac.place({ x: s.stand.x, y: CG_HEIGHT_ON_GROUND + 0.05, z: s.stand.z, headingDeg: s.stand.headingDeg, iasKts: 0,
         flapIndex: s.flaps, gearDown: true, throttle: 0, onGround: true, enginesRunning: false });
       ac.input.parkingBrake = ac.state.parkingBrake = true; ac.tillerAssist = true;

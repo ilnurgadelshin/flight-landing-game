@@ -95,6 +95,7 @@ button.primary:hover { filter: brightness(1.1); }
 #hud-top { position: absolute; top: 10px; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; }
 #mode-msg { font-size: 22px; font-weight: 700; letter-spacing: 3px; color: var(--accent); text-shadow: 0 2px 8px #000; min-height: 26px; }
 #mode-msg.ga { color: #7ef; }
+#mode-msg.warn { color: #ffb347; }
 #btn-demo:disabled { opacity: 0.35; cursor: default; }
 /* the next step of a departure from the gate: one button for pushback, engine start, parking brake */
 #btn-step { pointer-events: auto; margin-top: 6px; padding: 9px 20px; border-radius: 10px; border: 1px solid rgba(126,238,255,0.7); background: rgba(8,40,58,0.82); color: #dff8ff; font: 700 15px/1 inherit; letter-spacing: 2px; cursor: pointer; }

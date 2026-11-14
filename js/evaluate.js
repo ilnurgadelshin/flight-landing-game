@@ -185,6 +185,7 @@ export function evaluateLanding(ac, ctx = {}) {
 export function fmtOutcome(o) {
   return {
     success: 'LANDED', crash: 'CRASHED', overrun: 'RUNWAY OVERRUN', excursion: 'RUNWAY EXCURSION',
+    takeoff: 'AIRBORNE', rejected: 'REJECTED TAKE-OFF', tailstrike: 'TAIL STRIKE',
     belly: 'BELLY LANDING', collapse: 'GEAR COLLAPSE', undershoot: 'LANDED SHORT', missed: 'MISSED THE RUNWAY',
   }[o] || o.toUpperCase();
 }

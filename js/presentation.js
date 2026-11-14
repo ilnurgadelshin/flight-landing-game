@@ -76,6 +76,9 @@ export class Presentation {
     on('control', ({ name }) => audio.play(CONTROL_SOUNDS[name]));
     on('goaround', () => audio.say('Go around, flaps fifteen', { priority: 1 }));
     on('sixtyKnots', () => audio.say('Sixty knots'));        // the pilot monitoring's call on the roll-out
+    // the pilot monitoring's calls on the take-off (js/takeoff.js)
+    on('takeoffCall', ({ call }) => audio.say({ eighty: 'Eighty knots', v1: 'Vee one', rotate: 'Rotate', positive: 'Positive rate' }[call], { priority: 1 }));
+    on('takeoffConfig', () => audio.play('caution'));
     on('demo', () => audio.play('apdisc'));
     on('touchdown', ({ sink, hard }) => {
       audio.play(hard ? 'hardlanding' : 'touchdown');
@@ -88,7 +91,8 @@ export class Presentation {
       audio.setConfigHorn(false); audio.stopStickShaker();
       this.lastDebrief = debriefModel(game.path);
       ui.showResults(result, (ctx) => drawDebrief(ctx, this.lastDebrief));
-      if (result.success) audio.say(result.score >= 78 ? 'Nice landing, Captain' : 'We are down', { priority: 1 }); else audio.play('caution');
+      if (result.takeoff) audio.play(result.success ? 'chime' : 'caution');
+      else if (result.success) audio.say(result.score >= 78 ? 'Nice landing, Captain' : 'We are down', { priority: 1 }); else audio.play('caution');
     });
     // lightning: a flash on the screen, thunder a moment later
     world.onLightning = () => { ui.flash(0.5); setTimeout(() => audio.play('thunder'), 800 + Math.random() * 1500); };

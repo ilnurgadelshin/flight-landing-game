@@ -60,9 +60,12 @@ export function deriveApproach(st, runway = RUNWAY) {
 export function terrainAhead(st, terrain = TERRAIN) {
   if (st.onGround) return false;
   const hx = Math.sin(st.heading), hz = -Math.cos(st.heading);
+  // along the flight path when it climbs (a take-off or a go-around toward rising ground that the
+  // climb clears is no threat); level or descending, the aircraft's own height is what counts
+  const climb = Math.max(0, Math.tan(st.gamma || 0));
   for (const d of [800, 1600, 2600]) {
     const h = terrain.heightAt(st.x + hx * d, st.z + hz * d);
-    if (h > 5 && st.alt - h < 120 + d * 0.05) return true;
+    if (h > 5 && st.alt + d * climb - h < 120 + d * 0.05) return true;
   }
   return false;
 }

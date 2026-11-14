@@ -23,6 +23,7 @@
 //   finish       { result }
 import { Simulation } from './sim.js';
 import { Pushback } from './pushback.js';
+import { TakeoffMonitor, evaluateTakeoff, takeoffTrim } from './takeoff.js';
 import { FlightControls } from './flightcontrols.js';
 import { commandSpeed } from './autothrottle.js';
 import { evaluateLanding } from './evaluate.js';
@@ -130,7 +131,8 @@ export class Game {
     this.sim = new Simulation({ scenarioId: opts.scenarioId, startId: opts.startId, seed: opts.seed || (Date.now() % 1000) + 1 });
     this.controls = new FlightControls(this.sim.aircraft, this.player);
     const ground = !!this.sim.start.ground;   // a departure: from the gate (the README's departure plan)
-    this.pushback = ground ? new Pushback(this.sim.aircraft, this.sim.start.stand) : null;
+    this.pushback = ground && this.sim.start.stand ? new Pushback(this.sim.aircraft, this.sim.start.stand) : null;
+    this.newTakeoff();
     this.controls.onAutothrottle = (on, reason) => this.announceAutothrottle(on, reason);
     if (this.mode === 'training') this.controls.enableDirector();
     this.sim.preStep = (dt) => {
@@ -141,10 +143,10 @@ export class Game {
       const ap = this.demoAp;
       if (ap && ap.gaPending) { ap.gaPending = false; this.beginGoAround(true, ap.gaReason); }
     };
-    this.sim.postStep = (dt) => { if (this.state === 'flying' && this.gpws) this.gpws.update(dt, this.sim.state, { gaMode: this.ctx.gaMode, gaAltitudeLoss: this.ctx.gaMaxAgl - this.sim.state.agl, terrainAhead: this.terrainAhead() }); };
+    this.sim.postStep = (dt) => { if (this.state === 'flying' && this.gpws) this.gpws.update(dt, this.sim.state, { gaMode: this.ctx.gaMode || !!(this.takeoff && this.takeoff.started && !this.takeoff.done), gaAltitudeLoss: this.ctx.gaMaxAgl - this.sim.state.agl, terrainAhead: this.terrainAhead() }); };
     if (this.gpws) this.gpws.reset();
     this.ctx = this.newCtx();
-    this.ctx.departure = ground ? { phase: 'gate', enginesAsked: false } : null;
+    this.ctx.departure = ground ? { phase: this.sim.start.lineUp ? 'lineup' : 'gate', enginesAsked: false } : null;
     this.efis = this.newEfis();
     this.path = this.newPath();
     this.replay = []; this.replayWait = 0;
@@ -188,7 +190,7 @@ export class Game {
     if (name === 'togaOrReposition') {
       // the controller's View button: TO/GA, and once the go-around is under way, back on final
       const d = this.ctx.departure;
-      if (this.state === 'flying' && d && ['gate', 'push', 'pushed', 'ready'].includes(d.phase)) this.action('departure');   // at the gate: the next step
+      if (this.state === 'flying' && d && ['gate', 'push', 'pushed', 'ready', 'lineup'].includes(d.phase)) this.action('departure');   // at the gate: the next step
       else if (this.state === 'flying') this.action(this.ctx.gaMode && this.ctx.gaTimer > 3 ? 'reposition' : 'toga');
       return;
     }
@@ -222,7 +224,7 @@ export class Game {
         this.message(inp.parkingBrake ? 'PARKING BRAKE SET' : 'PARKING BRAKE RELEASED', '', 2);
         this.log('input', `parking brake ${inp.parkingBrake ? 'set' : 'released'}`);
         const d = this.ctx.departure;
-        if (d && d.phase === 'ready' && !inp.parkingBrake) { d.phase = 'taxi'; this.departurePrompt(); }
+        if (d && (d.phase === 'ready' || d.phase === 'lineup') && !inp.parkingBrake) { d.phase = d.phase === 'lineup' ? 'cleared' : 'taxi'; this.departurePrompt(); }
         break;
       }
       case 'reposition': if (this.ctx.gaMode || st.alt > 900 || st.onGround) this.reposition(); break;
@@ -297,12 +299,13 @@ export class Game {
     this.sim.reposition();
     if (this.sim.start.ground) {
       // back on the stand, as the flight began
-      this.pushback = new Pushback(this.sim.aircraft, this.sim.start.stand);
-      this.ctx.departure = { phase: 'gate', enginesAsked: false };
+      this.pushback = this.sim.start.stand ? new Pushback(this.sim.aircraft, this.sim.start.stand) : null;
+      this.newTakeoff();
+      this.ctx.departure = { phase: this.sim.start.lineUp ? 'lineup' : 'gate', enginesAsked: false };
       this.ctx.gaMode = false; this.ctx.wasLow = false;
       if (this.gpws) this.gpws.reset();
       this.path.seg++; this.path.wait = 0;
-      this.emit('reposition', { distanceNm: 0 }); this.log('reposition', 'back at the gate');
+      this.emit('reposition', { distanceNm: 0 }); this.log('reposition', this.sim.start.lineUp ? 'lined up again' : 'back at the gate');
       this.departurePrompt();
       return;
     }
@@ -319,6 +322,49 @@ export class Game {
   }
 
   // ------------------------------------------------------------------ departure
+  /** A departure's take-off is watched and graded (js/takeoff.js); an approach's start has none. */
+  newTakeoff() {
+    const start = this.sim.start, ac = this.sim.aircraft;
+    this.takeoff = start.ground ? new TakeoffMonitor(ac, { wet: this.sim.scenario.wet }) : null;
+    // lined up, the before-take-off checks are done: the trim is in the green band
+    if (start.lineUp) ac.input.trim = ac.state.trim = takeoffTrim(ac, start.flaps);
+  }
+
+  /** The take-off speeds and trim for the displays, while a take-off is ahead or under way. */
+  takeoffInfo() {
+    const t = this.takeoff;
+    if (!t || t.done || (this.ctx.departure && this.ctx.departure.phase === 'airborne' && this.sim.state.agl > 600 * FT)) return null;
+    return Object.assign({ trim: t.trim, rolling: t.started }, t.speeds);
+  }
+
+  /** On the runway before the roll: what is still to set, or the speeds. */
+  takeoffBrief(problems = null) {
+    const t = this.takeoff, V = t.speeds, speeds = `V1 ${V.v1} · VR ${V.vr} · V2 ${V.v2}`;
+    const todo = { FLAPS: 'flaps 1, 5 or 15 ([[flapsDown]])', TRIM: `trim ${t.trim.toFixed(1)} nose up ([[trim]])`, SPEEDBRAKE: 'speedbrake down ([[speedbrake]])' };
+    if (problems && problems.length) return `BEFORE TAKE-OFF — ${problems.map((p) => todo[p] || p.toLowerCase()).join(', ')}`;
+    return `RUNWAY 27 — ${speeds} — full thrust ([[thrustUp]]), rotate at VR`;
+  }
+
+  /** What the take-off's monitor reported this step. */
+  takeoffEvents(events) {
+    const d = this.ctx.departure;
+    for (const e of events) {
+      if (e.type === 'brief') { if (!d || d.phase !== 'lineup') this.message(this.takeoffBrief(e.problems), 'ga'); }
+      else if (e.type === 'config') {
+        this.message(`TAKEOFF CONFIG — ${e.problems.join(', ')}`, 'warn', 4); this.emit('takeoffConfig', { problems: e.problems });
+        this.log('takeoff', `configuration warning: ${e.problems.join(', ').toLowerCase()}`);
+      } else if (e.type === 'call') {
+        const text = { eighty: '80 KNOTS', v1: 'V1', rotate: 'ROTATE', positive: 'POSITIVE RATE' }[e.call];
+        if (e.call !== 'positive') this.message(text, '', 2);
+        this.emit('takeoffCall', { call: e.call }); this.log('takeoff', text.toLowerCase());
+        if (e.call === 'eighty') this.mark('takeoffroll', 'take-off roll');
+      } else if (e.type === 'rejected') {
+        this.message('REJECTED TAKE-OFF — brakes ([[brakes]]), speedbrakes ([[speedbrake]]), reverse ([[reverse]])', 'warn', 6);
+        this.log('takeoff', `rejected at ${e.ias.toFixed(0)} kt`); this.mark('rejected', `${e.ias.toFixed(0)} kt`);
+      } else if (e.type === 'done') this.finish();
+    }
+  }
+
   /**
    * The next step of a departure from the gate, one control for all of them: request the pushback,
    * start the engines (no. 2, then no. 1 follows by itself), release the parking brake.
@@ -332,8 +378,8 @@ export class Game {
     } else if ((d.phase === 'push' || d.phase === 'pushed') && !d.enginesAsked) {
       d.enginesAsked = true; ac.startEngine(1);
       this.emit('control', { name: 'departure', value: 'start' });
-    } else if (d.phase === 'ready') {
-      this.setParkingBrake(false); d.phase = 'taxi';
+    } else if (d.phase === 'ready' || d.phase === 'lineup') {
+      this.setParkingBrake(false); d.phase = d.phase === 'lineup' ? 'cleared' : 'taxi';
       this.emit('control', { name: 'parkingBrake', value: false }); this.log('input', 'parking brake released');
     } else return;
     this.departurePrompt();
@@ -360,8 +406,10 @@ export class Game {
     else if (d.phase === 'push') { text = d.enginesAsked ? `PUSHBACK — ${engines || 'ENGINES RUNNING'}` : 'PUSHBACK — [[departure]]: start the engines'; step = d.enginesAsked ? '' : 'START ENGINES'; }
     else if (d.phase === 'pushed') { text = d.enginesAsked ? `PUSHBACK COMPLETE — ${engines}` : 'PUSHBACK COMPLETE, parking brake set — [[departure]]: start the engines'; step = d.enginesAsked ? '' : 'START ENGINES'; }
     else if (d.phase === 'ready') { text = 'ENGINES STABLE — [[departure]]: release the parking brake and taxi'; step = 'RELEASE PARKING BRAKE'; }
+    else if (d.phase === 'lineup') { text = 'RUNWAY 27, CLEARED FOR TAKE-OFF — [[departure]]: release the parking brake'; step = 'RELEASE PARKING BRAKE'; }
+    else if (d.phase === 'cleared') text = this.takeoffBrief();
     else if (d.phase === 'taxi') text = 'TAXI TO RUNWAY 27 — turn left to the taxiway, then right along it to the far end. [[rudder]] steers the nosewheel';
-    else if (d.phase === 'airborne') text = 'AIRBORNE — [[gear]]: gear up';
+    else if (d.phase === 'airborne') text = 'POSITIVE RATE — [[gear]]: gear up';
     this.message(text, 'ga', d.phase === 'taxi' ? 14 : d.phase === 'airborne' ? 6 : 0);
     this.emit('departure', { phase: d.phase, step });
   }
@@ -475,6 +523,8 @@ export class Game {
         if (e.type === 'destroyed') c.crashSeen = true;
       } else if (e.type === 'hardlanding') { this.log('damage', 'hard landing'); }
     }
+    if (this.takeoff && !c.finished) this.takeoffEvents(this.takeoff.update(dt, st, inp));
+    if (c.finished) return;
     // a departure: off the ground
     if (c.departure && c.departure.phase !== 'airborne' && !st.onGround && st.agl > 5) {
       c.departure.phase = 'airborne'; this.log('departure', `airborne at ${st.ias.toFixed(0)} kt`); this.mark('takeoff', `${st.ias.toFixed(0)} kt`); this.departurePrompt();
@@ -500,7 +550,8 @@ export class Game {
   finish() {
     const c = this.ctx;
     c.finished = true;
-    const res = evaluateLanding(this.sim.aircraft, c);
+    // a departure ends with its take-off's debrief, unless the flight went on to a landing
+    const res = this.takeoff && this.takeoff.started && !this.sim.aircraft.touchdown ? evaluateTakeoff(this.takeoff, this.sim.aircraft) : evaluateLanding(this.sim.aircraft, c);
     this.result = res;
     this.path.wait = 0; this.recordPath(0);
     this.mark(this.sim.aircraft.damage.destroyed ? 'crash' : (this.sim.state.onGround ? 'stop' : 'end'), res.outcome);
