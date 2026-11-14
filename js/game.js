@@ -159,9 +159,9 @@ export class Game {
     this.emit('start', { opts, scenario, night: this.night });
     this.emit('instructor', { html: '' });
     if (ground) {
-      // no autoland demo and no approach lessons from the gate: the flight starts with the pushback
-      this.setState('flying');
-      this.departurePrompt();
+      // no autoland demo from the ground; Flight School has a departure's own lessons
+      if (this.mode === 'training' && !opts.skipSchool) this.openSchool(true);
+      else { this.setState('flying'); this.departurePrompt(); }
     } else if (opts.demo) {
       this.controls.engageAutopilot({});
       this.setState('flying');
@@ -281,6 +281,7 @@ export class Game {
     this.sim.paused = false;
     this.setState('flying');
     if (this._schoolFromStart) this.log('school', skipped ? 'skipped' : 'completed');
+    if (this.ctx.departure && this.ctx.departure.phase !== 'airborne') this.departurePrompt();   // the step it is waiting at
   }
 
   disengageDemo() { if (this.controls.disengageAutopilot()) this.announceTakeover(); }
@@ -431,6 +432,30 @@ export class Game {
   }
 
   setParkingBrake(on) { this.sim.aircraft.input.parkingBrake = this.sim.state.parkingBrake = on; }
+
+  /** The instructor on a departure: taxi speed, the configuration, the rotation, the climb. */
+  departureHints() {
+    const st = this.sim.state, inp = this.sim.aircraft.input, d = this.ctx.departure, t = this.takeoff, V = t.speeds, hints = [], kt = st.groundSpeed / KTS, aglFt = st.agl / FT;
+    if (st.onGround && !t.started) {
+      if (d && (d.phase === 'gate' || d.phase === 'push' || d.phase === 'pushed' || d.phase === 'ready' || d.phase === 'lineup')) return hints;
+      if (st.surface === 'grass') hints.push('<b>You are on the grass.</b> Steer back to the pavement, slowly.');
+      else if (st.surface !== 'runway' && kt > 22) hints.push('Taxi speed: <b>brake to about 15 kt</b> ([[brakes]]), 8 kt before a turn.');
+      else if (st.surface !== 'runway' && kt < 1 && !st.parkingBrake && inp.throttle < 0.05) hints.push('A little thrust ([[thrustUp]]) gets you moving; take it off once you roll.');
+    } else if (st.onGround) {
+      if (t.rec.rejected) hints.push('<b>Stop:</b> brakes ([[brakes]]), speedbrakes ([[speedbrake]]), reverse ([[reverse]]).');
+      else if (st.engineFailed.some(Boolean)) hints.push(st.ias < V.v1 ? '<b>Engine failure before V1: stop.</b> Close the thrust levers ([[thrustDown]]).' : '<b>Engine failure: go.</b> Rudder towards the live engine ([[rudder]]), rotate gently.');
+      else if (st.ias >= V.vr && st.pitch < 3 * DEG) hints.push('<b>Rotate:</b> pull smoothly to 15° ([[pitch]]).');
+      else if (Math.abs(st.lateralOffset) > 5) hints.push('Back to the centreline with the rudder ([[rudder]]).');
+    } else {
+      const out = st.engineFailed.some(Boolean), lo = V.v2 + (out ? 0 : 10), hi = V.v2 + (out ? 20 : 25);
+      if (st.gearDown && st.vs > 1.5 && aglFt > 30) hints.push('Positive rate: <b>gear up</b> ([[gear]]).');
+      if (!out && aglFt >= 1500 && inp.throttle > 0.905) hints.push('Above 1500 ft: <b>climb thrust</b>, the levers back to 90 % ([[thrustDown]]).');
+      if (aglFt < 1000 || out) { if (st.ias < lo) hints.push(`Slow: lower the nose a little (aim for ${lo} to ${hi} kt).`); else if (st.ias > hi + 5) hints.push(`Fast: raise the nose a little (aim for ${lo} to ${hi} kt).`); }
+      else if (st.flapIndex > 0) hints.push('Above 1000 ft: let the speed build and bring the <b>flaps up</b> a notch at a time ([[flapsUp]]).');
+      if (Math.abs(st.roll) > 12 * DEG) hints.push('Wings level.');
+    }
+    return hints;
+  }
 
   /** The tug has stopped: parking brake set, tug away. */
   pushbackDone() {
@@ -621,7 +646,7 @@ export class Game {
     if (this._instT < 0.5) return;
     this._instT = 0;
     const st = this.sim.state, inp = this.sim.aircraft.input, c = this.ctx;
-    if (c.departure && c.departure.phase !== 'airborne') return;   // the approach's hints have nothing to say at the gate
+    if (this.takeoff && !this.takeoff.done && !this.sim.aircraft.touchdown) { this.emit('instructor', { html: this.departureHints().slice(0, 2).join('<br>') }); return; }
     const aglFt = st.agl / FT, dNm = st.distToThreshold / NM;
     const target = st.vref + 5, atOn = this.controls.autothrottle.engaged;
     const hints = [];

@@ -55,6 +55,28 @@ export const SCHOOL_STEPS = [
     body: `You will be graded on:<ul><li><b>Touchdown zone</b>: 150–900 m past the threshold (aim for the big white blocks)</li><li><b>Sink rate</b> under 300 fpm is smooth; over 600 fpm is a hard landing; 900+ collapses the gear</li><li><b>Centreline</b> and <b>alignment</b>: wings level, and the crab kicked off with rudder (up to 5° of crab is fine; 8° on a wet runway)</li><li><b>Speed</b> near Vref, <b>flaps 30</b> and gear down</li><li>Stop before the end of the runway</li></ul>Callouts: "Fifty, forty, thirty, twenty, ten" — start the flare at <b>thirty</b>.<br>[[view]] steps through the views to the <b>head-up view</b>: no flight deck, and a head-up display in the windshield. Keep its flight path marker (the circle with wings) on the touchdown zone. Good luck, Captain.` },
 ];
 
+// Flight School for a departure (training mode from the gate or the runway). The first two pages
+// are the gate's: a take-off from the runway starts at the third (DEPARTURE_FROM_RUNWAY).
+export const DEPARTURE_STEPS = [
+  { title: 'From the gate', anchor: 'windshield', touch: { anchor: '#hgs' },
+    body: `You are parked on stand 4, nose to the terminal, engines off and the parking brake set. One control takes each step: [[departure]].<ul><li><b>Pushback</b>: the tug pushes you back and turns your nose to the east. Hands off: it takes about 75 seconds.</li><li><b>Engine start</b>, during the push or after it: engine 2, then engine 1, about half a minute each. Watch N1 rise to <b>21 %</b>.</li><li><b>Parking brake</b> released, and you taxi.</li></ul>Press [[help]] any time to reopen this school.` },
+  { title: 'Taxi', anchor: 'rudder', look: 1, touch: { anchor: '#t-rudder' },
+    body: `Follow the dashed magenta line to runway 27: left to the taxiway, right along it to its far end, left again to the runway.<ul><li>[[rudder]]: steers the nosewheel. It turns far at walking pace and less as you speed up, so <b>slow down before a turn</b>.</li><li>[[thrust]]: idle thrust keeps you rolling; a little thrust gets you moving, then take it off.</li><li>[[brakes]]: hold about <b>15 kt</b> on the straights and <b>8 kt</b> in the turns (GS in the bottom bar).</li><li>The yellow bars across the last connector are the holding point: you are cleared to line up as you reach them.</li></ul>` },
+  { title: 'Before take-off', anchor: 'flapLever', look: 1, touch: { anchor: '#t-flaps' },
+    body: `On the runway the message names what is still to set.<ul><li><b>Flaps 5</b> ([[flapsDown]]): 1 and 15 are also allowed.</li><li><b>Trim</b> ([[trim]]) to the value in the message, about 4° nose up.</li><li>Speedbrake down, parking brake released.</li><li>Autobrake <b>RTO</b> ([[autobrake]]): if you close the thrust levers above 90 kt it brakes for you.</li></ul>Thrust with any of it wrong gives <b>TAKEOFF CONFIG</b>.` },
+  { title: 'Take-off thrust and the calls', anchor: 'throttle', look: 1, touch: { anchor: '#t-toga' },
+    body: `[[toga]] sets take-off thrust. Keep straight with small rudder inputs ([[rudder]]) and listen:<ul><li><b>"Eighty knots"</b>: both speed tapes agree, all is well.</li><li><b>"V one"</b>: from here you go, whatever happens. Before it, closing the thrust levers ([[thrustDown]]) rejects the take-off.</li><li><b>"Rotate"</b>: raise the nose.</li></ul>The three speeds are bugs on the speed tape: V1, R and V2.` },
+  { title: 'Rotation', anchor: 'attitude', touch: { anchor: '#t-stick-zone' },
+    body: `At "rotate", pull smoothly: about <b>2 to 3° a second</b> towards <b>15°</b> ([[pitch]]). The aircraft lifts off about four seconds later.<ul><li>Too early or too fast and the tail strikes the runway: it touches at about <b>11°</b> with the wheels still on the ground.</li><li>Too late or too slow uses runway: about 80 m every second.</li></ul>` },
+  { title: 'The climb', anchor: 'gear', look: 0.45, touch: { anchor: '#t-gear' },
+    body: `<ul><li><b>"Positive rate"</b>: gear up ([[gear]]).</li><li>Hold <b>V2 + 10 to 25</b> with pitch: nose up if fast, down if slow. Wings level, straight ahead.</li><li>At <b>1000 ft</b>: lower the nose a little, let the speed build and bring the flaps up one notch at a time ([[flapsUp]]).</li><li>At <b>1500 ft</b>: thrust levers back to 90 % for the climb ([[thrustDown]]).</li></ul>The take-off ends at 3000 ft.` },
+  { title: 'If an engine fails', anchor: 'rudder', look: 1, touch: { anchor: '#t-rudder' },
+    body: `The nose swings towards the failed engine.<ul><li><b>Before V1: stop.</b> Close the thrust levers ([[thrustDown]]); RTO brakes for you, or brake yourself ([[brakes]]); speedbrakes ([[speedbrake]]) and reverse ([[reverse]]).</li><li><b>After V1: go.</b> Rudder at once towards the engine that still runs ([[rudder]]), rotate a little slower and keep the nose below 10° until you are airborne, then climb at V2 to V2 + 20 with the gear up.</li></ul>The menu's <i>Engine failure</i> option lets you practise both.` },
+  { title: 'How the take-off is graded', anchor: 'pfd', touch: { anchor: '#hgs' },
+    body: `Out of 100:<ul><li><b>Configuration</b> and the <b>centreline</b> on the roll</li><li><b>Rotation</b>: at VR, at 2 to 3° a second, the tail clear</li><li><b>Gear up</b> within 8 s of the positive rate</li><li><b>Climb speed</b> V2 + 10 to 25, straight ahead</li><li><b>After take-off</b>: flaps up on schedule, climb thrust at 1500 ft, under 250 kt</li></ul>A tail strike or leaving the runway fails it.` },
+];
+export const DEPARTURE_FROM_RUNWAY = 2;
+
 /** A school page as the active control scheme shows it. */
 export function schoolPage(s) {
   const touch = getScheme() === 'touch' ? (s.touch || {}) : {};
@@ -387,7 +409,9 @@ export class UI {
   setRain(on) { this.el.rain.style.opacity = '0'; void on; }
 
   // ---- Flight School ----------------------------------------------------------
-  showSchool(getAnchor, onLook) {
+  /** @param steps the pages to show (the approach's by default; a departure's from the gate or the runway) */
+  showSchool(getAnchor, onLook, steps = SCHOOL_STEPS) {
+    this.schoolSteps = steps;
     this.getAnchor = getAnchor;
     this.onLook = onLook;
     this.schoolIndex = 0;
@@ -396,23 +420,23 @@ export class UI {
   }
   schoolStep(d) {
     this.schoolIndex += d;
-    if (this.schoolIndex >= SCHOOL_STEPS.length) { this.hideSchool(false); return; }
+    if (this.schoolIndex >= this.schoolSteps.length) { this.hideSchool(false); return; }
     if (this.schoolIndex < 0) this.schoolIndex = 0;
     this.renderSchool();
   }
   renderSchool() {
-    const s = schoolPage(SCHOOL_STEPS[this.schoolIndex]);
-    $('school-step').textContent = `${this.schoolIndex + 1} / ${SCHOOL_STEPS.length}`;
+    const s = schoolPage(this.schoolSteps[this.schoolIndex]);
+    $('school-step').textContent = `${this.schoolIndex + 1} / ${this.schoolSteps.length}`;
     $('school-title').textContent = s.title;
     $('school-body').innerHTML = s.body;
     $('school-back').disabled = this.schoolIndex === 0;
-    $('school-next').textContent = this.schoolIndex === SCHOOL_STEPS.length - 1 ? 'Start flying' : 'Next';
+    $('school-next').textContent = this.schoolIndex === this.schoolSteps.length - 1 ? 'Start flying' : 'Next';
     if (this.onLook) this.onLook(s.look || 0);
     this.updateSchoolHighlight();
   }
   updateSchoolHighlight() {
     if (this.el.school.classList.contains('hidden') || !this.getAnchor) return;
-    const s = schoolPage(SCHOOL_STEPS[this.schoolIndex]);
+    const s = schoolPage(this.schoolSteps[this.schoolIndex]);
     const h = $('school-highlight');
     let box = null;
     if (s.anchor[0] === '#') {

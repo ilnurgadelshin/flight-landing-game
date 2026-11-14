@@ -10,6 +10,7 @@ import { ndModel, drawND } from './nd.js';
 import { chartModel, drawChart } from './chart.js';
 import { debriefModel, drawDebrief } from './debrief.js';
 import { getScheme } from './controls.js';
+import { DEPARTURE_STEPS, DEPARTURE_FROM_RUNWAY } from './ui.js';
 
 const CONTROL_SOUNDS = { departure: 'click', parkingBrake: 'click', gear: 'gear', flapsDown: 'flaps', flapsUp: 'flaps', speedbrake: 'click', armSpeedbrake: 'click', autobrake: 'click', autothrottle: 'click', toga: 'chime', ndRange: 'click', ndMode: 'click' };
 const ND_PERIOD = 1 / 15;            // s between redraws of the ND view's sharp copy of the display
@@ -66,7 +67,8 @@ export class Presentation {
       if (s === 'menu' || s === 'finished') ui.setStep('');
     });
     on('school', () => {
-      ui.showSchool((name) => view.anchorFor(name), (look) => { view.schoolLook = look; });
+      const start = game.sim.start, steps = !start.ground ? undefined : start.stand ? DEPARTURE_STEPS : DEPARTURE_STEPS.slice(DEPARTURE_FROM_RUNWAY);
+      ui.showSchool((name) => view.anchorFor(name), (look) => { view.schoolLook = look; }, steps);
       ui.onSchoolDone = (skipped) => game.schoolDone(skipped);
     });
     on('message', ({ text, kind, duration }) => this.message(text, kind, duration));

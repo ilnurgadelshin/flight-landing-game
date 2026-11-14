@@ -359,6 +359,25 @@ if (want('depart')) {
     /GATE 4/.test(flow.gate.msg) && /PUSHBACK/.test(flow.gate.step) && flow.gate.brake === 'PARK' && (flow.gate.free === 'none' || flow.gate.free === '' || flow.gate.free.split(',').every((v, i) => (v === 'true') === (i !== flow.gate.stand))), JSON.stringify(flow.gate));
   check('the button starts the pushback and the U key starts the engines', flow.push.towed && flow.push.moved > 5 && flow.push.starting && /ENGINE 2 STARTING/.test(flow.push.msg), JSON.stringify(flow.push));
   check('the push ends with the nose to the east, both engines stable and the brake set', flow.ready.phase === 'ready' && Math.abs(flow.ready.hdg - 90) < 2 && /RELEASE PARKING BRAKE/.test(flow.ready.step) && flow.ready.brake === 'PARK', JSON.stringify(flow.ready));
+  // Flight School before a departure: its own pages, each pointing at a part of the flight deck
+  const school = await page.evaluate(async () => {
+    const s = window.__sim, g = s.game, el = (id) => document.getElementById(id), ui = await import('./js/ui.js'), out = {};
+    for (const [id, n] of [['gate', ui.DEPARTURE_STEPS.length], ['runway', ui.DEPARTURE_STEPS.length - ui.DEPARTURE_FROM_RUNWAY]]) {
+      s.start({ mode: 'training', scenarioId: 'clear', startId: id, seed: 5, sound: false });
+      const o = out[id] = { state: g.state, count: el('school-step').textContent, first: el('school-title').textContent, expected: n, titles: [], shown: !el('school').classList.contains('hidden') };
+      for (let k = 0; k < n; k++) { o.titles.push(el('school-title').textContent); o.keys = (o.keys || 0) + (el('school-body').innerHTML.includes('<kbd>') ? 1 : 0); if (k < n - 1) el('school-next').click(); }
+      o.last = el('school-next').textContent; el('school-next').click();
+      o.after = { state: g.state, msg: el('mode-msg').textContent, hidden: el('school').classList.contains('hidden') };
+    }
+    out.anchors = ui.DEPARTURE_STEPS.map((p) => [p.anchor, !!s.view.anchorFor(p.anchor)]);
+    g.quitToMenu();
+    return out;
+  });
+  check('Flight School from the gate: eight departure pages, then the pushback is offered',
+    school.gate.state === 'school' && school.gate.shown && school.gate.count === '1 / 8' && school.gate.first === 'From the gate' && new Set(school.gate.titles).size === 8 && school.gate.keys >= 7 && school.gate.last === 'Start flying' && school.gate.after.state === 'flying' && school.gate.after.hidden && /GATE 4/.test(school.gate.after.msg),
+    `${school.gate.count}: ${school.gate.titles.join(', ')}`);
+  check('from the runway it starts at the take-off pages, then the clearance', school.runway.count === '1 / 6' && school.runway.first === 'Before take-off' && school.runway.after.state === 'flying' && /CLEARED FOR TAKE-OFF/.test(school.runway.after.msg), `${school.runway.count}: ${school.runway.first}`);
+  check('every page points at a part of the flight deck that exists', school.anchors.every(([, ok]) => ok), school.anchors.filter(([, ok]) => !ok).map(([a]) => a).join(', '));
   check('no JavaScript errors in either departure', !flow.errors.length, flow.errors.join(' | '));
 }
 

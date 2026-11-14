@@ -1093,8 +1093,12 @@ The landing warnings stay quiet during a take-off ("too low, gear" as the gear c
 terrain warning now looks along a climbing flight path, so rising ground that the climb clears
 is no threat (this also applies to go-arounds).
 
-Not in this stage: take-off speeds that change with the thrust rating, and Flight School lessons
-for it.
+**Flight School** (training mode) has a departure's own pages: eight from the gate (pushback and
+engine start, taxi, the configuration, thrust and the calls, the rotation, the climb, an engine
+failure, the grading), the last six from the runway. During the flight the instructor prompts
+the taxi speed, the rotation, the gear, the climb speed, the flaps and climb thrust.
+
+Not in this stage: take-off speeds that change with the thrust rating.
 
 ## Departure: plan and research
 

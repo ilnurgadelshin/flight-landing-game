@@ -617,8 +617,25 @@ console.log('\n[R8] Departure: from the gate, pushback, engine start, taxi, take
   check('a take-off from the runway is recognised: airborne within 1,600 m, the gear prompt, no go-around or landing counted',
     lift && 1440 - lift.x < 1600 && /POSITIVE RATE/.test(prompts().at(-1)) && g.ctx.goArounds === 0 && !ac.touchdown && g.state === 'flying' && !ac.damage.notes.length,
     lift ? `airborne ${(1440 - lift.x).toFixed(0)} m down the runway at ${lift.ias.toFixed(0)} kt` : 'never airborne');
-  const R2 = rig({ startId: 'gate', mode: 'training' });
-  check('Flight School and the autoland demo stay out of a gate start', R2.game.state === 'flying' && !R2.of('school').length && !rig({ startId: 'gate', demo: true }).game.demoAp);
+  const R2 = rig({ startId: 'gate', mode: 'training', skipSchool: true });
+  const Sc = rig({ startId: 'gate', mode: 'training' });
+  const schooled = Sc.game.state === 'school' && Sc.of('school').length === 1; Sc.game.schoolDone(false);
+  check('Flight School opens before a departure in training mode, and the gate\'s first step is offered when it closes; the autoland demo stays out of a gate start',
+    schooled && Sc.game.state === 'flying' && /GATE 4/.test(Sc.of('message').map((m) => m.text).filter(Boolean).at(-1)) && R2.game.state === 'flying' && !rig({ startId: 'gate', demo: true }).game.demoAp);
+  {
+    // the instructor through a training take-off: taxi speed, rotate, gear, the clean-up
+    const I = rig({ startId: 'runway', mode: 'training', skipSchool: true }), ig = I.game, iac = ig.sim.aircraft, heard = new Set();
+    ig.on('instructor', (e) => { for (const h of (e.html || '').split('<br>')) if (h) heard.add(h.replace(/<[^>]+>/g, '').slice(0, 90)); });
+    ig.action('departure'); iac.input.throttle = 1;
+    for (let t = 0; t < 160 && ig.state !== 'finished'; t += 1 / 30) {
+      const st = ig.sim.state, inp = iac.input;
+      if (st.onGround) inp.yaw = Math.max(-1, Math.min(1, -st.lateralOffset * 0.05 - (st.heading - 270 * DEG) * 8 - st.r * 3)); else inp.yaw = 0;
+      if (st.ias > 150) inp.pitch = Math.max(-1, Math.min(1, ((st.agl > 30 ? 13 : 12) * DEG - st.pitch) * 6 - st.q * 2.5 + 0.1));   // late, and then nothing else: no gear, no clean-up
+      ig.update(1 / 30);
+    }
+    const h = [...heard].join(' | ');
+    check('the instructor on a careless take-off: rotate, gear up, flaps up, climb thrust', /Rotate/.test(h) && /gear up/.test(h) && /flaps up/.test(h) && /climb thrust/.test(h), h);
+  }
   R2.game.action('departure'); R2.fly(10); R2.game.action('reposition');
   check('repositioning returns to the stand, parked', R2.game.ctx.departure.phase === 'gate' && R2.game.sim.state.parkingBrake && Math.abs(R2.game.sim.state.z - 380) < 1 && !R2.game.sim.state.towed);
 }
