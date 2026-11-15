@@ -23,8 +23,9 @@
 //   finish       { result }
 import { Simulation } from './sim.js';
 import { Pushback } from './pushback.js';
-import { TakeoffMonitor, evaluateTakeoff, takeoffTrim, TAKEOFF } from './takeoff.js';
+import { TakeoffMonitor, evaluateTakeoff, wholeFlightResult, takeoffTrim, TAKEOFF } from './takeoff.js';
 import { pastHoldingPoint } from './taxi-route.js';
+import { CircuitGuide } from './circuit.js';
 import { FlightControls } from './flightcontrols.js';
 import { commandSpeed } from './autothrottle.js';
 import { evaluateLanding } from './evaluate.js';
@@ -102,10 +103,10 @@ export class Game {
    */
   ndOpts() {
     const ap = this.demoAp, mcp = ap ? ap.mcp : null, fma = ap ? ap.fma : null;
-    return { hdgBug: mcp ? mcp.hdg : RUNWAY.headingDeg, hdgSel: !!fma && fma.roll === 'HDG SEL', circuit: this.inCircuit() };
+    return { hdgBug: mcp ? mcp.hdg : this.ctx.circuit ? this.ctx.circuit.hdg : RUNWAY.headingDeg, hdgSel: !!fma && fma.roll === 'HDG SEL', circuit: this.inCircuit() };
   }
   /** A go-around and its circuit are under way (the display's and the debrief map's sense). */
-  inCircuit() { const ap = this.demoAp; return ap ? ap.phase === 'goaround' || ap.phase === 'missed' : this.ctx.gaMode; }
+  inCircuit() { const ap = this.demoAp; return ap ? ap.phase === 'goaround' || ap.phase === 'missed' : this.ctx.gaMode || !!this.ctx.circuit; }
 
   on(type, fn) { (this.listeners[type] = this.listeners[type] || []).push(fn); }
   emit(type, data = {}) { for (const fn of this.listeners[type] || []) fn(data); }
@@ -134,6 +135,7 @@ export class Game {
     this.controls = new FlightControls(this.sim.aircraft, this.player);
     const ground = !!this.sim.start.ground;   // a departure: from the gate (the README's departure plan)
     this.pushback = ground && this.sim.start.stand ? new Pushback(this.sim.aircraft, this.sim.start.stand) : null;
+    this.takeoffResult = null;
     this.newTakeoff();
     this.controls.onAutothrottle = (on, reason) => this.announceAutothrottle(on, reason);
     if (this.mode === 'training') this.controls.enableDirector();
@@ -318,7 +320,7 @@ export class Game {
     if (this.sim.start.ground) {
       // back on the stand, as the flight began
       this.pushback = this.sim.start.stand ? new Pushback(this.sim.aircraft, this.sim.start.stand) : null;
-      this.newTakeoff();
+      this.newTakeoff(); this.takeoffResult = null;
       this.ctx.departure = { phase: this.sim.start.lineUp ? 'lineup' : 'gate', enginesAsked: false };
       this.ctx.gaMode = false; this.ctx.wasLow = false;
       if (this.gpws) this.gpws.reset();
@@ -393,7 +395,16 @@ export class Game {
         this.log('takeoff', `engine ${e.engine + 1} failed at ${e.ias.toFixed(0)} kt`); this.mark('enginefail', `engine ${e.engine + 1}`);
       } else if (e.type === 'cleanup') {
         this.message(e.step === 'accelerate' ? '1000 FT — lower the nose, accelerate, flaps up on schedule ([[flapsUp]])' : 'CLIMB THRUST — thrust levers back to 90 % ([[thrustDown]])', 'ga', 7);
-      } else if (e.type === 'done') this.finish();
+      } else if (e.type === 'done') {
+        // the whole flight (the menu's choice): the take-off's debrief is kept, and the flight goes on
+        // round the circuit to a landing. A rejected take-off ends the flight either way.
+        if (this.opts.wholeFlight && this.takeoff.rec.liftoff && !this.sim.aircraft.damage.destroyed) {
+          this.takeoffResult = evaluateTakeoff(this.takeoff, this.sim.aircraft);
+          this.ctx.circuit = new CircuitGuide();
+          this.message(`TAKE-OFF COMPLETE: ${this.takeoffResult.score} — now the circuit and the landing`, 'ga', 5);
+          this.log('takeoff', `complete: ${this.takeoffResult.score} points`); this.mark('takeoffend', `${this.takeoffResult.score}`);
+        } else this.finish();
+      }
     }
   }
 
@@ -596,6 +607,12 @@ export class Game {
       } else if (e.type === 'hardlanding') { this.log('damage', 'hard landing'); }
     }
     this.taxiStep();
+    // the circuit after a take-off: each vector as its leg begins, until established on the ILS
+    if (c.circuit) {
+      const leg = c.circuit.update(st);
+      if (leg) { this.message(c.circuit.text(), 'ga', leg === 'established' ? 8 : 0); this.emit('vector', { leg, text: c.circuit.text() }); this.log('circuit', leg); }
+      if (c.circuit.done) c.circuit = null;
+    }
     // the holding point: this airport is quiet, so the clearance comes as the aircraft reaches it
     if (c.departure && c.departure.phase === 'taxi' && !c.departure.holdPassed && st.onGround && pastHoldingPoint(st.x, st.z)) {
       c.departure.holdPassed = true; this.message('RUNWAY 27 — CLEARED TO LINE UP AND TAKE OFF', 'ga', 6); this.log('departure', 'passed the holding point');
@@ -628,7 +645,8 @@ export class Game {
     const c = this.ctx;
     c.finished = true;
     // a departure ends with its take-off's debrief, unless the flight went on to a landing
-    const res = this.takeoff && this.takeoff.started && !this.sim.aircraft.touchdown ? evaluateTakeoff(this.takeoff, this.sim.aircraft) : evaluateLanding(this.sim.aircraft, c);
+    let res = this.takeoff && this.takeoff.started && !this.sim.aircraft.touchdown && !this.takeoffResult ? evaluateTakeoff(this.takeoff, this.sim.aircraft) : evaluateLanding(this.sim.aircraft, c);
+    if (this.takeoffResult) res = wholeFlightResult(this.takeoffResult, res);
     this.result = res;
     this.path.wait = 0; this.recordPath(0);
     this.mark(this.sim.aircraft.damage.destroyed ? 'crash' : (this.sim.state.onGround ? 'stop' : 'end'), res.outcome);
@@ -647,6 +665,7 @@ export class Game {
     this._instT = 0;
     const st = this.sim.state, inp = this.sim.aircraft.input, c = this.ctx;
     if (this.takeoff && !this.takeoff.done && !this.sim.aircraft.touchdown) { this.emit('instructor', { html: this.departureHints().slice(0, 2).join('<br>') }); return; }
+    if (c.circuit && c.circuit.leg) { this.emit('instructor', { html: `Fly heading <b>${String(c.circuit.hdg).padStart(3, '0')}</b>, <b>${c.circuit.altFt} ft</b>, about ${c.circuit.speedKts} kt with flaps 5. The navigation display shows the circuit ([[ndView]]).` }); return; }
     const aglFt = st.agl / FT, dNm = st.distToThreshold / NM;
     const target = st.vref + 5, atOn = this.controls.autothrottle.engaged;
     const hints = [];

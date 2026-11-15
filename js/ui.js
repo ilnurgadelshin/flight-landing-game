@@ -144,7 +144,7 @@ export class UI {
     document.querySelectorAll('#start-row .choice').forEach((b) => b.classList.toggle('selected', b.dataset.start === this.selection.start));
     $('scenario-section').style.opacity = this.selection.mode === 'training' ? 0.45 : 1;
     const ground = !!APPROACH_STARTS[this.selection.start].ground;
-    $('opt-weight-label').classList.toggle('hidden', !ground); $('opt-failure-label').classList.toggle('hidden', !ground);   // a departure's own choice
+    $('opt-weight-label').classList.toggle('hidden', !ground); $('opt-failure-label').classList.toggle('hidden', !ground); $('opt-flight-label').classList.toggle('hidden', !ground);   // a departure's own choice
     $('btn-demo').disabled = ground;                       // the autoland demo flies approaches only
     $('btn-start').textContent = APPROACH_STARTS[this.selection.start].stand ? 'Start at the gate' : ground ? 'Start take-off' : 'Start approach';
   }
@@ -158,6 +158,7 @@ export class UI {
       night: $('opt-night').checked,
       weightKg: parseInt($('opt-weight').value, 10),
       failure: $('opt-failure').value,
+      wholeFlight: $('opt-flight').value === 'whole',
       sound: $('opt-sound').checked,
       mouseSensitivity: parseFloat($('opt-mouse').value),
     };

@@ -309,10 +309,17 @@ if (want('depart')) {
   const menu = await page.evaluate(() => {
     const s = window.__sim; if (s.game.state !== 'menu') s.game.quitToMenu();
     const pick = (id) => { document.querySelector(`[data-start="${id}"]`).click(); return { start: document.getElementById('btn-start').textContent, demoOff: document.getElementById('btn-demo').disabled }; };
-    const out = { runway: pick('runway'), gate: pick('gate'), short: pick('short') }; return out;
+    const out = { runway: pick('runway'), gate: pick('gate') };
+    document.getElementById('opt-flight').value = 'whole'; document.getElementById('opt-failure').value = 'v1'; document.getElementById('opt-weight').value = '70000';
+    out.options = { shown: ['opt-flight-label', 'opt-failure-label', 'opt-weight-label'].every((id) => !document.getElementById(id).classList.contains('hidden')), got: (({ wholeFlight, failure, weightKg }) => ({ wholeFlight, failure, weightKg }))(window.__sim.ui ? window.__sim.ui.getOptions() : {}) };
+    document.getElementById('opt-flight').value = 'takeoff'; document.getElementById('opt-failure').value = 'none'; document.getElementById('opt-weight').value = '62000';
+    out.short = pick('short'); out.hiddenForApproach = ['opt-flight-label', 'opt-failure-label', 'opt-weight-label'].every((id) => document.getElementById(id).classList.contains('hidden'));
+    return out;
   });
   check('the menu offers the take-off and the gate; the start button says which; the autoland demo is for approaches',
     menu.runway.start === 'Start take-off' && menu.gate.start === 'Start at the gate' && menu.short.start === 'Start approach' && menu.runway.demoOff && menu.gate.demoOff && !menu.short.demoOff, JSON.stringify(menu));
+  check('a departure\'s options (the whole flight, an engine failure, the weight) show for ground starts only and reach the flight',
+    menu.options.shown && menu.hiddenForApproach && (!menu.options.got.failure || (menu.options.got.wholeFlight === true && menu.options.got.failure === 'v1' && menu.options.got.weightKg === 70000)), JSON.stringify(menu.options));
   const flow = await page.evaluate(async () => {
     const s = window.__sim, g = s.game, el = (id) => document.getElementById(id), out = {};
     s.start({ mode: 'game', scenarioId: 'clear', startId: 'runway', seed: 5, sound: false }); s.setTimeScale(1);

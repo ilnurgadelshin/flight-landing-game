@@ -770,6 +770,25 @@ console.log('\n[R9b] Take-off from the runway: speeds, calls, the configuration 
   check('no failure unless asked for; "surprise" draws none, early or V1 from the seed, either engine',
     !rig({ startId: 'runway' }).game.takeoff.failure && new Set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((seed) => { const f = rig({ startId: 'runway', failure: 'surprise', seed }).game.takeoff.failure; return f ? `${f.at}${f.engine}` : 'none'; })).size >= 4);
   check('an approach never has one', !rig({ startId: 'short', failure: 'v1' }).game.takeoff);
+  // the whole flight: the take-off to the book, then the circuit and the landing (flown here by the autoland from 3000 ft)
+  {
+    const Wf = rig({ startId: 'runway', wholeFlight: true }), wg = Wf.game, vectors = []; wg.on('vector', (v) => vectors.push(v.leg));
+    fly(Wf, { until: 200 });
+    const mid = { state: wg.state, to: wg.takeoffResult && wg.takeoffResult.score, circuit: wg.inCircuit(), agl: wg.sim.state.agl / FT };
+    const ap = wg.engageAutopilot({}); ap.phase = 'missed'; ap.leg = 'climb'; ap.vsCmd = wg.sim.state.vs; ap.iPitch = 0;
+    let t = 0, bugs = new Set(); for (; t < 1500 && wg.state !== 'finished'; t += 0.1) { wg.update(0.1); if (wg.ctx.circuit && wg.ctx.circuit.leg) bugs.add(wg.ndModel ? 0 : wg.ctx.circuit.hdg); }
+    const r = wg.result, msgs = Wf.of('message').map((m) => m.text).filter(Boolean);
+    check('the whole flight: at 3000 ft the take-off is scored and the flight goes on, in the circuit', mid.state === 'flying' && mid.to >= 90 && mid.circuit && mid.agl >= 3000, JSON.stringify(mid));
+    check('radar vectors round the left-hand circuit: 180, 090, 360, 300, then established and cleared to land',
+      vectors.join() === 'crosswind,downwind,base,intercept,established' && [180, 90, 360, 300].every((h) => bugs.has(h)) && msgs.some((m) => /TURN LEFT HEADING 180, CLIMB AND MAINTAIN 3000/.test(m)) && msgs.some((m) => /HEADING 090/.test(m)) && msgs.some((m) => /CLEARED ILS RUNWAY 27/.test(m)) && msgs.some((m) => /CLEARED TO LAND/.test(m)) && !wg.ctx.circuit,
+      vectors.join(' → '));
+    check('it ends with the landing, and one debrief: the take-off\'s line, the landing\'s line and items, the scores averaged',
+      wg.state === 'finished' && r && r.success && r.wholeFlight && r.items[0].label === 'Take-off' && r.items[1].label === 'Landing' && r.items.length > 6 && r.score === Math.round((r.wholeFlight.takeoff.score + r.wholeFlight.landing.score) / 2) && /Flight complete/.test(r.headline) && !r.takeoff && wg.ctx.goArounds === 0,
+      r ? `${r.headline} → ${r.score} (${r.grade}) after ${(wg.time / 60).toFixed(0)} min` : 'no result');
+    // a rejected take-off still ends a whole flight
+    const Wj = rig({ startId: 'runway', wholeFlight: true }); const wj = fly(Wj, { rejectAt: 100 });
+    check('a rejected take-off ends a whole flight there', wj.outcome === 'rejected' && !wj.wholeFlight);
+  }
   // the wet runway's V1
   const W = rig({ startId: 'runway', scenarioId: 'storm' });
   check('a wet runway lowers V1', W.game.takeoff.speeds.v1 === 135 && W.game.takeoff.speeds.vr === 143);

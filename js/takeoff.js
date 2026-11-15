@@ -267,4 +267,17 @@ export function evaluateTakeoff(monitor, ac) {
   return { outcome, headline, score, grade: success ? grade(score) : 'F', items, failures: [], notes, success, takeoff: r };
 }
 
+/**
+ * The debrief of a whole flight: the landing's, with the take-off's result as its first line and
+ * the two scores averaged. A landing that fails fails the flight.
+ */
+export function wholeFlightResult(takeoff, landing) {
+  const score = landing.success ? Math.round((takeoff.score + landing.score) / 2) : Math.min(landing.score, 30);
+  const first = { label: 'Take-off', value: `${takeoff.headline}: ${takeoff.score} / 100 (grade ${takeoff.grade})`, points: takeoff.score, max: 100,
+    note: takeoff.items.filter((i) => !i.ok).map((i) => i.label).join(', ') || 'Every item to the book.', ok: takeoff.success && takeoff.score >= 62 };
+  const second = { label: 'Landing', value: `${landing.headline}: ${landing.score} / 100 (grade ${landing.grade})`, points: landing.score, max: 100, note: 'Its items follow.', ok: landing.success };
+  return Object.assign({}, landing, { score, grade: landing.success ? grade(score) : 'F', items: [first, second, ...landing.items],
+    headline: landing.success ? `Flight complete — take-off ${takeoff.score}, landing ${landing.score}` : landing.headline, wholeFlight: { takeoff, landing } });
+}
+
 export { RUNWAY };

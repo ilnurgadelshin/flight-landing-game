@@ -1096,6 +1096,22 @@ The landing warnings stay quiet during a take-off ("too low, gear" as the gear c
 terrain warning now looks along a climbing flight path, so rising ground that the climb clears
 is no threat (this also applies to go-arounds).
 
+### The whole flight
+
+With **Flight: take off, circuit and land** chosen in the menu (a departure's option), the flight
+does not end at 3,000 ft. The take-off is scored there and kept, and a controller's vectors
+lead round the left-hand circuit the chart draws for the missed approach (`js/circuit.js`):
+heading 180 climbing to 3,000 ft, heading 090 on the downwind 4 nm south of the runway, heading
+360 on the base leg 13 nm out, heading 300 to intercept, then "established, cleared to land" and
+the ILS as on any approach. Each vector is given as its leg begins, with the turn's own radius
+allowed for; the navigation display shows the circuit and its heading bug follows the vectors.
+From the runway the flight takes about 19 minutes. The debrief is the landing's, headed by one
+line each for the take-off and the landing, and the score is the average of the two; a landing
+that fails fails the flight, and a rejected take-off ends it on the runway.
+
+The landing is flown at the take-off weight: Vref follows it, but at 70 t and 78 t that is above
+the aircraft's maximum landing weight (66.4 t), and no fuel is burned on the way round.
+
 **Flight School** (training mode) has a departure's own pages: eight from the gate (pushback and
 engine start, taxi, the configuration, thrust and the calls, the rotation, the climb, an engine
 failure, the grading), the last six from the runway. During the flight the instructor prompts
@@ -1180,7 +1196,7 @@ before each stage is graded:
 4. **Failures and depth:** rejected take-off, an engine failure at V1, reduced thrust, a choice of
    weight. **Done**: the rejected take-off with RTO autobrake, the engine failure before and
    at V1, reduced thrust and the weights.
-5. **The whole flight:** take off, fly the circuit and land.
+5. **The whole flight:** take off, fly the circuit and land. **Done** (see *The whole flight*).
 6. **Full gate procedures** (kept for later): a cold and dark flight deck, APU, electrical,
    hydraulic and fuel panels, the complete engine start and the checklists. It needs the flight
    deck's switches to be interactive, which they are not today.
