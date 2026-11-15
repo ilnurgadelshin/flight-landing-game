@@ -379,3 +379,5 @@ body.dock #dock { display: flex; }
 body.replay #results, body.replay #hud { display: none !important; }
 body.replay::after { content: 'REPLAY  ·  click or press any key to return'; position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%);
   padding: 7px 14px; border-radius: 8px; background: rgba(13,19,23,0.72); color: #dfe8ea; font: 600 12px/1 "Segoe UI", Roboto, Arial, sans-serif; letter-spacing: .12em; pointer-events: none; }
+/* the menu's selects (a departure's weight, flight and engine failure) in the panel's colours */
+#menu select { background: #101820; color: #e8eef4; border: 1px solid rgba(255,255,255,0.28); border-radius: 6px; padding: 3px 6px; font: inherit; }
