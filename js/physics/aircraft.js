@@ -701,7 +701,10 @@ export class Aircraft {
       let fLong = -rolling * N * sign(vLong) * clamp(Math.abs(vLong) / 0.5, 0, 1);
       if (g.name !== 'nose' && brakeCmd > 0) {
         const maxBrake = mu * T.brakeMuFrac * N;      // anti-skid limit
-        const fb = -brakeCmd * maxBrake * sign(vLong) * clamp(Math.abs(vLong) / 0.3, 0, 1);
+        // Taxiing a departure, the rudder control with the brakes held is the toe brakes: more on
+        // the side of the turn, less on the other, which tightens a slow turn as pilots do.
+        const toe = this.tillerAssist && !inp.parkingBrake && gsNow < 30 * KTS ? clamp(inp.yaw, -1, 1) * (g.name === 'left' ? 1 : -1) : 0;
+        const fb = -brakeCmd * (1 - Math.max(0, toe)) * maxBrake * sign(vLong) * clamp(Math.abs(vLong) / 0.3, 0, 1);
         fLong += fb;
         brakePower += Math.abs(fb * vLong);
       }

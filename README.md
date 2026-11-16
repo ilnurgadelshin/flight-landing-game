@@ -1041,14 +1041,16 @@ location and the runway at each holding point ("A5 | 27") and the direction to e
 along taxiway A ("← A5 | A"), and the clearance reads "via A, A5". The tug is
 seen once it has disconnected, driving clear of the nose to the left. An engine start plays the
 air starter and the light-off. Once stopped while taxiing, the step control sets the parking
-brake and releases it again, so a phone has a control for it.
+brake and releases it again, so a phone has a control for it. With the brakes held, the rudder
+control is also the toe brakes: the brake comes off the outside wheel, which tightens a slow turn
+(11 m of radius against 15 m in a test). On a phone the rudder strip reads TILLER while taxiing.
 
 ### The full procedures (cold and dark)
 
 From the gate, the menu's **Procedures: full** starts with a cold and dark aircraft and the crew's
 work on the overhead panel (`js/systems.js`). The 3D flight deck's switches are one merged model,
-so the panel is a page over the flight, like the chart: `O` or the OVERHEAD PANEL button opens
-it, a click moves a switch, and the flight goes on beneath. It shows 31 switches with their
+so the panel is a page over the flight, like the chart: `O`, the OVERHEAD PANEL button or a click
+on the flight deck's overhead opens it, a click moves a switch, and the flight goes on beneath. It shows 31 switches with their
 lights (LOW PRESSURE, GEN OFF BUS, START VALVE OPEN and so on), the engine, APU, duct and
 hydraulic gauges, and five checklists that tick themselves, the next item marked.
 

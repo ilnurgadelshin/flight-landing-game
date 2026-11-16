@@ -401,5 +401,22 @@ console.log('\n[13] Turbulence: the Dryden model of MIL-F-8785C at low altitude'
   check('clear weather: smooth air', sd(calm.u) === 0 && sd(calm.w) === 0);
 }
 
+// ----------------------------------------------------------------------------
+console.log('\n[14] Taxiing a departure: the tiller and the toe brakes');
+{
+  const turn = (brake) => {
+    const sim = new Simulation({ scenarioId: 'clear' }), ac = sim.aircraft;
+    ac.place({ x: -600, y: 3.35, z: 135, headingDeg: 90, iasKts: 0, flapIndex: 0, gearDown: true, throttle: 0, onGround: true }); ac.tillerAssist = true;
+    ac.input.throttle = 0.3; sim.run(14);
+    const h0 = ac.state.heading; let path = 0, lx = ac.state.x, lz = ac.state.z; ac.input.yaw = -1; ac.input.brake = brake;
+    sim.run(8, (st) => { path += Math.hypot(st.x - lx, st.z - lz); lx = st.x; lz = st.z; });
+    let dh = (h0 - ac.state.heading) / DEG; if (dh < 0) dh += 360;
+    return { radius: path / (dh * DEG), turned: dh, left: ac.gear.left.load, skid: ac.state.skidding };
+  };
+  const free = turn(0), toe = turn(0.15);
+  check('full tiller at taxi speed turns the aircraft within a 20 m radius', free.radius < 20 && free.turned > 60, `${fmt(free.radius, 0)} m, ${fmt(free.turned, 0)}° in 8 s`);
+  check('light braking with the rudder control held is braking on the inside wheel: a tighter turn', toe.radius < free.radius - 2 && toe.turned > 50, `${fmt(toe.radius, 0)} m against ${fmt(free.radius, 0)} m`);
+}
+
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failed) { console.log('Failed: ' + results.join(' | ')); process.exit(1); }

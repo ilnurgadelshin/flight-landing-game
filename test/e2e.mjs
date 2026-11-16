@@ -409,6 +409,11 @@ if (want('depart')) {
     out.powered = { source: el('sys-source').textContent, batteryOn: b.classList.contains('on') && b.children[1].textContent === 'ON', gpuLight: document.querySelector('[data-sw="groundPower"] small').textContent, pumpLight: document.querySelector('[data-sw="fuelPump1"] small').className, pfdLit: lit(),
       ticked: document.querySelectorAll('.sys-list .done').length, gauges: el('sys-gauges').textContent.includes('HYD A') };
     el('sys-close').click(); frames(1); out.closed = el('systems').classList.contains('hidden');
+    // a click on the 3D overhead opens the page; one on the windshield does not
+    s.view.setMode('cockpit'); frames(30);
+    const canvas = s.world.renderer.domElement, r = canvas.getBoundingClientRect(), press = (fx, fy) => canvas.dispatchEvent(new MouseEvent('mousedown', { button: 0, clientX: r.left + r.width * fx, clientY: r.top + r.height * fy, bubbles: true, cancelable: true }));
+    press(0.8, 0.08); frames(1); out.overheadClick = !el('systems').classList.contains('hidden');
+    el('sys-close').click(); frames(1); press(0.49, 0.37); frames(1); out.windshieldClick = !el('systems').classList.contains('hidden'); s.inputManager.setMouse(false);
     el('btn-step').click(); frames(1); out.notReady = el('mode-msg').textContent;
     // the simplified gate start: no panel
     s.start({ mode: 'game', scenarioId: 'clear', startId: 'gate', seed: 5, sound: false }); frames(3);
@@ -421,6 +426,7 @@ if (want('depart')) {
   check('O opens the panel page: 31 switches, the gauges, the POWER UP checklist with Battery ON first', cold.opened.open && /NO POWER/.test(cold.opened.source) && cold.opened.current === 'POWER UP' && /Battery ON/.test(cold.opened.first || ''), JSON.stringify(cold.opened));
   check('battery and ground power clicked: the switches show ON, the lights follow, two items are ticked and the displays come alive',
     /GROUND POWER/.test(cold.powered.source) && cold.powered.batteryOn && cold.powered.gpuLight === 'GRD POWER AVAILABLE' && cold.powered.pumpLight === 'amber' && cold.powered.pfdLit > 200 && cold.powered.ticked === 2 && cold.powered.gauges, JSON.stringify(cold.powered));
+  check('a click on the flight deck\'s overhead opens the page; a click on the windshield does not', cold.overheadClick && !cold.windshieldClick);
   check('the page closes, and the tug still waits for the APU and the beacon', cold.closed && /PUSHBACK NOT READY/.test(cold.notReady) && /APU/.test(cold.notReady), cold.notReady);
   check('the simplified gate start has lit displays and no panel button', !cold.simple.panelButton && cold.simple.pfdLit > 200);
   check('no JavaScript errors with the full procedures', !cold.errors.length, cold.errors.join(' | '));

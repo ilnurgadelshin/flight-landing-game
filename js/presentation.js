@@ -9,6 +9,7 @@
 import { ndModel, drawND } from './nd.js';
 import { chartModel, drawChart } from './chart.js';
 import { debriefModel, drawDebrief } from './debrief.js';
+import * as THREE from 'three';
 import { getScheme } from './controls.js';
 import { DEPARTURE_STEPS, DEPARTURE_FROM_RUNWAY } from './ui.js';
 import { PANEL } from './systems.js';
@@ -31,6 +32,17 @@ export class Presentation {
     this.panel = { open: false, wait: 0 };       // the overhead panel page (the full procedures)
     ui.buildSystems(PANEL);
     ui.onPanel = (open) => this.setPanel(open);
+    // a click on the flight deck's overhead panel opens its page (the 3D switches are one model)
+    world.renderer.domElement.addEventListener('mousedown', (e) => {
+      if (e.button !== 0 || !game.systems || game.state !== 'flying' || this.panel.open || view.shown !== 'cockpit') return;
+      const cam = view.cockpit.camera, r = e.target.getBoundingClientRect();
+      this._ray = this._ray || new THREE.Raycaster();
+      this._ray.setFromCamera(new THREE.Vector2((e.clientX - r.left) / r.width * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), cam);
+      const hit = this._ray.intersectObject(view.cockpit.group, true)[0];
+      if (!hit || hit.distance > 1.4) return;
+      const p = cam.worldToLocal(hit.point.clone());
+      if (p.y > 0.2 && p.z > -0.8) { e.stopImmediatePropagation(); e.preventDefault(); this.setPanel(true); }
+    }, true);
     ui.onSystemSwitch = (id) => { this.onAction('systemSwitch', { id }); ui.updateSystems(game.panelModel()); };
     ui.onChart = (open) => this.setChart(open);
     const on = (type, fn) => game.on(type, fn);
@@ -194,7 +206,7 @@ export class Presentation {
     const view = this.view.shown;
     this.ui.setView(view, view === 'cockpit' && g.state !== 'school' && this.view.cockpit.lookDown > 0.25);
     this.ui.updateHUD(st, { mouse: this.input.mouseEngaged, pad: this.input.pad.active, configWarning, fd: g.fdCommand(), headUp: view === 'hud' });
-    if (this.touch) this.touch.sync(st, inp, { gaMode: g.ctx.gaMode, view, at: g.controls.autothrottle.mode });
+    if (this.touch) this.touch.sync(st, inp, { gaMode: g.ctx.gaMode, view, at: g.controls.autothrottle.mode, tiller: st.onGround && g.sim.aircraft.tillerAssist });
     if (this.gpws) this.ui.setCaption(this.gpws.caption, this.gpws.captionKind);
     this.ui.setChecklist(g.state === 'flying' ? g.checklist() : null);
     this.navDisplay(frameDt);

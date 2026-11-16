@@ -68,9 +68,16 @@ const SKY_FRAG = /* glsl */`
     float c = dot(dir, skySunDir);
     col += uSunDisc * smoothstep(uSunCos, mix(uSunCos, 1.0, 0.3), c);
     if (uStars > 0.0 && h > 0.02) {
-      vec3 p = floor(dir * 520.0);
+      // one star in a few cells of the sky. Each is a round point about two pixels across whatever
+      // the lens: through the replay's long lens a whole lit cell was a square many pixels wide.
+      vec3 q = dir * 520.0, p = floor(q);
       float s = hash(p);
-      col += vec3(step(0.9985, s) * uStars * smoothstep(0.02, 0.2, h) * (0.3 + 0.7 * hash(p + 1.0)) * 1.4);
+      if (s > 0.9985) {
+        float cellsPerPixel = max(length(fwidth(q)), 0.0001);
+        float radius = clamp(cellsPerPixel * 1.1, 0.03, 0.5);
+        float point = 1.0 - smoothstep(radius * 0.55, radius, length(fract(q) - 0.5));
+        col += vec3(point * uStars * smoothstep(0.02, 0.2, h) * (0.3 + 0.7 * hash(p + 1.0)) * 1.4);
+      }
     }
     col = mix(col, skyOvercastColor, skyOvercast) + skyFlash;
     // the haze band over the horizon, and below it the ground seen through the haze

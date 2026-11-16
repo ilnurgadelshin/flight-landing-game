@@ -277,6 +277,8 @@ export class TouchControls {
     this.cls(this.el.view, 'view', view === 'COCKPIT' ? '' : 'on');
     this.cls(this.el.reposition, 'reposition', ctx.gaMode ? '' : 'hidden');
     this.cls(this.el.brake, 'brakeBtn', st.onGround ? (this.input.touch.brake ? 'down' : '') : 'hidden');
+    // taxiing a departure the strip is the tiller (and, with BRAKE held, the toe brakes)
+    this.text(this.el.rudder.firstElementChild, 'rudderLabel', ctx.tiller ? '◀ TILLER ▶' : '◀ RUDDER ▶');
     // thrust lever
     const pct = Math.round(inp.throttle * 100);
     // in REV the handle reads REV while held (max reverse) and IDLE once let go (reverse idle)
