@@ -430,7 +430,7 @@ export class UI {
     }
     const g = m.gauges, e = g.engines, n = (v, d = 0) => v.toFixed(d).padStart(5);
     $('sys-source').textContent = `AC: ${g.source}`;
-    const text = `          ENG 1   ENG 2\nN1 %     ${n(e[0].n1, 1)}   ${n(e[1].n1, 1)}\nN2 %     ${n(e[0].n2, 1)}   ${n(e[1].n2, 1)}\nEGT °C   ${n(e[0].egt)}   ${n(e[1].egt)}\n\nAPU      ${n(g.apuRpm)} %  EGT ${n(g.apuEgt)}\nDUCT     ${n(g.duct)} psi\nHYD A    ${n(g.hydA)} psi\nHYD B    ${n(g.hydB)} psi${g.fuel === null || g.fuel === undefined ? '' : `\nFUEL     ${n(g.fuel)} kg  ${(g.fuelFlow * 3600 / 1000).toFixed(1)} t/h`}`;
+    const text = `          ENG 1   ENG 2\nN1 %     ${n(e[0].n1, 1)}   ${n(e[1].n1, 1)}\nN2 %     ${n(e[0].n2, 1)}   ${n(e[1].n2, 1)}\nEGT °C   ${n(e[0].egt)}   ${n(e[1].egt)}\n\nAPU      ${n(g.apuRpm)} %  EGT ${n(g.apuEgt)}\nDUCT     ${n(g.duct)} psi\nHYD A    ${n(g.hydA)} psi\nHYD B    ${n(g.hydB)} psi\nCABIN    ${n(g.cabinFt)} ft  ${g.cabinDiff.toFixed(1)} psi${g.fuel === null || g.fuel === undefined ? '' : `\nFUEL     ${n(g.fuel)} kg  ${(g.fuelFlow * 3600 / 1000).toFixed(1)} t/h`}`;
     if ($('sys-gauges').textContent !== text) $('sys-gauges').textContent = text;
     const html = m.lists.map((l, k) => `<div class="sys-list${k === m.current ? ' current' : ''}"><h4>${l.title}</h4>${l.items.map((i, j) => `<div class="${i.done ? 'done' : 'todo' + (k === m.current && j === l.items.findIndex((x) => !x.done) ? ' first' : '')}">${i.done ? '✔' : '○'} ${i.text}</div>`).join('')}</div>`).join('');
     if (this._sysLists !== html) { this._sysLists = html; $('sys-lists').innerHTML = html; }

@@ -646,6 +646,8 @@ export class Game {
       else if (e.type === 'lightoff') this.message(`ENGINE ${n} LIGHT-OFF`, '', 3);
       else if (e.type === 'startAborted') { this.message(`ENGINE ${n} START ABORTED — ${e.reason}. Start lever to CUTOFF for 20 s`, 'warn', 9); this.emit('takeoffConfig', { problems: ['START'] }); }
       else if (e.type === 'engineShutdown') this.message(`ENGINE ${n} SHUT DOWN`, 'warn', 4);
+      else if (e.type === 'fireTest') { this.message('FIRE WARNING TEST', 'warn', 3); this.emit('fireTest'); }
+      else if (e.type === 'cabinAltitude') { this.message('CABIN ALTITUDE — a pack on, with bleed air ([[panel]])', 'warn', 8); this.emit('takeoffConfig', { problems: ['CABIN'] }); }
       if (e.type !== 'starter') this.log('systems', `${e.type}${e.engine !== undefined ? ' ' + n : ''}${e.reason ? ': ' + e.reason : ''}`);
     }
     // the circuit after a take-off: each vector as its leg begins, until established on the ILS

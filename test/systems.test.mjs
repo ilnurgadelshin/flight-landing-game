@@ -17,7 +17,7 @@ const lit = (sys, id) => (sys.light(id) || {}).text || '';
 console.log('\n[S1] Cold and dark, and powering up');
 {
   const { sys, ac, run } = rig();
-  check('every switch of the panel is known, and a cold aircraft has no power, no pressure and no lights', PANEL.flatMap((g) => g.switches).length === 27 && !sys.dc && !sys.acPower && sys.duct === 0 && !sys.limits.displays && !sys.limits.standby && sys.light('fuelPump1') === null);
+  check('every switch of the panel is known, and a cold aircraft has no power, no pressure and no lights', PANEL.flatMap((g) => g.switches).length === 31 && !sys.dc && !sys.acPower && sys.duct === 0 && !sys.limits.displays && !sys.limits.standby && sys.light('fuelPump1') === null);
   sys.set('groundPower'); run(1);
   check('ground power does nothing without the battery', !sys.acPower);
   sys.set('battery'); run(1);
@@ -98,7 +98,7 @@ console.log('\n[S3] Engine start');
 
   // after start
   check('before the after-start flow the take-off is not ready: generators, IRS aligned?, yaw damper, probe heat', sys.takeoffProblems().join() === 'GENERATORS,YAW DAMPER,PROBE HEAT' || sys.takeoffProblems().includes('GENERATORS'), sys.takeoffProblems().join(', '));
-  for (const id of ['gen1', 'gen2', 'probeHeat', 'windowHeat', 'yawDamper', 'pack1', 'pack2']) sys.set(id);
+  for (const id of ['gen1', 'gen2', 'probeHeat', 'windowHeat', 'yawDamper', 'pack1', 'pack2', 'strobe', 'landingLights', 'fireTest']) sys.set(id);
   sys.set('apuBleed', 'OFF'); sys.set('apu', 'OFF'); run(SYS.irsAlignS);
   check('generators on, APU off: the engines carry the buses and both hydraulic systems; nothing left for the take-off', sys.acSource === 'ENGINE GENERATORS' && sys.hydA && sys.hydB && sys.takeoffProblems().length === 0 && sys.apu.state === 'off');
   const lists = sys.checklists({ pushed: true, flapsSet: true, trimSet: true, rto: true, parkingBrake: false });
@@ -109,6 +109,26 @@ console.log('\n[S3] Engine start');
   check('a start lever to CUTOFF shuts its engine down', !ac.engines[1].running && ac.engines[1].n1 < 0.05 && sys.eng[1].phase === 'off' && sys.acSource === 'ENGINE GENERATORS' && lit(sys, 'gen2') === 'SOURCE OFF');
   // the idle engine taxis the aircraft only with hydraulics for steering
   check('the limits the flight model reads: steering and gear on system A, flaps on system B', sys.limits.steering === sys.hydA && sys.limits.flaps === sys.hydB);
+}
+
+console.log('\n[S3b] The fire warning test and the cabin');
+{
+  const { sys, ac, run } = rig();
+  sys.set('fireTest'); run(1);
+  check('the fire warning test needs the battery', sys.position('fireTest') === 'OFF' && !sys.fire.tested);
+  sys.set('battery'); sys.set('fireTest'); run(1); const during = lit(sys, 'fireTest'); run(SYS.fireTestS);
+  check('TEST: the bell and the lights for 3 s, then the switch springs back and the checklist has it', /BELL/.test(during) && sys.position('fireTest') === 'OFF' && lit(sys, 'fireTest') === 'TESTED' && sys.events.some((e) => e.type === 'fireTest') && sys.checklists()[0].items.find((i) => /Fire/.test(i.text)).done);
+  // the cabin in a climb, with and without the packs
+  const climb = (packs) => {
+    const sim = new Simulation({ scenarioId: 'clear', startId: 'full' }), s2 = new Systems(sim.aircraft, { cold: false });
+    if (!packs) { s2.set('pack1', 'OFF'); s2.set('pack2', 'OFF'); }
+    const st = sim.aircraft.state; let warned = false;
+    for (let t = 0; t < 600; t += 0.5) { st.alt = (7000 + Math.min(8000, t * 25)) * 0.3048; st.onGround = false; s2.step(0.5); if (s2.events.some((e) => e.type === 'cabinAltitude')) warned = true; }
+    return { cabin: s2.cabinFt, warned, diff: s2.gauges().cabinDiff, light: lit(s2, 'pack1') };
+  };
+  const on = climb(true), off = climb(false);
+  check('with a pack on bleed air the cabin stays low in a climb to 15,000 ft', on.cabin < 4500 && on.diff > 4 && !on.warned && on.light === 'CABIN PRESSURISED', `cabin ${on.cabin.toFixed(0)} ft, ${on.diff.toFixed(1)} psi`);
+  check('with the packs off it follows the aircraft, and CABIN ALTITUDE warns above 10,000 ft', off.cabin > 14000 && off.warned && off.diff < 0.5, `cabin ${off.cabin.toFixed(0)} ft`);
 }
 
 console.log('\n[S4] An aircraft found running');

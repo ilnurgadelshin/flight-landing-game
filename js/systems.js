@@ -13,7 +13,7 @@
 //   hydraulic system B (engine 2 pump, electric pump 1) → flaps, the normal brakes
 //   engine start: start switch to GRD → the starter motors N2 → at 25 % N2 the start lever to
 //                        IDLE (fuel and ignition) → light-off → starter cutout at 56 % N2 → idle
-import { AIRCRAFT as AC } from './config.js';
+import { AIRCRAFT as AC, FT } from './config.js';
 
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 
@@ -26,6 +26,10 @@ export const SYS = {
   cutoutN2: 56, idleN2: 61, runUpTau: 8,
   hydPsi: 3000, hydTau: 2.5,
   abortCoolS: 20,         // after an aborted start: the lever at CUTOFF this long before another try
+  fireTestS: 3,           // the fire warning test: the bell and the lights for this long
+  // the cabin: held at a quarter of the aircraft's height (8,000 ft at most) while a pack has bleed
+  // air, climbing or descending at the rates below (ft/min); unpressurised it follows the aircraft
+  cabinFraction: 0.25, cabinMaxFt: 8000, cabinUpFpm: 500, cabinDownFpm: 350, cabinLeakFpm: 2500, cabinWarnFt: 10000,
 };
 
 // The panel: groups of switches in the order a crew meets them. positions[0] is where a cold and
@@ -59,12 +63,17 @@ export const PANEL = [
     { id: 'lever2', label: 'START LEVER 2', positions: ['CUTOFF', 'IDLE'] } ] },
   { group: 'NAVIGATION & FLIGHT CONTROLS', switches: [
     { id: 'irs', label: 'IRS', positions: ['OFF', 'NAV'] },
-    { id: 'yawDamper', label: 'YAW DAMPER', positions: ['OFF', 'ON'] } ] },
-  { group: 'ANTI-ICE & LIGHTS', switches: [
+    { id: 'yawDamper', label: 'YAW DAMPER', positions: ['OFF', 'ON'] },
+    { id: 'fireTest', label: 'FIRE WARNING', positions: ['OFF', 'TEST'] } ] },
+  { group: 'ANTI-ICE', switches: [
     { id: 'probeHeat', label: 'PROBE HEAT', positions: ['OFF', 'ON'] },
-    { id: 'windowHeat', label: 'WINDOW HEAT', positions: ['OFF', 'ON'] },
+    { id: 'windowHeat', label: 'WINDOW HEAT', positions: ['OFF', 'ON'] } ] },
+  { group: 'EXTERIOR LIGHTS', switches: [
     { id: 'beacon', label: 'ANTI-COLLISION', positions: ['OFF', 'ON'] },
-    { id: 'position', label: 'POSITION', positions: ['OFF', 'ON'] } ] },
+    { id: 'position', label: 'POSITION', positions: ['OFF', 'ON'] },
+    { id: 'strobe', label: 'STROBE', positions: ['OFF', 'ON'] },
+    { id: 'taxiLight', label: 'TAXI', positions: ['OFF', 'ON'] },
+    { id: 'landingLights', label: 'LANDING', positions: ['OFF', 'ON'] } ] },
 ];
 const DEFS = new Map(PANEL.flatMap((g) => g.switches.map((s) => [s.id, s])));
 const isOn = (def, pos) => def.positions[pos] !== 'OFF' && def.positions[pos] !== 'CUTOFF';
@@ -80,6 +89,8 @@ export class Systems {
     this.groundPowerAvailable = true;      // the stand's power unit, until the pushback
     this.eng = [0, 1].map(() => ({ n2: 0, egt: 0, phase: 'off', coolT: 0 }));
     this.hyd = { a: 0, b: 0 };
+    this.fire = { t: 0, tested: false };
+    this.cabinFt = aircraft.state ? aircraft.state.alt / FT : 0; this.cabinWarned = false;
     this.events = [];
     this.time = 0;
     if (!cold) this.setRunning();
@@ -88,7 +99,8 @@ export class Systems {
 
   /** As a crew leaves it after the engine start: everything on, the engines running (the other starts). */
   setRunning() {
-    for (const id of ['battery', 'gen1', 'gen2', 'fuelPump1', 'fuelPump2', 'hydElec1', 'hydElec2', 'pack1', 'pack2', 'lever1', 'lever2', 'irs', 'yawDamper', 'probeHeat', 'windowHeat', 'beacon', 'position']) this.sw[id] = 1;
+    for (const id of ['battery', 'gen1', 'gen2', 'fuelPump1', 'fuelPump2', 'hydElec1', 'hydElec2', 'pack1', 'pack2', 'lever1', 'lever2', 'irs', 'yawDamper', 'probeHeat', 'windowHeat', 'beacon', 'position', 'strobe', 'landingLights']) this.sw[id] = 1;
+    this.fire.tested = true;
     this.irsT = SYS.irsAlignS; this.groundPowerAvailable = false;
     for (const e of this.eng) { e.n2 = SYS.idleN2; e.egt = 430; e.phase = 'running'; }
     this.hyd.a = this.hyd.b = SYS.hydPsi;
@@ -105,6 +117,8 @@ export class Systems {
     // the APU switch springs back from START to ON; OFF then ON again does not restart it by itself
     if (id === 'apu' && to === null) pos = this.sw.apu === 0 ? 2 : 0;
     this.sw[id] = pos;
+    // the fire warning test: the switch held at TEST gives the bell and the lights, then springs back
+    if (id === 'fireTest') { if (pos === 1 && this.dc) { this.fire.t = SYS.fireTestS; this.events.push({ type: 'fireTest' }); } else this.sw.fireTest = 0; }
     if (id === 'apu') {
       if (pos === 2) { if (this.dc && this.apu.state === 'off') { this.apu.state = 'starting'; this.apu.t = 0; this.events.push({ type: 'apuStart' }); } this.sw.apu = 1; }
       if (pos === 0 && this.apu.state !== 'off') { this.apu.state = 'off'; this.events.push({ type: 'apuOff' }); }
@@ -144,6 +158,18 @@ export class Systems {
     } else if (A.state === 'running') { A.rpm = 100; A.egt += (420 + (s.apuBleed ? 90 : 0) + (s.apuGen ? 40 : 0) - A.egt) * Math.min(1, dt / 4); }
     else { A.rpm = Math.max(0, A.rpm - 12 * dt); A.egt = Math.max(0, A.egt - 25 * dt); }
     this.irsT = s.irs && this.dc ? Math.min(SYS.irsAlignS, this.irsT + dt) : 0;
+    if (this.fire.t > 0) { this.fire.t -= dt; if (this.fire.t <= 0) { this.fire.tested = true; s.fireTest = 0; this.events.push({ type: 'fireTestDone' }); } }
+    // the cabin: pressurised while a pack runs on bleed air (an engine's or the APU's)
+    {
+      const altFt = this.ac.state.alt / FT, fieldFt = this.ac.state.terrainH / FT || 0;
+      const air = (s.pack1 || s.pack2) && this.dc && ((this.on('bleed1') && this.eng[0].phase === 'running') || (this.on('bleed2') && this.eng[1].phase === 'running') || (s.apuBleed && this.apu.state === 'running'));
+      this.pressurised = !!air && !this.ac.state.onGround;
+      const want = this.pressurised ? Math.max(fieldFt, Math.min(SYS.cabinMaxFt, altFt * SYS.cabinFraction)) : altFt;
+      const rate = (this.pressurised ? (want > this.cabinFt ? SYS.cabinUpFpm : SYS.cabinDownFpm) : SYS.cabinLeakFpm) / 60 * dt;
+      this.cabinFt += clamp(want - this.cabinFt, -rate, rate);
+      if (this.cabinFt > SYS.cabinWarnFt && !this.cabinWarned) { this.cabinWarned = true; this.events.push({ type: 'cabinAltitude' }); }
+      if (this.cabinFt < SYS.cabinWarnFt - 500) this.cabinWarned = false;
+    }
     this.derive();
     // ---- the engines
     for (let i = 0; i < 2; i++) {
@@ -212,6 +238,8 @@ export class Systems {
       case 'hydElec1': case 'hydElec2': return s[id] && this.ac_ ? null : { text: 'LOW PRESSURE', kind: 'amber' };
       case 'apuBleed': return s.apuBleed && A.state === 'running' ? { text: `DUCT ${this.duct.toFixed(0)} PSI`, kind: 'green' } : null;
       case 'start1': case 'start2': { const e = this.eng[id === 'start1' ? 0 : 1]; return e.phase === 'aborted' ? { text: 'START ABORTED', kind: 'amber' } : s[id] ? { text: 'START VALVE OPEN', kind: 'amber' } : null; }
+      case 'fireTest': return this.fire.t > 0 ? { text: 'FIRE WARNING · BELL', kind: 'amber' } : this.fire.tested ? { text: 'TESTED', kind: 'green' } : null;
+      case 'pack1': case 'pack2': return s[id] && this.pressurised ? { text: 'CABIN PRESSURISED', kind: 'green' } : null;
       case 'irs': return !s.irs ? null : this.irsAligned ? { text: 'ALIGNED', kind: 'green' } : { text: `ALIGN ${Math.ceil(SYS.irsAlignS - this.irsT)} s`, kind: 'amber' };
       default: return null;
     }
@@ -220,6 +248,7 @@ export class Systems {
   /** The gauges of the panel page. */
   gauges() {
     return { fuel: this.ac.fuel, fuelFlow: this.ac.fuelFlow || 0, source: this.acSource || (this.dc ? 'BATTERY ONLY' : 'NO POWER'), apuEgt: Math.round(this.apu.egt), apuRpm: Math.round(this.apu.rpm), duct: Math.round(this.duct),
+      cabinFt: Math.round(this.cabinFt / 10) * 10, cabinDiff: Math.max(0, (this.ac.state.alt / FT - this.cabinFt) / 1900),
       hydA: Math.round(this.hyd.a / 10) * 10, hydB: Math.round(this.hyd.b / 10) * 10,
       engines: this.eng.map((e, i) => ({ n2: e.n2, egt: Math.round(e.egt), n1: this.ac.engines[i].n1 * 100, phase: e.phase })) };
   }
@@ -255,7 +284,7 @@ export class Systems {
     const started = run(0) && run(1);   // what was needed for the start stays ticked once both engines run
     return [
       { title: 'POWER UP', items: [
-        it('Battery ON', s.battery), it('Ground power ON', this.ac_), it('IRS to NAV (it aligns in 90 s; keep the aircraft still)', s.irs), it('Position lights ON', s.position) ] },
+        it('Battery ON', s.battery), it('Ground power ON', this.ac_), it('IRS to NAV (it aligns in 90 s; keep the aircraft still)', s.irs), it('Fire warning TEST', this.fire.tested || this.fire.t > 0), it('Position lights ON', s.position) ] },
       { title: 'BEFORE START', items: [
         it('APU START, and wait for RUNNING', A.state === 'running' || started), it('APU generator ON', (s.apuGen && A.state === 'running') || started),
         it('Fuel pumps 1 and 2 ON', s.fuelPump1 && s.fuelPump2), it('Electric hydraulic pumps 1 and 2 ON', s.hydElec1 && s.hydElec2),
@@ -267,7 +296,8 @@ export class Systems {
         it('Generators 1 and 2 ON', s.gen1 && s.gen2 && run(0) && run(1)), it('Probe heat ON', s.probeHeat), it('Window heat ON', s.windowHeat),
         it('Packs ON, APU bleed OFF', s.pack1 && s.pack2 && !s.apuBleed), it('APU OFF', A.state === 'off' && run(0) && run(1)), it('Yaw damper ON', s.yawDamper), it('IRS aligned', this.irsAligned) ] },
       { title: 'BEFORE TAKE-OFF', items: [
-        it('Flaps 5', ctx.flapsSet), it('Stabiliser trim set', ctx.trimSet), it('Autobrake RTO', ctx.rto), it('Parking brake released', ctx.parkingBrake === false) ] },
+        it('Flaps 5', ctx.flapsSet), it('Stabiliser trim set', ctx.trimSet), it('Autobrake RTO', ctx.rto), it('Parking brake released', ctx.parkingBrake === false),
+        it('On the runway: strobe and landing lights ON', s.strobe && s.landingLights) ] },
     ];
   }
 }

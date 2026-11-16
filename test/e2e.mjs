@@ -417,8 +417,8 @@ if (want('depart')) {
     return out;
   });
   check('the menu offers the full procedures from the gate only', cold.menuGate && cold.menuRunway);
-  check('cold and dark: the displays are dark, the overhead panel is offered', /COLD AND DARK/.test(cold.cold.msg) && cold.cold.panelButton && cold.cold.pfdLit === 0 && !cold.cold.open && cold.cold.switches === 27, JSON.stringify(cold.cold));
-  check('O opens the panel page: 27 switches, the gauges, the POWER UP checklist with Battery ON first', cold.opened.open && /NO POWER/.test(cold.opened.source) && cold.opened.current === 'POWER UP' && /Battery ON/.test(cold.opened.first || ''), JSON.stringify(cold.opened));
+  check('cold and dark: the displays are dark, the overhead panel is offered', /COLD AND DARK/.test(cold.cold.msg) && cold.cold.panelButton && cold.cold.pfdLit === 0 && !cold.cold.open && cold.cold.switches === 31, JSON.stringify(cold.cold));
+  check('O opens the panel page: 31 switches, the gauges, the POWER UP checklist with Battery ON first', cold.opened.open && /NO POWER/.test(cold.opened.source) && cold.opened.current === 'POWER UP' && /Battery ON/.test(cold.opened.first || ''), JSON.stringify(cold.opened));
   check('battery and ground power clicked: the switches show ON, the lights follow, two items are ticked and the displays come alive',
     /GROUND POWER/.test(cold.powered.source) && cold.powered.batteryOn && cold.powered.gpuLight === 'GRD POWER AVAILABLE' && cold.powered.pumpLight === 'amber' && cold.powered.pfdLit > 200 && cold.powered.ticked === 2 && cold.powered.gauges, JSON.stringify(cold.powered));
   check('the page closes, and the tug still waits for the APU and the beacon', cold.closed && /PUSHBACK NOT READY/.test(cold.notReady) && /APU/.test(cold.notReady), cold.notReady);

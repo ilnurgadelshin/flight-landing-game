@@ -27,7 +27,7 @@ function rig(opts = {}) {
   const gpws = new GPWS({ say: (t) => { said.push(t); return true; }, play: (t) => said.push('sound:' + t), setConfigHorn() {} });
   const game = new Game({ player, gpws });
   const got = [];
-  for (const t of ['state', 'start', 'school', 'message', 'instructor', 'control', 'goaround', 'reposition', 'demo', 'touchdown', 'spoilers', 'damage', 'finish', 'sixtyKnots', 'engineStart']) game.on(t, (d) => got.push({ type: t, ...d }));
+  for (const t of ['state', 'start', 'school', 'message', 'instructor', 'control', 'goaround', 'reposition', 'demo', 'touchdown', 'spoilers', 'damage', 'finish', 'sixtyKnots', 'engineStart', 'fireTest']) game.on(t, (d) => got.push({ type: t, ...d }));
   const fly = (seconds, frame = 0.1) => { let sim = 0; for (let t = 0; t < seconds && game.state !== 'finished'; t += frame) sim += game.update(frame); return sim; };
   game.start(Object.assign({ mode: 'game', scenarioId: 'clear', startId: 'short', seed: 3 }, opts));
   return { game, player, got, said, fly, of: (t) => got.filter((e) => e.type === t) };
@@ -831,7 +831,8 @@ console.log('\n[R9c] The full procedures: a cold and dark aircraft, from the pan
   check('the simplified gate start has no systems and no panel', !rig({ startId: 'gate' }).game.panelModel() && !rig({ startId: 'runway', procedures: 'full' }).game.systems);
   g.action('departure');
   check('the tug will not come yet: the message says what is missing', g.ctx.departure.phase === 'gate' && /PUSHBACK NOT READY/.test(last()) && /battery/.test(last()) && /APU/.test(last()) && /anti-collision/.test(last()), last());
-  sw('battery'); sw('groundPower'); sw('irs'); sw('position'); R.fly(1); M = g.panelModel();
+  sw('battery'); sw('groundPower'); sw('irs'); sw('position'); sw('fireTest'); R.fly(4); M = g.panelModel();
+  check('the fire warning test is announced', R.of('message').some((m) => /FIRE WARNING TEST/.test(m.text)) && M.lights.fireTest && M.lights.fireTest.text === 'TESTED');
   check('power up: the displays come alive on ground power; the next checklist is BEFORE START', M.power.displays && M.gauges.source === 'GROUND POWER' && M.lists[0].items.every((i) => i.done) && M.lists[M.current].title === 'BEFORE START');
   sw('apu'); R.fly(47);
   check('the APU starts and is announced', sys.apu.state === 'running' && R.of('message').some((m) => /APU RUNNING/.test(m.text)));

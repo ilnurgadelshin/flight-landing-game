@@ -1048,7 +1048,7 @@ brake and releases it again, so a phone has a control for it.
 From the gate, the menu's **Procedures: full** starts with a cold and dark aircraft and the crew's
 work on the overhead panel (`js/systems.js`). The 3D flight deck's switches are one merged model,
 so the panel is a page over the flight, like the chart: `O` or the OVERHEAD PANEL button opens
-it, a click moves a switch, and the flight goes on beneath. It shows 27 switches with their
+it, a click moves a switch, and the flight goes on beneath. It shows 31 switches with their
 lights (LOW PRESSURE, GEN OFF BUS, START VALVE OPEN and so on), the engine, APU, duct and
 hydraulic gauges, and five checklists that tick themselves, the next item marked.
 
@@ -1070,19 +1070,27 @@ recalled from operating practice, not Boeing's):
   pumps off or with no starter aborts the start: START ABORTED, and the lever must be at CUTOFF
   for 20 s before another try. A start lever to CUTOFF shuts an engine down.
 - **IRS:** aligns in 90 s (a real alignment takes 7 to 10 minutes).
+- **Fire warning test:** the switch held at TEST gives the bell and the lights for 3 s.
+- **The cabin:** with a pack running on bleed air it is held at a quarter of the aircraft's height
+  (8,000 ft at most), climbing at 500 ft/min; with the packs off it follows the aircraft, and
+  CABIN ALTITUDE warns above 10,000 ft. The page shows the cabin altitude and the pressure
+  difference. (This game's flights stay below 10,000 ft unless you climb there.)
+- **Exterior lights:** position, anti-collision, strobe, taxi and landing lights. They are seen on
+  the aircraft in the replay, as their switches are (all on where the systems are not modelled).
+- **Without power** the displays, the mode control panel's windows, the standby instruments and
+  the gear lights are dark; the standby instruments come back with the battery.
 - **The tug** comes only with the battery on, the APU on the bus and the anti-collision light on.
 - **The take-off briefing** adds what the systems still need: generators, hydraulics, the IRS,
   the yaw damper, probe heat, the anti-collision light.
 
-The checklists: POWER UP (battery, ground power, IRS, position lights), BEFORE START (APU and its
+The checklists: POWER UP (battery, ground power, IRS, fire warning test, position lights), BEFORE START (APU and its
 generator, fuel pumps, electric hydraulic pumps, APU bleed with the packs off, anti-collision
 light, the pushback), ENGINE START (2, then 1), AFTER START (generators, probe and window heat,
 packs on and APU bleed off, APU off, yaw damper, IRS aligned) and BEFORE TAKE-OFF (flaps, trim,
-autobrake RTO, parking brake). A crew that knows the flow is ready to taxi in about four minutes.
+autobrake RTO, parking brake, strobe and landing lights on the runway). A crew that knows the flow is ready to taxi in about four minutes.
 
-Not modelled: pressurisation, the fire tests, lights you can see
-from outside, and the many switches that do not change how this flight goes. The mode control
-panel's windows and the standby instruments stay lit without power.
+Not modelled: the many switches that do not change how this flight goes (the overhead has
+several hundred), and the lights' beams on the ground.
 
 ### Take-off
 
