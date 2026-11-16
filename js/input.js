@@ -103,6 +103,7 @@ export class InputManager {
         case 'KeyJ': this.emit('ndView'); break;              // lean in to the navigation display
         case 'KeyU': this.emit('departure'); break;           // the next step at the gate: pushback, engine start, parking brake
         case 'KeyY': this.emit('parkingBrake'); break;
+        case 'KeyO': this.emit('panel'); break;               // the overhead panel page (the full procedures)
         case 'KeyE': this.emit('chart'); break;               // the approach chart (electronic flight bag)
         case 'Enter': this.emit('enter'); break;
         default: break;

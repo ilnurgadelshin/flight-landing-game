@@ -41,6 +41,7 @@
     <div id="hud-top">
       <div id="mode-msg"></div>
       <button id="btn-step" class="hidden" type="button"></button>
+      <button id="btn-panel" class="hidden" type="button">OVERHEAD PANEL</button>
       <div id="instructor" class="hidden"></div>
       <div id="checklist" class="hidden"></div>
       <div id="gpws-caption"></div>
@@ -116,6 +117,7 @@
         <label><input type="checkbox" id="opt-invert" /> Pilot-style pitch <span class="only-desktop">(push forward = nose down)</span><span class="only-touch">(stick up = nose down)</span></label>
         <label><input type="checkbox" id="opt-night" /> Night</label>
         <label id="opt-weight-label" class="hidden">Take-off weight <select id="opt-weight"><option value="62000">62 t (light)</option><option value="70000">70 t</option><option value="78000">78 t (heavy)</option></select></label>
+        <label id="opt-proc-label" class="hidden">Procedures <select id="opt-procedures"><option value="simple">simplified</option><option value="full">full (cold and dark)</option></select></label>
         <label id="opt-flight-label" class="hidden">Flight <select id="opt-flight"><option value="takeoff">take-off only</option><option value="whole">take off, circuit and land</option></select></label>
         <label id="opt-failure-label" class="hidden">Engine failure <select id="opt-failure"><option value="none">none</option><option value="early">before V1 (stop)</option><option value="v1">at V1 (go)</option><option value="surprise">surprise me</option></select></label>
         <label><input type="checkbox" id="opt-sound" checked /> Sound &amp; voice callouts</label>
@@ -133,7 +135,7 @@
       <p class="hint"><a href="assets/credits.html" target="_blank" rel="noopener" style="color:inherit">Flight deck &amp; scenery credits</a></p>
       <p class="hint only-touch"><span class="no-tilt">Right thumb: the stick</span><span class="only-tilt">Tilt the phone to fly</span> · left thumb: the thrust lever and the rudder · buttons for gear, flaps, speedbrakes, autobrake and the autothrottle. <span class="ios-only">For full screen on iPhone: Share → Add to Home Screen.</span></p>
       <p class="hint only-pad" id="pad-hint"></p>
-      <p class="hint only-desktop">Keyboard: ↑↓ pitch · ←→ roll · A/D rudder · W/S throttle · Q autothrottle · T TOGA · F/V flaps · G gear · Space speedbrake · X arm · B brakes · N autobrake · R reversers · [ ] trim · L look down · C view (cockpit / head-up) · , . K navigation display range / mode · J lean in to the navigation display · E approach chart · H help · U next step at the gate (pushback, engine start, parking brake) · Y parking brake</p>
+      <p class="hint only-desktop">Keyboard: ↑↓ pitch · ←→ roll · A/D rudder · W/S throttle · Q autothrottle · T TOGA · F/V flaps · G gear · Space speedbrake · X arm · B brakes · N autobrake · R reversers · [ ] trim · L look down · C view (cockpit / head-up) · , . K navigation display range / mode · J lean in to the navigation display · E approach chart · H help · U next step at the gate (pushback, engine start, parking brake) · Y parking brake · O overhead panel (full procedures)</p>
     </div>
   </div>
 
@@ -184,6 +186,13 @@
 
   <!-- the approach chart (electronic flight bag, js/chart.js): E, the pause menu, or the controller's
        Y in the pause menu; a tap zooms it -->
+  <!-- the overhead panel page of the full procedures (js/systems.js): switches, lights, gauges, checklists -->
+  <div id="systems" class="hidden" role="dialog" aria-label="Overhead panel">
+    <div id="sys-page">
+      <div id="sys-head"><b>OVERHEAD PANEL</b><span id="sys-source"></span><button id="sys-close" aria-label="Close the panel">✕</button></div>
+      <div id="sys-body"><div id="sys-groups"></div><div id="sys-side"><div id="sys-gauges"></div><div id="sys-lists"></div></div></div>
+    </div>
+  </div>
   <div id="chart" class="hidden" role="dialog" aria-label="Approach chart, ILS runway 27">
     <div id="chart-scroll"><canvas id="chart-canvas" width="1200" height="800"></canvas></div>
     <button id="chart-close" aria-label="Close the chart">✕</button>

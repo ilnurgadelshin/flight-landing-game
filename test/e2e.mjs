@@ -387,6 +387,43 @@ if (want('depart')) {
   check('from the runway it starts at the take-off pages, then the clearance', school.runway.count === '1 / 6' && school.runway.first === 'Before take-off' && school.runway.after.state === 'flying' && /CLEARED FOR TAKE-OFF/.test(school.runway.after.msg), `${school.runway.count}: ${school.runway.first}`);
   check('taxiway signs: location and runway at the five holding points, directions along taxiway A', school.signs && school.signs.n === 15 && school.signs.hold.join() === 'A1|09,A2|09-27,A3|09-27,A4|09-27,A5|27', school.signs && school.signs.hold.join(' '));
   check('every page points at a part of the flight deck that exists', school.anchors.every(([, ok]) => ok), school.anchors.filter(([, ok]) => !ok).map(([a]) => a).join(', '));
+  // the full procedures: a cold and dark flight deck and the overhead panel page
+  const cold = await page.evaluate(async () => {
+    const s = window.__sim, g = s.game, el = (id) => document.getElementById(id), out = {};
+    const frames = (n) => { for (let i = 0; i < n; i++) { s.presentation.frame(0.3, 1 / 60); s.view.update(1 / 60); } };
+    const probe = document.createElement('canvas').getContext('2d', { willReadFrequently: true });   // a copy to read back: the display's own context is not for that
+    const lit = () => { const c = s.cockpit.pfd.canvas; probe.canvas.width = c.width; probe.canvas.height = c.height; probe.drawImage(c, 0, 0); const d = probe.getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 0; i < d.length; i += 64) if (d[i] + d[i + 1] + d[i + 2] > 90) n++; return n; };
+    document.querySelector('[data-start="gate"]').click(); out.menuGate = !el('opt-proc-label').classList.contains('hidden');
+    document.querySelector('[data-start="runway"]').click(); out.menuRunway = el('opt-proc-label').classList.contains('hidden');
+    s.start({ mode: 'game', scenarioId: 'clear', startId: 'gate', seed: 5, sound: false, procedures: 'full' }); s.setTimeScale(1);
+    frames(4);
+    out.cold = { msg: el('mode-msg').textContent, panelButton: !el('btn-panel').classList.contains('hidden'), pfdLit: lit(), open: !el('systems').classList.contains('hidden'), switches: document.querySelectorAll('.sys-sw').length };
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyO', key: 'o', bubbles: true })); window.dispatchEvent(new KeyboardEvent('keyup', { code: 'KeyO', key: 'o', bubbles: true }));
+    frames(2);
+    out.opened = { open: !el('systems').classList.contains('hidden'), source: el('sys-source').textContent, current: document.querySelector('.sys-list.current h4')?.textContent, first: document.querySelector('.sys-list .first')?.textContent };
+    const click = (id) => document.querySelector(`[data-sw="${id}"]`).click();
+    click('battery'); click('groundPower');
+    for (let i = 0; i < 240; i++) g.update(1 / 60);
+    frames(4);
+    const b = document.querySelector('[data-sw="battery"]');
+    out.powered = { source: el('sys-source').textContent, batteryOn: b.classList.contains('on') && b.children[1].textContent === 'ON', gpuLight: document.querySelector('[data-sw="groundPower"] small').textContent, pumpLight: document.querySelector('[data-sw="fuelPump1"] small').className, pfdLit: lit(),
+      ticked: document.querySelectorAll('.sys-list .done').length, gauges: el('sys-gauges').textContent.includes('HYD A') };
+    el('sys-close').click(); frames(1); out.closed = el('systems').classList.contains('hidden');
+    el('btn-step').click(); frames(1); out.notReady = el('mode-msg').textContent;
+    // the simplified gate start: no panel
+    s.start({ mode: 'game', scenarioId: 'clear', startId: 'gate', seed: 5, sound: false }); frames(3);
+    out.simple = { panelButton: !el('btn-panel').classList.contains('hidden'), pfdLit: lit() };
+    out.errors = s.errors.slice(); g.quitToMenu();
+    return out;
+  });
+  check('the menu offers the full procedures from the gate only', cold.menuGate && cold.menuRunway);
+  check('cold and dark: the displays are dark, the overhead panel is offered', /COLD AND DARK/.test(cold.cold.msg) && cold.cold.panelButton && cold.cold.pfdLit === 0 && !cold.cold.open && cold.cold.switches === 27, JSON.stringify(cold.cold));
+  check('O opens the panel page: 27 switches, the gauges, the POWER UP checklist with Battery ON first', cold.opened.open && /NO POWER/.test(cold.opened.source) && cold.opened.current === 'POWER UP' && /Battery ON/.test(cold.opened.first || ''), JSON.stringify(cold.opened));
+  check('battery and ground power clicked: the switches show ON, the lights follow, two items are ticked and the displays come alive',
+    /GROUND POWER/.test(cold.powered.source) && cold.powered.batteryOn && cold.powered.gpuLight === 'GRD POWER AVAILABLE' && cold.powered.pumpLight === 'amber' && cold.powered.pfdLit > 200 && cold.powered.ticked === 2 && cold.powered.gauges, JSON.stringify(cold.powered));
+  check('the page closes, and the tug still waits for the APU and the beacon', cold.closed && /PUSHBACK NOT READY/.test(cold.notReady) && /APU/.test(cold.notReady), cold.notReady);
+  check('the simplified gate start has lit displays and no panel button', !cold.simple.panelButton && cold.simple.pfdLit > 200);
+  check('no JavaScript errors with the full procedures', !cold.errors.length, cold.errors.join(' | '));
   check('no JavaScript errors in either departure', !flow.errors.length, flow.errors.join(' | '));
 }
 

@@ -11,8 +11,9 @@ import { chartModel, drawChart } from './chart.js';
 import { debriefModel, drawDebrief } from './debrief.js';
 import { getScheme } from './controls.js';
 import { DEPARTURE_STEPS, DEPARTURE_FROM_RUNWAY } from './ui.js';
+import { PANEL } from './systems.js';
 
-const CONTROL_SOUNDS = { departure: 'click', parkingBrake: 'click', gear: 'gear', flapsDown: 'flaps', flapsUp: 'flaps', speedbrake: 'click', armSpeedbrake: 'click', autobrake: 'click', autothrottle: 'click', toga: 'chime', ndRange: 'click', ndMode: 'click' };
+const CONTROL_SOUNDS = { systemSwitch: 'click', departure: 'click', parkingBrake: 'click', gear: 'gear', flapsDown: 'flaps', flapsUp: 'flaps', speedbrake: 'click', armSpeedbrake: 'click', autobrake: 'click', autothrottle: 'click', toga: 'chime', ndRange: 'click', ndMode: 'click' };
 const ND_PERIOD = 1 / 15;            // s between redraws of the ND view's sharp copy of the display
 const CHART_PERIOD = 0.25;           // s between redraws of the approach chart (its own-ship)
 
@@ -27,6 +28,10 @@ export class Presentation {
     this.nav = { wait: 0 };          // the ND view's redraws
     ui.onEfis = (what, arg) => this.onAction(what, arg);
     this.chart = { open: false, wait: 0, canvas: null };
+    this.panel = { open: false, wait: 0 };       // the overhead panel page (the full procedures)
+    ui.buildSystems(PANEL);
+    ui.onPanel = (open) => this.setPanel(open);
+    ui.onSystemSwitch = (id) => { this.onAction('systemSwitch', { id }); ui.updateSystems(game.panelModel()); };
     ui.onChart = (open) => this.setChart(open);
     const on = (type, fn) => game.on(type, fn);
 
@@ -114,6 +119,8 @@ export class Presentation {
     if (name === 'padButton') { this.padButton(arg); return; }
     if (name === 'camera') { this.view.camera(arg); return; }            // the view is not the rules' business
     if (name === 'chart') { this.setChart(!this.chart.open); return; }
+    if (name === 'panel') { this.setPanel(!this.panel.open); return; }
+    if (name === 'menu' && this.panel.open) { this.setPanel(false); return; }   // Escape closes the panel first
     if (name === 'menu' && this.chart.open) { this.setChart(false); return; }   // Escape closes the chart first
     // the ND view (js/view.js): lean in to the flight deck's navigation display, or back
     if (name === 'ndView') { this.setNdView(!this.view.ndView); return; }
@@ -121,6 +128,17 @@ export class Presentation {
     if ((name === 'ndRange' || name === 'ndMode') && this.view.shown === 'hud' && this.game.state === 'flying') { this.setNdView(true); return; }
     if (name === 'enter') { if (this.game.state === 'finished' && this.ui.onAgain) this.ui.onAgain(); return; }
     this.game.action(name, arg);
+  }
+
+  /** The overhead panel page, over the flight (which goes on under it). Only with the full procedures. */
+  setPanel(open) {
+    const g = this.game;
+    open = !!open && g.state === 'flying' && !!g.systems;
+    if (!open && !this.panel.open) { if (g.state === 'flying' && !g.systems) this.message('OVERHEAD PANEL — used with the full procedures (the menu, from the gate)', '', 3); return; }
+    if (open === this.panel.open) return;
+    this.panel.open = open; this.panel.wait = 0;
+    this.ui.showSystems(open); this.audio.play('click');
+    if (open) this.ui.updateSystems(g.panelModel());
   }
 
   /**
@@ -165,6 +183,12 @@ export class Presentation {
     const dep = g.ctx.departure, push = g.pushback;
     if (this.world.taxiGuidance) this.world.taxiGuidance.update({ route: !!dep && dep.phase === 'taxi' && st.onGround && g.state !== 'menu', towed: st.towed, pushed: !!push && push.done && !!dep && dep.phase !== 'gate',
       x: st.x, z: st.z, heading: st.heading, dt: simDt });
+    // the overhead panel: its button while the full procedures are flown, its page while open
+    this.ui.setPanelButton(g.state === 'flying' && !!g.systems);
+    if (this.panel.open) {
+      if (g.state !== 'flying' || !g.systems) this.setPanel(false);
+      else if ((this.panel.wait -= frameDt) <= 0) { this.panel.wait = 0.2; this.ui.updateSystems(g.panelModel()); }
+    }
     const configWarning = this.gpws && this.gpws.hornOn ? 'GEAR NOT DOWN' : (st.destroyed ? 'CRASHED' : '');
     const view = this.view.shown;
     this.ui.setView(view, view === 'cockpit' && g.state !== 'school' && this.view.cockpit.lookDown > 0.25);

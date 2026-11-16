@@ -185,6 +185,7 @@ flight deck.
 | Reposition on final (after a go-around) | `Backspace` |
 | From the gate: the next step (pushback, engine start, release the parking brake) | `U`, or the button under the message |
 | Parking brake (on the ground) | `Y` |
+| Overhead panel page (the full procedures) | `O` |
 | Take-off thrust (on the ground) / rating TO, TO-1, TO-2 (before the roll) | `T` / `Q` |
 | Autobrake RTO (on the ground before a flight) | `N` |
 | Pause / Flight School / menu | `P` / `H` / `Esc` |
@@ -1042,6 +1043,47 @@ seen once it has disconnected, driving clear of the nose to the left. An engine 
 air starter and the light-off. Once stopped while taxiing, the step control sets the parking
 brake and releases it again, so a phone has a control for it.
 
+### The full procedures (cold and dark)
+
+From the gate, the menu's **Procedures: full** starts with a cold and dark aircraft and the crew's
+work on the overhead panel (`js/systems.js`). The 3D flight deck's switches are one merged model,
+so the panel is a page over the flight, like the chart: `O` or the OVERHEAD PANEL button opens
+it, a click moves a switch, and the flight goes on beneath. It shows 27 switches with their
+lights (LOW PRESSURE, GEN OFF BUS, START VALVE OPEN and so on), the engine, APU, duct and
+hydraulic gauges, and five checklists that tick themselves, the next item marked.
+
+What is modelled, in outline as on the aircraft (the times and pressures are typical values
+recalled from operating practice, not Boeing's):
+
+- **Electrical:** nothing works without the battery. The AC buses come from ground power (until
+  the pushback unplugs it), the APU's generator or the engines' generators. Without AC power the
+  displays are dark, and the electric hydraulic pumps and the fuel pumps stop.
+- **APU:** START takes 45 s to on speed; its generator and its bleed are separate switches.
+- **Hydraulics:** system A (engine 1's pump, electric pump 2) works the nosewheel steering and
+  the gear's retraction; system B (engine 2's pump, electric pump 1) the flaps. Without pressure
+  they do not move.
+- **Bleed air:** the APU's bleed gives 40 psi in the duct, 28 with a pack running. The starters
+  need it: with a pack left on the engine motors only to 22 % N2, and with no bleed not at all.
+- **Engine start:** the start switch to GRD and the starter motors the engine to about 30 % N2
+  in 20 s; at 25 % the start lever to IDLE gives fuel and ignition; the starter cuts out at 56 %
+  and the engine settles at idle, some 45 s in all. The lever moved below 20 % N2, with the fuel
+  pumps off or with no starter aborts the start: START ABORTED, and the lever must be at CUTOFF
+  for 20 s before another try. A start lever to CUTOFF shuts an engine down.
+- **IRS:** aligns in 90 s (a real alignment takes 7 to 10 minutes).
+- **The tug** comes only with the battery on, the APU on the bus and the anti-collision light on.
+- **The take-off briefing** adds what the systems still need: generators, hydraulics, the IRS,
+  the yaw damper, probe heat, the anti-collision light.
+
+The checklists: POWER UP (battery, ground power, IRS, position lights), BEFORE START (APU and its
+generator, fuel pumps, electric hydraulic pumps, APU bleed with the packs off, anti-collision
+light, the pushback), ENGINE START (2, then 1), AFTER START (generators, probe and window heat,
+packs on and APU bleed off, APU off, yaw damper, IRS aligned) and BEFORE TAKE-OFF (flaps, trim,
+autobrake RTO, parking brake). A crew that knows the flow is ready to taxi in about four minutes.
+
+Not modelled: the fuel quantity and its burn, pressurisation, the fire tests, lights you can see
+from outside, and the many switches that do not change how this flight goes. The mode control
+panel's windows and the standby instruments stay lit without power.
+
 ### Take-off
 
 The second stage (`js/takeoff.js`). The **Take-off** start is lined up on runway 27 with the
@@ -1197,9 +1239,9 @@ before each stage is graded:
    weight. **Done**: the rejected take-off with RTO autobrake, the engine failure before and
    at V1, reduced thrust and the weights.
 5. **The whole flight:** take off, fly the circuit and land. **Done** (see *The whole flight*).
-6. **Full gate procedures** (kept for later): a cold and dark flight deck, APU, electrical,
-   hydraulic and fuel panels, the complete engine start and the checklists. It needs the flight
-   deck's switches to be interactive, which they are not today.
+6. **Full gate procedures:** a cold and dark flight deck, APU, electrical, hydraulic and fuel
+   panels, the complete engine start and the checklists. **Done** as an overhead panel page (see
+   *The full procedures*); the 3D flight deck's own switches are still not interactive.
 
 ## Architecture
 
