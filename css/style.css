@@ -179,7 +179,11 @@ body.touch #btn-step { font-size: 14px; padding: 11px 18px; }
   #scenario-section { grid-area: cond; }
   .menu-panel .menu-actions { grid-area: actions; margin-top: 8px; }
   .menu-panel .options { grid-area: opts; gap: 4px 14px; font-size: 12px; margin-top: 8px; }
-  .menu-panel .hint { grid-area: hint; margin-top: 6px; font-size: 11px; }
+  /* the notes under the menu share one grid cell: each hint placed there itself lay on top of the others */
+  .menu-panel .menu-foot { grid-area: hint; }
+  .menu-panel .hint { margin-top: 6px; font-size: 11px; }
+  /* five starting points in a narrow column: only the chosen one keeps its description */
+  #start-row .choice:not(.selected) small { display: none; }
   #mode-row .choice small { font-size: 10px; }
   h2 { margin: 6px 0 5px; font-size: 11px; }
   .choice-row { gap: 6px; }
