@@ -1080,7 +1080,7 @@ light, the pushback), ENGINE START (2, then 1), AFTER START (generators, probe a
 packs on and APU bleed off, APU off, yaw damper, IRS aligned) and BEFORE TAKE-OFF (flaps, trim,
 autobrake RTO, parking brake). A crew that knows the flow is ready to taxi in about four minutes.
 
-Not modelled: the fuel quantity and its burn, pressurisation, the fire tests, lights you can see
+Not modelled: pressurisation, the fire tests, lights you can see
 from outside, and the many switches that do not change how this flight goes. The mode control
 panel's windows and the standby instruments stay lit without power.
 
@@ -1105,8 +1105,17 @@ start when the aircraft is on the runway.
   The tail touches at about 11° with the wheels on the ground.
 - **Thrust:** `T` (TO/GA) on the ground sets the take-off thrust selected. Before the roll the
   autothrottle switch (`Q`) steps through the ratings: TO (full), TO-1 (thrust levers at 90 %,
-  about 92 % N1) and TO-2 (80 %, about 84 % N1). The speeds are the same for all three, a
-  simplification; at 62 t TO-2 lifts off after about 1,930 m against 1,220 m.
+  about 92 % N1) and TO-2 (80 %, about 84 % N1). VR and V2 go with the weight and the flaps, not
+  the thrust; V1 comes down where the runway becomes the limit (below). At 62 t TO-2 lifts off
+  after about 1,930 m against 1,220 m.
+- **V1 and the runway:** V1 is 3 kt below VR (8 kt when wet) unless a rejected take-off from
+  that speed would not stop on the runway: then it is the highest speed that does, for the
+  thrust selected, the weight and the surface, and the briefing says so. At 78 t and TO-2 it is
+  143 kt against 159 at full thrust; rejected there in a test the aircraft stops 400 m before
+  the end, and 15 kt later it leaves it. An estimate from the model's own figures.
+- **Fuel:** a departure carries 6 t at 62 t, 10 t at 70 t and 14 t at 78 t, and burns it: 0.11 kg/s
+  an engine at idle, 1.22 at take-off thrust (a CFM56-7B26's, in outline). The weight falls with
+  it, the speeds follow, and the engines stop if it runs out. The overhead panel page shows it.
 - **Weight:** the menu offers 62 t, 70 t and 78 t for a departure. The speeds, the trim and Vref
   follow the weight; at 78 t the speeds are 159 / 162 / 172 kt and the lift-off comes after about
   1,900 m at full thrust. Approach starts keep the 62 t landing weight.
@@ -1151,15 +1160,15 @@ From the runway the flight takes about 19 minutes. The debrief is the landing's,
 line each for the take-off and the landing, and the score is the average of the two; a landing
 that fails fails the flight, and a rejected take-off ends it on the runway.
 
-The landing is flown at the take-off weight: Vref follows it, but at 70 t and 78 t that is above
-the aircraft's maximum landing weight (66.4 t), and no fuel is burned on the way round.
+The flight burns about 0.9 t of fuel on the way round, so it lands that much lighter and Vref
+follows. From 70 t and 78 t the landing is still above the aircraft's maximum landing weight
+(66.4 t): the debrief notes it as an overweight landing (a 737 cannot dump fuel; a crew would
+hold to burn it off or land and have the aircraft inspected).
 
 **Flight School** (training mode) has a departure's own pages: eight from the gate (pushback and
 engine start, taxi, the configuration, thrust and the calls, the rotation, the climb, an engine
 failure, the grading), the last six from the runway. During the flight the instructor prompts
 the taxi speed, the rotation, the gear, the climb speed, the flaps and climb thrust.
-
-Not in this stage: take-off speeds that change with the thrust rating.
 
 ## Departure: plan and research
 

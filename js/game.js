@@ -357,7 +357,7 @@ export class Game {
     // the full procedures (the menu's choice, from the gate): a cold and dark aircraft with its systems
     this.systems = start.stand && this.opts.procedures === 'full' ? new Systems(ac, { cold: true }) : null;
     ac.systems = this.systems;
-    if (start.ground) ac.setMass(TAKEOFF.weights.includes(this.opts.weightKg) ? this.opts.weightKg : TAKEOFF.weights[0]);
+    if (start.ground) { const kg = TAKEOFF.weights.includes(this.opts.weightKg) ? this.opts.weightKg : TAKEOFF.weights[0]; ac.setMass(kg); ac.setFuel(TAKEOFF.fuel[kg]); }   // a departure burns its fuel
     this.takeoff = start.ground ? new TakeoffMonitor(ac, { wet: this.sim.scenario.wet, failure: this.takeoffFailure(), systems: this.systems }) : null;
     // lined up, the before-take-off checks are done: the trim in the green band, the autobrake at RTO
     if (start.lineUp) { ac.input.trim = ac.state.trim = takeoffTrim(ac, start.flaps); ac.input.autobrake = ac.state.autobrake = 5; }
@@ -392,7 +392,7 @@ export class Game {
     const t = this.takeoff, V = t.speeds, speeds = `V1 ${V.v1} · VR ${V.vr} · V2 ${V.v2}`;
     const todo = { FLAPS: 'flaps 1, 5 or 15 ([[flapsDown]])', TRIM: `trim ${t.trim.toFixed(1)} nose up ([[trim]])`, SPEEDBRAKE: 'speedbrake down ([[speedbrake]])' };
     if (problems && problems.length) return `BEFORE TAKE-OFF — ${problems.map((p) => todo[p] || p.toLowerCase()).join(', ')}`;
-    return `RUNWAY 27 — ${speeds} — [[toga]]: take-off thrust ${TAKEOFF.ratings[t.rating].id}, rotate at VR`;
+    return `RUNWAY 27 — ${speeds}${V.stopLimited ? ' (V1 limited by the runway)' : ''} — [[toga]]: take-off thrust ${TAKEOFF.ratings[t.rating].id}, rotate at VR`;
   }
 
   /** What the take-off's monitor reported this step. */

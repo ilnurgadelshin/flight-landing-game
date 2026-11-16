@@ -219,7 +219,7 @@ export class Systems {
 
   /** The gauges of the panel page. */
   gauges() {
-    return { source: this.acSource || (this.dc ? 'BATTERY ONLY' : 'NO POWER'), apuEgt: Math.round(this.apu.egt), apuRpm: Math.round(this.apu.rpm), duct: Math.round(this.duct),
+    return { fuel: this.ac.fuel, fuelFlow: this.ac.fuelFlow || 0, source: this.acSource || (this.dc ? 'BATTERY ONLY' : 'NO POWER'), apuEgt: Math.round(this.apu.egt), apuRpm: Math.round(this.apu.rpm), duct: Math.round(this.duct),
       hydA: Math.round(this.hyd.a / 10) * 10, hydB: Math.round(this.hyd.b / 10) * 10,
       engines: this.eng.map((e, i) => ({ n2: e.n2, egt: Math.round(e.egt), n1: this.ac.engines[i].n1 * 100, phase: e.phase })) };
   }

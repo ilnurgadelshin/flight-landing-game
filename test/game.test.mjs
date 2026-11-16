@@ -746,7 +746,7 @@ console.log('\n[R9b] Take-off from the runway: speeds, calls, the configuration 
   // weight
   const H = rig({ startId: 'runway', weightKg: 78000 }), hV = H.game.takeoff.speeds; const hr = fly(H, { until: 300 });
   check('78 t: the speeds are higher (V2 172), the trim and Vref follow, and the take-off uses more runway',
-    H.game.sim.aircraft.mass === 78000 && hV.v2 === Math.round(1.2 * stallSpeed(2, 78000)) && hV.v2 > 168 && H.game.sim.state.vref > referenceLight && hr.success && hr.takeoff.liftoff.dist > T.liftoff.dist + 400 && hr.score >= 85,
+    H.game.sim.aircraft.mass > 77000 && H.game.sim.aircraft.mass < 78000 && hV.v2 === Math.round(1.2 * stallSpeed(2, 78000)) && hV.v2 > 168 && H.game.sim.state.vref > referenceLight && hr.success && hr.takeoff.liftoff.dist > T.liftoff.dist + 400 && hr.score >= 85,
     `V1 ${hV.v1} VR ${hV.vr} V2 ${hV.v2}, lift-off after ${hr.takeoff.liftoff.dist.toFixed(0)} m, ${hr.score} points: ${hr.items.filter((i) => !i.ok).map((i) => i.label + ' ' + i.value).join('; ')}`);
   check('an approach keeps the landing weight whatever the menu holds', rig({ startId: 'short', weightKg: 78000 }).game.sim.aircraft.mass === 62000);
   // an engine failure just after V1: continued on one engine
@@ -788,6 +788,30 @@ console.log('\n[R9b] Take-off from the runway: speeds, calls, the configuration 
     // a rejected take-off still ends a whole flight
     const Wj = rig({ startId: 'runway', wholeFlight: true }); const wj = fly(Wj, { rejectAt: 100 });
     check('a rejected take-off ends a whole flight there', wj.outcome === 'rejected' && !wj.wholeFlight);
+    check('the whole flight lands lighter than it took off, and at 62 t below the landing limit: no overweight note', wg.sim.aircraft.mass < 62000 - 600 && wg.sim.aircraft.mass > 60000 && !r.items.some((i) => i.label === 'Landing weight'), `${(62000 - wg.sim.aircraft.mass).toFixed(0)} kg burned`);
+  }
+  // V1 with the thrust rating, the weight and the runway
+  {
+    const full = takeoffSpeeds(2, false, 78000, 1), red = takeoffSpeeds(2, false, 78000, 0.8), light = takeoffSpeeds(2, false, 62000, 0.8);
+    check('V1 follows the thrust selected where the runway is the limit: 78 t at TO-2 has a lower V1 than at full thrust; VR and V2 do not change; a light aircraft is not limited',
+      !full.stopLimited && red.stopLimited && red.v1 < full.v1 - 10 && red.vr === full.vr && red.v2 === full.v2 && !light.stopLimited && light.v1 === 140, `78 t: V1 ${full.v1} at TO, ${red.v1} at TO-2`);
+    // the simulation agrees: a rejected take-off at that V1 stops on the runway, 15 kt later does not
+    const stopFrom = (ias) => { const Q = rig({ startId: 'runway', weightKg: 78000 }); Q.game.action('autothrottle'); Q.game.action('autothrottle'); const r = fly(Q, { rejectAt: ias, until: 200 }); return { ok: r.outcome === 'rejected', x: Q.game.sim.state.x, briefed: Q.of('message').some((m) => /V1 limited by the runway/.test(m.text)), v1: Q.game.takeoff.speeds.v1 }; };
+    const at = stopFrom(red.v1 - 1), late = stopFrom(red.v1 + 15);   // (at V1 itself the decision is already to go)
+    check('flown: rejected at that V1 the aircraft stops on the runway, and 15 kt later it does not; the briefing says V1 is limited by the runway',
+      at.ok && at.x > -1500 && at.briefed && at.v1 === red.v1 && late.x < -1500, ` stopped ${(at.x + 1500).toFixed(0)} m before the end; 15 kt later ${late.ok ? (late.x + 1500).toFixed(0) + ' m before it' : 'off the end'}`);
+  }
+  // fuel: burned from the gate on, and the weight with it
+  {
+    const Fu = rig({ startId: 'runway' }), fa = Fu.game.sim.aircraft, f0 = fa.fuel, m0 = fa.mass;
+    const fr = fly(Fu), used = f0 - fa.fuel;
+    check('a departure carries fuel (6 t at 62 t) and burns it: about 2.4 kg/s at take-off thrust, and the weight falls with it',
+      f0 === 6000 && used > 150 && used < 500 && Math.abs((m0 - fa.mass) - used) < 30 && fr.success, `${used.toFixed(0)} kg used to 3000 ft, ${(m0 - fa.mass).toFixed(0)} kg lighter`);
+    const idle = rig({ startId: 'runway' }); idle.fly(60);
+    check('at idle on the ground: about 0.22 kg/s for the two engines', Math.abs((6000 - idle.game.sim.aircraft.fuel) / 60 - 0.22) < 0.03, `${((6000 - idle.game.sim.aircraft.fuel) / 60).toFixed(3)} kg/s`);
+    check('heavier aircraft carry more; an approach burns none (its weight is the landing weight)', rig({ startId: 'runway', weightKg: 78000 }).game.sim.aircraft.fuel === 14000 && rig({ startId: 'short' }).game.sim.aircraft.fuel === null);
+    const dry = rig({ startId: 'runway' }); dry.game.sim.aircraft.setFuel(3); dry.game.action('departure'); dry.game.sim.aircraft.input.throttle = 1; dry.fly(20);
+    check('with the fuel gone the engines stop', dry.game.sim.aircraft.fuel === 0 && dry.game.sim.state.engineFailed.every(Boolean) && dry.game.sim.state.n1[0] < 0.6);
   }
   // the wet runway's V1
   const W = rig({ startId: 'runway', scenarioId: 'storm' });

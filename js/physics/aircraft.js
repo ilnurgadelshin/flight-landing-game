@@ -16,7 +16,7 @@ import * as CANNON from 'cannon-es';
 import { AIRCRAFT as AC, KTS, DEG, G, PHYSICS_DT } from '../config.js';
 import { TERRAIN } from './terrain.js';
 import { aeroCoefficients, alphaForLift, flapValue } from './aero.js';
-import { engineThrust, n1ForThrust } from './engines.js';
+import { engineThrust, n1ForThrust, n1ThrustFraction } from './engines.js';
 
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -36,6 +36,8 @@ const _aero = { CL: 0, CD: 0, Cm: 0 };
 export const CG_HEIGHT_ON_GROUND = 3.3;
 // the simplified engine start: the starter's motoring, then the run-up to idle (seconds, N1 fraction)
 const START = { motorS: 14, motorN1: 0.06, motorTau: 4, runUpTau: 6 };
+// fuel flow per engine (kg/s): ground idle, and take-off thrust
+const FUEL = { idle: 0.11, rated: 1.22 };
 // taxi steering: the tiller's nosewheel angle, limited so a turn stays within this lateral acceleration
 const TILLER = { maxDeg: 65, lateralAccel: 0.6, rateDeg: 20, wheelbase: 14.8 };
 
@@ -78,6 +80,7 @@ export class Aircraft {
     this.groundBody = ground;
 
     this.mass = AC.mass;   // kg: the landing weight unless a departure sets its own (setMass)
+    this.fuel = null;      // kg of fuel, where a flight burns it (setFuel): the weight then falls with it
     const body = new CANNON.Body({ mass: AC.mass, material: hullMat });
     this.hullShapes = {};
     for (const [name, h] of Object.entries(AC.hull)) {
@@ -220,6 +223,7 @@ export class Aircraft {
     this.tow = null; this.noseSteer = 0;
     this.tillerAssist = false;   // set for a departure's ground handling; off again once airborne
     this.systems = null;         // the aircraft's systems, where a flight models them (js/systems.js)
+    this.fuel = null; this.fuelFlow = 0;
     this.reverserPos = 0;
     this.speedbrakePos = 0;
     this.surfaces.elevator = this.surfaces.aileron = this.surfaces.rudder = 0;
@@ -299,6 +303,13 @@ export class Aircraft {
 
   /** Fail an engine (0 = left, 1 = right), or restore it: it winds down to a windmilling fan. */
   setEngineFailed(index, failed = true) { this.engines[index].failed = failed; }
+
+  /**
+   * Fuel on board (kg), burned from here on: each running engine uses FUEL.idle kg/s at idle and
+   * FUEL.rated at take-off thrust (a CFM56-7B26's, about 0.11 and 1.22 kg/s), in between with its
+   * thrust. The weight falls with it, and the engines stop when it is gone.
+   */
+  setFuel(kg) { this.fuel = kg; this.state.fuel = kg; this._fuelMass = this.mass; }
 
   /** The aircraft's weight (kg): a departure's take-off weight. The inertia scales with it. */
   setMass(kg) {
@@ -434,6 +445,16 @@ export class Aircraft {
       thrustYaw += eng.thrust * eng.x;   // about +Y (up): the right engine's thrust turns the nose left
     }
 
+    // --- fuel, where this flight burns it
+    if (this.fuel !== null) {
+      let flow = 0;
+      for (const eng of this.engines) if (eng.running && !eng.failed) flow += FUEL.idle + (FUEL.rated - FUEL.idle) * clamp((n1ThrustFraction(eng.n1) - n1ThrustFraction(E.idleN1)) / (1 - n1ThrustFraction(E.idleN1)), 0, 1);
+      this.fuelFlow = flow;
+      const burn = Math.min(this.fuel, flow * dt);
+      this.fuel -= burn; this._fuelMass -= burn;
+      if (this.mass - this._fuelMass > 25) this.setMass(this._fuelMass);         // the weight follows in 25 kg steps
+      if (this.fuel <= 0) for (const eng of this.engines) if (!eng.failed) { eng.failed = true; this.events.push({ t: this.time, type: 'fuelOut' }); }
+    }
     // --- aerodynamic coefficients: the tables, then the control, rate and configuration terms
     const aero = aeroCoefficients(alpha, this.flapDeg, _aero);
     const aStallDeg = flapValue('stallAlphaDeg', this.flapDeg);
@@ -916,7 +937,7 @@ export class Aircraft {
     st.engineFailed[0] = this.engines[0].failed; st.engineFailed[1] = this.engines[1].failed;
     st.engineRunning[0] = this.engines[0].running; st.engineRunning[1] = this.engines[1].running;
     st.engineStarting[0] = this.engines[0].starting; st.engineStarting[1] = this.engines[1].starting;
-    st.parkingBrake = this.input.parkingBrake; st.towed = !!this.tow; st.mass = this.mass;
+    st.parkingBrake = this.input.parkingBrake; st.towed = !!this.tow; st.mass = this.mass; st.fuel = this.fuel; st.fuelFlow = this.fuelFlow || 0;
     st.thrust = extra.totalThrust || 0;
     st.flapDeg = this.flapDeg; st.flapIndex = this.input.flapIndex;
     st.gearPos = this.gearPos; st.gearDown = this.gearPos > 0.98; st.gearInTransit = this.gearPos > 0.02 && this.gearPos < 0.98;

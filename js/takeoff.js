@@ -9,6 +9,7 @@
 // V2 + 8 at about 10° of pitch and passes 35 ft near V2 + 15.
 import { AIRCRAFT as AC, RUNWAY, KTS, FT, DEG, G, RHO0 } from './config.js';
 import { flapValue } from './physics/aero.js';
+import { n1ThrustFraction } from './physics/engines.js';
 
 export const TAKEOFF = {
   flaps: [1, 2, 3],          // flap lever positions allowed for take-off: 1, 5, 15
@@ -30,6 +31,11 @@ export const TAKEOFF = {
   ratings: [{ id: 'TO', lever: 1 }, { id: 'TO-1', lever: 0.9 }, { id: 'TO-2', lever: 0.8 }],
   // take-off weights offered (kg): a light aircraft, a typical one, and near the maximum (79,016 kg)
   weights: [62000, 70000, 78000],
+  // the fuel each of them carries (kg): the rest is the aircraft, its passengers and its bags
+  fuel: { 62000: 6000, 70000: 10000, 78000: 14000 },
+  // V1 is also limited by the runway: the speed from which the aircraft still stops on what is left
+  // (the accelerate-stop distance), for the thrust selected, the weight and the surface
+  stop: { runwayM: RUNWAY.length - 120, reactionS: 2, decelDry: 4.6, decelWet: 2.4, dragLoss: 0.35, lapse: 0.88 },
   // an engine failure on the roll, for practice: 'early' is 20 kt before V1 (the answer is to stop),
   // 'v1' just after it (the answer is to go). With one engine the flight ends at 1,500 ft.
   failures: ['none', 'early', 'v1', 'surprise'], failEarlyKt: 20, engineOutEndFt: 1500, engineOutClimb: [0, 20],
@@ -41,18 +47,40 @@ export function stallSpeed(flapIndex, mass = AC.mass) {
   return Math.sqrt(2 * mass * G / (RHO0 * AC.wingArea * flapValue('CLmax', AC.flapDetents[flapIndex]))) / KTS;
 }
 
-/** V1, VR and V2 (kt) for a flap lever position; with other flaps, those for flaps 5. */
-export function takeoffSpeeds(flapIndex, wet = false, mass = AC.mass) {
+/**
+ * The highest speed (kt) from which a rejected take-off stops on the runway: accelerating to it
+ * with the thrust selected, two seconds to react, then maximum braking. An estimate from the
+ * flight model's figures (rated thrust less its lapse, drag and rolling friction; the brakes'
+ * deceleration on a dry or a wet runway), checked against the simulation in the tests.
+ */
+export function stopSpeed(mass = AC.mass, lever = 1, wet = false) {
+  const S = TAKEOFF.stop, E = AC.engines;
+  const thrust = E.count * E.maxThrust * n1ThrustFraction(E.idleN1 + (1 - E.idleN1) * lever) * S.lapse;
+  const a = Math.max(0.2, thrust / mass - S.dragLoss), d = wet ? S.decelWet : S.decelDry;
+  // v²/2a + v t + v²/2d = runway
+  const A = 1 / (2 * a) + 1 / (2 * d), v = (-S.reactionS + Math.sqrt(S.reactionS * S.reactionS + 4 * A * S.runwayM)) / (2 * A);
+  return v / KTS;
+}
+
+/**
+ * V1, VR and V2 (kt) for a flap lever position (with other flaps, those for flaps 5), a weight
+ * and the take-off thrust's lever position. VR and V2 go with the weight and the flaps. V1 is 3 kt
+ * below VR (8 kt on a wet runway) unless the runway is the limit: with reduced thrust or a heavy
+ * aircraft the stop needs more of it, and V1 comes down to the speed that still stops
+ * (`stopLimited`).
+ */
+export function takeoffSpeeds(flapIndex, wet = false, mass = AC.mass, lever = 1) {
   const f = TAKEOFF.flaps.includes(flapIndex) ? flapIndex : 2;
-  const v2 = Math.round(1.2 * stallSpeed(f, mass)), vr = v2 - 10;
-  return { v1: vr - (wet ? 8 : 3), vr, v2, flapIndex: f };
+  const v2 = Math.round(1.2 * stallSpeed(f, mass)), vr = v2 - 10, stop = Math.floor(stopSpeed(mass, lever, wet));
+  const v1 = Math.min(vr - (wet ? 8 : 3), stop);
+  return { v1, vr, v2, flapIndex: f, stopLimited: stop < vr - (wet ? 8 : 3) };
 }
 
 const trims = new Map();
 /** The stabiliser trim (° nose up) that holds the climb at V2 + 15 with take-off thrust: the green band's middle. */
 export function takeoffTrim(aircraft, flapIndex) {
   const f = TAKEOFF.flaps.includes(flapIndex) ? flapIndex : 2;
-  const key = `${f}/${aircraft.mass}`;
+  const key = `${f}/${Math.round(aircraft.mass / 200)}`;   // (the weight falls as fuel burns)
   if (!trims.has(key)) {
     const t = aircraft.trimFor({ alt: 300, tas: (takeoffSpeeds(f, false, aircraft.mass).v2 + 15) * KTS, gamma: 8 * DEG, flapDeg: AC.flapDetents[f], gearDown: false, n1: 1 });
     trims.set(key, Math.round(t.trimDeg * 2) / 2);
@@ -83,7 +111,7 @@ export class TakeoffMonitor {
   /** The thrust lever position of the selected take-off thrust. */
   get lever() { return TAKEOFF.ratings[this.rating].lever; }
 
-  get speeds() { return this.rec ? this.rec.speeds : takeoffSpeeds(this.ac.input.flapIndex, this.wet, this.ac.mass); }
+  get speeds() { return this.rec ? this.rec.speeds : takeoffSpeeds(this.ac.input.flapIndex, this.wet, this.ac.mass, this.lever); }
   get trim() { return takeoffTrim(this.ac, this.speeds.flapIndex); }
   /** The take-off was begun: there is something to grade. */
   get started() { return this.phase !== 'before'; }
@@ -100,10 +128,10 @@ export class TakeoffMonitor {
     const onRunway = st.onGround && st.surface === 'runway';
     if (this.phase === 'before') {
       if (!onRunway || this.ac.touchdown) { this.brief = ''; return out; }
-      const speeds = takeoffSpeeds(inp.flapIndex, this.wet, this.ac.mass), trim = takeoffTrim(this.ac, speeds.flapIndex);
+      const speeds = takeoffSpeeds(inp.flapIndex, this.wet, this.ac.mass, this.lever), trim = takeoffTrim(this.ac, speeds.flapIndex);
       const more = this.systems ? this.systems.takeoffProblems() : [];
       const problems = configProblems(st, inp, trim).filter((p) => p !== 'PARKING BRAKE' && p !== 'FLAPS MOVING').concat(more);
-      const key = problems.join() + speeds.vr;
+      const key = problems.join() + speeds.vr + '/' + speeds.v1;
       if (key !== this.brief) { this.brief = key; out.push({ type: 'brief', problems, speeds, trim }); }
       if (inp.throttle > T.rollThrottle && !inp.reverse) {
         const bad = configProblems(st, inp, trim).concat(more);
