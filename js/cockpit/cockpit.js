@@ -411,7 +411,8 @@ export class Cockpit {
       this.flapLever.rotation.x = -0.2;
     }
     this.gearHandle.position.y = input.gearDown ? -0.05 : 0.05;
-    this.gearLights.forEach((l) => l.material.color.set(st.gearDown ? 0x33ff55 : (st.gearInTransit ? 0xff3030 : 0x113311)));
+    const dead = !!extra.power && !extra.power.standby;      // no battery: nothing on the flight deck is lit
+    this.gearLights.forEach((l) => l.material.color.set(dead ? 0x0a120a : st.gearDown ? 0x33ff55 : (st.gearInTransit ? 0xff3030 : 0x113311)));
     this.flapNeedlePivot.rotation.z = -(st.flapDeg / 40) * 2.4;
     // trim wheels spin when the trim moves
     const dTrim = st.trim - (this._lastTrim === undefined ? st.trim : this._lastTrim); this._lastTrim = st.trim;
@@ -432,7 +433,9 @@ export class Cockpit {
         for (const d of [this.pfd, this.nd, this.upper, this.lower]) { d.ctx.fillStyle = '#020304'; d.ctx.fillRect(0, 0, d.canvas.width, d.canvas.height); d.tex.needsUpdate = true; }
       }
       this.frame++;
-      if (extra.power.standby && this.frame % 3 === 0) this.standby.draw(st);
+      if (extra.power.standby) { this._deadStandby = false; if (this.frame % 3 === 0) this.standby.draw(st); }
+      else if (!this._deadStandby) { this._deadStandby = true; this.standby.blank(); }
+      if (this._mcpKey !== 'dark') { this._mcpKey = 'dark'; this.mcpTex.userData.draw({ ias: '', hdg: '', alt: '', vs: '' }); }   // the windows need AC power
       return;
     }
     this._dark = false;
@@ -482,6 +485,8 @@ export class Cockpit {
 
 /** Three small round standby instruments drawn on canvases: attitude with speed/altitude, altimeter, clock. */
 class StandbyInstruments {
+  /** Unpowered: dark faces. */
+  blank() { for (let i = 0; i < 3; i++) { this.ctx[i].fillStyle = '#050607'; this.ctx[i].fillRect(0, 0, 96, 96); this.tex[i].needsUpdate = true; } }
   constructor() {
     this.canvas = []; this.ctx = []; this.tex = [];
     for (let i = 0; i < 3; i++) {

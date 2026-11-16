@@ -23,18 +23,35 @@ export function addTaxiGuidance(world) {
     polygonOffset: true, polygonOffsetFactor: -4, polygonOffsetUnits: -4 }));
   line.name = 'Taxi route'; line.renderOrder = 2; line.visible = false; group.add(line);
 
-  // ---- the tug: a low tractor with a cab and a towbar, in airport yellow
+  // ---- the tug: a conventional pushback tractor. Low and wide so it fits under a nose, the cab
+  // offset to one side, deep wheel arches, a towbar to the nose gear, hazard stripes and a beacon.
   const tug = new THREE.Group(); tug.name = 'Pushback tug';
-  const paint = new THREE.MeshStandardMaterial({ color: 0xe8b21c, roughness: 0.6 }), dark = new THREE.MeshStandardMaterial({ color: 0x1b1d20, roughness: 0.9 });
-  const glass = new THREE.MeshStandardMaterial({ color: 0x2b3a44, roughness: 0.2, metalness: 0.3 });
+  const paint = new THREE.MeshStandardMaterial({ color: 0xe9b520, roughness: 0.55, metalness: 0.1 }), dark = new THREE.MeshStandardMaterial({ color: 0x17191c, roughness: 0.9 });
+  const glass = new THREE.MeshStandardMaterial({ color: 0x1d2a33, roughness: 0.15, metalness: 0.4 }), steel = new THREE.MeshStandardMaterial({ color: 0x8b9298, roughness: 0.5, metalness: 0.6 });
+  const stripes = (() => {            // black and yellow chevrons for the ends
+    const c = document.createElement('canvas'); c.width = 128; c.height = 32; const g = c.getContext('2d');
+    g.fillStyle = '#e9b520'; g.fillRect(0, 0, 128, 32); g.fillStyle = '#111';
+    for (let x = -32; x < 160; x += 32) { g.beginPath(); g.moveTo(x, 32); g.lineTo(x + 16, 32); g.lineTo(x + 32, 0); g.lineTo(x + 16, 0); g.closePath(); g.fill(); }
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return new THREE.MeshStandardMaterial({ map: t, roughness: 0.6 });
+  })();
   const box = (w, h, d, m, x, y, z) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(x, y, z); b.castShadow = true; tug.add(b); return b; };
-  box(2.6, 0.9, 5.2, paint, 0, 0.85, 0);                       // body (nose along -z, like the aircraft)
-  box(1.5, 0.9, 1.5, paint, -0.45, 1.75, -1.2); box(1.4, 0.55, 1.4, glass, -0.45, 1.85, -1.2).scale.set(1.04, 1, 1.04);   // cab
-  box(0.16, 0.16, 3.4, dark, 0, 0.55, 4.2);                    // towbar, towards the aircraft's nose gear
-  for (const [x, z] of [[-1.25, -1.6], [1.25, -1.6], [-1.25, 1.6], [1.25, 1.6]]) {
-    const w = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 0.5, 14), dark); w.rotation.z = Math.PI / 2; w.position.set(x, 0.55, z); tug.add(w);
+  // (the tug's nose is along -z, like the aircraft's; the towbar goes back, +z, to the nose gear)
+  box(2.9, 0.55, 6.4, paint, 0, 0.72, 0);                        // the deck
+  box(2.5, 0.3, 5.6, paint, 0, 1.12, 0);                         // the engine cover, a step in from the deck
+  box(2.9, 0.36, 0.12, stripes, 0, 0.72, -3.24); box(2.9, 0.36, 0.12, stripes, 0, 0.72, 3.24);   // bumpers
+  box(1.25, 0.95, 1.5, paint, -0.72, 1.74, -1.5);                // the cab, on the left
+  box(1.29, 0.5, 1.2, glass, -0.72, 1.9, -1.5); box(1.0, 0.5, 1.54, glass, -0.72, 1.9, -1.5);   // its windows, front to back and side to side
+  box(1.35, 0.08, 1.6, paint, -0.72, 2.25, -1.5);                // roof
+  box(0.9, 0.5, 1.1, dark, 0.75, 1.45, 0.4);                     // the exhaust and air housing beside it
+  box(0.1, 0.9, 0.1, steel, 1.1, 1.75, 1.6);                     // exhaust stack
+  for (const [x, z] of [[-1.3, -1.9], [1.3, -1.9], [-1.3, 1.9], [1.3, 1.9]]) {
+    const w = new THREE.Mesh(new THREE.CylinderGeometry(0.62, 0.62, 0.55, 18), dark); w.rotation.z = Math.PI / 2; w.position.set(x, 0.62, z); w.castShadow = true; tug.add(w);
+    const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 0.58, 12), steel); hub.rotation.z = Math.PI / 2; hub.position.set(x, 0.62, z); tug.add(hub);
+    box(0.5, 0.2, 1.5, dark, x, 1.02, z);                        // the arch over it
   }
-  const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.14, 8, 6), new THREE.MeshBasicMaterial({ color: 0xffa000 })); beacon.position.set(-0.45, 2.32, -1.2); tug.add(beacon);
+  for (const x of [-1.05, 1.05]) box(0.28, 0.16, 0.06, new THREE.MeshBasicMaterial({ color: 0xfff4d6 }), x, 0.98, -3.22);   // headlights
+  box(0.14, 0.14, 3.6, steel, 0, 0.5, 5.0); box(0.5, 0.2, 0.3, steel, 0, 0.5, 3.3);   // the towbar and its hitch
+  const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.15, 10, 8), new THREE.MeshBasicMaterial({ color: 0xffa000 })); beacon.position.set(-0.72, 2.42, -1.5); tug.add(beacon);
   tug.visible = false; group.add(tug);
   world.scene.add(group);
 

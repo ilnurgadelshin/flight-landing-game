@@ -36,6 +36,18 @@ export class Replay {
       this.model = w.parkedAircraft.children[0].clone(true);
       this.model.name = 'Replay aircraft'; this.model.rotation.set(0, 0, 0);
       w.scene.add(this.model);
+      // its exterior lights, placed from the model's own size: red and green on the wingtips, white
+      // on the tail, the red anti-collision beacons above and below, white strobes on the tips
+      this.model.position.set(0, 0, 0); this.model.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(this.model), map = puffTexture(), half = (box.max.x - box.min.x) / 2;
+      const lamp = (color, x, y, z) => { const p = new THREE.Sprite(new THREE.SpriteMaterial({ map, color, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false })); p.position.set(x, y, z); this.model.add(p); return p; };
+      const wingY = box.min.y + (box.max.y - box.min.y) * 0.3, wingZ = (box.min.z + box.max.z) / 2 + 3, midY = (box.min.y + box.max.y) / 2;
+      this.lamps = {
+        position: [lamp(0xff2a2a, -half, wingY, wingZ), lamp(0x35ff5a, half, wingY, wingZ), lamp(0xffffff, 0, midY, box.max.z)],
+        beacon: [lamp(0xff2a2a, 0, midY + 2.2, 0), lamp(0xff2a2a, 0, box.min.y + 1.1, 0)],
+        strobe: [lamp(0xffffff, -half, wingY, wingZ + 0.6), lamp(0xffffff, half, wingY, wingZ + 0.6)],
+        landing: [lamp(0xfff2d0, -3, wingY - 0.4, wingZ - 6), lamp(0xfff2d0, 3, wingY - 0.4, wingZ - 6)],
+      };
     }
     // a landing: the camera waits by the touchdown. A take-off (the recording starts on the ground
     // and ends in the air): by the lift-off, the last moment on the runway
@@ -89,6 +101,7 @@ export class Replay {
     m.quaternion.copy(this.q0.fromArray(a.q)).slerp(this.q1.fromArray(b.q), k);
     const ground = a.ground || (b.ground && k > .5), landed = ground && !this.wasGround;
     this.updateSmoke(Math.min(dt, 0.1), ground);
+    this.updateLamps(m);
     // follow the aircraft with a long lens that widens as it comes past
     const c = this.camera;
     this.target.copy(m.position); this.target.y += 4;
@@ -111,6 +124,22 @@ export class Replay {
     // outside there is no slipstream on a windscreen: a little of the airframe's rush only
     audio.update(dt, { n1: [n1, n1], reverser: sample.reverser || 0, tasKts: speed * 1.944 * 0.35, speedbrake: 0, gearDown: false,
       groundSpeed: speed, onGround: ground, surface: 'runway', skidding: false, stallWarning: false });
+  }
+
+  /**
+   * The exterior lights as their switches are (with the full procedures; otherwise as a crew has
+   * them for a flight: all on). The beacon flashes once a second, the strobes twice in quick
+   * succession; their size follows the distance so they read as points of light through the lens.
+   */
+  updateLamps(m) {
+    if (!this.lamps) return;
+    const sys = this.game.systems, on = (id) => !sys || (sys.dc && sys.sw[id] === 1), t = this.t;
+    const size = Math.max(0.9, this.camera.position.distanceTo(m.position) * Math.tan(this.camera.fov * Math.PI / 360) * 0.012);
+    const show = (list, lit, k = 1) => { for (const p of list) { p.visible = lit; p.scale.setScalar(size * k); } };
+    show(this.lamps.position, on('position'));
+    show(this.lamps.beacon, on('beacon') && t % 1 < 0.12, 1.6);
+    show(this.lamps.strobe, on('strobe') && (t % 1.1 < 0.05 || (t % 1.1 > 0.14 && t % 1.1 < 0.19)), 2.4);
+    show(this.lamps.landing, on('landingLights'), 2.2);
   }
 
   /** A burst of tyre smoke from each main gear when the wheels meet the runway, left behind the aircraft. */

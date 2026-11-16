@@ -156,6 +156,8 @@ export function evaluateLanding(ac, ctx = {}) {
   else if (outcome === OUTCOME.COLLAPSE || outcome === OUTCOME.BELLY) score = Math.min(score, 15);
   else if (outcome !== OUTCOME.SUCCESS) score = Math.min(score, 30);
   if (dmg.hardLanding && outcome === OUTCOME.SUCCESS) { score = Math.min(score, 55); failures.push('Hard landing'); }
+  // a departure may come back heavier than the aircraft may land (66,360 kg): it is noted, not failed
+  if ((ac.mass || AC.mass) > 66360 + 50) add('Landing weight', `${((ac.mass || AC.mass) / 1000).toFixed(1)} t`, 0, 0, 'Above the maximum landing weight of 66.4 t: an overweight landing, flown gently, and the aircraft is inspected afterwards.', false);
   if (ctx.goArounds) { add('Go-arounds', `${ctx.goArounds}`, 0, 0, 'A go-around is always the right call when the approach is not stable.', true); }
 
   let grade;
