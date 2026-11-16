@@ -310,6 +310,13 @@ export class AudioSystem {
       case 'gear': this.burst(1.6, 0.3, 900, 'bandpass'); this.tone(90, 1.4, 'triangle', 0.05); this.tone(460, 1.2, 'triangle', 0.03); break;
       case 'flaps': this.tone(140, 1.0, 'triangle', 0.05); this.tone(420, 1.0, 'triangle', 0.05); break;
       case 'click': this.tone(1800, 0.04, 'square', 0.05); break;
+      // an engine start: the air starter's rising whine while it motors the fan (14 s), then the
+      // light-off, a soft thump with the first rush of the combustor; the running engine's own
+      // sound follows its N1
+      case 'starter':
+        this.noise(0, 14, 500, 0.22, { q: 6, to: 1700 }); this.noise(0.3, 13.5, 1100, 0.1, { q: 9, to: 3400 });
+        this.thump(14, 0.35, 55, 0.7); this.noise(14, 5, 420, 0.3, { type: 'lowpass' });
+        break;
       case 'caution': this.tone(660, 0.18, 'square', 0.6); this.tone(660, 0.18, 'square', 0.6, 0.25); break;
       case 'chime': this.tone(880, 0.3, 'sine', 0.15); this.tone(1320, 0.4, 'sine', 0.12, 0.15); break;
       case 'apdisc': for (let i = 0; i < 4; i++) this.tone(520, 0.15, 'square', 0.5, i * 0.22); break;

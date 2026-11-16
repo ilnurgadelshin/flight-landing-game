@@ -2,6 +2,7 @@
 // colour only; the graded terrain, collision surfaces and runway markings stay put.
 import {RUNWAY} from '../config.js';
 import {HANGAR_APRON,TAXIWAY_CONNECTORS} from '../airport-layout.js';
+import {TAXI} from '../taxi-route.js';
 
 const {xMin,xMax,zMin,zMax}=HANGAR_APRON;
 const nearestConnector=TAXIWAY_CONNECTORS.map(x=>`abs(p.x-(${x}.0))`).reduce((a,b)=>`min(${a},${b})`);
@@ -24,10 +25,16 @@ export function applyTaxiwayMarkings(material){
     vec2 p=vTaxiwayXZ,pixel=max(abs(dFdx(p))+abs(dFdy(p)),vec2(.0001))*.5;
     float centre=taxiwayCoverage(p.y,pixel.y,134.85,135.15);
     float stem=taxiwayCoverage(${nearestConnector},pixel.x,-.15,.15)*taxiwayCoverage(p.y,pixel.y,22.5,135.);
-    diffuseColor.rgb=mix(diffuseColor.rgb,diffuse*vec3(.745404,.527115,.014444),max(centre,stem));
+    // Runway holding position on each connector (FAA AIM 2-3-5, pattern A): two solid lines on
+    // the side the aircraft holds, two dashed lines on the runway's side, across the taxiway.
+    float holdAt=p.y-${TAXI.holdZ}.0,connector=step(${nearestConnector},15.);
+    float solid=max(taxiwayCoverage(holdAt,pixel.y,.6,.9),taxiwayCoverage(holdAt,pixel.y,0.,.3));
+    float dashed=max(taxiwayCoverage(holdAt,pixel.y,-.6,-.3),taxiwayCoverage(holdAt,pixel.y,-1.2,-.9))*step(.5,fract(p.x/1.8));
+    float hold=max(solid,dashed)*connector;
+    diffuseColor.rgb=mix(diffuseColor.rgb,diffuse*vec3(.745404,.527115,.014444),max(max(centre,stem),hold));
    `);
  };
- material.customProgramCacheKey=()=> 'airport-metric-taxiway-markings-v1';
+ material.customProgramCacheKey=()=> 'airport-metric-taxiway-markings-v2';
 }
 export const HANGAR_APRON_GLSL=`
  float hangarApronMask(vec2 p){

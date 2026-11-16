@@ -11,13 +11,10 @@ import { TERRAIN } from './physics/terrain.js';
 import { ils27 } from './nav.js';
 
 /** Vref for the flap lever position (kts): the approach speed is Vref + 5. */
-export function referenceSpeed(flapIndex) {
-  if (flapIndex >= 5) return AC.vref40;
-  if (flapIndex >= 4) return AC.vref30;
-  if (flapIndex >= 3) return AC.vref15;
-  if (flapIndex >= 2) return AC.vref15 + 10;
-  if (flapIndex >= 1) return AC.vref15 + 20;
-  return AC.stallClean * 1.3;
+export function referenceSpeed(flapIndex, mass = AC.mass) {
+  const v = flapIndex >= 5 ? AC.vref40 : flapIndex >= 4 ? AC.vref30 : flapIndex >= 3 ? AC.vref15 : flapIndex >= 2 ? AC.vref15 + 10 : flapIndex >= 1 ? AC.vref15 + 20 : AC.stallClean * 1.3;
+  // the table is for the landing weight: at another weight the speeds go with its square root
+  return mass === AC.mass ? v : Math.round(v * Math.sqrt(mass / AC.mass));
 }
 
 /**
@@ -49,7 +46,7 @@ export function deriveApproach(st, runway = RUNWAY) {
   st.gsAltitude = Math.tan(runway.glideslopeDeg * DEG) * Math.max(dGs, 0);
   st.onRunwayStrip = Math.abs(st.z) <= runway.width / 2 && Math.abs(st.x) <= runway.length / 2;
   st.beyondRunwayEnd = st.alongRunway > runway.length;
-  st.vref = referenceSpeed(st.flapIndex);
+  st.vref = referenceSpeed(st.flapIndex, st.mass);
   // what the ILS 27 receivers show, wherever the aircraft is (the displays read these; the fields
   // above follow the landing direction for the rules)
   st.ils = runway === RUNWAY ? ils27(st) : null;
@@ -60,9 +57,12 @@ export function deriveApproach(st, runway = RUNWAY) {
 export function terrainAhead(st, terrain = TERRAIN) {
   if (st.onGround) return false;
   const hx = Math.sin(st.heading), hz = -Math.cos(st.heading);
+  // along the flight path when it climbs (a take-off or a go-around toward rising ground that the
+  // climb clears is no threat); level or descending, the aircraft's own height is what counts
+  const climb = Math.max(0, Math.tan(st.gamma || 0));
   for (const d of [800, 1600, 2600]) {
     const h = terrain.heightAt(st.x + hx * d, st.z + hz * d);
-    if (h > 5 && st.alt - h < 120 + d * 0.05) return true;
+    if (h > 5 && st.alt + d * climb - h < 120 + d * 0.05) return true;
   }
   return false;
 }

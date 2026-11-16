@@ -25,9 +25,16 @@ export function thrustLapse(mach, pressureRatio, bypassRatio) {
     + (0.23 + 0.19 * Math.sqrt(bpr)) * X * M * M;
 }
 
-/** Fraction of the rated thrust an N1 (0..1) gives: almost none at idle. */
+// A running engine at idle still pushes: about 6 kN each on the ground, 5 % of the rated thrust
+// (an estimate for a CFM56-7B at ground idle). It is what keeps a light aircraft rolling on a
+// taxiway and makes about 30-35 % N1 the breakaway setting. It is combined with the power curve
+// as a root sum of squares, so the thrust above about 45 % N1 is as before (within 5 %).
+const IDLE_FRACTION = 0.05, IDLE_N1 = 0.2, FULL = Math.hypot(1, IDLE_FRACTION);
+
+/** Fraction of the rated thrust an N1 (0..1) gives: the idle thrust at idle, none with the fan stopped. */
 export function n1ThrustFraction(n1) {
-  return Math.pow(clamp((n1 - 0.2) / 0.8, 0, 1), 2.2);
+  const power = Math.pow(clamp((n1 - IDLE_N1) / 0.8, 0, 1), 2.2);
+  return Math.hypot(power, IDLE_FRACTION * clamp(n1 / IDLE_N1, 0, 1)) / FULL;
 }
 
 /** One engine's forward thrust (N) at an N1, Mach number and pressure ratio. */
@@ -38,5 +45,6 @@ export function engineThrust(n1, mach, pressureRatio, engines) {
 /** The N1 that gives one engine's thrust (N): the inverse of engineThrust, within 20–100 %. */
 export function n1ForThrust(thrust, mach, pressureRatio, engines) {
   const rated = engines.maxThrust * thrustLapse(mach, pressureRatio, engines.bypassRatio);
-  return 0.2 + 0.8 * Math.pow(clamp(thrust / rated, 0, 1), 1 / 2.2);
+  const fraction = clamp(thrust / rated, 0, 1) * FULL;
+  return IDLE_N1 + 0.8 * Math.pow(Math.sqrt(Math.max(0, fraction * fraction - IDLE_FRACTION * IDLE_FRACTION)), 1 / 2.2);
 }

@@ -168,7 +168,7 @@ export class GameView {
     this.world.drawCockpit = !hud;
     this.cockpit.update(st, inp, frameDt, {
       // the selected speed: the autoland's on its MCP, the player's autothrottle's, otherwise the approach's Vref + 5
-      look, fd: g.fdCommand(), targetSpeed: !st.onGround ? (mcp ? mcp.spd : (atSpd || st.vref + 5)) : null, papi: this.world.lights.papiWhites(this.eye), checklist: g.checklist(),
+      look, takeoff: g.takeoffInfo(), fd: g.fdCommand(), targetSpeed: !st.onGround ? (mcp ? mcp.spd : (atSpd || st.vref + 5)) : null, papi: this.world.lights.papiWhites(this.eye), checklist: g.checklist(),
       gaMode: g.ctx.gaMode, rain: this.raining, daylight:this.world.daylight, autothrottle: fma ? fma.at : at.mode,
       rollMode: fma ? fma.roll : (g.mode === 'training' ? 'FD' : ''), pitchMode: fma ? fma.pitch : (g.mode === 'training' ? 'FD' : ''),
       mcp, efis: g.efis, nd: g.ndOpts(),

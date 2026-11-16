@@ -128,8 +128,10 @@ export class PFD {
     const vfe = AC.flaps.vfe[st.flapIndex];
     if (vfe < 300) { const yv = tcy - (vfe - ias) * pxPerKt; g.fillStyle = RED; g.fillRect(asX + asW - 8, yv - 400, 8, 400); for (let y = yv - 400; y < yv; y += 12) { g.fillStyle = '#000'; g.fillRect(asX + asW - 8, y, 8, 6); } }
     // Vref bug + selected speed bug
-    const bug = (v, col, label) => { const y = tcy - (v - ias) * pxPerKt; g.fillStyle = col; g.beginPath(); g.moveTo(asX + asW, y); g.lineTo(asX + asW - 10, y - 7); g.lineTo(asX + asW - 10, y + 7); g.closePath(); g.fill(); if (label) { g.font = FONT_S; g.fillStyle = col; g.textAlign = 'left'; g.fillText(label, asX + 2, y); } };
-    bug(st.vref, GREEN, 'REF');
+    const bug = (v, col, label, dx = 2) => { const y = tcy - (v - ias) * pxPerKt; g.fillStyle = col; g.beginPath(); g.moveTo(asX + asW, y); g.lineTo(asX + asW - 10, y - 7); g.lineTo(asX + asW - 10, y + 7); g.closePath(); g.fill(); if (label) { g.font = FONT_S; g.fillStyle = col; g.textAlign = 'left'; g.fillText(label, asX + dx, y); } };
+    // a take-off ahead or under way: its speeds in place of the landing reference
+    if (extra.takeoff) { bug(extra.takeoff.v1, WHITE, 'V1'); bug(extra.takeoff.vr, WHITE, 'R', 24); bug(extra.takeoff.v2, MAGENTA, 'V2'); }
+    else bug(st.vref, GREEN, 'REF');
     if (extra.targetSpeed) bug(extra.targetSpeed, MAGENTA);
     g.restore();
     // current speed box
@@ -320,7 +322,7 @@ export class UpperDU {
     else if (st.speedbrakeArmed) { sbTxt = 'SPEED BRAKE ARMED'; sbCol = GREEN; }
     if (sbTxt) { g.fillStyle = sbCol; g.font = FONT_S; g.textAlign = 'center'; g.fillText(sbTxt, fx, gy + 100); }
     // autobrake
-    const ab = ['OFF', '1', '2', '3', 'MAX'][st.autobrake];
+    const ab = ['OFF', '1', '2', '3', 'MAX', 'RTO'][st.autobrake];
     g.fillStyle = st.autobrake ? GREEN : '#888'; g.fillText(`AUTOBRAKE ${ab}`, fx, gy + 124);
     if (st.brake > 0.05) { g.fillStyle = AMBER; g.fillText(`BRAKES ${Math.round(st.brake * 100)}%`, fx, gy + 148); }
     // trim
@@ -342,7 +344,7 @@ export class LowerDU {
     row(60, 'GEAR', st.gearDown ? 'DOWN' : (st.gearInTransit ? 'TRANSIT' : 'UP'), st.gearDown ? GREEN : (st.agl / FT < 1500 ? RED : AMBER));
     row(90, 'FLAPS', `${st.flapDeg.toFixed(0)}`, st.flapIndex >= 4 ? GREEN : AMBER);
     row(120, 'SPEEDBRAKE', st.speedbrake > 0.05 ? `${Math.round(st.speedbrake * 100)}%` : (st.speedbrakeArmed ? 'ARMED' : 'DOWN'), st.speedbrakeArmed || st.speedbrake > 0.05 ? GREEN : '#fff');
-    row(150, 'AUTOBRAKE', ['OFF', '1', '2', '3', 'MAX'][st.autobrake], st.autobrake ? GREEN : '#fff');
+    row(150, 'AUTOBRAKE', ['OFF', '1', '2', '3', 'MAX', 'RTO'][st.autobrake], st.autobrake ? GREEN : '#fff');
     row(180, 'REVERSERS', st.reverser > 0.9 ? 'DEPLOYED' : (st.reverser > 0.05 ? 'IN TRANSIT' : 'STOWED'), st.reverser > 0.05 ? AMBER : '#fff');
     row(210, 'BRAKE TEMP', `${Math.round(Math.min(9.9, st.brakeTemp))}`, st.brakeTemp > 5 ? AMBER : '#fff');
     row(240, 'VREF', `${st.vref} KT`, GREEN);

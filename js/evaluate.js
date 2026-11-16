@@ -91,14 +91,15 @@ export function evaluateLanding(ac, ctx = {}) {
   else { latPts = 0; latNote = 'Nearly off the edge of the runway.'; }
   add('Centreline', `${alat.toFixed(1)} m ${lat > 0 ? 'right' : 'left'}`, latPts, 15, latNote, latPts >= 6);
 
-  const vref = AC.vref30;
+  const heavy = Math.sqrt((ac.mass || AC.mass) / AC.mass);   // a departure may have set another weight
+  const vref = AC.vref30 * heavy;
   // in gusts the full gust increment is carried to touchdown (only the half-headwind part of the
   // wind additive is bled off), so the target moves up by it
   const scenario = ctx.scenario || (ac.atmosphere && ac.atmosphere.scenario);
   // (flown on the player's autothrottle the command speed is Vref + 5 with no gust additive, as
   // Boeing has it: its gust protection holds the speed, and RETARD bleeds it in the flare)
   const gust = ctx.atTouchdown ? 0 : Math.min(20, (scenario && scenario.gustKts) || 0);
-  const dv = td.ias - (td.flapIndex >= 4 ? (td.flapIndex >= 5 ? AC.vref40 : AC.vref30) : AC.vref15) - gust;
+  const dv = td.ias - (td.flapIndex >= 4 ? (td.flapIndex >= 5 ? AC.vref40 : AC.vref30) : AC.vref15) * heavy - gust;
   let spdPts, spdNote;
   // the flare bleeds 5-10 kts, so a touchdown a little below Vref is normal
   if (dv >= -9 && dv <= 8) { spdPts = 15; spdNote = gust ? `Speed on target (Vref + the ${Math.round(gust)} kt gust additive).` : (ctx.atTouchdown ? 'Speed on target (the autothrottle).' : 'Speed on target.'); }
@@ -185,6 +186,7 @@ export function evaluateLanding(ac, ctx = {}) {
 export function fmtOutcome(o) {
   return {
     success: 'LANDED', crash: 'CRASHED', overrun: 'RUNWAY OVERRUN', excursion: 'RUNWAY EXCURSION',
+    takeoff: 'AIRBORNE', rejected: 'REJECTED TAKE-OFF', tailstrike: 'TAIL STRIKE',
     belly: 'BELLY LANDING', collapse: 'GEAR COLLAPSE', undershoot: 'LANDED SHORT', missed: 'MISSED THE RUNWAY',
   }[o] || o.toUpperCase();
 }

@@ -101,6 +101,8 @@ export class InputManager {
         case 'Period': this.emit('ndRange', 1); break;
         case 'KeyK': this.emit('ndMode'); break;              // the EFIS mode selector: MAP → APP → PLN
         case 'KeyJ': this.emit('ndView'); break;              // lean in to the navigation display
+        case 'KeyU': this.emit('departure'); break;           // the next step at the gate: pushback, engine start, parking brake
+        case 'KeyY': this.emit('parkingBrake'); break;
         case 'KeyE': this.emit('chart'); break;               // the approach chart (electronic flight bag)
         case 'Enter': this.emit('enter'); break;
         default: break;

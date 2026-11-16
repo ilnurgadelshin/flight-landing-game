@@ -55,6 +55,28 @@ export const SCHOOL_STEPS = [
     body: `You will be graded on:<ul><li><b>Touchdown zone</b>: 150–900 m past the threshold (aim for the big white blocks)</li><li><b>Sink rate</b> under 300 fpm is smooth; over 600 fpm is a hard landing; 900+ collapses the gear</li><li><b>Centreline</b> and <b>alignment</b>: wings level, and the crab kicked off with rudder (up to 5° of crab is fine; 8° on a wet runway)</li><li><b>Speed</b> near Vref, <b>flaps 30</b> and gear down</li><li>Stop before the end of the runway</li></ul>Callouts: "Fifty, forty, thirty, twenty, ten" — start the flare at <b>thirty</b>.<br>[[view]] steps through the views to the <b>head-up view</b>: no flight deck, and a head-up display in the windshield. Keep its flight path marker (the circle with wings) on the touchdown zone. Good luck, Captain.` },
 ];
 
+// Flight School for a departure (training mode from the gate or the runway). The first two pages
+// are the gate's: a take-off from the runway starts at the third (DEPARTURE_FROM_RUNWAY).
+export const DEPARTURE_STEPS = [
+  { title: 'From the gate', anchor: 'windshield', touch: { anchor: '#hgs' },
+    body: `You are parked on stand 4, nose to the terminal, engines off and the parking brake set. One control takes each step: [[departure]].<ul><li><b>Pushback</b>: the tug pushes you back and turns your nose to the east. Hands off: it takes about 75 seconds.</li><li><b>Engine start</b>, during the push or after it: engine 2, then engine 1, about half a minute each. Watch N1 rise to <b>21 %</b>.</li><li><b>Parking brake</b> released, and you taxi.</li></ul>Press [[help]] any time to reopen this school.` },
+  { title: 'Taxi', anchor: 'rudder', look: 1, touch: { anchor: '#t-rudder' },
+    body: `Follow the dashed magenta line to runway 27: left to the taxiway, right along it to its far end, left again to the runway.<ul><li>[[rudder]]: steers the nosewheel. It turns far at walking pace and less as you speed up, so <b>slow down before a turn</b>.</li><li>[[thrust]]: idle thrust keeps you rolling; a little thrust gets you moving, then take it off.</li><li>[[brakes]]: hold about <b>15 kt</b> on the straights and <b>8 kt</b> in the turns (GS in the bottom bar).</li><li>The yellow bars across the last connector are the holding point: you are cleared to line up as you reach them.</li></ul>` },
+  { title: 'Before take-off', anchor: 'flapLever', look: 1, touch: { anchor: '#t-flaps' },
+    body: `On the runway the message names what is still to set.<ul><li><b>Flaps 5</b> ([[flapsDown]]): 1 and 15 are also allowed.</li><li><b>Trim</b> ([[trim]]) to the value in the message, about 4° nose up.</li><li>Speedbrake down, parking brake released.</li><li>Autobrake <b>RTO</b> ([[autobrake]]): if you close the thrust levers above 90 kt it brakes for you.</li></ul>Thrust with any of it wrong gives <b>TAKEOFF CONFIG</b>.` },
+  { title: 'Take-off thrust and the calls', anchor: 'throttle', look: 1, touch: { anchor: '#t-toga' },
+    body: `[[toga]] sets take-off thrust. Keep straight with small rudder inputs ([[rudder]]) and listen:<ul><li><b>"Eighty knots"</b>: both speed tapes agree, all is well.</li><li><b>"V one"</b>: from here you go, whatever happens. Before it, closing the thrust levers ([[thrustDown]]) rejects the take-off.</li><li><b>"Rotate"</b>: raise the nose.</li></ul>The three speeds are bugs on the speed tape: V1, R and V2.` },
+  { title: 'Rotation', anchor: 'attitude', touch: { anchor: '#t-stick-zone' },
+    body: `At "rotate", pull smoothly: about <b>2 to 3° a second</b> towards <b>15°</b> ([[pitch]]). The aircraft lifts off about four seconds later.<ul><li>Too early or too fast and the tail strikes the runway: it touches at about <b>11°</b> with the wheels still on the ground.</li><li>Too late or too slow uses runway: about 80 m every second.</li></ul>` },
+  { title: 'The climb', anchor: 'gear', look: 0.45, touch: { anchor: '#t-gear' },
+    body: `<ul><li><b>"Positive rate"</b>: gear up ([[gear]]).</li><li>Hold <b>V2 + 10 to 25</b> with pitch: nose up if fast, down if slow. Wings level, straight ahead.</li><li>At <b>1000 ft</b>: lower the nose a little, let the speed build and bring the flaps up one notch at a time ([[flapsUp]]).</li><li>At <b>1500 ft</b>: thrust levers back to 90 % for the climb ([[thrustDown]]).</li></ul>The take-off ends at 3000 ft.` },
+  { title: 'If an engine fails', anchor: 'rudder', look: 1, touch: { anchor: '#t-rudder' },
+    body: `The nose swings towards the failed engine.<ul><li><b>Before V1: stop.</b> Close the thrust levers ([[thrustDown]]); RTO brakes for you, or brake yourself ([[brakes]]); speedbrakes ([[speedbrake]]) and reverse ([[reverse]]).</li><li><b>After V1: go.</b> Rudder at once towards the engine that still runs ([[rudder]]), rotate a little slower and keep the nose below 10° until you are airborne, then climb at V2 to V2 + 20 with the gear up.</li></ul>The menu's <i>Engine failure</i> option lets you practise both.` },
+  { title: 'How the take-off is graded', anchor: 'pfd', touch: { anchor: '#hgs' },
+    body: `Out of 100:<ul><li><b>Configuration</b> and the <b>centreline</b> on the roll</li><li><b>Rotation</b>: at VR, at 2 to 3° a second, the tail clear</li><li><b>Gear up</b> within 8 s of the positive rate</li><li><b>Climb speed</b> V2 + 10 to 25, straight ahead</li><li><b>After take-off</b>: flaps up on schedule, climb thrust at 1500 ft, under 250 kt</li></ul>A tail strike or leaving the runway fails it.` },
+];
+export const DEPARTURE_FROM_RUNWAY = 2;
+
 /** A school page as the active control scheme shows it. */
 export function schoolPage(s) {
   const touch = getScheme() === 'touch' ? (s.touch || {}) : {};
@@ -121,6 +143,10 @@ export class UI {
     document.querySelectorAll('#scenario-row .choice').forEach((b) => b.classList.toggle('selected', b.dataset.scenario === this.selection.scenario));
     document.querySelectorAll('#start-row .choice').forEach((b) => b.classList.toggle('selected', b.dataset.start === this.selection.start));
     $('scenario-section').style.opacity = this.selection.mode === 'training' ? 0.45 : 1;
+    const ground = !!APPROACH_STARTS[this.selection.start].ground;
+    $('opt-weight-label').classList.toggle('hidden', !ground); $('opt-failure-label').classList.toggle('hidden', !ground); $('opt-flight-label').classList.toggle('hidden', !ground);   // a departure's own choice
+    $('btn-demo').disabled = ground;                       // the autoland demo flies approaches only
+    $('btn-start').textContent = APPROACH_STARTS[this.selection.start].stand ? 'Start at the gate' : ground ? 'Start take-off' : 'Start approach';
   }
 
   getOptions() {
@@ -130,6 +156,9 @@ export class UI {
       startId: this.selection.start,
       invertPitch: $('opt-invert').checked,
       night: $('opt-night').checked,
+      weightKg: parseInt($('opt-weight').value, 10),
+      failure: $('opt-failure').value,
+      wholeFlight: $('opt-flight').value === 'whole',
       sound: $('opt-sound').checked,
       mouseSensitivity: parseFloat($('opt-mouse').value),
     };
@@ -148,6 +177,7 @@ export class UI {
     $('chart-canvas').addEventListener('click', () => $('chart').classList.toggle('zoom'));
     $('btn-again').addEventListener('click', () => this.onAgain && this.onAgain());
     $('btn-replay').addEventListener('click', () => this.onReplay && this.onReplay());
+    $('btn-step').addEventListener('click', (e) => { e.target.blur(); if (this.onStep) this.onStep(); });
     $('btn-menu').addEventListener('click', () => this.onQuit && this.onQuit());
     $('btn-help').addEventListener('click', () => this.onHelp && this.onHelp());
     $('school-next').addEventListener('click', () => this.schoolStep(1));
@@ -177,7 +207,7 @@ export class UI {
     const gearFail = !!st.gearCollapsed;
     set('h-gear', gearFail ? 'FAIL' : (st.gearDown ? 'DOWN' : (st.gearInTransit ? 'TRANSIT' : 'UP')), gearFail ? 'bad' : (st.gearDown ? 'good' : (st.gearInTransit ? 'warn' : (st.agl / FT < 1500 && st.vs < -1 ? 'bad' : ''))));   // gear up is only a warning when descending low (not in a go-around climb)
     set('h-sb', st.speedbrake > 0.05 ? (st.onGround ? 'UP' : 'FLT') : (st.speedbrakeArmed ? 'ARMED' : 'DOWN'), st.speedbrakeArmed || st.speedbrake > 0.05 ? 'good' : '');
-    set('h-brk', st.brake > 0.05 ? `${Math.round(st.brake * 100)}%` : ['OFF', 'AB1', 'AB2', 'AB3', 'MAX'][st.autobrake], st.brake > 0.05 ? 'warn' : '');
+    set('h-brk', st.parkingBrake ? 'PARK' : st.brake > 0.05 ? `${Math.round(st.brake * 100)}%` : ['OFF', 'AB1', 'AB2', 'AB3', 'MAX', 'RTO'][st.autobrake], st.parkingBrake || st.brake > 0.05 ? 'warn' : '');
     set('h-trim', `${st.trim >= 0 ? 'NU' : 'ND'} ${Math.abs(st.trim).toFixed(1)}`);
     set('h-wind', `${String(Math.round(st.windDirDeg)).padStart(3, '0')}°/${Math.round(st.windKts)}kt`, '');
     set('h-xwind', `${Math.round(Math.abs(st.crosswind))}${st.crosswind > 0.5 ? 'R' : (st.crosswind < -0.5 ? 'L' : '')}`, Math.abs(st.crosswind) > 20 ? 'warn' : '');
@@ -367,6 +397,8 @@ export class UI {
     }
   }
 
+  /** The departure's next step as a button (js/game.js departureStep), or none. */
+  setStep(label) { const e = $('btn-step'); e.textContent = label ? `▶ ${label}` : ''; e.classList.toggle('hidden', !label); }
   setModeMessage(text, cls = '') { const e = this.el.modeMsg; const t = controlsText(text); if (e.textContent !== t) e.textContent = t; e.className = cls; }
   /** Landing checklist overlay (training mode): [{ text, done }] or null to hide. */
   setChecklist(items) { const e = this.el.checklist; if (!items) { e.classList.add('hidden'); return; } e.classList.remove('hidden'); const html = items.map((c) => `<div class="${c.done ? 'done' : 'todo'}">${c.done ? '✓' : '□'} ${c.text}</div>`).join(''); if (e.innerHTML !== html) e.innerHTML = html; }
@@ -378,7 +410,9 @@ export class UI {
   setRain(on) { this.el.rain.style.opacity = '0'; void on; }
 
   // ---- Flight School ----------------------------------------------------------
-  showSchool(getAnchor, onLook) {
+  /** @param steps the pages to show (the approach's by default; a departure's from the gate or the runway) */
+  showSchool(getAnchor, onLook, steps = SCHOOL_STEPS) {
+    this.schoolSteps = steps;
     this.getAnchor = getAnchor;
     this.onLook = onLook;
     this.schoolIndex = 0;
@@ -387,23 +421,23 @@ export class UI {
   }
   schoolStep(d) {
     this.schoolIndex += d;
-    if (this.schoolIndex >= SCHOOL_STEPS.length) { this.hideSchool(false); return; }
+    if (this.schoolIndex >= this.schoolSteps.length) { this.hideSchool(false); return; }
     if (this.schoolIndex < 0) this.schoolIndex = 0;
     this.renderSchool();
   }
   renderSchool() {
-    const s = schoolPage(SCHOOL_STEPS[this.schoolIndex]);
-    $('school-step').textContent = `${this.schoolIndex + 1} / ${SCHOOL_STEPS.length}`;
+    const s = schoolPage(this.schoolSteps[this.schoolIndex]);
+    $('school-step').textContent = `${this.schoolIndex + 1} / ${this.schoolSteps.length}`;
     $('school-title').textContent = s.title;
     $('school-body').innerHTML = s.body;
     $('school-back').disabled = this.schoolIndex === 0;
-    $('school-next').textContent = this.schoolIndex === SCHOOL_STEPS.length - 1 ? 'Start flying' : 'Next';
+    $('school-next').textContent = this.schoolIndex === this.schoolSteps.length - 1 ? 'Start flying' : 'Next';
     if (this.onLook) this.onLook(s.look || 0);
     this.updateSchoolHighlight();
   }
   updateSchoolHighlight() {
     if (this.el.school.classList.contains('hidden') || !this.getAnchor) return;
-    const s = schoolPage(SCHOOL_STEPS[this.schoolIndex]);
+    const s = schoolPage(this.schoolSteps[this.schoolIndex]);
     const h = $('school-highlight');
     let box = null;
     if (s.anchor[0] === '#') {
@@ -441,6 +475,11 @@ export class UI {
       t.appendChild(tr);
     }
     if (drawMap) drawMap($('res-map').getContext('2d'));
+    // a take-off's debrief: its own legend, and the replay is of the take-off
+    const to = !!res.takeoff;
+    $('lg-air').textContent = to ? 'in the air' : 'approach'; $('lg-ga').style.display = to ? 'none' : '';
+    $('lg-marks').textContent = to ? '■ lift-off, end' : '▲ go-around · ● touchdown · ■ stop';
+    $('btn-replay').textContent = to ? 'Watch the take-off' : 'Watch the landing';
     const n = $('res-notes'); n.innerHTML = '';
     for (const note of res.notes) { const d = document.createElement('div'); d.textContent = note; n.appendChild(d); }
     this.show('results', true);

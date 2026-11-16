@@ -262,7 +262,7 @@ export class TouchControls {
     s.onGround = st.onGround; s.throttle = inp.throttle; s.reverse = !!inp.reverse;
     const gearTxt = inp.gearDown ? (st.gearDown ? 'DN' : 'TRN') : (st.gearInTransit ? 'TRN' : 'UP');
     this.show('gear', gearTxt, st.gearCollapsed ? 'bad' : (gearTxt === 'DN' ? 'good' : (gearTxt === 'TRN' ? 'warn' : '')));
-    this.show('autobrake', ['OFF', '1', '2', '3', 'MAX'][inp.autobrake] || 'OFF', inp.autobrake > 0 ? 'good' : '');
+    this.show('autobrake', ['OFF', '1', '2', '3', 'MAX', 'RTO'][inp.autobrake] || 'OFF', inp.autobrake > 0 ? 'good' : '');
     const detent = AC.flapDetents[inp.flapIndex];
     this.text(this.el.flapsVal, 'flapsVal', String(detent));
     this.cls(this.el.flaps, 'flaps', Math.abs(st.flapDeg - detent) > 0.3 ? 'warn' : '');

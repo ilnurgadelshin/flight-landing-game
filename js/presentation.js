@@ -10,14 +10,15 @@ import { ndModel, drawND } from './nd.js';
 import { chartModel, drawChart } from './chart.js';
 import { debriefModel, drawDebrief } from './debrief.js';
 import { getScheme } from './controls.js';
+import { DEPARTURE_STEPS, DEPARTURE_FROM_RUNWAY } from './ui.js';
 
-const CONTROL_SOUNDS = { gear: 'gear', flapsDown: 'flaps', flapsUp: 'flaps', speedbrake: 'click', armSpeedbrake: 'click', autobrake: 'click', autothrottle: 'click', toga: 'chime', ndRange: 'click', ndMode: 'click' };
+const CONTROL_SOUNDS = { departure: 'click', parkingBrake: 'click', gear: 'gear', flapsDown: 'flaps', flapsUp: 'flaps', speedbrake: 'click', armSpeedbrake: 'click', autobrake: 'click', autothrottle: 'click', toga: 'chime', ndRange: 'click', ndMode: 'click' };
 const ND_PERIOD = 1 / 15;            // s between redraws of the ND view's sharp copy of the display
 const CHART_PERIOD = 0.25;           // s between redraws of the approach chart (its own-ship)
 
 export class Presentation {
   constructor({ game, view, world, ui, audio, gpws = null, haptics = null, touch = null, input }) {
-    Object.assign(this, { game, view, ui, audio, gpws, haptics, touch, input });
+    Object.assign(this, { game, view, world, ui, audio, gpws, haptics, touch, input });
     this.yokeWasOn = false;          // the mouse yoke was engaged when the flight was interrupted
     this.raining = false;
     this.msgSeq = 0;
@@ -42,6 +43,10 @@ export class Presentation {
       this.setChart(false);
       ui.show('hud', true);
       ui.setRain(this.raining);
+      ui.setStep('');
+      // a departure leaves its stand free of the parked airliner that otherwise stands there
+      world.freeStand = game.sim.start.stand ? game.sim.start.stand.index : null;
+      world.parkedAircraft?.children.forEach((stand, i) => { stand.visible = i !== world.freeStand; });
     });
     on('state', ({ state: s, prev }) => {
       if (prev === 'flying' && s !== 'flying') this.yokeWasOn = input.mouseEngaged;
@@ -59,16 +64,25 @@ export class Presentation {
       ui.show('pause', s === 'paused');
       if (s === 'menu') { ui.showMenu(); audio.setConfigHorn(false); audio.stopStickShaker(); }
       if (s === 'menu' || s === 'school' || s === 'finished') this.setChart(false);
+      if (s === 'menu' || s === 'finished') ui.setStep('');
     });
     on('school', () => {
-      ui.showSchool((name) => view.anchorFor(name), (look) => { view.schoolLook = look; });
+      const start = game.sim.start, steps = !start.ground ? undefined : start.stand ? DEPARTURE_STEPS : DEPARTURE_STEPS.slice(DEPARTURE_FROM_RUNWAY);
+      ui.showSchool((name) => view.anchorFor(name), (look) => { view.schoolLook = look; }, steps);
       ui.onSchoolDone = (skipped) => game.schoolDone(skipped);
     });
     on('message', ({ text, kind, duration }) => this.message(text, kind, duration));
+    on('departure', ({ step }) => ui.setStep(step));
+    ui.onStep = () => this.onAction('departure');
     on('instructor', ({ html }) => ui.setInstructor(html));
     on('control', ({ name }) => audio.play(CONTROL_SOUNDS[name]));
     on('goaround', () => audio.say('Go around, flaps fifteen', { priority: 1 }));
     on('sixtyKnots', () => audio.say('Sixty knots'));        // the pilot monitoring's call on the roll-out
+    // the pilot monitoring's calls on the take-off (js/takeoff.js)
+    on('takeoffCall', ({ call }) => audio.say({ eighty: 'Eighty knots', v1: 'Vee one', rotate: 'Rotate', positive: 'Positive rate' }[call], { priority: 1 }));
+    on('takeoffConfig', () => audio.play('caution'));
+    on('engineStart', () => audio.play('starter'));
+    on('engineFailure', () => { audio.play('caution'); if (haptics) haptics.crash?.(); view.shake(0.03); });
     on('demo', () => audio.play('apdisc'));
     on('touchdown', ({ sink, hard }) => {
       audio.play(hard ? 'hardlanding' : 'touchdown');
@@ -79,9 +93,10 @@ export class Presentation {
     on('damage', () => { audio.play('crash'); ui.flash(0.9); if (haptics) haptics.crash(); view.shake(0.12); });
     on('finish', ({ result }) => {
       audio.setConfigHorn(false); audio.stopStickShaker();
-      this.lastDebrief = debriefModel(game.path);
+      this.lastDebrief = debriefModel(game.path, { takeoff: !!result.takeoff });
       ui.showResults(result, (ctx) => drawDebrief(ctx, this.lastDebrief));
-      if (result.success) audio.say(result.score >= 78 ? 'Nice landing, Captain' : 'We are down', { priority: 1 }); else audio.play('caution');
+      if (result.takeoff) audio.play(result.success ? 'chime' : 'caution');
+      else if (result.success) audio.say(result.score >= 78 ? 'Nice landing, Captain' : 'We are down', { priority: 1 }); else audio.play('caution');
     });
     // lightning: a flash on the screen, thunder a moment later
     world.onLightning = () => { ui.flash(0.5); setTimeout(() => audio.play('thunder'), 800 + Math.random() * 1500); };
@@ -146,6 +161,10 @@ export class Presentation {
   frame(frameDt, simDt) {
     const g = this.game, st = g.sim.state, inp = g.sim.aircraft.input;
     if (this.haptics && simDt > 0 && g.state === 'flying') this.haptics.update(simDt, st);
+    // a departure's ground scene: the route to follow while taxiing, the tug while it pushes and leaves
+    const dep = g.ctx.departure, push = g.pushback;
+    if (this.world.taxiGuidance) this.world.taxiGuidance.update({ route: !!dep && dep.phase === 'taxi' && st.onGround && g.state !== 'menu', towed: st.towed, pushed: !!push && push.done && !!dep && dep.phase !== 'gate',
+      x: st.x, z: st.z, heading: st.heading, dt: simDt });
     const configWarning = this.gpws && this.gpws.hornOn ? 'GEAR NOT DOWN' : (st.destroyed ? 'CRASHED' : '');
     const view = this.view.shown;
     this.ui.setView(view, view === 'cockpit' && g.state !== 'school' && this.view.cockpit.lookDown > 0.25);
