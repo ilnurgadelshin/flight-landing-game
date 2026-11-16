@@ -798,5 +798,50 @@ console.log('\n[R9b] Take-off from the runway: speeds, calls, the configuration 
   check('from the gate the take-off is briefed only on the runway', !Gt.game.takeoff.started && !Gt.of('message').some((m) => /BEFORE TAKE-OFF|V1 1/.test(m.text)));
 }
 
+console.log('\n[R9c] The full procedures: a cold and dark aircraft, from the panel to the taxi');
+{
+  const R = rig({ startId: 'gate', procedures: 'full' }), g = R.game, ac = g.sim.aircraft, sys = g.systems, st = () => g.sim.state;
+  const sw = (id, to) => g.action('systemSwitch', { id, to }), last = () => R.of('message').map((m) => m.text).filter(Boolean).at(-1);
+  let M = g.panelModel();
+  check('cold and dark: the systems are modelled, nothing is powered, the first checklist is POWER UP', !!sys && !M.power.displays && !M.power.standby && M.positions.battery === 'OFF' && M.lists[M.current].title === 'POWER UP' && /COLD AND DARK/.test(last()), last());
+  check('the simplified gate start has no systems and no panel', !rig({ startId: 'gate' }).game.panelModel() && !rig({ startId: 'runway', procedures: 'full' }).game.systems);
+  g.action('departure');
+  check('the tug will not come yet: the message says what is missing', g.ctx.departure.phase === 'gate' && /PUSHBACK NOT READY/.test(last()) && /battery/.test(last()) && /APU/.test(last()) && /anti-collision/.test(last()), last());
+  sw('battery'); sw('groundPower'); sw('irs'); sw('position'); R.fly(1); M = g.panelModel();
+  check('power up: the displays come alive on ground power; the next checklist is BEFORE START', M.power.displays && M.gauges.source === 'GROUND POWER' && M.lists[0].items.every((i) => i.done) && M.lists[M.current].title === 'BEFORE START');
+  sw('apu'); R.fly(47);
+  check('the APU starts and is announced', sys.apu.state === 'running' && R.of('message').some((m) => /APU RUNNING/.test(m.text)));
+  for (const id of ['apuGen', 'fuelPump1', 'fuelPump2', 'hydElec1', 'hydElec2', 'apuBleed', 'beacon']) sw(id);
+  R.fly(3); g.action('departure'); R.fly(2);
+  check('ready: the pushback begins, the ground power is unplugged, the APU carries the buses', g.ctx.departure.phase === 'push' && st().towed && !sys.groundPowerAvailable && sys.acSource === 'APU' && /start the engines on the panel/.test(last()), last());
+  g.action('departure'); R.fly(1);
+  check('the one control does not start the engines here: the crew does, on the panel', !ac.engines[1].starting && !ac.engines[1].running);
+  const starts = R.of('engineStart').length;
+  sw('start2'); R.fly(22); sw('lever2'); R.fly(40);
+  sw('start1'); R.fly(22); sw('lever1');
+  for (let t = 0; t < 120 && g.ctx.departure.phase !== 'ready'; t += 0.5) R.fly(0.5);
+  check('both engines started by the start switches and levers; with the push over the aircraft is ready', g.ctx.departure.phase === 'ready' && ac.engines.every((e) => e.running && !e.starting) && R.of('engineStart').length === starts + 2 && R.of('message').some((m) => /ENGINE 2 LIGHT-OFF/.test(m.text)) && /ENGINES RUNNING/.test(last()), last());
+  for (const id of ['gen1', 'gen2', 'probeHeat', 'windowHeat', 'pack1', 'pack2']) sw(id);
+  sw('apuBleed', 'OFF'); sw('apu', 'OFF'); R.fly(4);
+  check('before the after-start flow is finished the take-off would not be ready: the yaw damper is still off', g.takeoff.systems === sys && sys.takeoffProblems().join() === 'YAW DAMPER', sys.takeoffProblems().join(', '));
+  sw('yawDamper'); R.fly(1); M = g.panelModel();
+  check('after start done: the engines carry the buses, hydraulics on both systems; the next checklist is BEFORE TAKE-OFF', sys.acSource === 'ENGINE GENERATORS' && sys.hydA && sys.hydB && M.lists[M.current].title === 'BEFORE TAKE-OFF' && sys.takeoffProblems().length === 0);
+  g.action('departure'); ac.input.throttle = 0.25; R.fly(12); ac.input.throttle = 0;
+  const h0 = st().heading; ac.input.yaw = -1; R.fly(6); ac.input.yaw = 0;
+  check('it taxis and steers (hydraulic system A)', st().groundSpeed > 1 && Math.abs(st().heading - h0) > 5 * DEG);
+  // an aborted start reaches the crew
+  const A = rig({ startId: 'gate', procedures: 'full' }), ag = A.game, as = (id, to) => ag.action('systemSwitch', { id, to });
+  for (const id of ['battery', 'groundPower', 'apu']) as(id); A.fly(47); for (const id of ['apuGen', 'fuelPump1', 'fuelPump2', 'apuBleed', 'beacon']) as(id);
+  as('start2'); A.fly(3); as('lever2'); A.fly(1);
+  check('the start lever moved too early: START ABORTED with the reason, and the caution', A.of('message').some((m) => /ENGINE 2 START ABORTED/.test(m.text) && /N2/.test(m.text)) && !ag.sim.aircraft.engines[1].running);
+  // hydraulics off: the take-off briefing names the systems
+  const H = rig({ startId: 'gate', procedures: 'full' });
+  H.game.sim.aircraft.place({ x: 1440, y: 3.35, z: 0, headingDeg: 270, iasKts: 0, flapIndex: 2, gearDown: true, throttle: 0, onGround: true });
+  H.game.sim.aircraft.systems = H.game.systems; H.game.ctx.departure.phase = 'taxi'; H.fly(1);
+  check('on the runway with the systems not set, the briefing names them', /BEFORE TAKE-OFF/.test(H.of('message').map((m) => m.text).at(-1)) && /generators/.test(H.of('message').map((m) => m.text).at(-1)) && /hydraulics/.test(H.of('message').map((m) => m.text).at(-1)), H.of('message').map((m) => m.text).at(-1));
+  R.game.action('reposition');
+  check('repositioning gives a cold aircraft again', R.game.systems !== sys && !R.game.systems.dc && R.game.ctx.departure.phase === 'gate');
+}
+
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed ? 1 : 0);

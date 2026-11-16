@@ -164,7 +164,8 @@ export class Systems {
         e.n2 += (target - e.n2) * Math.min(1, dt / (e.phase === 'lightoff' ? SYS.runUpTau : 1.5));
         e.egt += ((e.phase === 'lightoff' && e.n2 < 50 ? 640 : 410 + (ae.n1 - AC.engines.idleN1) * 520) - e.egt) * Math.min(1, dt / 3);
         if (e.phase === 'lightoff' && e.n2 >= SYS.cutoutN2) { s[`start${n}`] = 0; this.events.push({ type: 'starterCutout', engine: i }); }
-        if (e.phase === 'lightoff' && e.n2 >= SYS.idleN2 - 2) { e.phase = 'running'; this.events.push({ type: 'engineRunning', engine: i }); }
+        // (the flight model's fan reaching idle settles it too: the two agree on when it runs)
+        if (e.phase === 'lightoff' && (e.n2 >= SYS.idleN2 - 2 || (!ae.starting && e.n2 >= SYS.cutoutN2))) { e.phase = 'running'; this.events.push({ type: 'engineRunning', engine: i }); }
         continue;
       }
       // off: the starter may be turning it
@@ -172,6 +173,8 @@ export class Systems {
       const motorTo = this.duct >= SYS.ductStartFull ? SYS.motorN2 : SYS.motorN2Low;
       if (turning) e.n2 += (motorTo - e.n2) * Math.min(1, dt / SYS.motorTau); else e.n2 = Math.max(0, e.n2 - 3 * dt);
       e.egt = Math.max(0, e.egt - 20 * dt);
+      if (turning && !e.turning) this.events.push({ type: 'starter', engine: i });
+      e.turning = turning;
       ae.manualStart = true; ae.starting = turning;      // the fan turns with the starter (the flight model shows N1)
       if (lever) {
         if (e.n2 >= SYS.fuelOnN2 && this.fuelPressure[i] && turning) {
