@@ -35,6 +35,7 @@ export const CONTROLS = {
   trim:         { key: `${kbd('[')} / ${kbd(']')} (or PageUp / PageDown): trim nose up / down`, touch: 'Trim is automatic: hold a steady stick input and the stabiliser follows it', pad: () => `${pb('D-pad ↑')} / ${pb('D-pad ↓')}: trim nose down / up` },
   look:         { key: `hold ${kbd('L')} or right-drag`,      touch: chip('VIEW'), pad: (L) => `the right stick (${pb(L.R3)}: panel, head-up view)` },
   view:         { key: kbd('C'),                              touch: chip('VIEW'), pad: (L) => pb(L.R3) },
+  panel:        { key: kbd('O'),                              touch: chip('OVERHEAD PANEL'), pad: () => 'the on-screen OVERHEAD PANEL button' },
   departure:    { key: kbd('U'),                              touch: 'the step button under this message', pad: (L) => pb(L.View) },
   parkingBrake: { key: kbd('Y'),                              touch: 'the step button', pad: (L) => pb(L.View) },
   reposition:   { key: kbd('Backspace'),                      touch: chip('REPOSITION'), pad: (L) => pb(L.View) },

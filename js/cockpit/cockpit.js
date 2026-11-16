@@ -423,6 +423,19 @@ export class Cockpit {
       if (extra.rain) { this.wiperT = (this.wiperT || 0) + dt * 2.2; const a = (Math.sin(this.wiperT) * 0.5 + 0.5) * 1.1; this.wipers[0].rotation.z = 1.25 - a; this.wipers[1].rotation.z = -1.25 + a; }
       else { this.wipers[0].rotation.z = 1.25; this.wipers[1].rotation.z = -1.25; }
     }
+    // without AC power the displays are dark (the full procedures, js/systems.js); the standby
+    // instruments run from the battery
+    this.frame = (this.frame || 0);
+    if (extra.power && !extra.power.displays) {
+      if (!this._dark) {
+        this._dark = true;
+        for (const d of [this.pfd, this.nd, this.upper, this.lower]) { d.ctx.fillStyle = '#020304'; d.ctx.fillRect(0, 0, d.canvas.width, d.canvas.height); d.tex.needsUpdate = true; }
+      }
+      this.frame++;
+      if (extra.power.standby && this.frame % 3 === 0) this.standby.draw(st);
+      return;
+    }
+    this._dark = false;
     // displays
     this.pfd.fdEnabled = !!extra.fd;
     if (extra.fd) this.pfd.fd = extra.fd;

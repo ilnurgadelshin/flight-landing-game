@@ -219,6 +219,7 @@ export class Aircraft {
     this.input.parkingBrake = false;
     this.tow = null; this.noseSteer = 0;
     this.tillerAssist = false;   // set for a departure's ground handling; off again once airborne
+    this.systems = null;         // the aircraft's systems, where a flight models them (js/systems.js)
     this.reverserPos = 0;
     this.speedbrakePos = 0;
     this.surfaces.elevator = this.surfaces.aileron = this.surfaces.rudder = 0;
@@ -263,7 +264,7 @@ export class Aircraft {
     if (throttle === 'trim') this.input.throttle = clamp((n1 - E.idleN1) / (1 - E.idleN1), 0, 1);
     this.input.trim = onGround ? 0 : clamp(trim.trimDeg, -AC.controls.maxTrimDeg, AC.controls.maxTrimDeg);
     const thrust = onGround ? 0 : trim.thrust;
-    for (const e of this.engines) { e.n1 = enginesRunning ? n1 : 0; e.thrust = enginesRunning ? thrust / E.count : 0; e.failed = false; e.running = enginesRunning; e.starting = false; e.startT = 0; }
+    for (const e of this.engines) { e.n1 = enginesRunning ? n1 : 0; e.thrust = enginesRunning ? thrust / E.count : 0; e.failed = false; e.running = enginesRunning; e.starting = false; e.startT = 0; e.manualStart = false; }
     const wv = onGround ? 0 : tas;
     this.updateState(0, { tas: wv, totalThrust: thrust, alpha, wind });
   }
@@ -359,11 +360,15 @@ export class Aircraft {
     // flaps move at a fixed rate toward the selected detent
     const flapTarget = AC.flapDetents[inp.flapIndex];
     const dF = AC.flapMoveRate * dt;
-    if (Math.abs(flapTarget - this.flapDeg) <= dF) this.flapDeg = flapTarget;
+    // (the flaps, the gear's retraction and the nosewheel steering need hydraulic pressure where the
+    // aircraft's systems are modelled: js/systems.js)
+    const hyd = this.systems ? this.systems.limits : null;
+    if (hyd && !hyd.flaps) { /* no pressure: the flaps stay where they are */ }
+    else if (Math.abs(flapTarget - this.flapDeg) <= dF) this.flapDeg = flapTarget;
     else this.flapDeg += sign(flapTarget - this.flapDeg) * dF;
 
     // gear
-    const gTarget = inp.gearDown ? 1 : 0;
+    const gTarget = inp.gearDown || (hyd && !hyd.gear) ? 1 : 0;
     const dG = dt / AC.gear.retractTime;
     if (Math.abs(gTarget - this.gearPos) <= dG) this.gearPos = gTarget;
     else this.gearPos += sign(gTarget - this.gearPos) * dG;
@@ -414,7 +419,8 @@ export class Aircraft {
       if (eng.starting) {
         // the starter motors the fan, then the engine lights off and accelerates slowly to idle
         eng.startT += dt;
-        if (!eng.running && eng.startT >= START.motorS) eng.running = true;
+        // (with the full procedures, js/systems.js lights the engine when the crew moves the start lever)
+        if (!eng.manualStart && !eng.running && eng.startT >= START.motorS) eng.running = true;
         target = eng.running ? E.idleN1 : START.motorN1; tau = eng.running ? START.runUpTau : START.motorTau;
         if (eng.running && eng.n1 > E.idleN1 - 0.008) { eng.starting = false; this.events.push({ t: this.time, type: 'engineStable', engine: this.engines.indexOf(eng) }); }
       } else if (!eng.running && !eng.failed) { target = 0; tau = 6; }
@@ -647,7 +653,7 @@ export class Aircraft {
           // and moves at the tiller's rate. A landing's roll-out keeps the pedals' ±7° alone.
           const v = Math.max(gsNow, 0.5);
           maxSteer = clamp(Math.atan(TILLER.wheelbase * TILLER.lateralAccel / (v * v)), maxSteer, TILLER.maxDeg * DEG);
-          const want = inp.yaw * maxSteer, step = TILLER.rateDeg * DEG * dt;
+          const want = this.systems && !this.systems.limits.steering ? 0 : inp.yaw * maxSteer, step = TILLER.rateDeg * DEG * dt;
           g.steer = Math.abs(want) <= g.cfg.steerMaxDeg * DEG && Math.abs(this.noseSteer) <= g.cfg.steerMaxDeg * DEG ? want
             : this.noseSteer + clamp(want - this.noseSteer, -step, step);
         } else g.steer = inp.yaw * maxSteer;

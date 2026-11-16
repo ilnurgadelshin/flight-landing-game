@@ -73,8 +73,8 @@ export function configProblems(st, inp, trim) {
 
 export class TakeoffMonitor {
   /** @param opts { wet, failure: null | { at: 'early' | 'v1', engine: 0 | 1 } } */
-  constructor(aircraft, { wet = false, failure = null } = {}) {
-    this.ac = aircraft; this.wet = wet; this.failure = failure;
+  constructor(aircraft, { wet = false, failure = null, systems = null } = {}) {
+    this.ac = aircraft; this.wet = wet; this.failure = failure; this.systems = systems;   // systems: js/systems.js, with the full procedures
     this.phase = 'before';        // before → roll → rotate → climb → done; or roll → rejected → done
     this.rec = null; this.brief = '';
     this.rating = 0;              // index into TAKEOFF.ratings: the take-off thrust selected
@@ -101,11 +101,12 @@ export class TakeoffMonitor {
     if (this.phase === 'before') {
       if (!onRunway || this.ac.touchdown) { this.brief = ''; return out; }
       const speeds = takeoffSpeeds(inp.flapIndex, this.wet, this.ac.mass), trim = takeoffTrim(this.ac, speeds.flapIndex);
-      const problems = configProblems(st, inp, trim).filter((p) => p !== 'PARKING BRAKE' && p !== 'FLAPS MOVING');
+      const more = this.systems ? this.systems.takeoffProblems() : [];
+      const problems = configProblems(st, inp, trim).filter((p) => p !== 'PARKING BRAKE' && p !== 'FLAPS MOVING').concat(more);
       const key = problems.join() + speeds.vr;
       if (key !== this.brief) { this.brief = key; out.push({ type: 'brief', problems, speeds, trim }); }
       if (inp.throttle > T.rollThrottle && !inp.reverse) {
-        const bad = configProblems(st, inp, trim);
+        const bad = configProblems(st, inp, trim).concat(more);
         this.rec = { speeds, trim, config: bad, startX: st.x, startHeading: st.heading, t: 0, maxDev: 0, called: {},
           rotate: null, liftoff: null, rate: null, positiveT: null, gearUpT: null, speed: { n: 0, sum: 0, min: Infinity }, climbDev: 0, maxBank: 0,
           stall: false, settled: false, rejected: null, endIas: null, failure: null,

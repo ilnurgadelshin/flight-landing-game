@@ -145,6 +145,7 @@ export class UI {
     $('scenario-section').style.opacity = this.selection.mode === 'training' ? 0.45 : 1;
     const ground = !!APPROACH_STARTS[this.selection.start].ground;
     $('opt-weight-label').classList.toggle('hidden', !ground); $('opt-failure-label').classList.toggle('hidden', !ground); $('opt-flight-label').classList.toggle('hidden', !ground);   // a departure's own choice
+    $('opt-proc-label').classList.toggle('hidden', !APPROACH_STARTS[this.selection.start].stand);   // from the gate only
     $('btn-demo').disabled = ground;                       // the autoland demo flies approaches only
     $('btn-start').textContent = APPROACH_STARTS[this.selection.start].stand ? 'Start at the gate' : ground ? 'Start take-off' : 'Start approach';
   }
@@ -159,6 +160,7 @@ export class UI {
       weightKg: parseInt($('opt-weight').value, 10),
       failure: $('opt-failure').value,
       wholeFlight: $('opt-flight').value === 'whole',
+      procedures: $('opt-procedures').value === 'full' ? 'full' : 'simple',
       sound: $('opt-sound').checked,
       mouseSensitivity: parseFloat($('opt-mouse').value),
     };
@@ -178,6 +180,9 @@ export class UI {
     $('btn-again').addEventListener('click', () => this.onAgain && this.onAgain());
     $('btn-replay').addEventListener('click', () => this.onReplay && this.onReplay());
     $('btn-step').addEventListener('click', (e) => { e.target.blur(); if (this.onStep) this.onStep(); });
+    $('btn-panel').addEventListener('click', (e) => { e.target.blur(); if (this.onPanel) this.onPanel(true); });
+    $('sys-close').addEventListener('click', () => this.onPanel && this.onPanel(false));
+    $('systems').addEventListener('click', (e) => { if (e.target.id === 'systems' && this.onPanel) this.onPanel(false); });
     $('btn-menu').addEventListener('click', () => this.onQuit && this.onQuit());
     $('btn-help').addEventListener('click', () => this.onHelp && this.onHelp());
     $('school-next').addEventListener('click', () => this.schoolStep(1));
@@ -395,6 +400,40 @@ export class UI {
       if (shown.fdh !== tp) { shown.fdh = tp; g.fdh.style.transform = tp; }
       if (shown.fdv !== tr) { shown.fdv = tr; g.fdv.style.transform = tr; }
     }
+  }
+
+  /** The overhead panel page: built once from the panel's description (js/systems.js PANEL). */
+  buildSystems(panel) {
+    const root = $('sys-groups'); root.innerHTML = ''; this.sysButtons = {};
+    for (const group of panel) {
+      const box = document.createElement('div'); box.className = 'sys-group'; box.innerHTML = `<h4>${group.group}</h4>`;
+      const row = document.createElement('div'); row.className = 'sys-row';
+      for (const sw of group.switches) {
+        const b = document.createElement('button'); b.type = 'button'; b.className = 'sys-sw'; b.dataset.sw = sw.id;
+        b.innerHTML = `<b>${sw.label}</b><i></i><small></small>`;
+        b.addEventListener('click', () => { b.blur(); if (this.onSystemSwitch) this.onSystemSwitch(sw.id); });
+        row.appendChild(b); this.sysButtons[sw.id] = b;
+      }
+      box.appendChild(row); root.appendChild(box);
+    }
+  }
+  showSystems(on) { $('systems').classList.toggle('hidden', !on); }
+  setPanelButton(on) { $('btn-panel').classList.toggle('hidden', !on); }
+  /** @param m Game.panelModel(): positions, lights, gauges, checklists */
+  updateSystems(m) {
+    if (!m || !this.sysButtons) return;
+    for (const [id, b] of Object.entries(this.sysButtons)) {
+      const pos = m.positions[id], light = m.lights[id], on = pos !== 'OFF' && pos !== 'CUTOFF';
+      const key = `${pos}|${light ? light.text + light.kind : ''}`;
+      if (b.dataset.k === key) continue; b.dataset.k = key;
+      b.classList.toggle('on', on); b.children[1].textContent = pos; b.children[2].textContent = light ? light.text : ''; b.children[2].className = light ? light.kind : '';
+    }
+    const g = m.gauges, e = g.engines, n = (v, d = 0) => v.toFixed(d).padStart(5);
+    $('sys-source').textContent = `AC: ${g.source}`;
+    const text = `          ENG 1   ENG 2\nN1 %     ${n(e[0].n1, 1)}   ${n(e[1].n1, 1)}\nN2 %     ${n(e[0].n2, 1)}   ${n(e[1].n2, 1)}\nEGT °C   ${n(e[0].egt)}   ${n(e[1].egt)}\n\nAPU      ${n(g.apuRpm)} %  EGT ${n(g.apuEgt)}\nDUCT     ${n(g.duct)} psi\nHYD A    ${n(g.hydA)} psi\nHYD B    ${n(g.hydB)} psi`;
+    if ($('sys-gauges').textContent !== text) $('sys-gauges').textContent = text;
+    const html = m.lists.map((l, k) => `<div class="sys-list${k === m.current ? ' current' : ''}"><h4>${l.title}</h4>${l.items.map((i, j) => `<div class="${i.done ? 'done' : 'todo' + (k === m.current && j === l.items.findIndex((x) => !x.done) ? ' first' : '')}">${i.done ? '✔' : '○'} ${i.text}</div>`).join('')}</div>`).join('');
+    if (this._sysLists !== html) { this._sysLists = html; $('sys-lists').innerHTML = html; }
   }
 
   /** The departure's next step as a button (js/game.js departureStep), or none. */

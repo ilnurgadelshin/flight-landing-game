@@ -26,6 +26,7 @@ import { Pushback } from './pushback.js';
 import { TakeoffMonitor, evaluateTakeoff, wholeFlightResult, takeoffTrim, TAKEOFF } from './takeoff.js';
 import { pastHoldingPoint } from './taxi-route.js';
 import { CircuitGuide } from './circuit.js';
+import { Systems } from './systems.js';
 import { FlightControls } from './flightcontrols.js';
 import { commandSpeed } from './autothrottle.js';
 import { evaluateLanding } from './evaluate.js';
@@ -140,6 +141,7 @@ export class Game {
     this.controls.onAutothrottle = (on, reason) => this.announceAutothrottle(on, reason);
     if (this.mode === 'training') this.controls.enableDirector();
     this.sim.preStep = (dt) => {
+      if (this.systems) this.systems.step(dt);
       if (this.pushback && this.pushback.step(dt)) this.pushbackDone();
       if (this.controls.step(dt)) this.announceTakeover();
       // the autoland decided to go around: announced like TO/GA pressed, before the GPWS looks at
@@ -235,6 +237,12 @@ export class Game {
         break;
       }
       case 'departure': this.departureStep(); break;
+      case 'systemSwitch': {
+        if (!this.systems) break;
+        const now = this.systems.set(arg.id, arg.to ?? null);
+        this.emit('control', { name: 'systemSwitch', value: now }); this.log('input', `${arg.id} ${now}`);
+        break;
+      }
       case 'parkingBrake': {
         const inp = this.sim.aircraft.input;
         if (!st.onGround || st.towed) break;
@@ -346,8 +354,11 @@ export class Game {
   newTakeoff() {
     const start = this.sim.start, ac = this.sim.aircraft;
     // a departure's weight: the menu's choice (62 t if none)
+    // the full procedures (the menu's choice, from the gate): a cold and dark aircraft with its systems
+    this.systems = start.stand && this.opts.procedures === 'full' ? new Systems(ac, { cold: true }) : null;
+    ac.systems = this.systems;
     if (start.ground) ac.setMass(TAKEOFF.weights.includes(this.opts.weightKg) ? this.opts.weightKg : TAKEOFF.weights[0]);
-    this.takeoff = start.ground ? new TakeoffMonitor(ac, { wet: this.sim.scenario.wet, failure: this.takeoffFailure() }) : null;
+    this.takeoff = start.ground ? new TakeoffMonitor(ac, { wet: this.sim.scenario.wet, failure: this.takeoffFailure(), systems: this.systems }) : null;
     // lined up, the before-take-off checks are done: the trim in the green band, the autobrake at RTO
     if (start.lineUp) { ac.input.trim = ac.state.trim = takeoffTrim(ac, start.flaps); ac.input.autobrake = ac.state.autobrake = 5; }
   }
@@ -358,6 +369,15 @@ export class Game {
     const seed = this.seed, draw = ((seed * 9301 + 49297) % 233280) / 233280;
     if (at === 'surprise') at = draw < 1 / 3 ? 'none' : draw < 2 / 3 ? 'early' : 'v1';
     return at === 'none' ? null : { at, engine: seed % 2 };
+  }
+
+  /** The overhead panel page's content, with the full procedures: switches, lights, gauges, checklists. Null otherwise. */
+  panelModel() {
+    const sys = this.systems; if (!sys) return null;
+    const st = this.sim.state, inp = this.sim.aircraft.input, d = this.ctx.departure, t = this.takeoff;
+    const lists = sys.checklists({ pushed: !!d && d.phase !== 'gate', flapsSet: TAKEOFF.flaps.includes(inp.flapIndex), trimSet: !!t && Math.abs(inp.trim - t.trim) <= TAKEOFF.trimBand, rto: inp.autobrake === 5, parkingBrake: st.parkingBrake });
+    const current = lists.findIndex((l) => l.items.some((i) => !i.done));
+    return { positions: Object.fromEntries(Object.keys(sys.sw).map((id) => [id, sys.position(id)])), lights: Object.fromEntries(Object.keys(sys.sw).map((id) => [id, sys.light(id)])), gauges: sys.gauges(), lists, current, power: sys.limits };
   }
 
   /** The take-off speeds and trim for the displays, while a take-off is ahead or under way. */
@@ -416,9 +436,12 @@ export class Game {
     const d = this.ctx.departure, ac = this.sim.aircraft;
     if (!d) return;
     if (d.phase === 'gate') {
+      const sys = this.systems, missing = sys ? sys.pushbackProblems() : [];
+      if (missing.length) { this.message(`PUSHBACK NOT READY — first: ${missing.join('; ')}`, 'warn', 6); return; }
+      if (sys) sys.disconnectGroundPower();
       this.setParkingBrake(false); this.pushback.start(); d.phase = 'push';
       this.emit('control', { name: 'departure', value: 'push' }); this.log('departure', 'pushback started');
-    } else if ((d.phase === 'push' || d.phase === 'pushed') && !d.enginesAsked) {
+    } else if ((d.phase === 'push' || d.phase === 'pushed') && !d.enginesAsked && !this.systems) {
       d.enginesAsked = true; ac.startEngine(1);
       this.emit('control', { name: 'departure', value: 'start' });
     } else if (d.phase === 'ready' || d.phase === 'lineup') {
@@ -483,6 +506,14 @@ export class Game {
     const E = this.sim.aircraft.engines, starting = E[1].starting ? 2 : E[0].starting ? 1 : 0;
     const engines = starting ? `ENGINE ${starting} STARTING` : '';
     let text = '', step = '';
+    if (this.systems && ['gate', 'push', 'pushed', 'ready'].includes(d.phase)) {
+      // the full procedures: the crew works the overhead panel; the one control is the tug and the brake
+      if (d.phase === 'gate') { text = 'COLD AND DARK — [[panel]]: the overhead panel and its checklists. Then [[departure]]: the pushback'; step = 'PUSHBACK'; }
+      else if (d.phase === 'ready') { text = 'ENGINES RUNNING — the after-start checklist ([[panel]]), then [[departure]]: release the parking brake'; step = 'RELEASE PARKING BRAKE'; }
+      else text = `${d.phase === 'push' ? 'PUSHBACK' : 'PUSHBACK COMPLETE'} — start the engines on the panel ([[panel]]): start switch to GRD, at 25 % N2 the start lever to IDLE`;
+      this.message(text, 'ga'); d.step = step; this.emit('departure', { phase: d.phase, step });
+      return;
+    }
     if (d.phase === 'gate') { text = `GATE ${this.sim.start.stand.index + 1} — [[departure]]: request the pushback`; step = 'PUSHBACK'; }
     else if (d.phase === 'push') { text = d.enginesAsked ? `PUSHBACK — ${engines || 'ENGINES RUNNING'}` : 'PUSHBACK — [[departure]]: start the engines'; step = d.enginesAsked ? '' : 'START ENGINES'; }
     else if (d.phase === 'pushed') { text = d.enginesAsked ? `PUSHBACK COMPLETE — ${engines}` : 'PUSHBACK COMPLETE, parking brake set — [[departure]]: start the engines'; step = d.enginesAsked ? '' : 'START ENGINES'; }
@@ -589,8 +620,8 @@ export class Game {
         this.log('systems', `engine ${e.engine + 1} stable at idle`);
         const d = c.departure;
         if (d) {
-          if (e.engine === 1) ac.startEngine(0);              // no. 2 first, then no. 1, as crews start them
-          else if (d.phase === 'pushed') d.phase = 'ready';
+          if (!this.systems && e.engine === 1) ac.startEngine(0);              // no. 2 first, then no. 1, as crews start them
+          else if (d.phase === 'pushed' && ac.engines.every((x) => x.running && !x.starting)) d.phase = 'ready';
           this.departurePrompt();
         }
       }
@@ -607,6 +638,16 @@ export class Game {
       } else if (e.type === 'hardlanding') { this.log('damage', 'hard landing'); }
     }
     this.taxiStep();
+    // the systems' news: the APU, the starters, an aborted start
+    if (this.systems) for (const e of this.systems.events.splice(0)) {
+      const n = (e.engine ?? 0) + 1;
+      if (e.type === 'apuRunning') this.message('APU RUNNING', '', 3);
+      else if (e.type === 'starter') this.emit('engineStart', { engine: e.engine });
+      else if (e.type === 'lightoff') this.message(`ENGINE ${n} LIGHT-OFF`, '', 3);
+      else if (e.type === 'startAborted') { this.message(`ENGINE ${n} START ABORTED — ${e.reason}. Start lever to CUTOFF for 20 s`, 'warn', 9); this.emit('takeoffConfig', { problems: ['START'] }); }
+      else if (e.type === 'engineShutdown') this.message(`ENGINE ${n} SHUT DOWN`, 'warn', 4);
+      if (e.type !== 'starter') this.log('systems', `${e.type}${e.engine !== undefined ? ' ' + n : ''}${e.reason ? ': ' + e.reason : ''}`);
+    }
     // the circuit after a take-off: each vector as its leg begins, until established on the ILS
     if (c.circuit) {
       const leg = c.circuit.update(st);
