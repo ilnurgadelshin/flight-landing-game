@@ -171,14 +171,19 @@ body.touch #btn-step { font-size: 14px; padding: 11px 18px; }
   .panel { padding: 12px 16px; border-radius: 10px; }
   /* two columns: what to fly on the left, the conditions and the start button on the right */
   .menu-panel { width: 100%; max-width: 1000px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); column-gap: 16px; align-items: start;
-    grid-template-areas: "title title" "mode cond" "start cond" "start actions" "start opts" "hint hint"; grid-template-rows: auto auto auto auto 1fr auto; }
+    grid-template-areas: "title title" "start cond" "start mode" "start actions" "start opts" "hint hint"; grid-template-rows: auto auto auto auto 1fr auto; }
   .menu-panel h1 { grid-area: title; font-size: 17px; letter-spacing: 1.5px; }
   .menu-panel .sub { display: none; }
   #mode-section { grid-area: mode; }
   #start-section { grid-area: start; }
   #scenario-section { grid-area: cond; }
   .menu-panel .menu-actions { grid-area: actions; margin-top: 8px; }
-  .menu-panel .options { grid-area: opts; gap: 4px 14px; font-size: 12px; margin-top: 8px; }
+  #settings-section { grid-area: opts; }
+  .menu-panel .options { gap: 4px 14px; font-size: 12px; }
+  #depart-opts { margin-top: 6px; padding: 6px 8px; }
+  .start-group h3 { font-size: 10px; margin: 0 0 3px; }
+  #start-row { gap: 6px; }
+  #mode-row .choice:not(.selected) small { display: none; }
   /* the notes under the menu share one grid cell: each hint placed there itself lay on top of the others */
   .menu-panel .menu-foot { grid-area: hint; }
   .menu-panel .hint { margin-top: 6px; font-size: 11px; }
@@ -192,7 +197,7 @@ body.touch #btn-step { font-size: 14px; padding: 11px 18px; }
   .choice small { font-size: 10.5px; line-height: 1.25; }
   .choice .icon { font-size: 15px; margin-right: 4px; }
   #scenario-row { display: grid; grid-template-columns: 1fr 1fr; }
-  #start-row { flex-direction: column; }
+  #start-row .choice-row { flex-direction: column; }
   #start-row .choice { flex: none; }
   button.primary, .menu-actions button:not(.primary), #pause button:not(.primary) { padding: 10px 16px; font-size: 14px; }
   .menu-actions { gap: 8px; }
@@ -412,3 +417,25 @@ body.replay::after { content: 'REPLAY  ·  click or press any key to return'; po
 .sys-list h4 { margin: 2px 0 4px; font-size: 11px; letter-spacing: 2px; color: #ffcf70; }
 .sys-list div { padding: 1px 0; } .sys-list .done { color: #6f6; } .sys-list .todo { color: #e8eef4; } .sys-list .todo.first { font-weight: 700; color: #ffcf70; }
 body.touch #sys-body { flex-direction: column; } body.touch .sys-sw { min-height: 46px; }
+
+/* ---------- the menu: what to fly (departures and arrivals), the weather, how, the settings ---------- */
+#start-row { display: grid; grid-template-columns: 2fr 3fr; gap: 10px 18px; }
+.start-group h3 { margin: 0 0 6px; font-size: 12px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--accent); }
+.start-group .choice { flex: 1 1 130px; }
+#depart-opts { margin-top: 10px; padding: 9px 12px; border-radius: 10px; border: 1px solid rgba(255,176,32,0.3); background: rgba(255,176,32,0.06); color: var(--text); gap: 8px 18px; }
+#depart-opts.hidden, #btn-demo.hidden { display: none; }
+h2 .h2-opt { float: right; text-transform: none; letter-spacing: 0; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+#mode-row .choice { padding: 8px 12px; }
+.menu-foot { margin-top: 14px; border-top: 1px solid rgba(255,255,255,0.1); }
+#keys summary { cursor: pointer; color: var(--text); }
+#keys dl { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; margin: 8px 0 0; }
+#keys dt { color: var(--text); } #keys dd { margin: 0; }
+@media (max-height: 520px) and (orientation: landscape) {
+  #start-row { grid-template-columns: 2fr 3fr; gap: 6px 10px; }
+  #depart-opts { display: grid; grid-template-columns: 1fr 1fr; }
+  #depart-opts label { flex-direction: column; align-items: stretch; gap: 2px; font-size: 11px; }
+  #depart-opts select { width: 100%; }
+  /* the Start button stays on a 390 px tall screen */
+  #scenario-row .choice, #mode-row .choice { padding: 4px 9px; }
+  .menu-panel .menu-actions { margin-top: 6px; }
+}

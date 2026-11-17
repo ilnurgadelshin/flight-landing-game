@@ -124,15 +124,22 @@ export class UI {
       b.addEventListener('click', () => { this.selection.scenario = s.id; this.refreshMenu(); });
       sc.appendChild(b);
     }
+    // what to fly, in two groups: the departures (from the ground) and the arrivals (already airborne)
     const st = $('start-row');
     st.innerHTML = '';
-    for (const s of Object.values(APPROACH_STARTS)) {
-      const b = document.createElement('button');
-      b.className = 'choice' + (s.id === this.selection.start ? ' selected' : '');
-      b.dataset.start = s.id;
-      b.innerHTML = `<b>${s.name}</b><small>${s.desc}</small>`;
-      b.addEventListener('click', () => { this.selection.start = s.id; this.refreshMenu(); });
-      st.appendChild(b);
+    for (const [title, ground] of [['Departure', true], ['Arrival', false]]) {
+      const g = document.createElement('div');
+      g.className = 'start-group';
+      g.innerHTML = `<h3>${title}</h3><div class="choice-row"></div>`;
+      for (const s of Object.values(APPROACH_STARTS).filter((x) => !!x.ground === ground)) {
+        const b = document.createElement('button');
+        b.className = 'choice' + (s.id === this.selection.start ? ' selected' : '');
+        b.dataset.start = s.id;
+        b.innerHTML = `<b>${s.name}</b><small>${s.desc}</small>`;
+        b.addEventListener('click', () => { this.selection.start = s.id; this.refreshMenu(); });
+        g.lastChild.appendChild(b);
+      }
+      st.appendChild(g);
     }
     document.querySelectorAll('#mode-row .choice').forEach((b) => b.addEventListener('click', () => { this.selection.mode = b.dataset.mode; this.refreshMenu(); }));
     this.refreshMenu();
@@ -146,7 +153,8 @@ export class UI {
     const ground = !!APPROACH_STARTS[this.selection.start].ground;
     $('opt-weight-label').classList.toggle('hidden', !ground); $('opt-failure-label').classList.toggle('hidden', !ground); $('opt-flight-label').classList.toggle('hidden', !ground);   // a departure's own choice
     $('opt-proc-label').classList.toggle('hidden', !APPROACH_STARTS[this.selection.start].stand);   // from the gate only
-    $('btn-demo').disabled = ground;                       // the autoland demo flies approaches only
+    $('depart-opts').classList.toggle('hidden', !ground);
+    $('btn-demo').disabled = ground; $('btn-demo').classList.toggle('hidden', ground);   // the autoland demo flies approaches only
     $('btn-start').textContent = APPROACH_STARTS[this.selection.start].stand ? 'Start at the gate' : ground ? 'Start take-off' : 'Start approach';
   }
 

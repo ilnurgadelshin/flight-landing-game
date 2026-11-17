@@ -255,12 +255,12 @@ export const APPROACH_STARTS = {
   full: { id: 'full', name: 'Full approach', distanceNm: 26, altFt: 7000, iasKts: 210, flaps: 1, gear: false,
            desc: '26 nm, 7000 ft, flaps 1. Descend, slow down and configure. About 12 minutes.' },
   // a take-off: lined up on runway 27, the engines running, configured (js/takeoff.js)
-  runway: { id: 'runway', name: 'Take-off', ground: true, lineUp: { x: 1440, z: 0, headingDeg: 270 }, flaps: 2, gear: true,
-           desc: 'Lined up on runway 27, flaps 5, ready to go. Take off, clean up and climb to 3000 ft. About 3 minutes.' },
+  runway: { id: 'runway', name: 'On the runway', ground: true, lineUp: { x: 1440, z: 0, headingDeg: 270 }, flaps: 2, gear: true,
+           desc: 'Lined up on runway 27, engines running. Take off, clean up and climb to 3000 ft. About 3 minutes.' },
   // a departure: parked on stand 4, engines off (js/pushback.js, the README's departure plan)
-  gate: { id: 'gate', name: 'From the gate', ground: true, flaps: 0, gear: true,
+  gate: { id: 'gate', name: 'At the gate', ground: true, flaps: 0, gear: true,
            stand: { x: 160, z: 380, headingDeg: 180, noseToDeg: 90, index: 3 },
-           desc: 'Gate 4, engines off. Pushback, engine start, taxi to runway 27 and take off.' },
+           desc: 'Gate 4, engines off. Push back, start the engines, taxi to runway 27 and take off. About 12 minutes.' },
 };
 
 export const DEFAULTS = {
