@@ -435,4 +435,7 @@ h2 .h2-opt { float: right; text-transform: none; letter-spacing: 0; font-size: 1
   #depart-opts { display: grid; grid-template-columns: 1fr 1fr; }
   #depart-opts label { flex-direction: column; align-items: stretch; gap: 2px; font-size: 11px; }
   #depart-opts select { width: 100%; }
+  /* the Start button stays on a 390 px tall screen */
+  #scenario-row .choice, #mode-row .choice { padding: 4px 9px; }
+  .menu-panel .menu-actions { margin-top: 6px; }
 }
