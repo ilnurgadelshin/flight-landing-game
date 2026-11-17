@@ -1,7 +1,7 @@
 {
-  "name": "737-800 Landing Simulator",
-  "short_name": "737 Landing",
-  "description": "Fly the final approach and land a Boeing 737-800: ILS, flare, touchdown and roll-out, in clear weather, tailwind, crosswind or a storm.",
+  "name": "737-800 Flight Simulator",
+  "short_name": "737 Sim",
+  "description": "Fly a Boeing 737-800 from the gate: pushback, engine start, taxi, take-off, the ILS approach and the landing, in clear weather, tailwind, crosswind or a storm.",
   "start_url": "./",
   "scope": "./",
   "display": "fullscreen",

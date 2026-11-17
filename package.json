@@ -1,7 +1,7 @@
 {
   "name": "b737-landing-sim",
   "version": "1.0.0",
-  "description": "Boeing 737-800 final approach and landing simulator (Three.js + cannon-es)",
+  "description": "Boeing 737-800 flight simulator: gate to take-off, approach and landing (Three.js + cannon-es)",
   "type": "module",
   "scripts": {
     "start": "npx http-server -p 8080 -c-1 .",

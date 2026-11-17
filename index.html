@@ -8,11 +8,11 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="apple-mobile-web-app-title" content="737 Landing" />
+  <meta name="apple-mobile-web-app-title" content="737 Sim" />
   <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
-  <title>737-800 Landing Simulator</title>
+  <title>737-800 Flight Simulator</title>
   <link rel="stylesheet" href="css/style.css" />
   <script type="importmap">
     {
@@ -88,44 +88,49 @@
   <!-- Main menu -->
   <div id="menu" class="overlay">
     <div class="panel menu-panel">
-      <h1>BOEING 737-800 <span>LANDING SIMULATOR</span></h1>
-      <p class="sub">Final approach into Westhaven International, runway 27. Fly the ILS, flare, and stop on the runway.</p>
+      <h1>BOEING 737-800 <span>FLIGHT SIMULATOR</span></h1>
+      <p class="sub">Westhaven International, runway 27. Push back from the gate, take off, fly the approach and land.</p>
 
-      <div class="menu-section" id="mode-section">
-        <h2>Mode</h2>
-        <div class="choice-row" id="mode-row">
-          <button class="choice" data-mode="training">
-            <b>Flight School</b><small>Guided onboarding, instructor hints and a flight director. Clear weather.</small>
-          </button>
-          <button class="choice selected" data-mode="game">
-            <b>Fly the Approach</b><small>Choose the conditions and get graded on the landing.</small>
-          </button>
+      <div class="menu-section" id="start-section">
+        <h2>What to fly</h2>
+        <div id="start-row"></div>
+        <!-- a departure's own choices: shown for the gate and the take-off only -->
+        <div class="options" id="depart-opts">
+          <label id="opt-proc-label" class="hidden">Procedures <select id="opt-procedures"><option value="simple">simplified</option><option value="full">full (cold and dark)</option></select></label>
+          <label id="opt-flight-label" class="hidden">Then <select id="opt-flight"><option value="takeoff">climb out (take-off only)</option><option value="whole">fly the circuit and land</option></select></label>
+          <label id="opt-weight-label" class="hidden">Weight <select id="opt-weight"><option value="62000">62 t (light)</option><option value="70000">70 t</option><option value="78000">78 t (heavy)</option></select></label>
+          <label id="opt-failure-label" class="hidden">Engine failure <select id="opt-failure"><option value="none">none</option><option value="early">before V1 (stop)</option><option value="v1">at V1 (go)</option><option value="surprise">surprise me</option></select></label>
         </div>
       </div>
 
       <div class="menu-section" id="scenario-section">
-        <h2>Conditions</h2>
+        <h2>Weather <label class="h2-opt"><input type="checkbox" id="opt-night" /> Night</label></h2>
         <div class="choice-row" id="scenario-row"></div>
       </div>
 
-      <div class="menu-section" id="start-section">
-        <h2>Starting point</h2>
-        <div class="choice-row" id="start-row"></div>
+      <div class="menu-section" id="mode-section">
+        <h2>How</h2>
+        <div class="choice-row" id="mode-row">
+          <button class="choice selected" data-mode="game">
+            <b>Check ride</b><small>No hints. Your take-off and your landing are graded.</small>
+          </button>
+          <button class="choice" data-mode="training">
+            <b>Flight School</b><small>A guided tour first, then instructor hints and a flight director. Clear weather.</small>
+          </button>
+        </div>
       </div>
 
-      <div class="menu-section options">
-        <label><input type="checkbox" id="opt-invert" /> Pilot-style pitch <span class="only-desktop">(push forward = nose down)</span><span class="only-touch">(stick up = nose down)</span></label>
-        <label><input type="checkbox" id="opt-night" /> Night</label>
-        <label id="opt-weight-label" class="hidden">Take-off weight <select id="opt-weight"><option value="62000">62 t (light)</option><option value="70000">70 t</option><option value="78000">78 t (heavy)</option></select></label>
-        <label id="opt-proc-label" class="hidden">Procedures <select id="opt-procedures"><option value="simple">simplified</option><option value="full">full (cold and dark)</option></select></label>
-        <label id="opt-flight-label" class="hidden">Flight <select id="opt-flight"><option value="takeoff">take-off only</option><option value="whole">take off, circuit and land</option></select></label>
-        <label id="opt-failure-label" class="hidden">Engine failure <select id="opt-failure"><option value="none">none</option><option value="early">before V1 (stop)</option><option value="v1">at V1 (go)</option><option value="surprise">surprise me</option></select></label>
-        <label><input type="checkbox" id="opt-sound" checked /> Sound &amp; voice callouts</label>
-        <label class="only-touch"><input type="checkbox" id="opt-tilt" /> Tilt to fly</label>
-        <label class="vib-opt"><input type="checkbox" id="opt-vib" checked /> Vibration</label>
-        <span id="tilt-msg" class="tilt-msg only-touch"></span>
-        <span id="pad-msg" class="pad-msg"></span>
-        <label class="only-desktop">Mouse sensitivity <input type="range" id="opt-mouse" min="0.4" max="2" step="0.1" value="1" /></label>
+      <div class="menu-section" id="settings-section">
+        <h2>Settings</h2>
+        <div class="options">
+          <label><input type="checkbox" id="opt-invert" /> Pilot-style pitch <span class="only-desktop">(push forward = nose down)</span><span class="only-touch">(stick up = nose down)</span></label>
+          <label><input type="checkbox" id="opt-sound" checked /> Sound &amp; voice callouts</label>
+          <label class="only-touch"><input type="checkbox" id="opt-tilt" /> Tilt to fly</label>
+          <label class="vib-opt"><input type="checkbox" id="opt-vib" checked /> Vibration</label>
+          <label class="only-desktop">Mouse sensitivity <input type="range" id="opt-mouse" min="0.4" max="2" step="0.1" value="1" /></label>
+          <span id="tilt-msg" class="tilt-msg only-touch"></span>
+          <span id="pad-msg" class="pad-msg"></span>
+        </div>
       </div>
 
       <div class="menu-actions">
@@ -133,10 +138,18 @@
         <button id="btn-demo">Watch an autoland demo</button>
       </div>
       <div class="menu-foot">
-        <p class="hint"><a href="assets/credits.html" target="_blank" rel="noopener" style="color:inherit">Flight deck &amp; scenery credits</a></p>
         <p class="hint only-touch"><span class="no-tilt">Right thumb: the stick</span><span class="only-tilt">Tilt the phone to fly</span> · left thumb: the thrust lever and the rudder · buttons for gear, flaps, speedbrakes, autobrake and the autothrottle. <span class="ios-only">For full screen on iPhone: Share → Add to Home Screen.</span></p>
         <p class="hint only-pad" id="pad-hint"></p>
-        <p class="hint only-desktop">Keyboard: ↑↓ pitch · ←→ roll · A/D rudder · W/S throttle · Q autothrottle · T TOGA · F/V flaps · G gear · Space speedbrake · X arm · B brakes · N autobrake · R reversers · [ ] trim · L look down · C view (cockpit / head-up) · , . K navigation display range / mode · J lean in to the navigation display · E approach chart · H help · U next step at the gate (pushback, engine start, parking brake) · Y parking brake · O overhead panel (full procedures)</p>
+        <details class="hint only-desktop" id="keys">
+          <summary>Keyboard controls</summary>
+          <dl>
+            <dt>Flying</dt><dd>↑↓ pitch · ←→ roll · A/D rudder · W/S thrust · [ ] trim · Q autothrottle · T take-off / go-around thrust</dd>
+            <dt>Configuration</dt><dd>F/V flaps · G gear · Space speedbrake · X arm speedbrake · N autobrake</dd>
+            <dt>On the ground</dt><dd>B brakes · R reversers · Y parking brake · U next step at the gate (pushback, engine start) · O overhead panel (full procedures)</dd>
+            <dt>Views</dt><dd>C view (flight deck / head-up) · L look down · J lean in to the navigation display · , . K its range and mode · E approach chart · H help · P pause</dd>
+          </dl>
+        </details>
+        <p class="hint"><a href="assets/credits.html" target="_blank" rel="noopener" style="color:inherit">Flight deck &amp; scenery credits</a></p>
       </div>
     </div>
   </div>
@@ -181,7 +194,7 @@
       <div class="menu-actions">
         <button id="btn-again" class="primary">Fly again</button>
         <button id="btn-replay">Watch the landing</button>
-        <button id="btn-menu">Change conditions</button>
+        <button id="btn-menu">Change flight</button>
       </div>
     </div>
   </div>

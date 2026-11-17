@@ -1,14 +1,17 @@
-# Boeing 737-800 Landing Simulator
+# Boeing 737-800 Flight Simulator
 
 **Play it in the browser: https://ilnurgadelshin.github.io/flight-landing-game/**
 
-A browser-based final-approach and landing simulator for the Boeing 737-800,
+A browser-based flight simulator for the Boeing 737-800, from the gate to the
+take-off and from the final approach to the landing,
 built with plain HTML/CSS/JavaScript, [Three.js](https://threejs.org) for the
 3D world and cockpit, and [cannon-es](https://github.com/pmndrs/cannon-es) as
 the rigid-body physics engine. No build step, no server-side code.
 
-You sit in the captain's seat on final approach to runway 27 of a fictional
-airport, Westhaven International, fly the ILS down a 3° glideslope, flare,
+You sit in the captain's seat at a fictional airport, Westhaven International.
+A departure starts at the gate (pushback, engine start, taxi) or lined up on
+runway 27, and the take-off is graded; it can carry on round the circuit to a
+landing. An arrival starts on final approach to runway 27: you fly the ILS down a 3° glideslope, flare,
 touch down in the touchdown zone and stop the aircraft, in clear weather, a
 strong tailwind, a heavy crosswind or a severe storm with 900 m visibility.
 The landing is graded, and mistakes have consequences: hard landings, gear
@@ -83,11 +86,14 @@ deployment" in the Actions tab).
 
 ## How to play
 
-1. Pick a mode: **Flight School** (guided onboarding, instructor hints and a
-   flight director, clear weather) or **Fly the Approach** (choose the
-   conditions, get graded).
-2. Pick the **landing conditions** and the **starting point** (4 nm short
-   final fully configured, 10 nm standard final, or a 26 nm full approach).
+1. Pick **what to fly**: a departure (at the gate, or lined up on the runway)
+   or an arrival (4 nm short final fully configured, 10 nm standard final, or
+   a 26 nm full approach). A departure has its own choices beside it: the
+   procedures, whether to fly the circuit and land, the weight and an engine
+   failure.
+2. Pick the **weather**, and how to fly it: a **check ride** (no hints,
+   graded) or **Flight School** (guided onboarding, instructor hints and a
+   flight director, clear weather).
 3. Fly the ILS: keep the magenta localizer and glideslope diamonds centred,
    the airspeed at Vref + 5 (147 kts with flaps 30), and the PAPI showing two
    white and two red lights. In strong or gusty wind, add half the steady
@@ -1560,7 +1566,7 @@ Over 80 more storm approaches (seeds 11–50):
 - **E6** provokes the failures and checks the warnings and outcomes. It also renders sounds offline
   and checks that, between 400 Hz and 8 kHz (what a phone speaker plays), a touchdown, a hard
   landing, a crash, a voice warning and the stick shaker are clearly louder than the engines.
-- **E7** flies a keyboard-only go-around from 500 ft and repositions, in Fly the Approach and in Flight School.
+- **E7** flies a keyboard-only go-around from 500 ft and repositions, in a check ride and in Flight School.
 - **E8** checks that simulated time matches the frame time the game loop hands the physics, at any frame rate, and that the 4× time scale runs the physics 4× as fast.
 - **E9** lands with real mouse-yoke and keyboard events.
 - **E10** runs on a phone-sized landscape screen (852×393, touch, simulated notch

@@ -508,7 +508,7 @@ if (want('fail')) {
 
 // --------------------------------------------------------------------------- go-around with the keyboard
 if (want('ga')) {
-  section('E7', 'Go-around flown with the keyboard from 500 ft, then reposition (Fly the Approach and Flight School)');
+  section('E7', 'Go-around flown with the keyboard from 500 ft, then reposition (check ride and Flight School)');
   for (const mode of ['game', 'training']) {
     const tag = mode === 'training' ? 'Flight School ' : '';
     await start({ scenarioId: 'clear', startId: 'short', mode, sound: false, skipSchool: true });
